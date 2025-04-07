@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <title>Seeker's Reverie — Preface</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../../styles/chapter.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="../../components/nav.js"></script>
+    <script src="../../components/chapterhead.js"></script>
+    <script src="../../components/region.js"></script>
+</head>
+<body>
+    <header id="nav-container"></header>
+    <main>
+        <article class="chapter-content">
+            <div id="chapter-header"></div>
+            <div class="chapter-top-right">
+                <div class="purchase-buttons">
+                    <button onclick="openRegionalAmazonLink()">Kindle</button>
+                    <button onclick="window.location.href='../../print.html'">Print</button>
+                    <button onclick="window.location.href='seekers_reverie.epub'">ePub</button>
+                </div>
+            </div>
+            <div id="markdown-content">
+                <!-- Markdown content will be dynamically loaded here -->
+            </div>
+        </article>
+        <div id="next-chapter"></div>
+    </main>
+    <script src="../../components/chapterfoot.js"></script>
+    <script>
+        // Fetch and render the Markdown content
+        fetch('sr00-preface.md')
+            .then(response => response.text())
+            .then(markdown => {
+                const container = document.getElementById('markdown-content');
+                container.innerHTML = marked.parse(markdown);
+            })
+            .catch(error => console.error('Error loading Markdown:', error));
+
+        renderChapterHeader('chapter-header', {
+            coverImage: 'seekers_reverie.png',
+            title: "Seeker's Reverie",
+            chapterNumber: '',
+            chapterTitle: 'Preface'
+        });
+
+        // Debug log to confirm renderNextChapter is being called
+        console.log('Calling renderNextChapter...');
+        renderNextChapter('next-chapter', {
+            coverImage: 'seekers_reverie.png',
+            title: "Seeker's Reverie",
+            chapterTitle: 'Chapter 1 — Escaping Oneself',
+            description: 'A lost dreamer suffers in a horrible nightmare until they fall out of their dream and discover somewhere new.',
+            link: 'seekers_reverie_chapter_1.html',
+            available: true
+        });
+    </script>
+</body>
+</html>

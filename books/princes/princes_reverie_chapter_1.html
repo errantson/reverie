@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" class="red">
+<head>
+    <meta charset="UTF-8">
+    <title>Prince's Reverie — Chapter 1</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../../styles/chapter.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="../../components/nav.js"></script>
+    <script src="../../components/chapterhead.js"></script>
+    <script src="../../components/chapterfoot.js"></script>
+    <script src="../../components/markdown.js"></script>
+    <script src="../../components/region.js"></script>
+</head>
+<body class="red">
+    <header id="nav-container"></header>
+    <main>
+        <article class="chapter-content">
+            <div id="chapter-header"></div>
+            <div class="chapter-top-right">
+                <div class="purchase-buttons">
+                    <button onclick="openRegionalAmazonLink()">Kindle</button>
+                    <button onclick="window.location.href='../../print.html'">Print</button>
+                    <button onclick="window.location.href='princes_reverie.epub'">ePub</button>
+                </div>
+            </div>
+            <div id="markdown-content">
+                <!-- Markdown content will be dynamically loaded here -->
+            </div>
+        </article>
+        <div id="next-chapter"></div>
+    </main>
+    <script>
+        loadMarkdown('pr01-whatever_you_want.md', 'Prince\'s Reverie');
+        renderChapterHeader('chapter-header', {
+            coverImage: 'princes_reverie.png',
+            title: "Prince's Reverie",
+            chapterNumber: 'Chapter 1',
+            chapterTitle: 'Whatever You Want'
+        });
+
+        renderNextChapter('next-chapter', {
+            coverImage: 'princes_reverie.png',
+            title: "Prince's Reverie",
+            chapterTitle: 'Chapter 2 — Wasting Time',
+            description: 'A venture into our wild mindscape with an odd newcomer brings something new to the surviving dreamweavers.',
+            link: '#',
+            available: false
+        });
+    </script>
+</body>
+</html>

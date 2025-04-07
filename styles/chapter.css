@@ -1,0 +1,290 @@
+@import url('./buttons.css');
+
+:root {
+    --primary-color: #1c4191;
+    --secondary-color: #333399;
+    --text-color: #333333;
+    --background-color: #ffffff;
+    --border-color: #1c4191;
+    --page-background-color: #f0f8ff;
+    --gradient-start: #1c4191;
+    --gradient-end: #87ceeb;
+}
+
+:root.red {
+    --primary-color: #8b0000; 
+    --secondary-color: #f3f3f3;
+    --text-color: #333333;
+    --background-color: #fcdada;
+    --border-color: #7a0000; 
+    --page-background-color: #911919;
+    --gradient-start: #7a0000; 
+    --gradient-end: #4b0000; 
+}
+
+:root.purple {
+    --primary-color: #612670;
+    --secondary-color: #6e4a7a;
+    --text-color: #333333;
+    --background-color: #ffffff;
+    --border-color: #502d52;
+    --page-background-color: #6e4a7a;
+    --gradient-start: #1e0f22; 
+    --gradient-end: #6e4a7a; 
+}
+
+:root.cloud {
+    --primary-color: #2c3e50;    
+    --secondary-color: #5a6e7e;  
+    --text-color: #333333;
+    --background-color: #e0e4e8; 
+    --border-color: #2c3e50;
+    --page-background-color: #d1d8e0; 
+    --gradient-start: #4a5568;   
+    --gradient-end: #fbd38d;     
+}
+
+:root.dark {
+    --primary-color: #333333;
+    --secondary-color: #ffffff;
+    --text-color: #ffffff;
+    --background-color: #000000;
+    --border-color: #333333;
+    --page-background-color: #1a1a1a; 
+}
+
+:root.light {
+    --primary-color: #4d4d4d;
+    --secondary-color: #333333;
+    --text-color: #333333;
+    --background-color: #ffffff;
+    --border-color: #000000;
+    --page-background-color: #ffffff;
+    --gradient-start: #dcdcdc;
+    --gradient-end: #ffffff; 
+}
+
+:root.ch03 {
+    --primary-color: #1e3a8a; 
+    --secondary-color: #facc15; 
+    --text-color: #333333; 
+    --background-color: #1a202c; 
+    --border-color: #4b5563; 
+    --page-background-color: #2d3748; 
+    --gradient-start: #64748b; 
+    --gradient-end: #1e293b; 
+}
+
+body {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    background-attachment: fixed;
+    transition: background 0.3s ease;
+}
+
+body.red {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+}
+
+body.purple {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+}
+
+body.light {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+}
+
+body.blue {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+}
+
+body.ch03 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+}
+
+.chapter-content {
+    position: relative;
+    max-width: 630px;
+    text-align: left;
+    color: var(--text-color);
+    background-color: var(--internal-background-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    line-height: 1.8;
+    padding: 20px;
+}
+
+.chapter-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.chapter-cover-container {
+    flex-shrink: 0;
+    margin-right: 20px;
+}
+
+.chapter-title-container {
+    flex-grow: 1;
+}
+
+.chapter-title-container h1 {
+    font-size: 36px;
+    color: var(--primary-color);
+}
+
+.chapter-title-container h2 {
+    font-size: 28px;
+    color: var(--primary-color);
+}
+
+.chapter-top-right {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    text-align: center;
+    max-width: 120px;
+}
+
+.chapter-top-right .chapter-cover {
+    width: 100px;
+    height: auto;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.chapter-top-right .purchase-buttons button {
+    display: block;
+    width: 100%;
+    margin-bottom: 5px;
+    font-size: 16px;
+    padding: 8px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.chapter-top-right .purchase-buttons button:hover {
+    background-color: var(--secondary-color);
+}
+
+.chapter-content h1 {
+    font-size: 36px;
+    margin-top: 10px; 
+    margin-bottom: 10px; 
+    color: var(--primary-color);
+}
+
+.chapter-content h2 {
+    font-size: 28px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+}
+
+.chapter-content h3 {
+    font-size: 24px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+}
+
+.chapter-content p {
+    margin: 20px auto;
+    max-width: 90%; 
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.8;
+    text-indent: 2em; 
+}
+
+.next-chapter-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 40px auto;
+    max-width: 500px;
+    background-color: var(--internal-background-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.next-chapter-cover {
+    width: 200px;
+    height: auto;
+    margin-right: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.next-chapter-details {
+    text-align: left;
+    max-width: 600px;
+}
+
+.next-chapter-details h3 {
+    font-size: 20px;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.next-chapter-details h2 {
+    font-size: 18px;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.next-chapter-details h1 {
+    font-size: 24px; 
+    color: var(--primary-color); 
+    margin-bottom: 10px;
+}
+
+.next-chapter-details p {
+    font-size: 16px;
+    color: var(--text-color);
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.next-chapter-link {
+    display: inline-block;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.next-chapter-link:visited {
+    color: var(--primary-color); 
+}
+
+.next-chapter-link:hover {
+    text-decoration: none; 
+    color: var(--primary-color); 
+}
+
+.purchase-buttons {
+    margin-top: 20px;
+}
+
+.purchase-buttons button {
+    background-color: var(--primary-color); 
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin-right: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.purchase-buttons button:hover {
+    background-color: var(--secondary-color); 
+    color: white; 
+}

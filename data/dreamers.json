@@ -1,0 +1,231 @@
+[
+    {
+        "name": "lucy",
+        "handle": "lucy.reverie.house",
+        "did": "did:plc:eaqr3mneobyuahigtr7w2ykr",
+        "server": "https://reverie.house",
+        "bio": "I share my experiences dreamweaving in our wild mindscape.\n\n\ud83c\udfa8 Artist \n\ud83d\udca4 Dreamweaver\n\ud83c\udf3c Gardener\n\ud83d\udcda Bookworm\n\n",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreibsgz2gwrhmj5rlimpasecy2hz6z4mw3yees25foqws2jxshgcr7u"
+            },
+            "mimeType": "image/png",
+            "size": 382668
+        },
+        "banner": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreigip4y4xv35bbzvmyzyz4ebymbogv7ijam5xeqsejpdrjlwcjwnii"
+            },
+            "mimeType": "image/png",
+            "size": 121285
+        }
+    },
+    {
+        "name": "coldflame",
+        "handle": "coldflame.reverie.house",
+        "did": "did:plc:kzgeqefyvfkgnr6gi6sorpwo",
+        "server": "https://reverie.house",
+        "bio": "",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreiauu7kymx2sxctfzmfy53ge3wu5mfk56amnz7mensw5ypf7c2btba"
+            },
+            "mimeType": "image/png",
+            "size": 31479
+        }
+    },
+    {
+        "name": "errantson",
+        "handle": "reverie.house",
+        "did": "did:plc:yauphjufk7phkwurn266ybx2",
+        "server": "https://reverie.house",
+        "bio": "\ud83d\udcad Home of all dreamers in our wild mindscape\n\ud83c\udff0 https://reverie.house",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreidklqpy4b7mdb2fjhgnjjwmothgvpe26beac3ffek5c3kyso3joyu"
+            },
+            "mimeType": "image/png",
+            "size": 523981
+        },
+        "banner": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreignybv3e6afppju6zbc3beiiy5utp55wquewo3oiz74kyc5htulym"
+            },
+            "mimeType": "image/jpeg",
+            "size": 232651
+        },
+        "badge": 1
+    },
+    {
+        "name": "dreamer",
+        "handle": "dreamer.reverie.house",
+        "did": "did:plc:zdxbourfcbv66iq2xfpb233q",
+        "server": "https://reverie.house",
+        "bio": "honk-shoo...\nhonk-shoo...\n\n\ud83d\ude34",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreihoe46uedehpa2ngkmvku72giztmsqac4fblx5bklxwngfczdzrzm"
+            },
+            "mimeType": "image/jpeg",
+            "size": 345196
+        },
+        "banner": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreiddzdstcif64tupal5nkaxe5duomfh4dmjifcl5fevdjcjdlpzy5q"
+            },
+            "mimeType": "image/jpeg",
+            "size": 704367
+        }
+    },
+    {
+        "name": "keris",
+        "handle": "blunderscore.bsky.social",
+        "did": "did:plc:4arg62s4o4a2cjcowhbcfrcb",
+        "server": "https://morel.us-east.host.bsky.network",
+        "bio": "aspiring game maker person, thrower of bricks\nhttps://blunderscore.itch.io/our-barren-earth\nshe/her",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreifmevl3jlltrxgihcpidvd77mji7wqssr6ts3c3omgskyuajj6gqm"
+            },
+            "mimeType": "image/jpeg",
+            "size": 38962
+        },
+        "banner": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreiaik5wbhg7i4bnuhi2lwyoeaioxwa53iwp5jowohusxx3djkhdtse"
+            },
+            "mimeType": "image/jpeg",
+            "size": 16921
+        }
+    },
+    {
+        "name": "jan",
+        "handle": "mandejan.nl",
+        "did": "did:plc:ddutx2cwrrtthxap5a4z6kxq",
+        "server": "https://conocybe.us-west.host.bsky.network",
+        "bio": "Avid human & alive person (he/him)",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreig56ot5kj227jtb7mfl6y7zzlza6amedcfwdjcgq5el56zyawr2lu"
+            },
+            "mimeType": "image/jpeg",
+            "size": 563932
+        },
+        "banner": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreia62h6s7rkm3nfw36e3dwxstbrju52xyhblnq4m2rwbva6dymnli4"
+            },
+            "mimeType": "image/jpeg",
+            "size": 839779
+        }
+    },
+    {
+        "name": "bbreak",
+        "handle": "bennhough.bsky.social",
+        "did": "did:plc:gl65ogkhvw2djbmlyhhhsyqa",
+        "server": "https://dapperling.us-west.host.bsky.network",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreihxs3nk4oyuaw4baql4556lbmg4rcmnbxxtciexanppszqofb2qyi"
+            },
+            "mimeType": "image/jpeg",
+            "size": 545299
+        }
+    },
+    {
+        "name": "riggy",
+        "handle": "riggy2k3.bsky.social",
+        "did": "did:plc:joib55wqleijbhosxfekp3af",
+        "server": "https://porcini.us-east.host.bsky.network",
+        "bio": "I like playing RPGs alright !!\n\n\u25b6\ufe0f YouTube.com/riggy2k3\n\ud83d\udc7e twitch.tv/Riggy2k3\n\ud83d\udc80 www.delugegame.com",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreifgpame6abcx44got3demdsubgnqbdopd24ac2q576k35o3usrv7m"
+            },
+            "mimeType": "image/jpeg",
+            "size": 323737
+        },
+        "banner": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreiefdipichwicupkzz4gchhceq6logv6u2wtv4k3gdfq7vcf6whgjq"
+            },
+            "mimeType": "image/jpeg",
+            "size": 740449
+        }
+    },
+    {
+        "name": "roy",
+        "handle": "roy.reverie.house",
+        "did": "did:plc:kjsbm2iic46gbuzfcxec6w6v",
+        "server": "https://psathyrella.us-west.host.bsky.network",
+        "bio": "",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreicpsyp5vtwposhddee5fg5f6a62m646edge3tpybe62lauhgcx2pu"
+            },
+            "mimeType": "image/png",
+            "size": 16702
+        }
+    },
+    {
+        "name": "ragnarok",
+        "handle": "ragnarokaesthetic.bsky.social",
+        "did": "did:plc:mmnhyniiitqfoyjcjvwkliow",
+        "server": "https://cremini.us-west.host.bsky.network",
+        "bio": "Creator of Fated Zodiac and Fenrir's Prelude.\nhttps://linktr.ee/RagnarokAesthetic",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreidn7i3bj3yk6xbz3ebvurcaaumttikw3l7tvrcw4ffdzsehfb3o2u"
+            },
+            "mimeType": "image/jpeg",
+            "size": 910970
+        },
+        "banner": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreig6cti6bcnqjz2na6ulvcgyauvcidzfinulzm3u4iywa6tzv3jdde"
+            },
+            "mimeType": "image/jpeg",
+            "size": 573001
+        }
+    },
+    {
+        "name": "jane",
+        "handle": "janeodee.bsky.social",
+        "did": "did:plc:zlgkqbg37lee3tyxmwiit3ph",
+        "server": "https://goldenear.us-west.host.bsky.network",
+        "bio": "Isilm\u00eb Elentar,\nTirion - Bicolline",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreig2nggy5zxfw5yaaijmhyfti5y5lglqols4zcqiw6rm5ct75gmjje"
+            },
+            "mimeType": "image/jpeg",
+            "size": 575593
+        },
+        "banner": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreiha6c7xfsuxnstqaugynumnp7rcqe5bc45tkw6ffx332hfqqizl2q"
+            },
+            "mimeType": "image/jpeg",
+            "size": 668854
+        }
+    }
+]

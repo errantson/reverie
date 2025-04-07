@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lore - Reverie House</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/lore.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="components/nav.js" defer></script>
+</head>
+<body>
+    <div id="nav-container" style="margin-top: 10px;"></div>
+    <div id="lore-container">
+        <header id="lore-header">
+            <img src="/assets/icon_transp.png" alt="Reverie Icon">
+            <h1>Memory</h1>
+        </header>
+        <div id="world-info" style="text-align: center; margin-bottom: 20px; font-family: monospace; font-size: 0.9rem; color: #2a4d69;"></div>
+        <div id="log-content"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            Promise.all([
+                fetch('data/world.json').then(response => response.json()),
+                fetch('data/journal.json').then(response => response.json()),
+                fetch('data/dreamers.json').then(response => response.json())
+            ])
+            .then(([world, journal, dreamers]) => {
+                const worldInfo = document.getElementById('world-info');
+                const updateDate = new Date(world.update * 1000).toLocaleDateString();
+                worldInfo.innerHTML = `<p>epoch: <code>${world.epoch}</code> | keeper: <code>${world.keeper}</code> | <code>${updateDate}</code></p>`;
+
+                const logContent = document.getElementById('log-content');
+                const dreamerMap = dreamers.reduce((acc, dreamer) => {
+                    acc[dreamer.did] = dreamer.name;
+                    return acc;
+                }, {});
+
+                journal.sort((a, b) => b.epoch - a.epoch);
+
+                journal.forEach((entry, index) => {
+                    const name = dreamerMap[entry.did] || "Unknown";
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'log-entry';
+                    logEntry.style.backgroundColor = index % 2 === 0 ? '#f0f0f0' : '#ffffff';
+                    logEntry.style.marginLeft = '10px';
+
+                    const nameLink = `<a href="/dreamer.html?name=${encodeURIComponent(name)}">${name}</a>`;
+                    const eventLink = entry.link && entry.link.trim()
+                        ? `<a href="${entry.link.startsWith("did:") 
+                            ? `https://bsky.app/profile/${entry.did}/post/${entry.link.split('/').pop()}` 
+                            : entry.link}" target="_blank">${entry.event}</a>`
+                        : entry.event;
+
+                    logEntry.innerHTML = `<span>${nameLink} ${eventLink}</span>`;
+                    logContent.appendChild(logEntry);
+                });
+            })
+            .catch(error => console.error('Error loading data:', error));
+        });
+    </script>
+</body>
+</html>

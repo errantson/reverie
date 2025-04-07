@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dreamer Profile</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/dreams.css">
+    <link rel="stylesheet" href="styles/dreamer.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="components/nav.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('search-input');
+            const profileContainer = document.getElementById('profile-container');
+            const profileDetails = document.getElementById('profile-details');
+            const autofillTbody = document.getElementById('autofill-tbody');
+            let dreamers = [];
+            fetch('data/dreamers.json')
+                .then(response => response.json())
+                .then(data => {
+                    dreamers = data;
+                    const params = new URLSearchParams(window.location.search);
+                    if (params.has('name')) {
+                        const queryName = params.get('name').toLowerCase();
+                        const foundDreamer = dreamers.find(d => d.name.toLowerCase() === queryName);
+                        if (foundDreamer) {
+                            displayProfile(foundDreamer);
+                        } else {
+                            displayRandomProfile();
+                        }
+                    } else if (params.has('handle')) {
+                        const queryHandle = params.get('handle').toLowerCase();
+                        const foundDreamer = dreamers.find(d => d.handle.toLowerCase() === queryHandle);
+                        if (foundDreamer) {
+                            displayProfile(foundDreamer);
+                        } else {
+                            displayRandomProfile();
+                        }
+                    } else if (params.has('did')) {
+                        const queryDid = params.get('did').toLowerCase();
+                        const foundDreamer = dreamers.find(d => d.did.toLowerCase() === queryDid);
+                        if (foundDreamer) {
+                            displayProfile(foundDreamer);
+                        } else {
+                            displayRandomProfile();
+                        }
+                    } else {
+                        displayRandomProfile();
+                    }
+                    // Prepopulate suggestions if searchInput is empty
+                    if (searchInput.value === '') {
+                        searchInput.dispatchEvent(new Event('input'));
+                    }
+                })
+                .catch(error => console.error('Error loading dreamers data:', error));
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                autofillTbody.innerHTML = '';
+                let results = [];
+                if (query) {
+                    results = dreamers.filter(d => d.name.toLowerCase().includes(query));
+                } else {
+                    results = dreamers.slice();
+                    results.sort(() => Math.random() - 0.5);
+                }
+                results = results.slice(0, 6);
+                results.forEach(match => {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    // --- Modified: Add user icon before name ---
+                    let iconSrc = '';
+                    let iconAlt = '';
+                    let iconStyle = '';
+                    if (match.server === 'https://reverie.house') {
+                        if (match.handle.endsWith('reverie.house')) {
+                            iconSrc = '../assets/icon_transp.png';
+                            iconAlt = 'Reverie House';
+                        } else {
+                            iconSrc = '../assets/icon_transp.png';
+                            iconAlt = 'Reverie House';
+                            iconStyle = 'filter: grayscale(100%);';
+                        }
+                    } else if (match.server.includes('bsky.network')) {
+                        if (match.handle.endsWith('bsky.social')) {
+                            iconSrc = 'assets/bluesky.svg';
+                            iconAlt = 'Bluesky';
+                        } else if (match.handle.endsWith('reverie.house')) {
+                            iconSrc = 'assets/icon_transp.png';
+                            iconAlt = 'Dreamweaver';
+                            iconStyle = 'filter: saturate(40%);';
+                        } else {
+                            iconSrc = 'assets/bluesky.svg';
+                            iconAlt = 'Dreamer';
+                            iconStyle = 'filter: brightness(50%) saturate(80%);';
+                        }
+                    } else {
+                        iconSrc = '../assets/our_wild_mindscape.svg';
+                        iconAlt = 'Our Wild Mindscape';
+                    }
+                    cell.innerHTML = `<img src="${iconSrc}" alt="${iconAlt}" style="width:20px; height:20px; vertical-align:middle; margin-right:5px; ${iconStyle}"> ${match.name}`;
+                    cell.style.cursor = 'pointer';
+                    cell.addEventListener('click', () => {
+                        window.location.href = `${window.location.pathname}?name=${encodeURIComponent(match.name)}`;
+                    });
+                    row.appendChild(cell);
+                    autofillTbody.appendChild(row);
+                });
+            });
+            const displayProfile = (dreamer) => {
+                // New: Update title with user name
+                document.title = `Dreamweaver: ${dreamer.name}`;
+                // Update the profile picture container with dreamer's avatar, if available.
+                const profilePictureEl = document.querySelector('.profile-picture');
+                if (dreamer.avatar && dreamer.avatar.ref && dreamer.avatar.ref.$link) {
+                    let imgSrc = '';
+                    // Use bsky CDN URL format if the server indicates a bsky network or reverie.house
+                    if (dreamer.server && (dreamer.server.includes('bsky.network') || dreamer.server === 'https://reverie.house')) {
+                        let ext = 'png';
+                        if(dreamer.avatar.mimeType === 'image/jpeg') {
+                            ext = 'jpeg';
+                        } else if(dreamer.avatar.mimeType === 'image/png') {
+                            ext = 'png';
+                        }
+                        imgSrc = `https://cdn.bsky.app/img/feed_thumbnail/plain/${dreamer.did}/${dreamer.avatar.ref.$link}@${ext}`;
+                    } else {
+                        imgSrc = dreamer.avatar.ref.$link;
+                    }
+                    profilePictureEl.innerHTML = `<a href="https://bsky.app/profile/${dreamer.handle}" target="_blank" rel="noopener noreferrer"><img src="${imgSrc}" alt="${dreamer.name} Avatar" style="width:100px; height:100px; border-radius:50%;"></a>`;
+                } else {
+                    profilePictureEl.innerHTML = `<a href="https://bsky.app/profile/${dreamer.handle}" target="_blank" rel="noopener noreferrer"><img src="assets/default-avatar.png" alt="Default Avatar" style="width:100px; height:100px; border-radius:50%;"></a>`;
+                }
+                // Determine icon based on dreamer data
+                let iconSrc = '';
+                let iconAlt = '';
+                let iconStyle = '';
+                if (dreamer.server === 'https://reverie.house') {
+                    if (dreamer.handle.endsWith('reverie.house')) {
+                        iconSrc = '../assets/icon_transp.png';
+                        iconAlt = 'Reverie House';
+                    } else {
+                        iconSrc = '../assets/icon_transp.png';
+                        iconAlt = 'Reverie House';
+                        iconStyle = 'filter: grayscale(100%);';
+                    }
+                } else if (dreamer.server.includes('bsky.network')) {
+                    if (dreamer.handle.endsWith('bsky.social')) {
+                        iconSrc = 'assets/bluesky.svg';
+                        iconAlt = 'Bluesky';
+                    } else if (dreamer.handle.endsWith('reverie.house')) {
+                        iconSrc = 'assets/icon_transp.png';
+                        iconAlt = 'Dreamweaver';
+                        iconStyle = 'filter: saturate(40%);';
+                    } else {
+                        iconSrc = 'assets/bluesky.svg';
+                        iconAlt = 'Dreamer';
+                        iconStyle = 'filter: brightness(50%) saturate(80%);';
+                    }
+                } else {
+                    iconSrc = '../assets/our_wild_mindscape.svg';
+                    iconAlt = 'Our Wild Mindscape';
+                }
+                profileDetails.innerHTML = `
+                    <h1>
+                        <img src="${iconSrc}" alt="${iconAlt}" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 8px; ${iconStyle}">
+                        ${dreamer.name}
+                    </h1>
+                    <div class="profile-data">
+                        <p>
+                            <span class="data-head">Handle:</span>
+                            <span class="data-content"><a href="https://bsky.app/profile/${dreamer.handle}" target="_blank">@${dreamer.handle}</a></span>
+                        </p>
+                        <p>
+                            <span class="data-head">Dreamer ID:</span>
+                            <span class="data-content"><a href="https://atproto-browser.vercel.app/at/${dreamer.did}" target="_blank">${dreamer.did}</a></span>
+                        </p>
+                        <p>
+                            <span class="data-head">Server:</span>
+                            <span class="data-content">${dreamer.server}</span>
+                        </p>
+                    </div>
+                `;
+                // updated code: convert newline characters to <br>
+                document.querySelector('.bio-box').innerHTML = `<p>${(dreamer.bio && dreamer.bio.trim()) ? dreamer.bio.replace(/\n/g, "<br>") : 'No bio available.'}</p>`;
+                
+                // New: Fetch journal events for the displayed dreamer and update adventure log
+                fetch('data/journal.json')
+                    .then(response => response.json())
+                    .then(journal => {
+                        const dreamerEvents = journal.filter(entry => entry.did.toLowerCase() === dreamer.did.toLowerCase());
+                        // Modified: Sort events with most recent first using epoch
+                        dreamerEvents.sort((a, b) => b.epoch - a.epoch);
+                        const adventureLogEl = document.querySelector('.adventure-box .adventure-log');
+                        adventureLogEl.innerHTML = dreamerEvents.map(ev => {
+                            if (ev.link && ev.link.trim()) {
+                                const finalLink = ev.link.startsWith("did:")
+                                    ? `https://bsky.app/profile/${dreamer.handle}/post/${ev.link.split('/').pop()}` 
+                                    : ev.link;
+                                return `<div class="log-entry"><a href="${finalLink}" target="_blank">${ev.event}</a></div>`;
+                            } else {
+                                return `<div class="log-entry">${ev.event}</div>`;
+                            }
+                        }).join('');
+                    })
+                    .catch(error => console.error('Error loading journal data:', error));
+            };
+            const displayRandomProfile = () => {
+                const reverieDreamers = dreamers.filter(d => d.server === 'https://reverie.house');
+                if (reverieDreamers.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * reverieDreamers.length);
+                    displayProfile(reverieDreamers[randomIndex]);
+                } else if (dreamers.length > 0) {
+                    displayProfile(dreamers[0]); // Fallback to the first dreamer if no reverie.house users exist
+                }
+            };
+
+            // New: Fetch world data and update epoch display with keeper info
+            fetch('data/world.json')
+                .then(response => response.json())
+                .then(data => {
+                    const updateDate = new Date(data.update * 1000).toLocaleDateString();
+                    document.getElementById('epoch-display').innerHTML = `epoch: ${data.epoch} | ${updateDate}`;
+                })
+                .catch(error => console.error('Error loading world data:', error));
+
+            const refreshButton = document.getElementById('refresh-button');
+            refreshButton.addEventListener('click', () => {
+                searchInput.value = '';
+                searchInput.dispatchEvent(new Event('input'));
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="nav-container" style="margin-top: 10px;"></div>
+    <!-- New main container wrapping character sheet and search -->
+    <div id="main-container">
+        <div id="profile-container" class="dreams-container">
+            <!-- Updated profile top section with picture and souvenirs -->
+            <div class="profile-top" style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
+                <div class="profile-picture"></div>
+                <div class="souvenirs-box">
+                    <h4 style="margin: 0;">Souvenirs</h4>
+                </div>
+            </div>
+            <div id="profile-details"></div>
+            <div class="bio-box">
+                <!-- bio -->
+                <p>Bio content...</p>
+            </div>
+            <!-- Modified adventure box -->
+            <div class="adventure-box">
+                <div class="adventure-log">
+
+                </div>
+            </div>
+        </div>
+        <div id="search-container" class="dreams-container" style="position: relative;">
+            <div style="display: inline-flex; align-items: center;">
+                <img src="/assets/icon_transp.png" alt="Transp Icon" style="width: 30px; height: 30px; margin-right: 8px;">
+                <h3 style="margin: 5px;">Dreamweavers</h3>
+            </div>
+            <div class="search-area">
+                <div class="search-bar" style="display: flex; align-items: center; gap: 5px;">
+                    <input type="text" id="search-input" placeholder="Enter dreamer name..." style="flex: 1;">
+                    <button id="refresh-button" style="background: none; border: none; cursor: pointer; display: flex; align-items: center;">
+                        <img src="/assets/refresh.svg" alt="Refresh" style="width: 25px; height: 25px; margin: 0;">
+                    </button>
+                </div>
+                <table id="dreamers-table">
+                    <tbody id="autofill-tbody"></tbody>
+                </table>
+                <!-- Added simplified name/key request text -->
+                <div class="name-request" style="margin: 10px 0; font-size: 14px; color: #734ba1;">
+                    Are you a dreamweaver?<br><a href="mailto:books@reverie.house?subject=Request%20Name" style="font-weight:bold; text-decoration:underline;">Request Key</a>
+                </div>
+                <pre id="epoch-display" style="position: absolute; bottom: 0; left: 0; width: 100%; font-size: 12px; color: #333; padding: 5px; margin: 0;">Loading epoch...</pre>
+            </div>
+        </div>
+    </div>
+    <!-- New side-by-side boxes container -->
+    <div class="side-by-side-boxes" style="margin-bottom: 20px;">
+        <div class="side-box" id="name-request-box">
+            <a href="https://bsky.social/about/blog/4-28-2023-domain-handle-tutorial" target="_blank">
+                <img src="assets/bluesky.svg" alt="Bluesky">
+            </a>
+            <p>Want to use your <strong>reverie.house</strong> name?</p>
+            <p>Simply set your handle to<br><code>name.reverie.house</code><br>in your account settings.</p>
+            <button class="request-key-button" onclick="window.open('https://bsky.app/profile/reverie.house/post/3lljjzcydwc25', '_blank')">
+                Request Name
+            </button>
+        </div>
+        <div class="side-box" id="key-info-box">
+            <img src="assets/icon_transp.png" alt="Icon" style="width:50px; height:50px; margin-bottom:10px;">
+            <p>Do you have a key like this?<br><code><b>reverie-house-gkjor-wt5ih</b></code></p>
+            <p style="margin-top: -5px;">Create a new Bluesky account.<br>Set account provider to custom:<br><code>https://reverie.house</code></p>
+            <button class="request-key-button" onclick="window.open('mailto:books@reverie.house?subject=Reverie%20House%20Key&body=Hey%20dreamer,%0AMy%20name%20is%20errantson.%0AWe%20may%20have%20met%20in%20a%20dream.%0AI%20am%20a%20dreamweaver,%20are%20you?', '_blank')">
+                Request Key
+            </button>
+        </div>
+    </div>
+</body>
+</html>

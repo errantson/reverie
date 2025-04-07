@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" class="purple">
+<head>
+    <meta charset="UTF-8">
+    <title>Seeker's Reverie — Chapter 1</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../../styles/chapter.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="../../components/nav.js"></script>
+    <script src="../../components/chapterhead.js"></script>
+    <script src="../../components/chapterfoot.js"></script>
+    <script src="../../components/markdown.js"></script>
+    <script src="../../components/region.js"></script>
+</head>
+<body class="purple">
+    <header id="nav-container"></header>
+    <main>
+        <article class="chapter-content">
+            <div id="chapter-header"></div>
+            <div class="chapter-top-right">
+                <div class="purchase-buttons">
+                    <button onclick="openRegionalAmazonLink()">Kindle</button>
+                    <button onclick="window.location.href='../../print.html'">Print</button>
+                    <button onclick="window.location.href='seekers_reverie.epub'">ePub</button>
+                </div>
+            </div>
+            <div id="markdown-content">
+                <!-- Markdown content will be dynamically loaded here -->
+            </div>
+        </article>
+        <div id="next-chapter"></div>
+    </main>
+    <script>
+        loadMarkdown('sr01-escaping_oneself.md', 'Seeker\'s Reverie');
+        renderChapterHeader('chapter-header', {
+            coverImage: 'seekers_reverie.png',
+            title: "Seeker's Reverie",
+            chapterNumber: 'Chapter 1',
+            chapterTitle: 'Escaping Oneself'
+        });
+
+        renderNextChapter('next-chapter', {
+            coverImage: 'seekers_reverie.png',
+            title: "Seeker's Reverie",
+            chapterTitle: 'Chapter 2 — Welcome to Reverie House',
+            description: 'Seeker is introduced to many friends and the art of dreamweaving.',
+            link: 'seekers_reverie_chapter_2.html',
+            available: true
+        });
+    </script>
+</body>
+</html>

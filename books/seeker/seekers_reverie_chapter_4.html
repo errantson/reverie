@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" class="blue">
+<head>
+    <meta charset="UTF-8">
+    <title>Seeker's Reverie — Chapter 4</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../../styles/chapter.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="../../components/nav.js"></script>
+    <script src="../../components/chapterhead.js"></script>
+    <script src="../../components/chapterfoot.js"></script>
+    <script src="../../components/markdown.js"></script>
+    <script src="../../components/region.js"></script>
+</head>
+<body class="blue">
+    <header id="nav-container"></header>
+    <main>
+        <article class="chapter-content">
+            <div id="chapter-header"></div>
+            <div class="cover-art" style="text-align: center; margin: 20px 0;">
+                <a onclick="openRegionalAmazonLink()" style="cursor: pointer;">
+                    <img src="seekers_reverie.png" alt="Cover Art" style="width: 250px;">
+                </a>
+            </div>
+            <p style="width: fit-content; margin: 0 auto;">This chapter will be available here on April 8</p>
+            <div class="chapter-top-right">
+                <div class="purchase-buttons" style="text-align: center;">
+                    <button onclick="openRegionalAmazonLink()">Kindle</button>
+                    <button onclick="window.open('https://buy.stripe.com/3cs7tVesCa7PbAc144', '_blank')">Print</button>
+                    <button onclick="window.location.href='seekers_reverie.epub'">ePub</button>
+                </div>
+            </div>
+            <div class="order-print" style="text-align: center; margin-top: 20px;">
+                <button onclick="window.open('https://buy.stripe.com/3cs7tVesCa7PbAc144', '_blank')">Order Print Copy</button>
+            </div>
+            <!-- Added Read on Kindle button -->
+            <div class="read-on-kindle" style="text-align: center; margin-top: 20px;">
+                <button onclick="openRegionalAmazonLink()">Read on Kindle</button>
+            </div>
+            
+        </article>
+        <div id="next-chapter"></div>
+    </main>
+    <script>
+        renderChapterHeader('chapter-header', {
+            coverImage: 'seekers_reverie.png',
+            title: "Seeker's Reverie",
+            chapterNumber: 'Chapter 4',
+            chapterTitle: 'Coming Soon'
+        });
+    </script>
+</body>
+</html>

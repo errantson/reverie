@@ -1,0 +1,149 @@
+.about-container {
+    margin: 20px auto;
+    padding: 15px;
+    max-width: 680px;
+    text-align: center;
+    background-color: #ffffff;
+    border: 1px solid #000080;
+    color: #000080;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.about-header h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #2a2a91;
+    text-shadow: 1px 1px 2px #ffffff;
+}
+
+.about-header p {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    font-style: italic;
+}
+
+.about-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.about-section h2 {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+    color: #000080;
+    text-decoration: underline;
+}
+
+.about-section p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #333366;
+}
+
+.subsection-box {
+    margin: 10px auto;
+    padding: 10px;
+    max-width: 80%;
+    text-align: left;
+    background-color: #ffffff;
+}
+
+.subsection-box h4 {
+    margin-bottom: 5px;
+    font-size: 1.125rem;
+    color: #000080;
+}
+
+.subsection-box p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #333366;
+}
+
+.logo {
+    width: 100%;
+    max-width: 400px;
+    display: block;
+    margin: 20px auto;
+}
+
+.start-section {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+    max-width: 600px; 
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.book-cover {
+    width: 180px;
+    height: auto;
+    border: 1px solid #000080;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.start-text {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 300px;
+}
+
+.start-text p {
+    margin: 0;
+    font-size: 1rem;
+    color: #333366;
+    line-height: 1.4;
+}
+
+.start-text a {
+    color: #000080;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.start-text a:hover {
+    text-decoration: underline;
+}
+
+.bluesky-post {
+    margin-top: 20px;
+    text-align: center;
+    max-width: 500px; 
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.bluesky-embed {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.answer-button {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.answer-button .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #ffffff;
+    background-color: #0077cc;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+}
+
+.answer-button .btn:hover {
+    background-color: #005fa3;
+}

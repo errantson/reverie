@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Order Seeker's Reverie (Print)</title>
+    <link rel="stylesheet" href="/styles/style.css">
+    <link rel="stylesheet" href="styles/books.css">
+        <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="components/nav.js" defer></script>
+    <script async src="https://js.stripe.com/v3/buy-button.js"></script>
+    <style>
+        .book-cover {
+            margin-left: 20px;
+            width: 300px; 
+        }
+        stripe-buy-button {
+            display: block;
+            width: 80%; 
+            margin: 10px auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="nav-container"></div>
+
+    <!-- Seeker's Reverie -->
+    <div class="book-section" id="seeker-reverie">
+        <h1 class="seeker-title">Seeker's Reverie</h1>
+        <div class="synopsis-box seeker-synopsis" style="max-width: 420px;">
+            <p>Order a softcover printed copy of <b>Seeker's Reverie</b> direct from the author for <b>$14.99 USD</b> with free shipping anywhere in the world.</p>
+            <p>Deadline for orders is <b>June 12th 2025</b><br>There will be no surplus copies<br>Signed editions are not for sale</p>
+            <p><b>Your support of Reverie House is appreciated</b></p>
+            <stripe-buy-button
+            buy-button-id="buy_btn_1R6hG6K1mtfSxT4ZXUvAmE4Y"
+            publishable-key="pk_live_51QExy4K1mtfSxT4ZLU50zD6uomREivFUxl9H4ygKvPpdLgeQr3vi8IjJzlBctKKROu4206xIIhzmUnqXPtRlaL0P00BWAN33w2"
+        >
+        </stripe-buy-button>
+            <img src="books/seeker/seekers_reverie.png" alt="Seeker's Reverie" class="book-cover">
+            <script async
+            src="https://js.stripe.com/v3/buy-button.js">
+        </script>
+        <p>Books will ship in late June 2025</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dreams - Reverie House</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/dreams.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="components/nav.js" defer></script>
+    <script>
+        function enterReverie() {
+            document.querySelector('.enter-emblem-container').style.display = 'none';
+            document.querySelector('.dreams-container').style.display = 'block';
+            document.querySelector('#welcome-text').textContent = "You have been welcomed into Reverie House.";
+        }
+    </script>
+</head>
+<body>
+    <div id="nav-container"></div>
+
+    <div class="dreamweavers-container">
+        <a href="https://bsky.app/profile/reverie.house" target="_blank" class="dream-link"><img src="../assets/icon_transp.png" alt="Dreamweavers" style="width: 60px; height: 60px;"></a>
+        <p>Are you a dreamweaver?</p>
+        <button class="request-key-button" onclick="window.open('https://bsky.app/profile/reverie.house/post/3lljjzcydwc25', '_blank')">
+            Meet at Reverie House
+        </button>
+    </div>
+
+    <div id="dreamers-table-container">
+        <div id="dreamers-title-box">
+            <h1 style="margin-top: 15px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                Dreamweavers
+            </h1>
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 5px; margin-bottom: 15px;">
+            <button id="toggle-reverie" style="background: none; border: none; cursor: pointer;">
+                <img src="../assets/icon_transp.png" alt="Toggle Reverie" style="width: 25px; height: 25px;">
+            </button>
+            <button id="refresh-button" style="background: none; border: none; cursor: pointer;">
+                <img src="../assets/refresh.svg" alt="Refresh" style="width: 25px; height: 25px;">
+            </button>
+            <input type="text" id="search-input" placeholder="Search dreamers..." style="padding: 8px; width: 100%; max-width: 400px; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        <table id="dreamers-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Name</th>
+                    <th>Handle</th>
+                    <th>Dreamer ID</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableBody = document.querySelector('#dreamers-table tbody');
+            const searchInput = document.getElementById('search-input');
+            const toggleReverieButton = document.getElementById('toggle-reverie');
+            const refreshButton = document.getElementById('refresh-button');
+            let showOnlyReverie = false;
+
+            // Fetch data from the JSON file
+            fetch('data/dreamers.json')
+                .then(response => response.json())
+                .then(data => {
+                    const shuffleData = () => data.sort(() => Math.random() - 0.5);
+
+                    const renderTable = (filteredData) => {
+                        tableBody.innerHTML = '';
+                        filteredData.slice(0, 8).forEach(entry => {
+                            const row = document.createElement('tr');
+
+                            // Icon column
+                            const iconCell = document.createElement('td');
+                            iconCell.style.width = '20px';
+                            const icon = document.createElement('img');
+                            icon.style.width = '20px';
+                            icon.style.height = '20px';
+
+                            // Updated icon selection logic:
+                            if (entry.server === 'https://reverie.house') {
+                                if (entry.handle.endsWith('reverie.house')) {
+                                    icon.src = '../assets/icon_transp.png';
+                                    icon.alt = 'Reverie House';
+                                    icon.title = 'Reverie House';
+                                    icon.style.filter = '';
+                                } else {
+                                    icon.src = '../assets/icon_transp.png';
+                                    icon.alt = 'Reverie House';
+                                    icon.title = 'Reverie House';
+                                    icon.style.filter = 'grayscale(100%)';
+                                }
+                            } else if (entry.server.includes('bsky.network')) {
+                                if (entry.handle.endsWith('bsky.social')) {
+                                    icon.src = 'assets/bluesky.svg';
+                                    icon.alt = 'Bluesky';
+                                    icon.title = 'Bluesky';
+                                    icon.style.filter = '';
+                                } else if (entry.handle.endsWith('reverie.house')) {
+                                    icon.src = 'assets/icon_transp.png';
+                                    icon.alt = 'Dreamweaver';
+                                    icon.title = 'Dreamweaver';
+                                    icon.style.filter = 'saturate(40%)';
+                                } else {
+                                    icon.src = 'assets/bluesky.svg';
+                                    icon.alt = 'Dreamer';
+                                    icon.title = 'Dreamer';
+                                    icon.style.filter = 'brightness(50%) saturate(80%)';
+                                }
+                            } else {
+                                icon.src = '../assets/our_wild_mindscape.svg';
+                                icon.alt = 'Our Wild Mindscape';
+                                icon.title = 'Our Wild Mindscape';
+                                icon.style.filter = '';
+                            }
+
+                            iconCell.appendChild(icon);
+                            row.appendChild(iconCell);
+
+                            // Name column
+                            const nameCell = document.createElement('td');
+                            const nameLink = document.createElement('a');
+                            nameLink.href = `dreamer.html?name=${encodeURIComponent(entry.name)}`;
+                            nameLink.textContent = entry.name;
+                            nameCell.appendChild(nameLink);
+                            row.appendChild(nameCell);
+
+                            // Handle column
+                            const handleCell = document.createElement('td');
+                            const handleLink = document.createElement('a');
+                            handleLink.href = `https://bsky.app/profile/${entry.handle.replace('@', '')}`;
+                            handleLink.target = '_blank';
+                            handleLink.textContent = '@' + entry.handle;  // Add @ prefix here
+                            handleCell.appendChild(handleLink);
+                            row.appendChild(handleCell);
+
+                            // DID column
+                            const didCell = document.createElement('td');
+                            if (entry.did) {
+                                const didLink = document.createElement('a');
+                                didLink.href = `https://atproto-browser.vercel.app/at/${entry.did}`;
+                                didLink.target = '_blank';
+                                didLink.textContent = entry.did;
+                                didCell.appendChild(didLink);
+                            } else {
+                                didCell.textContent = '';
+                            }
+                            didCell.style.fontSize = '0.85em';
+                            row.appendChild(didCell);
+
+                            tableBody.appendChild(row);
+                        });
+                    };
+
+                    const filterData = () => {
+                        const query = searchInput.value.toLowerCase();
+                        return data.filter(entry => {
+                            const matchesSearch = entry.name.toLowerCase().includes(query) ||
+                                entry.handle.toLowerCase().includes(query) ||
+                                (entry.did && entry.did.toLowerCase().includes(query));
+                            const matchesReverie = !showOnlyReverie || entry.server === 'https://reverie.house';
+                            return matchesSearch && matchesReverie;
+                        });
+                    };
+
+                    shuffleData();
+                    renderTable(filterData());
+
+                    // Search functionality
+                    searchInput.addEventListener('input', () => {
+                        renderTable(filterData());
+                    });
+
+                    toggleReverieButton.addEventListener('click', () => {
+                        showOnlyReverie = !showOnlyReverie;
+                        toggleReverieButton.classList.toggle('active', showOnlyReverie);
+                        renderTable(data.filter(entry => {
+                            const isReverieServer = entry.server === 'https://reverie.house';
+                            const isReverieHandle = entry.handle.endsWith('reverie.house');
+                            return !showOnlyReverie || isReverieServer || isReverieHandle;
+                        }));
+                    });
+
+                    refreshButton.addEventListener('click', () => {
+                        searchInput.value = '';
+                        shuffleData();
+                        renderTable(filterData());
+                    });
+                })
+                .catch(error => console.error('Error loading dreamers data:', error));
+        });
+    </script>
+    <script>
+        // Sortable table script
+        document.addEventListener('DOMContentLoaded', () => {
+            const table = document.getElementById('dreamers-table');
+            const headers = table.querySelectorAll('th');
+            const tbody = table.querySelector('tbody');
+
+            headers.forEach((header, index) => {
+                header.addEventListener('click', () => {
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const isAscending = header.classList.contains('asc');
+                    const direction = isAscending ? -1 : 1;
+
+                    rows.sort((a, b) => {
+                        if (index === 0) return 0; 
+                        const aText = a.children[index].textContent.trim();
+                        const bText = b.children[index].textContent.trim();
+                        return aText.localeCompare(bText) * direction;
+                    });
+
+                    tbody.innerHTML = '';
+                    rows.forEach(row => tbody.appendChild(row));
+
+                    headers.forEach(h => h.classList.remove('asc', 'desc'));
+                    header.classList.toggle('asc', !isAscending);
+                    header.classList.toggle('desc', isAscending);
+                });
+            });
+        });
+    </script>
+
+    
+</body>
+</html>

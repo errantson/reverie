@@ -1,0 +1,32 @@
+.print-book-cover {
+    width: 220px;
+    height: auto;
+    border: 1px solid #000080;
+    border-radius: 4px;
+}
+
+.print-synopsis-box {
+    padding: 10px;
+    max-width: 460px; 
+    font-size: 14px;
+    line-height: 1.4;
+    border: 1px solid #000080;
+    background-color: #ffffff;
+    text-align: center;
+}
+
+.print-seeker-title {
+    font-size: 42px;
+    margin-bottom: 2px;
+    color: #87408d;
+}
+
+.print-seeker-info {
+    color: #7f2c86;
+    margin-bottom: 15px;
+}
+
+.print-seeker-synopsis {
+    border-color: #8c2596;
+    color: #333333;
+}

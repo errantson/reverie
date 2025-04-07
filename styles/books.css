@@ -1,0 +1,262 @@
+.book-title {
+    font-size: 32px;
+    font-weight: bold;
+    color: #000080;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.book-layout {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin: 20px auto;
+    max-width: 800px;
+}
+
+.book-cover {
+    width: 250px;
+    height: auto;
+    margin-right: 20px;
+    border: 1px solid #000080;
+    border-radius: 4px;
+}
+
+.chapter-list {
+    text-align: left;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.chapter-list p {
+    margin: 10px 0;
+}
+
+.purchase-buttons {
+    margin-top: 20px;
+}
+
+.purchase-buttons button {
+    background-color: #000080;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin-right: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.purchase-buttons button:hover {
+    background-color: #333399;
+}
+
+.chapter-part {
+    margin-bottom: 20px;
+}
+
+.chapter-part h2 {
+    font-size: 18px;
+    color: #000080;
+    cursor: pointer;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.chapter-part h2 .arrow {
+    margin-right: 10px;
+}
+
+.chapter-part h2:hover {
+    color: #333399;
+}
+
+.chapter-part-content {
+    display: none;
+    margin-left: 20px;
+}
+
+#part1.chapter-part-content {
+    display: block;
+}
+
+.chapter-part-content p {
+    margin: 5px 0;
+}
+
+.arrow {
+    font-size: 16px;
+    color: #000080;
+}
+
+.book-divider {
+    border: 0;
+    width: 70%;
+    height: 1px;
+    background: #333333;
+    margin: 40px auto;
+}
+
+.book-info {
+    font-size: 14px;
+    margin-top: -5px;
+    margin-bottom: 5px;
+    font-style: italic;
+}
+
+.seeker-info {
+    color: #704174;
+}
+
+.prince-info {
+    color: #8b0000;
+}
+
+/* Description Boxes */
+.synopsis-box {
+    margin: 10px auto;
+    padding: 10px;
+    max-width: 480px;
+    font-size: 14px;
+    line-height: 1.4;
+    border: 1px solid #000080;
+    background-color: #ffffff;
+    text-align: center;
+}
+
+
+/* CC0 Notice Box */
+.cc-notice-box {
+    margin: 20px auto;
+    padding: 15px;
+    max-width: 600px;
+    font-size: 14px;
+    line-height: 1.6;
+    border: 1px solid #000000;
+    background-color: #ffffff; 
+    color: #333333; 
+    text-align: center;
+}
+
+.seeker-title {
+    font-size: 42px;
+    margin-bottom: 5px;
+    color: #87408d;
+}
+
+.seeker-info {
+    color: #7f2c86;
+    margin-bottom: 20px;
+}
+
+.seeker-synopsis {
+    border-color: #8c2596;
+    color: #333333;
+}
+
+.seeker-chapter-part h2 {
+    color: #704174;
+}
+
+.seeker-chapter-part h2:hover {
+    color: #502d52; 
+}
+
+.seeker-chapter-part p {
+    color: #704174; 
+}
+
+.seeker-chapter-part p:hover {
+    color: #502d52;
+}
+
+.seeker-chapter-part a:visited {
+    color: #704174; 
+}
+
+.seeker-chapter-part a {
+    color: #704174;
+    text-decoration: underline; 
+}
+
+.seeker-chapter-part a:hover {
+    text-decoration: underline;
+}
+
+.seeker-purchase-buttons button {
+    background-color: #704174;
+}
+
+.seeker-purchase-buttons button:hover {
+    background-color: #502d52;
+}
+
+/* Prince's Reverie Styles */
+.prince-title {
+    color: #8b0000;
+    font-size: 42px;
+    margin-bottom: 5px;
+}
+
+.prince-info {
+    color: #8b0000;
+    margin-bottom: 20px;
+}
+
+.prince-synopsis {
+    border-color: #8b0000;
+    color: #333333;
+}
+
+.prince-chapter-part h2 {
+    color: #8b0000;
+}
+
+.prince-chapter-part h2:hover {
+    color: #a52a2a;
+}
+
+.prince-purchase-buttons button {
+    background-color: #8b0000;
+}
+
+.prince-purchase-buttons button:hover {
+    background-color: #a52a2a;
+}
+
+.prince-chapter-part .arrow {
+    color: #8b0000; 
+}
+
+.prince-chapter-part .arrow:hover {
+    color: #a52a2a; 
+}
+
+.prince-chapter-part p {
+    color: #8b0000;
+}
+
+.prince-chapter-part p:hover {
+    color: #a52a2a; 
+}
+
+.prince-chapter-part a:visited {
+    color: #8b0000;
+}
+
+.prince-chapter-part a {
+    color: #8b0000; 
+    text-decoration: underline; 
+}
+
+.prince-chapter-part a:hover {
+    text-decoration: underline;
+}
+
+.seeker-logo {
+    display: block;
+    margin: 0 auto 10px auto;
+    max-width: 300px;
+    height: auto;
+}

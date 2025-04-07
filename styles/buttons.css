@@ -1,0 +1,25 @@
+button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin-right: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    filter: brightness(85%);
+    color: white;
+}
+
+.purchase-buttons button {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.purchase-buttons button:hover {
+    filter: brightness(85%);
+    color: white !important;
+}

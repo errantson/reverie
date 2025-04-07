@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Books - Reverie House</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/books.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="components/nav.js" defer></script>
+    <script src="components/region.js" defer></script>
+    <script>
+        async function openRegionalAmazonLink() {
+            const link = await getRegionalAmazonLink();
+            window.open(link, '_blank');
+        }
+    </script>
+</head>
+<body>
+    <div id="nav-container"></div>
+    <a href="#" onclick="openRegionalAmazonLink(); return false;"><img src="assets/icon_transp.png" alt="Welcome to Reverie House" width="100px" style="margin-top: 10px;"></a>
+    <p>Please enjoy the following books in the format of your preference.</p>
+    <p>More stories will be made available with time and support.</p>
+    <div class="purchase-buttons">
+        <button class="order-print-button" onclick="window.location.href='print.html'">Order Print Edition</button>
+        <button class="order-print-button" onclick="openRegionalAmazonLink()">Read on Kindle</button>
+    </div>
+
+    <hr class="book-divider">
+
+    <!-- Seeker's Reverie -->
+    <div class="book-section" id="seeker-reverie">
+        <h1 class="seeker-title">Seeker's Reverie</h1>
+        <p class="book-info seeker-info">published by errantson in 2025</p>
+        <div class="synopsis-box seeker-synopsis">
+            <p>After falling out of his nightmare, <b>Seeker</b> discovers a world between dreams and a home for all dreamers. Now he must uncover the art of dreamweaving before <b>The Unending Nightmare</b> consumes all of <b>Reverie House</b>.</p>
+        </div>
+        <div class="book-layout">
+            <a href="#" onclick="openRegionalAmazonLink(); return false;"><img src="books/seeker/seekers_reverie.png" alt="Seeker's Reverie" class="book-cover"></a>
+            <div class="chapter-list seeker-chapter-part">
+                <p><b>Ch. 0</b> — <a href="books/seeker/seekers_reverie_chapter_0.html">Preface</a></p>
+                <p><b>Ch. 1</b> — <a href="books/seeker/seekers_reverie_chapter_1.html">Escaping Oneself</a></p>
+                <p><b>Ch. 2</b> — Welcome to Reverie House</p>
+                <p><b>Ch. 3</b> — ?????? (April 4)</p>
+                <p><b>Ch. 4</b> — ?????? (April 8)</p>
+                <p><b>Ch. 5</b> — ?????? (April 8)</p>
+                <p><b>Ch. 6</b> — ?????? (April 8)</p>
+                <p><b>Ch. 7</b> — </p>
+                <p><b>Ch. 8</b> — </p>
+                <p><b>Ch. 9</b> — </p>
+                <p><b>Ch. 10</b> — </p>
+                <p><b>Ch. 11</b> — </p>
+                <p><b>Ch. 12</b> — </p>
+                <p><b>Ch. 13</b> — </p>
+                <p><b>Ch. 14</b> — </p>
+                <div class="purchase-buttons seeker-purchase-buttons">
+                    <button onclick="openRegionalAmazonLink()">Kindle</button>
+                    <button onclick="window.location.href='print.html'">Print</button>
+                    <button onclick="window.location.href='books/seeker/seekers_reverie.epub'">ePub</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Divider -->
+    <hr class="book-divider">
+
+    <!-- Prince's Reverie -->
+    <div class="book-section" id="prince-reverie">
+        <h1 class="prince-title">Prince's Reverie</h1>
+        <p class="book-info prince-info">written by errantson in 2025</p>
+        <div class="synopsis-box prince-synopsis">
+            <p>An enchanted prince finds his way into our wild mindscape.</p>
+            <p>What dreams and dreamweavers survive must contend.</p>
+        </div>
+        <div class="book-layout">
+            <img src="books/princes/princes_reverie.png" alt="Prince's Reverie" class="book-cover">
+            <div class="chapter-list prince-chapter-part">
+                <div class="chapter-part">
+                    <h2 onclick="togglePart('part1', this)"><span class="arrow">⮟</span> PART I</h2>
+                    <div id="part1" class="chapter-part-content">
+                        <p>Ch. 1 — <a href="books/princes/princes_reverie_chapter_1.html">Whatever You Want</a></p>
+                        <p>Ch. 2 — Wasting Time</p>
+                        <p>Ch. 3 — Petunia's House</p>
+                        <p>Ch. 4 — No Wish to Return</p>
+                        <p>Ch. 5 — Breakfast of Fools</p>
+                        <p>Ch. 6 — Other People</p>
+                        <p>Ch. 7 — Savages</p>
+                        <p>Ch. 8 — Demolition of Order</p>
+                        <p>Ch. 9 — Culture</p>
+                    </div>
+                </div>
+                <div class="chapter-part">
+                    <h2 onclick="togglePart('part2', this)"><span class="arrow">⮞</span> PART II</h2>
+                    <div id="part2" class="chapter-part-content">
+                        <p>Ch. 10 — Revenge</p>
+                        <p>Ch. 11 — Cookies</p>
+                        <p>Ch. 12 — Away We Walk</p>
+                        <p>Ch. 13 — Focus on Figs</p>
+                        <p>Ch. 14 — Gladiators</p>
+                        <p>Ch. 15 — You Decide</p>
+                        <p>Ch. 16 — Michael Slays the Dragon</p>
+                        <p>Ch. 17 — Proper Introductions</p>
+                        <p>Ch. 18 — Man in the Moon</p>
+                    </div>
+                </div>
+                <div class="chapter-part">
+                    <h2 onclick="togglePart('part3', this)"><span class="arrow">⮞</span> PART III</h2>
+                    <div id="part3" class="chapter-part-content">
+                        <p>Ch. 19 — Beware the Bogderry</p>
+                        <p>Ch. 20 — The Vagabond Witch</p>
+                        <p>Ch. 21 — Homecoming</p>
+                        <p>Ch. 22 — Splitting Up</p>
+                        <p>Ch. 23 — Bakun the Magnificent</p>
+                        <p>Ch. 24 — Overqualified</p>
+                        <p>Ch. 25 — Right-Hand Man</p>
+                        <p>Ch. 26 — Queen of Stars</p>
+                        <p> </p>
+                    </div>
+                </div>
+                <div class="chapter-part">
+                    <h2 onclick="togglePart('part4', this)"><span class="arrow">⮞</span> PART IV</h2>
+                    <div id="part4" class="chapter-part-content">
+                        <p>Ch. 27 — New Flags</p>
+                        <p>Ch. 28 — Nature's Lament</p>
+                        <p>Ch. 29 — Old Bastards</p>
+                        <p>Ch. 30 — Abuse of Power</p>
+                        <p>Ch. 31 — The Liberation of Weights</p>
+                        <p>Ch. 32 — Things Come to a Head</p>
+                        <p>Ch. 33 — The Prince's Duel</p>
+                        <p>Ch. 34 — What Dreams Remain</p>
+                        <p> </p>
+                    </div>
+                </div>
+                <div class="purchase-buttons prince-purchase-buttons">
+                    <button onclick="alert('This option is not available.')" style="cursor: not-allowed;" disabled>Kindle</button>
+                    <button onclick="alert('This option is not available.')" style="cursor: not-allowed;" disabled>Print</button>
+                    <button onclick="alert('This option is not available.')" style="cursor: not-allowed;" disabled>ePub</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Divider -->
+    <hr class="book-divider">
+
+    <!-- Creative Commons Notice -->
+    <div class="cc-notice-box">
+        <p>All prior editions of texts by author errantson are released under <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">Creative Commons (CC0)</a>
+        <br>Artworks derivative thereof remain the intellectual property of their creators</p>
+    </div>
+</body>
+</html>

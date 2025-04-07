@@ -1,0 +1,127 @@
+:root {
+    --page-background-color: #f0f8ff;
+    --internal-background-color: #ffffff;
+    --primary-color: #734ba1;
+}
+
+body {
+    background-color: var(--page-background-color);
+    font-family: Arial, sans-serif;
+    text-align: center;
+    color: var(--primary-color);
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.dreams-container {
+    margin: 20px auto;
+    padding: 15px;
+    max-width: 600px;
+    background-color: var(--internal-background-color);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.dreams-container h2 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    text-decoration: underline;
+}
+
+.dreams-container p {
+    margin: 10px 0;
+}
+
+#dreamers-table-container {
+    margin: 40px auto;
+    width: 80%;
+    max-width: 800px;
+    background-color: var(--internal-background-color);
+    border: 1px solid #ddd;
+    padding: 20px;
+    text-align: center;
+}
+
+#dreamers-table {
+    margin: 0 auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1em;
+    text-align: left;
+    background-color: var(--internal-background-color);
+}
+
+#dreamers-table th {
+    text-align: left;
+    background-color: #734ba1;
+    color: #ffffff;
+    padding: 12px;
+    font-size: 1em;
+}
+
+#dreamers-table td {
+    text-align: left;
+    padding: 10px;
+    border: 1px solid #eee;
+    font-size: 0.95em;
+}
+
+#dreamers-table td:nth-child(2) {
+    font-weight: bold;
+}
+
+#dreamers-table tr:nth-child(even) {
+    background-color: #f7f7f7;
+}
+
+#dreamers-table tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#dreamers-table tr:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.request-key-button {
+    background-color: #734ba1;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.request-key-button:hover {
+    background-color: rgb(130, 96, 168);
+}
+
+#toggle-reverie img {
+    filter: grayscale(100%);
+    transition: filter 0.3s ease;
+}
+
+#toggle-reverie.active img {
+    filter: none;
+}
+
+#toggle-reverie img,
+#refresh-button img {
+    width: 25px;
+    height: 25px;
+    margin: 0;
+}
+
+img[src*="wild_mindscape.svg"] {
+    filter: brightness(1.2) hue-rotate(180deg) saturate(2);
+}
