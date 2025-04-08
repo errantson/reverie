@@ -11,7 +11,7 @@ def add_journal_entry(name, event, link, dreamers):
     did = matched_dreamer['did']
     print(f"Dreamer found: {matched_dreamer['name']} (DID: {did})")
     
-    with open('world.json', 'r') as f:
+    with open('data/world.json', 'r') as f:  # Fixed file path
         world = json.load(f)
     current_epoch = world['epoch']
     
@@ -31,7 +31,7 @@ def add_journal_entry(name, event, link, dreamers):
     
     print(f"Added new event to journal.json: {new_journal_entry}")
 
-def update_journal(dreamers):
+def update_discoveries(dreamers):  # Renamed from update_journal
     with open('data/journal.json', 'r') as f:
         journal = json.load(f)
 

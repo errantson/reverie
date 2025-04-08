@@ -48,7 +48,7 @@
                     const nameLink = `<a href="/dreamer.html?name=${encodeURIComponent(name)}">${name}</a>`;
                     const eventLink = entry.link && entry.link.trim()
                         ? `<a href="${entry.link.startsWith("did:") 
-                            ? `https://bsky.app/profile/${entry.did}/post/${entry.link.split('/').pop()}` 
+                            ? `https://bsky.app/profile/${entry.link.replace('app.bsky.feed.', '').replace('/post/', '/post/')}` 
                             : entry.link}" target="_blank">${entry.event}</a>`
                         : entry.event;
 

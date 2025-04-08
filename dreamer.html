@@ -209,80 +209,71 @@
                     })
                     .catch(error => console.error('Error loading journal data:', error));
 
-                // Updated: Populate kindred panel with conditional arrow visibility
+                // Updated: Populate kindred panel as rolodex style
                 const kindredPanel = document.getElementById('kindred-panel');
-                const kindredContent = document.getElementById('kindred-content');
-                const kindredPrev = document.getElementById('kindred-prev');
-                const kindredNext = document.getElementById('kindred-next');
-                let kindredIndex = 0;
-
+                kindredPanel.innerHTML = ''; // clear previous content
+                kindredPanel.style.display = 'block'; // always display the panel
                 if (dreamer.kindred && dreamer.kindred.length > 0) {
-                    kindredPanel.style.display = 'block';
-
-                    // Show arrows only if there is more than one kindred
-                    if (dreamer.kindred.length > 1) {
-                        kindredPrev.style.display = 'inline';
-                        kindredNext.style.display = 'inline';
-                    } else {
-                        kindredPrev.style.display = 'none';
-                        kindredNext.style.display = 'none';
-                    }
-
-                    const updateKindredDisplay = () => {
-                        const kindredDid = dreamer.kindred[kindredIndex];
-                        const kindredDreamer = dreamers.find(d => d.did === kindredDid);
-                        if (kindredDreamer) {
-                            let iconSrc = '';
-                            let iconAlt = '';
-                            let iconStyle = '';
-                            if (kindredDreamer.server === 'https://reverie.house') {
-                                if (kindredDreamer.handle.endsWith('reverie.house')) {
-                                    iconSrc = '../assets/icon_transp.png';
-                                    iconAlt = 'Reverie House';
+                    let kindredList = dreamer.kindred.map(did => dreamers.find(d => d.did === did)).filter(Boolean);
+                    if (kindredList.length > 0) {
+                        let currentIndex = 0;
+                        const container = document.createElement('div');
+                        container.style.margin = '0'; // reduced margin
+                        container.style.display = 'flex';
+                        container.style.alignItems = 'center';
+                        container.style.justifyContent = 'space-between';
+                        // Left arrow (dark grey)
+                        const leftArrow = document.createElement('span');
+                        leftArrow.textContent = '◀';
+                        leftArrow.style.color = 'darkgrey';
+                        leftArrow.style.cursor = 'pointer';
+                        // Display element
+                        const displaySpan = document.createElement('span');
+                        // Right arrow (dark grey)
+                        const rightArrow = document.createElement('span');
+                        rightArrow.textContent = '▶';
+                        rightArrow.style.color = 'darkgrey';
+                        rightArrow.style.cursor = 'pointer';
+                        function updateDisplay() {
+                            const kDreamer = kindredList[currentIndex];
+                            let iconHTML = '';
+                            if (kDreamer.server === 'https://reverie.house') {
+                                if (kDreamer.handle.endsWith('reverie.house')) {
+                                    iconHTML = '<img src="../assets/icon_transp.png" alt="Reverie House" style="width:20px; height:20px; vertical-align:middle; margin-right:5px;">';
                                 } else {
-                                    iconSrc = '../assets/icon_transp.png';
-                                    iconAlt = 'Reverie House';
-                                    iconStyle = 'filter: grayscale(100%);';
+                                    iconHTML = '<img src="../assets/icon_transp.png" alt="Reverie House" style="width:20px; height:20px; vertical-align:middle; margin-right:5px; filter: grayscale(100%);">';
                                 }
-                            } else if (kindredDreamer.server.includes('bsky.network')) {
-                                if (kindredDreamer.handle.endsWith('bsky.social')) {
-                                    iconSrc = 'assets/bluesky.svg';
-                                    iconAlt = 'Bluesky';
-                                } else if (kindredDreamer.handle.endsWith('reverie.house')) {
-                                    iconSrc = 'assets/icon_transp.png';
-                                    iconAlt = 'Dreamweaver';
-                                    iconStyle = 'filter: saturate(40%);';
+                            } else if (kDreamer.server.includes('bsky.network')) {
+                                if (kDreamer.handle.endsWith('bsky.social')) {
+                                    iconHTML = '<img src="assets/bluesky.svg" alt="Bluesky" style="width:20px; height:20px; vertical-align:middle; margin-right:5px;">';
+                                } else if (kDreamer.handle.endsWith('reverie.house')) {
+                                    iconHTML = '<img src="assets/icon_transp.png" alt="Dreamweaver" style="width:20px; height:20px; vertical-align:middle; margin-right:5px; filter: saturate(40%);">';
                                 } else {
-                                    iconSrc = 'assets/bluesky.svg';
-                                    iconAlt = 'Dreamer';
-                                    iconStyle = 'filter: brightness(50%) saturate(80%);';
+                                    iconHTML = '<img src="assets/bluesky.svg" alt="Dreamer" style="width:20px; height:20px; vertical-align:middle; margin-right:5px; filter: brightness(50%) saturate(80%);">';
                                 }
                             } else {
-                                iconSrc = '../assets/our_wild_mindscape.svg';
-                                iconAlt = 'Our Wild Mindscape';
+                                iconHTML = '<img src="../assets/our_wild_mindscape.svg" alt="Our Wild Mindscape" style="width:20px; height:20px; vertical-align:middle; margin-right:5px;">';
                             }
-                            kindredContent.innerHTML = `
-                                <a href="${window.location.pathname}?did=${encodeURIComponent(kindredDreamer.did)}" style="text-decoration: none;">
-                                    <img src="${iconSrc}" alt="${iconAlt}" style="width:20px; height:20px; vertical-align:middle; ${iconStyle}">
-                                </a>
-                                <a href="${window.location.pathname}?did=${encodeURIComponent(kindredDreamer.did)}" style="text-decoration: none; color: var(--text-color);">${kindredDreamer.name}</a>
-                            `;
+                            displaySpan.innerHTML = iconHTML + `<a href="${window.location.pathname}?did=${encodeURIComponent(kDreamer.did)}" style="text-decoration: none; color: var(--text-color);">${kDreamer.name}</a>`;
                         }
-                    };
-
-                    updateKindredDisplay();
-
-                    kindredPrev.addEventListener('click', () => {
-                        kindredIndex = (kindredIndex - 1 + dreamer.kindred.length) % dreamer.kindred.length;
-                        updateKindredDisplay();
-                    });
-
-                    kindredNext.addEventListener('click', () => {
-                        kindredIndex = (kindredIndex + 1) % dreamer.kindred.length;
-                        updateKindredDisplay();
-                    });
+                        updateDisplay();
+                        leftArrow.addEventListener('click', () => {
+                            currentIndex = (currentIndex - 1 + kindredList.length) % kindredList.length;
+                            updateDisplay();
+                        });
+                        rightArrow.addEventListener('click', () => {
+                            currentIndex = (currentIndex + 1) % kindredList.length;
+                            updateDisplay();
+                        });
+                        container.appendChild(leftArrow);
+                        container.appendChild(displaySpan);
+                        container.appendChild(rightArrow);
+                        kindredPanel.appendChild(container);
+                    } else {
+                        kindredPanel.innerHTML = '<div style="margin: 0;">Kindred to None</div>';
+                    }
                 } else {
-                    kindredPanel.style.display = 'none';
+                    kindredPanel.innerHTML = '<div style="margin: 0;">Kindred to None</div>';
                 }
             };
             const displayRandomProfile = () => {
@@ -337,18 +328,14 @@
             </div>
         </div>
         <div id="search-container" class="dreams-container" style="position: relative;">
-            <!-- Updated kindred panel -->
-            <div id="kindred-panel" style="display: none; margin-bottom: 10px; position: relative;">
-                <h4 style="margin: 0 0 2px 0; color: var(--primary-color);">Kindred</h4>
-                <div id="kindred-display" style="display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-color); padding: 5px;">
-                    <button id="kindred-prev" style="background: none; border: none; cursor: pointer; font-size: 1.5rem; color: black; display: none;">➤</button>
-                    <div id="kindred-content" style="display: flex; align-items: center; gap: 5px;"></div>
-                    <button id="kindred-next" style="background: none; border: none; cursor: pointer; font-size: 1.5rem; color: black; display: none;">➤</button>
-                </div>
-            </div>
+            <!-- Updated Dreamweavers header at top -->
             <div style="display: inline-flex; align-items: center;">
                 <img src="/assets/icon_transp.png" alt="Transp Icon" style="width: 30px; height: 30px; margin-right: 8px;">
                 <h3 style="margin: 5px;">Dreamweavers</h3>
+            </div>
+            <!-- Moved kindred panel BELOW the header; always displayed -->
+            <div id="kindred-panel" style="display: block; margin-bottom: 5px;">
+                <!-- kindred content will be injected here -->
             </div>
             <div class="search-area">
                 <div class="search-bar" style="display: flex; align-items: center; gap: 5px;">
@@ -368,26 +355,16 @@
             </div>
         </div>
     </div>
-    <!-- New side-by-side boxes container -->
-    <div class="side-by-side-boxes" style="margin-bottom: 20px;">
-        <div class="side-box" id="name-request-box">
-            <a href="https://bsky.social/about/blog/4-28-2023-domain-handle-tutorial" target="_blank">
-                <img src="assets/bluesky.svg" alt="Bluesky">
-            </a>
-            <p>Want to use your <strong>reverie.house</strong> name?</p>
-            <p>Simply set your handle to<br><code>name.reverie.house</code><br>in your account settings.</p>
-            <button class="request-key-button" onclick="window.open('https://bsky.app/profile/reverie.house/post/3lljjzcydwc25', '_blank')">
-                Request Name
-            </button>
-        </div>
-        <div class="side-box" id="key-info-box">
-            <img src="assets/icon_transp.png" alt="Icon" style="width:50px; height:50px; margin-bottom:10px;">
-            <p>Do you have a key like this?<br><code><b>reverie-house-gkjor-wt5ih</b></code></p>
-            <p style="margin-top: -5px;">Create a new Bluesky account.<br>Set account provider to custom:<br><code>https://reverie.house</code></p>
-            <button class="request-key-button" onclick="window.open('mailto:books@reverie.house?subject=Reverie%20House%20Key&body=Hey%20dreamer,%0AMy%20name%20is%20errantson.%0AWe%20may%20have%20met%20in%20a%20dream.%0AI%20am%20a%20dreamweaver,%20are%20you?', '_blank')">
-                Request Key
-            </button>
-        </div>
-    </div>
+    <!-- New script to load bsky_instruct.html -->
+    <script>
+        fetch('components/bsky_instruct.html')
+            .then(response => response.text())
+            .then(html => {
+                const container = document.createElement('div');
+                container.innerHTML = html;
+                document.body.appendChild(container);
+            })
+            .catch(error => console.error('Error loading bsky_instruct.html:', error));
+    </script>
 </body>
 </html>

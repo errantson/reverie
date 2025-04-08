@@ -1,20 +1,30 @@
 import sys
 import json
+import os
 from scripts.did_utils import get_did_from_handle, get_handle_and_server_from_did
 from scripts.profile_utils import get_bsky_profile, get_bsky_description_from_did
-from scripts.journal_utils import add_journal_entry, update_journal, sort_journal_by_epoch, shuffle_epoch_0_items
+from scripts.journal_utils import add_journal_entry, update_discoveries, sort_journal_by_epoch, shuffle_epoch_0_items
 from scripts.world_utils import update_world
 from scripts.dreamer_utils import add_dreamer, update_dreamer_entry, load_dreamers, save_dreamers
+from scripts.kindred_utils import add_kindred, update_kindred
+from scripts.reset_utils import reset_data
+
+# Helper function to load JSON files safely
+def load_json_file(filepath):
+    if not os.path.exists(filepath):
+        print(f"Error: File not found - {filepath}")
+        return None
+    try:
+        with open(filepath, 'r') as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to parse JSON file - {filepath}. Error: {e}")
+        return None
 
 # Load data from JSON files
-with open('data/dreamers.json', 'r') as f:
-    dreamers = json.load(f)
-
-with open('data/journal.json', 'r') as f:
-    journal = json.load(f)
-
-with open('data/world.json', 'r') as f:
-    world = json.load(f)
+dreamers = load_json_file('data/dreamers.json') or []
+journal = load_json_file('data/journal.json') or []
+world = load_json_file('data/world.json') or {"epoch": 0}
 
 def display_help():
     print("""
@@ -29,57 +39,13 @@ Usage:
         Add a journal entry for the specified dreamer with an event and optional link.
 
     python update.py kindred <name1> <name2> <link>
-        Add a kindred relationship between two dreamers with an optional link.
+        Add a kindred relationship between two dreamers with a mandatory link.
+
+    python update.py reset
+        Reset the data files by downloading the latest versions from reverie.house.
 
     Run without arguments to update all dreamers, journal, and world state.
     """)
-
-def add_kindred(name1, name2, link, dreamers):
-    if not link:
-        print("Error: No link supplied. Operation cancelled.")
-        return
-
-    # Ensure both dreamers exist in dreamers.json
-    dreamer1 = next((d for d in dreamers if d['name'].lower() == name1.lower() or d['handle'].lower() == name1.lower()), None)
-    dreamer2 = next((d for d in dreamers if d['name'].lower() == name2.lower() or d['handle'].lower() == name2.lower()), None)
-
-    if not dreamer1:
-        print(f"Error: Dreamer '{name1}' not found. Operation cancelled.")
-        return
-    if not dreamer2:
-        print(f"Error: Dreamer '{name2}' not found. Operation cancelled.")
-        return
-
-    # Add kindred relationship to dreamer1
-    if 'kindred' not in dreamer1:
-        dreamer1['kindred'] = []
-    if dreamer2['did'] not in dreamer1['kindred']:
-        dreamer1['kindred'].append(dreamer2['did'])
-        print(f"Added {dreamer2['did']} as kindred to {dreamer1['name']}.")
-
-    # Save updated dreamers.json
-    save_dreamers(dreamers)
-
-    # Add journal entry
-    with open('data/world.json', 'r') as f:
-        world = json.load(f)
-    current_epoch = world['epoch']
-
-    new_journal_entry = {
-        "event": f"is kindred to {dreamer1['name']}",
-        "did": dreamer2['did'],
-        "epoch": current_epoch,
-        "link": f"{dreamer1['did']}/app.bsky.feed.post/{link}"
-    }
-
-    with open('data/journal.json', 'r') as f:
-        journal = json.load(f)
-    journal.append(new_journal_entry)
-
-    with open('data/journal.json', 'w') as f:
-        json.dump(journal, f, indent=4)
-
-    print(f"Journal entry added: {new_journal_entry}")
 
 # Command-line argument handling
 if len(sys.argv) == 2 and sys.argv[1].lower() == "help":
@@ -91,6 +57,7 @@ if len(sys.argv) >= 4 and sys.argv[1].lower() == "new":
     handle_or_did_arg = sys.argv[3]
     link_arg = sys.argv[4] if len(sys.argv) > 4 else None
     add_dreamer(name_arg, handle_or_did_arg, dreamers, link_arg)
+    save_dreamers(dreamers)
     sys.exit(0)
 
 if len(sys.argv) >= 4 and sys.argv[1].lower() == "journal":
@@ -103,26 +70,35 @@ if len(sys.argv) >= 4 and sys.argv[1].lower() == "journal":
 if len(sys.argv) >= 5 and sys.argv[1].lower() == "kindred":
     name1_arg = sys.argv[2]
     name2_arg = sys.argv[3]
-    link_arg = sys.argv[4]
+    link_arg = sys.argv[4]  # Link is now mandatory
     add_kindred(name1_arg, name2_arg, link_arg, dreamers)
+    save_dreamers(dreamers)
+    sys.exit(0)  # Exit after successful operation
+
+if len(sys.argv) == 2 and sys.argv[1].lower() == "reset":
+    reset_data()
     sys.exit(0)
 
-# Update dreamers
-for dreamer in dreamers:
-    update_dreamer_entry(dreamer)
+# Only run the following updates if no specific command was executed
+if len(sys.argv) == 1:
+    # Update dreamers
+    for dreamer in dreamers:
+        update_dreamer_entry(dreamer)
 
-# Save updated dreamers
-with open('data/dreamers.json', 'w') as f:
-    json.dump(dreamers, f, indent=4)
+    # Save updated dreamers
+    save_dreamers(dreamers)
 
-# Update journal
-update_journal(dreamers)
+    # Update discoveries 
+    update_discoveries(dreamers)
 
-# Sort journal by epoch
-sort_journal_by_epoch()
+    # Update kindred relationships
+    update_kindred(dreamers)
 
-# Shuffle epoch 0 items (moved after sorting)
-shuffle_epoch_0_items()
+    # Sort journal by epoch
+    sort_journal_by_epoch()
 
-# Update world state
-update_world()
+    # Shuffle epoch 0 items (moved after sorting)
+    shuffle_epoch_0_items()
+
+    # Update world state
+    update_world()

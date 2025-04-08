@@ -13,6 +13,7 @@ function renderNextChapter(containerId, chapterDetails) {
     console.log('Rendering next chapter with details:', chapterDetails);
 
     const { coverImage, title, chapterTitle, description, link, available } = chapterDetails;
+    const epubLink = coverImage.replace(/\.[^/.]+$/, '.epub'); // Replace the file extension with .epub
 
     container.innerHTML = `
         <div class="next-chapter-container">
@@ -26,8 +27,8 @@ function renderNextChapter(containerId, chapterDetails) {
                 </a>
                 <div class="purchase-buttons">
                     <button style="cursor: ${available ? 'pointer' : 'not-allowed'};" ${!available ? 'disabled' : ''} onclick="openRegionalAmazonLink()">Kindle</button>
-                    <button style="cursor: ${available ? 'pointer' : 'not-allowed'};" ${!available ? 'disabled' : ''} onclick="window.location.href='../../print.html'">Print</button>
-                    <button style="cursor: ${available ? 'pointer' : 'not-allowed'};" ${!available ? 'disabled' : ''} onclick="window.location.href='${title.toLowerCase().replace(/ /g, '_')}.epub'">ePub</button>
+                    <button style="cursor: pointer;" onclick="window.open('https://buy.stripe.com/3cs7tVesCa7PbAc144', '_blank')">Print</button>
+                    <button style="cursor: ${available ? 'pointer' : 'not-allowed'};" ${!available ? 'disabled' : ''} onclick="window.location.href='${epubLink}'">ePub</button>
                 </div>
             </div>
         </div>

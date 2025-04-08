@@ -30,6 +30,6 @@ async function getRegionalAmazonLink() {
 
 function openRegionalAmazonLink() {
     getRegionalAmazonLink()
-        .then(link => window.open(link, '_blank'))
+        .then(link => window.open(link, '_blank')) // Ensure links open in a new tab
         .catch(error => console.error('Error opening regional Amazon link:', error));
 }
