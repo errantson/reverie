@@ -6,9 +6,9 @@ def download_file(url, local_path):
     try:
         response = requests.get(url)
         response.raise_for_status()
-        data = response.json()  # Parse JSON response
+        data = response.json()  
         with open(local_path, 'w') as f:
-            json.dump(data, f, indent=4)  # Properly indented JSON format
+            json.dump(data, f, indent=4)  
         print(f"Downloaded and saved: {local_path}")
     except requests.exceptions.RequestException as e:
         print(f"Error downloading {url}: {e}")
@@ -17,7 +17,7 @@ def download_file(url, local_path):
 
 def reset_data():
     base_url = "https://reverie.house/data"
-    files = ["journal.json", "dreamers.json", "world.json"]
+    files = ["journal.json", "dreamers.json", "world.json", "kindred.json"]
     local_dir = "data"
 
     if not os.path.exists(local_dir):

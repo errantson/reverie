@@ -16,3 +16,6 @@ def update_world():
         json.dump(world, f, indent=4)
 
     print("World updated successfully.")
+
+def get_current_epoch(world):
+    return world.get("epoch", 0)

@@ -4,7 +4,7 @@ import os
 from scripts.did_utils import get_did_from_handle, get_handle_and_server_from_did
 from scripts.profile_utils import get_bsky_profile, get_bsky_description_from_did
 from scripts.journal_utils import add_journal_entry, update_discoveries, sort_journal_by_epoch, shuffle_epoch_0_items
-from scripts.world_utils import update_world
+from scripts.world_utils import update_world, get_current_epoch
 from scripts.dreamer_utils import add_dreamer, update_dreamer_entry, load_dreamers, save_dreamers
 from scripts.kindred_utils import add_kindred, update_kindred
 from scripts.reset_utils import reset_data
@@ -58,6 +58,18 @@ if len(sys.argv) >= 4 and sys.argv[1].lower() == "new":
     link_arg = sys.argv[4] if len(sys.argv) > 4 else None
     add_dreamer(name_arg, handle_or_did_arg, dreamers, link_arg)
     save_dreamers(dreamers)
+
+    # Run baseline updates after adding a new dreamer
+    for dreamer in dreamers:
+        update_dreamer_entry(dreamer)
+    save_dreamers(dreamers)
+    update_discoveries(dreamers)
+    current_epoch = get_current_epoch(world)
+    update_kindred(dreamers, current_epoch)
+    sort_journal_by_epoch()
+    shuffle_epoch_0_items()
+    update_world()
+
     sys.exit(0)
 
 if len(sys.argv) >= 4 and sys.argv[1].lower() == "journal":
@@ -73,7 +85,19 @@ if len(sys.argv) >= 5 and sys.argv[1].lower() == "kindred":
     link_arg = sys.argv[4]  # Link is now mandatory
     add_kindred(name1_arg, name2_arg, link_arg, dreamers)
     save_dreamers(dreamers)
-    sys.exit(0)  # Exit after successful operation
+
+    # Run baseline updates after adding kindred relationships
+    for dreamer in dreamers:
+        update_dreamer_entry(dreamer)
+    save_dreamers(dreamers)
+    update_discoveries(dreamers)
+    current_epoch = get_current_epoch(world)
+    update_kindred(dreamers, current_epoch)
+    sort_journal_by_epoch()
+    shuffle_epoch_0_items()
+    update_world()
+
+    sys.exit(0)
 
 if len(sys.argv) == 2 and sys.argv[1].lower() == "reset":
     reset_data()
@@ -92,7 +116,8 @@ if len(sys.argv) == 1:
     update_discoveries(dreamers)
 
     # Update kindred relationships
-    update_kindred(dreamers)
+    current_epoch = get_current_epoch(world)
+    update_kindred(dreamers, current_epoch)
 
     # Sort journal by epoch
     sort_journal_by_epoch()

@@ -50,7 +50,7 @@ def add_kindred(name1, name2, link, dreamers):
 
     print(f"Journal entry added: {new_journal_entry}")
 
-def update_kindred(dreamers):
+def update_kindred(dreamers, current_epoch):
     # Load existing kindred pairs from kindred.json
     try:
         with open('data/kindred.json', 'r') as f:
@@ -87,7 +87,7 @@ def update_kindred(dreamers):
                     journal_entry = {
                         "event": f" and {dreamer2['name']} are true kindred",
                         "did": dreamer1['did'],
-                        "epoch": 0,
+                        "epoch": current_epoch,
                         "link": ""
                     }
                     journal.append(journal_entry)
