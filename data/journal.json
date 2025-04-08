@@ -1,12 +1,6 @@
 [
     {
         "event": "discovered our wild mindscape",
-        "did": "did:plc:yauphjufk7phkwurn266ybx2",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
         "did": "did:plc:eaqr3mneobyuahigtr7w2ykr",
         "epoch": 0,
         "link": ""
@@ -14,6 +8,18 @@
     {
         "event": "discovered our wild mindscape",
         "did": "did:plc:kzgeqefyvfkgnr6gi6sorpwo",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:yauphjufk7phkwurn266ybx2",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:zdxbourfcbv66iq2xfpb233q",
         "epoch": 0,
         "link": ""
     },
@@ -31,18 +37,6 @@
     },
     {
         "event": "discovered our wild mindscape",
-        "did": "did:plc:kjsbm2iic46gbuzfcxec6w6v",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:zlgkqbg37lee3tyxmwiit3ph",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
         "did": "did:plc:gl65ogkhvw2djbmlyhhhsyqa",
         "epoch": 0,
         "link": ""
@@ -55,7 +49,13 @@
     },
     {
         "event": "discovered our wild mindscape",
-        "did": "did:plc:zdxbourfcbv66iq2xfpb233q",
+        "did": "did:plc:kjsbm2iic46gbuzfcxec6w6v",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:zlgkqbg37lee3tyxmwiit3ph",
         "epoch": 0,
         "link": ""
     },

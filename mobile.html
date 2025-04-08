@@ -1,39 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- ...existing head code... -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reverie House Mobile</title>
     <link rel="stylesheet" href="styles/mobile.css">
     <script src="components/region.js" defer></script>
+    <style>
+        /* Add this style block to stack buttons vertically */
+        .book-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+    </style>
 </head>
 <body>
-    <!-- Header -->
     <header>
         <img src="assets/logo.png" alt="Reverie House Logo" class="logo">
-        <h1>Reverie House</h1>
+        <p><i>Home of all dreamers in our wild mindscape.</i></p>
     </header>
-    <!-- About Section -->
     <section id="about">
-        <h2>What is Reverie House?</h2>
-        <p>A home within our wild mindscape for all dreamweavers. Preserve dreams and connect dreamers.</p>
-    </section>
-    <!-- Book Section -->
+        <a href="javascript:openRegionalAmazonLink();">
+            <img src="books/seeker/seekers_reverie.png" alt="Seeker's Reverie" class="book" style="width: 85%;">
+        </a>    
     <section id="books">
         <h2>Seeker's Reverie</h2>
-        <p>Discover the journey of escaping nightmares and embracing the art of dreamweaving.</p>
-        <button onclick="openRegionalAmazonLink();">Explore the Book</button>
+        <p>Falling from a nightmares into the place between dreams, <b>Seeker</b> discovers our wild mindscape and the art of dreamweaving at a place called <b>Reverie House</b>.</p>
+        <div class="book-buttons">
+            <button onclick="openRegionalAmazonLink();">Read on Kindle</button>
+            <button onclick="window.location.href='https://buy.stripe.com/3cs7tVesCa7PbAc144';">Order Print</button>
+            <button onclick="window.location.href='books/seeker/seekers_reverie.epub'">Download ePub</button>
+            <button onclick="window.location.href='mobilereader.html'">Read Online Now</button>
+        </div>
     </section>
-    <!-- Dreamers Section -->
     <section id="dreams">
-        <h2>Dreamers' Hub</h2>
-        <p>Join other dreamweavers and share your visions.</p>
-        <a href="dreams.html">Enter the Dream</a>
+        <h2>Dreamweavers</h2>
+        <a href="hiring.html"><img src="assets/icon_transp.png" alt="Dreamweavers Icon" style="width:131px; height:131px; margin-bottom:1px;"></a>
+        <p style="margin:2px 0;">The adepts of dreamweaving who call <b>Reverie House</b> their home are walking among dreams in our wild mindscape right now.</p>
+        <p>Share and explore your dreams with others, as we uncover more of our wild mindscape together.</p>
+        <button style="background-color: #704174; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;"
+            onclick="window.location.href='https://bsky.app/profile/reverie.house/post/3lljjzcydwc25';">
+            Join the Others
+        </button>
     </section>
-    <!-- Footer -->
+    <blockquote class="bluesky-embed" data-bluesky-uri="at://did:plc:yauphjufk7phkwurn266ybx2/app.bsky.feed.post/3llok4anfe22v" data-bluesky-cid="bafyreieestcoqgwpj2uypkmk4yxax3e34jalvksijiagwapyezckrmbvpq" data-bluesky-embed-color-mode="system">
+        <p lang="en">
+            Laughing dreamers return to Reverie House with reports of a strange dream in the yonders of our wild mindscape.
+            None can fully explain it when asked.<br><br>
+            A group prepares to explore it.<br><br>
+            Will you join the expedition?<br><br>
+            <a href="https://bsky.app/profile/did:plc:yauphjufk7phkwurn266ybx2/post/3llok4anfe22v?ref_src=embed">[image or embed]</a>
+        </p>
+        — Reverie House (<a href="https://bsky.app/profile/did:plc:yauphjufk7phkwurn266ybx2?ref_src=embed">@reverie.house</a>) 
+        <a href="https://bsky.app/profile/did:plc:yauphjufk7phkwurn266ybx2/post/3llok4anfe22v?ref_src=embed">March 31, 2025 at 10:13 AM</a>
+    </blockquote>
+    <script async src="https://embed.bsky.app/static/embed.js" charset="utf-8"></script>
     <footer>
-        <p>&copy; 2025 Reverie House</p>
+        <p>Please contact <a href="mailto:books@reverie.house">books@reverie.house</a> for any information.</p>
     </footer>
 </body>
 </html>
