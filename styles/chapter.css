@@ -75,6 +75,39 @@
     --gradient-end: #1e293b; 
 }
 
+:root.ch04 {
+    --primary-color: #2a6f3e; /* Deep green for nature */
+    --secondary-color: #a3d9a5; /* Light green for accents */
+    --text-color: #333333; 
+    --background-color: #f5f9f6; /* Soft garden-like background */
+    --border-color: #2a6f3e; 
+    --page-background-color: #e8f5e9; 
+    --gradient-start: #a3d9a5; 
+    --gradient-end: #2a6f3e; 
+}
+
+:root.ch05 {
+    --primary-color: #8a4b2a; /* Warm brown for earthy tones */
+    --secondary-color: #f4a261; /* Soft orange for accents */
+    --text-color: #333333;
+    --background-color: #fff7e6; /* Light beige for a cozy feel */
+    --border-color: #8a4b2a;
+    --page-background-color: #fef5e7;
+    --gradient-start: #f4a261;
+    --gradient-end: #8a4b2a;
+}
+
+:root.ch06 {
+    --primary-color: #4b0082; /* Deep indigo for mystery */
+    --secondary-color: #9370db; /* Lavender for accents */
+    --text-color: #333333;
+    --background-color: #f3e8ff; /* Soft lavender for a dreamy feel */
+    --border-color: #4b0082;
+    --page-background-color: #e6d5f7;
+    --gradient-start: #9370db;
+    --gradient-end: #4b0082;
+}
+
 body {
     background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
     background-attachment: fixed;
@@ -99,6 +132,20 @@ body.blue {
 
 body.ch03 {
     background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+}
+
+body.ch04 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+}
+
+body.ch05 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    transition: background 0.3s ease;
+}
+
+body.ch06 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    transition: background 0.3s ease;
 }
 
 .chapter-content {

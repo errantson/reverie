@@ -1,17 +1,19 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en" class="ch06">
 <head>
     <meta charset="UTF-8">
-    <title>Seeker's Reverie — Preface</title>
+    <title>Seeker's Reverie — Chapter 6</title>
     <link rel="stylesheet" href="../../styles/style.css">
     <link rel="stylesheet" href="../../styles/chapter.css">
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="../../components/nav.js"></script>
     <script src="../../components/chapterhead.js"></script>
+    <script src="../../components/chapterfoot.js"></script>
+    <script src="../../components/markdown.js"></script>
     <script src="../../components/region.js"></script>
 </head>
-<body>
+<body class="ch06">
     <header id="nav-container"></header>
     <main>
         <article class="chapter-content">
@@ -29,33 +31,21 @@
         </article>
         <div id="next-chapter"></div>
     </main>
-    <script src="../../components/chapterfoot.js"></script>
     <script>
-        // Fetch and render the Markdown content
-        fetch('sr00-preface.md')
-            .then(response => response.text())
-            .then(markdown => {
-                const container = document.getElementById('markdown-content');
-                container.innerHTML = marked.parse(markdown);
-            })
-            .catch(error => console.error('Error loading Markdown:', error));
-
+        loadMarkdown('sr06-inside_the_orren.md', 'Seeker\'s Reverie');
         renderChapterHeader('chapter-header', {
             coverImage: 'seekers_reverie.png',
             title: "Seeker's Reverie",
-            chapterNumber: '',
-            chapterTitle: 'Preface'
+            chapterNumber: 'Chapter 6',
+            chapterTitle: 'Inside the Orren'
         });
-
-        // Debug log to confirm renderNextChapter is being called
-        console.log('Calling renderNextChapter...');
         renderNextChapter('next-chapter', {
             coverImage: 'seekers_reverie.png',
             title: "Seeker's Reverie",
-            chapterTitle: 'Chapter 1 — Escaping Oneself',
-            description: 'A lost dreamer suffers in a horrible nightmare until they fall out of their dream and discover somewhere new.',
-            link: 'seekers_reverie_chapter_1.html',
-            available: true
+            chapterTitle: 'Eyes of the Dreamweaver',
+            description: 'Seeker ventures into Bakun\'s labyrinth, facing challenges that test his courage, faith, and understanding the art of dreamweaving.',
+            link: 'seekers_reverie_chapter_7.html',
+            available: false // Chapter 7 is still coming soon
         });
     </script>
 </body>

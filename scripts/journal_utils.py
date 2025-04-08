@@ -68,14 +68,18 @@ def shuffle_epoch_0_items():
     with open('data/journal.json', 'r') as f:
         journal = json.load(f)
     
+    # Separate epoch 0 items and other items
     epoch_0_items = [entry for entry in journal if entry['epoch'] == 0]
     other_items = [entry for entry in journal if entry['epoch'] != 0]
     
+    # Shuffle epoch 0 items
     random.shuffle(epoch_0_items)
     
+    # Combine epoch 0 items at the top, followed by other items
     journal = epoch_0_items + other_items
     
+    # Save the updated journal
     with open('data/journal.json', 'w') as f:
         json.dump(journal, f, indent=4)
     
-    print("Shuffled epoch 0 items in journal.json.")
+    print("Shuffled epoch 0 items and placed them at the top in journal.json.")
