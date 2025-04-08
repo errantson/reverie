@@ -160,11 +160,5 @@
         "did": "did:plc:vnsbihf2w3is22fpzulpkbuy",
         "epoch": 9,
         "link": "did:plc:vnsbihf2w3is22fpzulpkbuy/app.bsky.feed.post/3lmcojdc7wk2c"
-    },
-    {
-        "event": "is kindred to jane",
-        "did": "did:plc:ddutx2cwrrtthxap5a4z6kxq",
-        "epoch": 10,
-        "link": "did:plc:zlgkqbg37lee3tyxmwiit3ph/app.bsky.feed.post/3lmacvhoatc2m"
     }
 ]

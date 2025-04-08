@@ -339,3 +339,41 @@ input[type="text"] {
 #kindred-prev {
     transform: scaleX(-1);
 }
+
+#kindred-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Ensure arrows are at the extremities */
+    padding: 5px;
+}
+
+#kindred-panel span {
+    flex-shrink: 0; /* Prevent arrows from shrinking */
+    user-select: none; /* Prevent text selection */
+}
+
+#kindred-panel span:first-child {
+    margin-right: auto; /* Push the left arrow to the left extremity */
+}
+
+#kindred-panel span:last-child {
+    margin-left: auto; /* Push the right arrow to the right extremity */
+}
+
+#kindred-panel a img {
+    width: 21px;
+    height: 21px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+#kindred-panel a {
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-decoration: none;
+    color: var(--text-color);
+}
+
+#kindred-panel a:hover {
+    text-decoration: underline;
+}
