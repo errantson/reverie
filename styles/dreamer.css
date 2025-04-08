@@ -1,8 +1,8 @@
 :root {
     --background-color: var(--page-background-color);
     --primary-color: #734ba1;
-    --text-color: #734ba1;
-    --border-color: #734ba1;
+    --text-color: #372e42;
+    --border-color: #353535;
     --hover-color: #f7f7f7;
     --internal-background-color: #ffffff;
 }
@@ -307,4 +307,34 @@ input[type="text"] {
 
 #refresh-button:hover img {
     transform: rotate(90deg);
+}
+
+#kindred-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid var(--border-color);
+    padding: 5px;
+}
+
+#kindred-content {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#kindred-prev, #kindred-next {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: rgb(59, 59, 59);
+}
+
+#kindred-next {
+    transform: none;
+}
+
+#kindred-prev {
+    transform: scaleX(-1);
 }

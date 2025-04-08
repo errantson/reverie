@@ -209,59 +209,80 @@
                     })
                     .catch(error => console.error('Error loading journal data:', error));
 
-                // Display kindred box if the dreamer has kindred
-                const kindredBox = document.getElementById('kindred-box');
-                const kindredTbody = document.getElementById('kindred-tbody');
-                kindredTbody.innerHTML = ''; // Clear previous entries
+                // Updated: Populate kindred panel with conditional arrow visibility
+                const kindredPanel = document.getElementById('kindred-panel');
+                const kindredContent = document.getElementById('kindred-content');
+                const kindredPrev = document.getElementById('kindred-prev');
+                const kindredNext = document.getElementById('kindred-next');
+                let kindredIndex = 0;
+
                 if (dreamer.kindred && dreamer.kindred.length > 0) {
-                    const kindredDIDs = dreamer.kindred;
-                    const kindredDreamers = dreamers.filter(d => kindredDIDs.includes(d.did));
-                    kindredDreamers.forEach((kindred, index) => {
-                        const row = document.createElement('tr');
-                        const cell = document.createElement('td');
-                        let iconSrc = '';
-                        let iconAlt = '';
-                        let iconStyle = '';
-                        if (kindred.server === 'https://reverie.house') {
-                            if (kindred.handle.endsWith('reverie.house')) {
-                                iconSrc = '../assets/icon_transp.png';
-                                iconAlt = 'Reverie House';
+                    kindredPanel.style.display = 'block';
+
+                    // Show arrows only if there is more than one kindred
+                    if (dreamer.kindred.length > 1) {
+                        kindredPrev.style.display = 'inline';
+                        kindredNext.style.display = 'inline';
+                    } else {
+                        kindredPrev.style.display = 'none';
+                        kindredNext.style.display = 'none';
+                    }
+
+                    const updateKindredDisplay = () => {
+                        const kindredDid = dreamer.kindred[kindredIndex];
+                        const kindredDreamer = dreamers.find(d => d.did === kindredDid);
+                        if (kindredDreamer) {
+                            let iconSrc = '';
+                            let iconAlt = '';
+                            let iconStyle = '';
+                            if (kindredDreamer.server === 'https://reverie.house') {
+                                if (kindredDreamer.handle.endsWith('reverie.house')) {
+                                    iconSrc = '../assets/icon_transp.png';
+                                    iconAlt = 'Reverie House';
+                                } else {
+                                    iconSrc = '../assets/icon_transp.png';
+                                    iconAlt = 'Reverie House';
+                                    iconStyle = 'filter: grayscale(100%);';
+                                }
+                            } else if (kindredDreamer.server.includes('bsky.network')) {
+                                if (kindredDreamer.handle.endsWith('bsky.social')) {
+                                    iconSrc = 'assets/bluesky.svg';
+                                    iconAlt = 'Bluesky';
+                                } else if (kindredDreamer.handle.endsWith('reverie.house')) {
+                                    iconSrc = 'assets/icon_transp.png';
+                                    iconAlt = 'Dreamweaver';
+                                    iconStyle = 'filter: saturate(40%);';
+                                } else {
+                                    iconSrc = 'assets/bluesky.svg';
+                                    iconAlt = 'Dreamer';
+                                    iconStyle = 'filter: brightness(50%) saturate(80%);';
+                                }
                             } else {
-                                iconSrc = '../assets/icon_transp.png';
-                                iconAlt = 'Reverie House';
-                                iconStyle = 'filter: grayscale(100%);';
+                                iconSrc = '../assets/our_wild_mindscape.svg';
+                                iconAlt = 'Our Wild Mindscape';
                             }
-                        } else if (kindred.server.includes('bsky.network')) {
-                            if (kindred.handle.endsWith('bsky.social')) {
-                                iconSrc = 'assets/bluesky.svg';
-                                iconAlt = 'Bluesky';
-                            } else if (kindred.handle.endsWith('reverie.house')) {
-                                iconSrc = 'assets/icon_transp.png';
-                                iconAlt = 'Dreamweaver';
-                                iconStyle = 'filter: saturate(40%);';
-                            } else {
-                                iconSrc = 'assets/bluesky.svg';
-                                iconAlt = 'Dreamer';
-                                iconStyle = 'filter: brightness(50%) saturate(80%);';
-                            }
-                        } else {
-                            iconSrc = '../assets/our_wild_mindscape.svg';
-                            iconAlt = 'Our Wild Mindscape';
+                            kindredContent.innerHTML = `
+                                <a href="${window.location.pathname}?did=${encodeURIComponent(kindredDreamer.did)}" style="text-decoration: none;">
+                                    <img src="${iconSrc}" alt="${iconAlt}" style="width:20px; height:20px; vertical-align:middle; ${iconStyle}">
+                                </a>
+                                <a href="${window.location.pathname}?did=${encodeURIComponent(kindredDreamer.did)}" style="text-decoration: none; color: var(--text-color);">${kindredDreamer.name}</a>
+                            `;
                         }
-                        cell.innerHTML = `
-                            <img src="${iconSrc}" alt="${iconAlt}" style="width:20px; height:20px; vertical-align:middle; margin-right:5px; ${iconStyle}">
-                            <a href="${window.location.pathname}?name=${encodeURIComponent(kindred.name)}" style="text-decoration: none; color: var(--text-color);">
-                                ${kindred.name}
-                            </a>`;
-                        cell.style.padding = '10px';
-                        cell.style.cursor = 'pointer';
-                        cell.style.backgroundColor = index % 2 === 0 ? '#f0f0f0' : 'var(--internal-background-color)';
-                        row.appendChild(cell);
-                        kindredTbody.appendChild(row);
+                    };
+
+                    updateKindredDisplay();
+
+                    kindredPrev.addEventListener('click', () => {
+                        kindredIndex = (kindredIndex - 1 + dreamer.kindred.length) % dreamer.kindred.length;
+                        updateKindredDisplay();
                     });
-                    kindredBox.style.display = 'block';
+
+                    kindredNext.addEventListener('click', () => {
+                        kindredIndex = (kindredIndex + 1) % dreamer.kindred.length;
+                        updateKindredDisplay();
+                    });
                 } else {
-                    kindredBox.style.display = 'none';
+                    kindredPanel.style.display = 'none';
                 }
             };
             const displayRandomProfile = () => {
@@ -316,16 +337,18 @@
             </div>
         </div>
         <div id="search-container" class="dreams-container" style="position: relative;">
+            <!-- Updated kindred panel -->
+            <div id="kindred-panel" style="display: none; margin-bottom: 10px; position: relative;">
+                <h4 style="margin: 0 0 2px 0; color: var(--primary-color);">Kindred</h4>
+                <div id="kindred-display" style="display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-color); padding: 5px;">
+                    <button id="kindred-prev" style="background: none; border: none; cursor: pointer; font-size: 1.5rem; color: black; display: none;">➤</button>
+                    <div id="kindred-content" style="display: flex; align-items: center; gap: 5px;"></div>
+                    <button id="kindred-next" style="background: none; border: none; cursor: pointer; font-size: 1.5rem; color: black; display: none;">➤</button>
+                </div>
+            </div>
             <div style="display: inline-flex; align-items: center;">
                 <img src="/assets/icon_transp.png" alt="Transp Icon" style="width: 30px; height: 30px; margin-right: 8px;">
                 <h3 style="margin: 5px;">Dreamweavers</h3>
-            </div>
-            <!-- Kindred box -->
-            <div id="kindred-box" style="margin: 10px 0; padding: 10px; border: 1px solid var(--border-color); background-color: var(--internal-background-color); display: none;">
-                <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">Kindred</h4>
-                <table id="kindred-table" style="width: 100%; border-collapse: collapse;">
-                    <tbody id="kindred-tbody"></tbody>
-                </table>
             </div>
             <div class="search-area">
                 <div class="search-bar" style="display: flex; align-items: center; gap: 5px;">

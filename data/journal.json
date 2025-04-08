@@ -1,61 +1,7 @@
 [
     {
         "event": "discovered our wild mindscape",
-        "did": "did:plc:zdxbourfcbv66iq2xfpb233q",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:gl65ogkhvw2djbmlyhhhsyqa",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:vnsbihf2w3is22fpzulpkbuy",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:mmnhyniiitqfoyjcjvwkliow",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:ddutx2cwrrtthxap5a4z6kxq",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:kjsbm2iic46gbuzfcxec6w6v",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:4arg62s4o4a2cjcowhbcfrcb",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:yauphjufk7phkwurn266ybx2",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:joib55wqleijbhosxfekp3af",
-        "epoch": 0,
-        "link": ""
-    },
-    {
-        "event": "discovered our wild mindscape",
-        "did": "did:plc:zlgkqbg37lee3tyxmwiit3ph",
+        "did": "did:plc:eaqr3mneobyuahigtr7w2ykr",
         "epoch": 0,
         "link": ""
     },
@@ -67,7 +13,55 @@
     },
     {
         "event": "discovered our wild mindscape",
-        "did": "did:plc:eaqr3mneobyuahigtr7w2ykr",
+        "did": "did:plc:yauphjufk7phkwurn266ybx2",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:zdxbourfcbv66iq2xfpb233q",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:4arg62s4o4a2cjcowhbcfrcb",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:ddutx2cwrrtthxap5a4z6kxq",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:gl65ogkhvw2djbmlyhhhsyqa",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:joib55wqleijbhosxfekp3af",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:kjsbm2iic46gbuzfcxec6w6v",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:zlgkqbg37lee3tyxmwiit3ph",
+        "epoch": 0,
+        "link": ""
+    },
+    {
+        "event": "discovered our wild mindscape",
+        "did": "did:plc:mmnhyniiitqfoyjcjvwkliow",
         "epoch": 0,
         "link": ""
     },
@@ -154,17 +148,5 @@
         "did": "did:plc:mmnhyniiitqfoyjcjvwkliow",
         "epoch": 6,
         "link": "did:plc:mmnhyniiitqfoyjcjvwkliow/app.bsky.feed.post/3lm6c6qv7xk2s"
-    },
-    {
-        "event": "gained a name (napostriouf)",
-        "did": "did:plc:vnsbihf2w3is22fpzulpkbuy",
-        "epoch": 9,
-        "link": "did:plc:vnsbihf2w3is22fpzulpkbuy/app.bsky.feed.post/3lmcojdc7wk2c"
-    },
-    {
-        "event": "is kindred to jane",
-        "did": "did:plc:gl65ogkhvw2djbmlyhhhsyqa",
-        "epoch": 13,
-        "link": "did:plc:zlgkqbg37lee3tyxmwiit3ph/app.bsky.feed.post/3llqxni5nzs2j"
     }
 ]

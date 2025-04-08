@@ -226,32 +226,6 @@
             },
             "mimeType": "image/jpeg",
             "size": 668854
-        },
-        "kindred": [
-            "did:plc:gl65ogkhvw2djbmlyhhhsyqa"
-        ]
-    },
-    {
-        "name": "napostriouf",
-        "handle": "napostriouf.com",
-        "did": "did:plc:vnsbihf2w3is22fpzulpkbuy",
-        "server": "https://reishi.us-east.host.bsky.network",
-        "bio": "Website: https://www.napostriouf.com/\nNap'n'Gaming Productions: https://napostriouf.itch.io/\nNap'n'Retrogaming: https://www.youtube.com/napostriouf/\nCurator page: https://store.steampowered.com/curator/30793037/\n\nRetired pro wrestler/pro wrestling promoter",
-        "avatar": {
-            "$type": "blob",
-            "ref": {
-                "$link": "bafkreiddgozp6rzivcxijryk526yv5nfhlq6tajvl6stke5byo7ooalq6m"
-            },
-            "mimeType": "image/png",
-            "size": 6280
-        },
-        "banner": {
-            "$type": "blob",
-            "ref": {
-                "$link": "bafkreiblgdfd6w2mlpchlp74673tmetnlrjvsszamwrryi3seigrqxudry"
-            },
-            "mimeType": "image/jpeg",
-            "size": 66689
         }
     }
 ]
