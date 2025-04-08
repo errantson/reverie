@@ -302,9 +302,103 @@
                 const reverieDreamers = dreamers.filter(d => d.server === 'https://reverie.house');
                 if (reverieDreamers.length > 0) {
                     const randomIndex = Math.floor(Math.random() * reverieDreamers.length);
-                    displayProfile(reverieDreamers[randomIndex]);
+                    const randomDreamer = reverieDreamers[randomIndex];
+                    displayProfile(randomDreamer);
+                    populateKindred(randomDreamer); // Populate kindred for the random dreamer
                 } else if (dreamers.length > 0) {
-                    displayProfile(dreamers[0]); // Fallback to the first dreamer if no reverie.house users exist
+                    const fallbackDreamer = dreamers[0]; // Fallback to the first dreamer if no reverie.house users exist
+                    displayProfile(fallbackDreamer);
+                    populateKindred(fallbackDreamer); // Populate kindred for the fallback dreamer
+                }
+            };
+
+            const populateKindred = (dreamer) => {
+                const kindredPanel = document.getElementById('kindred-panel');
+                kindredPanel.innerHTML = ''; // clear previous content
+                kindredPanel.style.display = 'block'; // always display the panel
+                if (dreamer.kindred && dreamer.kindred.length > 0) {
+                    let kindredList = dreamer.kindred.map(did => dreamers.find(d => d.did === did)).filter(Boolean);
+                    if (kindredList.length > 0) {
+                        let currentIndex = 0;
+                        const container = document.createElement('div');
+                        container.style.margin = '0'; // reduced margin
+                        container.style.display = 'flex';
+                        container.style.alignItems = 'center';
+                        container.style.justifyContent = 'space-between'; // ensure arrows are at the extremities
+
+                        // Left arrow (dark grey)
+                        const leftArrow = document.createElement('span');
+                        leftArrow.textContent = '◀';
+                        leftArrow.style.color = 'darkgrey';
+                        leftArrow.style.cursor = 'pointer';
+                        leftArrow.style.display = kindredList.length > 1 ? 'inline' : 'none';
+
+                        // Display element
+                        const displaySpan = document.createElement('span');
+                        displaySpan.style.flex = '1'; // ensure the display spans the space between arrows
+                        displaySpan.style.textAlign = 'center';
+
+                        // Right arrow (dark grey)
+                        const rightArrow = document.createElement('span');
+                        rightArrow.textContent = '▶';
+                        rightArrow.style.color = 'darkgrey';
+                        rightArrow.style.cursor = 'pointer';
+                        rightArrow.style.display = kindredList.length > 1 ? 'inline' : 'none';
+
+                        function updateDisplay() {
+                            const kDreamer = kindredList[currentIndex];
+                            let iconHTML = '';
+                            if (kDreamer.server === 'https://reverie.house') {
+                                if (kDreamer.handle.endsWith('reverie.house')) {
+                                    iconHTML = `<a href="${window.location.pathname}?did=${encodeURIComponent(kDreamer.did)}" style="text-decoration: none;">
+                                                    <img src="../assets/icon_transp.png" alt="Reverie House" style="width:21px; height:21px; vertical-align:middle; margin-right:8px;">
+                                                </a>`;
+                                } else {
+                                    iconHTML = `<a href="${window.location.pathname}?did=${encodeURIComponent(kDreamer.did)}" style="text-decoration: none;">
+                                                    <img src="../assets/icon_transp.png" alt="Reverie House" style="width:21px; height:21px; vertical-align:middle; margin-right:8px; filter: grayscale(100%);">
+                                                </a>`;
+                                }
+                            } else if (kDreamer.server.includes('bsky.network')) {
+                                if (kDreamer.handle.endsWith('bsky.social')) {
+                                    iconHTML = `<a href="${window.location.pathname}?did=${encodeURIComponent(kDreamer.did)}" style="text-decoration: none;">
+                                                    <img src="assets/bluesky.svg" alt="Bluesky" style="width:21px; height:21px; vertical-align:middle; margin-right:8px;">
+                                                </a>`;
+                                } else if (kDreamer.handle.endsWith('reverie.house')) {
+                                    iconHTML = `<a href="${window.location.pathname}?did=${encodeURIComponent(kDreamer.did)}" style="text-decoration: none;">
+                                                    <img src="assets/icon_transp.png" alt="Dreamweaver" style="width:21px; height:21px; vertical-align:middle; margin-right:8px; filter: saturate(40%);">
+                                                </a>`;
+                                } else {
+                                    iconHTML = `<a href="${window.location.pathname}?did=${encodeURIComponent(kDreamer.did)}" style="text-decoration: none;">
+                                                    <img src="assets/bluesky.svg" alt="Dreamer" style="width:21px; height:21px; vertical-align:middle; margin-right:8px; filter: brightness(50%) saturate(80%);">
+                                                </a>`;
+                                }
+                            } else {
+                                iconHTML = `<a href="${window.location.pathname}?did=${encodeURIComponent(kDreamer.did)}" style="text-decoration: none;">
+                                                <img src="../assets/our_wild_mindscape.svg" alt="Our Wild Mindscape" style="width:21px; height:21px; vertical-align:middle; margin-right:8px;">
+                                            </a>`;
+                            }
+                            displaySpan.innerHTML = iconHTML + `<a href="${window.location.pathname}?did=${encodeURIComponent(kDreamer.did)}" style="text-decoration: none; color: var(--text-color); font-size: 1.1rem; font-weight: bold;">${kDreamer.name}</a>`;
+                        }
+                        updateDisplay();
+
+                        leftArrow.addEventListener('click', () => {
+                            currentIndex = (currentIndex - 1 + kindredList.length) % kindredList.length;
+                            updateDisplay();
+                        });
+                        rightArrow.addEventListener('click', () => {
+                            currentIndex = (currentIndex + 1) % kindredList.length;
+                            updateDisplay();
+                        });
+
+                        container.appendChild(leftArrow);
+                        container.appendChild(displaySpan);
+                        container.appendChild(rightArrow);
+                        kindredPanel.appendChild(container);
+                    } else {
+                        kindredPanel.innerHTML = '<div style="margin: 0; text-align: center; color: #333;">None Kindred</div>';
+                    }
+                } else {
+                    kindredPanel.innerHTML = '<div style="margin: 0; text-align: center; color: #333;">None Kindred</div>';
                 }
             };
 
