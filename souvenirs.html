@@ -95,7 +95,7 @@
                             return `<li>
   <img src="${iconSrc}" alt="${iconAlt}" title="${iconAlt}" style="width:20px; height:20px; vertical-align:middle; margin-right:5px; ${iconStyle}">
   <a href="dreamer.html?name=${encodeURIComponent(u.name)}">${u.name}</a>
-  (<a href="https://bsky.app/profile/${u.handle.replace(/^@/, '')}" title="${u.handle.replace(/^@/, '')}">${u.handle.replace(/^@/, '')}</a>)
+  (<a href="https://bsky.app/profile/${u.handle.replace(/^@/, '')}" title="${u.handle.replace(/^@/, '')}">@${u.handle.replace(/^@/, '')}</a>)
 </li>`;
                         }).join('') +
                         '</ul>';

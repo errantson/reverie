@@ -384,8 +384,9 @@ input[type="text"] {
 /* Updated grid styling for souvenir icons */
 .souvenirs-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 29px);
-    grid-template-rows: repeat(2, 29px);
+    grid-auto-flow: column;
+    grid-auto-columns: 44px;
+    grid-auto-rows: 44px;
     gap: 2px;
     justify-items: start;
     align-items: start;
@@ -393,9 +394,21 @@ input[type="text"] {
     justify-self: flex-start;
 }
 .souvenirs-grid a img {
-    width: 29px;
-    height: 29px;
+    width: 44px;
+    height: 44px;
     object-fit: cover;
+    /* removed box-shadow for transparent icons */
+    animation: hovering 3s infinite ease-in-out; /* updated animation */
+}
+
+/* New keyframes for subtle hovering effect */
+@keyframes hovering {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
 }
 
 .handle-result,
