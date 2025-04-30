@@ -1,0 +1,132 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+    color: #333;
+}
+
+/* Updated container styling */
+#souvenir-container {
+    background-color: #fff;
+    padding: 20px;
+    border: 1px solid #292828;
+    margin: 20px auto;
+    max-width: 600px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* New styles for souvenir layout */
+.souvenir-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.souvenir-image img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover; /* Ensures a square crop */
+    border-radius: 4px;
+}
+.souvenir-text {
+    text-align: left;
+}
+
+/* Updated souvenir data heading */
+#souvenir-data h2 {
+    font-size: 24px;
+    color: #372e42;
+    margin-bottom: 10px;
+}
+#souvenir-data p {
+    font-size: 16px;
+    line-height: 1.5;
+}
+/* New styling for less prominent details display */
+.souvenir-details {
+    font-size: 12px;
+    font-family: monospace;
+    color: #777;
+}
+
+/* New styling for the keepers section */
+#users-section {
+    margin-top: 30px;
+    text-align: left;
+}
+#users-section h2 {
+    font-size: 22px;
+    color: #5b4791;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+#users-list ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+/* Alternating row colors copied from dreamers.css */
+#users-list li {
+    font-size: 16px;
+    margin: 5px 0;
+    padding: 5px;
+}
+#users-list li:nth-of-type(odd) {
+    background-color: #f0f0f0;
+}
+#users-list li:nth-of-type(even) {
+    background-color: #ffffff;
+}
+#users-list a {
+    text-decoration: none;
+    color: #372e42;
+    font-weight: bold;
+}
+#users-list a:hover {
+    text-decoration: underline;
+}
+
+/* New nav styling to mimic dreamer */
+#nav-container {
+    margin: 20px auto;
+    max-width: 600px;
+    border: 1px solid #292828;      
+    box-sizing: border-box;       
+    background-color: #fff;      
+    padding: 10px;               
+}
+#nav-container table {
+    margin: 0 auto;
+    text-align: center;
+}
+#nav-container td {
+    padding: 10px 20px;
+    font-size: 16px;
+}
+#nav-container a {
+    text-decoration: none;
+    color: #372e42;
+    font-weight: bold;
+}
+#nav-container a:hover {
+    text-decoration: underline;
+}
+
+/* New souvenir gallery styling */
+#souvenir-gallery {
+    margin-top: 20px;
+    text-align: center;
+}
+#souvenir-gallery img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    margin: 5px;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+#souvenir-gallery img:hover {
+    border-color: #734ba1;
+}

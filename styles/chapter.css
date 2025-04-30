@@ -76,10 +76,10 @@
 }
 
 :root.ch04 {
-    --primary-color: #2a6f3e; /* Deep green for nature */
-    --secondary-color: #a3d9a5; /* Light green for accents */
+    --primary-color: #2a6f3e; 
+    --secondary-color: #a3d9a5; 
     --text-color: #333333; 
-    --background-color: #f5f9f6; /* Soft garden-like background */
+    --background-color: #f5f9f6;
     --border-color: #2a6f3e; 
     --page-background-color: #e8f5e9; 
     --gradient-start: #a3d9a5; 
@@ -87,10 +87,10 @@
 }
 
 :root.ch05 {
-    --primary-color: #8a4b2a; /* Warm brown for earthy tones */
-    --secondary-color: #f4a261; /* Soft orange for accents */
+    --primary-color: #8a4b2a; 
+    --secondary-color: #f4a261; 
     --text-color: #333333;
-    --background-color: #fff7e6; /* Light beige for a cozy feel */
+    --background-color: #fff7e6;
     --border-color: #8a4b2a;
     --page-background-color: #fef5e7;
     --gradient-start: #f4a261;
@@ -98,14 +98,47 @@
 }
 
 :root.ch06 {
-    --primary-color: #4b0082; /* Deep indigo for mystery */
-    --secondary-color: #9370db; /* Lavender for accents */
+    --primary-color: #4b0082;
+    --secondary-color: #9370db; 
     --text-color: #333333;
-    --background-color: #f3e8ff; /* Soft lavender for a dreamy feel */
+    --background-color: #f3e8ff;
     --border-color: #4b0082;
     --page-background-color: #e6d5f7;
     --gradient-start: #9370db;
     --gradient-end: #4b0082;
+}
+
+:root.ch07 {
+    --primary-color: #579dbb;
+    --secondary-color: #995eb4;
+    --text-color: #333333;
+    --background-color: #f3e8ff; 
+    --border-color: #94cee6;
+    --page-background-color: #e6d5f7;
+    --gradient-start: #94cee6;
+    --gradient-end: #995eb4;
+}
+
+:root.ch08 {
+    --primary-color: #5475e4;
+    --secondary-color: #554cd3;
+    --text-color: #333333;
+    --background-color: #f3e8ff; 
+    --border-color: #82c0a8;
+    --page-background-color: #e6d5f7;
+    --gradient-start: #644ea0;
+    --gradient-end: #82c0a8;
+}
+
+:root.ch09 {
+    --primary-color: #3056d1;
+    --secondary-color: #3056d1;
+    --text-color: #333333;
+    --background-color: #f3e8ff; 
+    --border-color: #3056d1;
+    --page-background-color: #cecece;
+    --gradient-start: #3056d1;
+    --gradient-end: #6f83c7;
 }
 
 body {
@@ -144,6 +177,20 @@ body.ch05 {
 }
 
 body.ch06 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    transition: background 0.3s ease;
+}
+
+body.ch07 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    transition: background 0.3s ease;
+}
+
+body.ch08 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    transition: background 0.3s ease;
+}
+body.ch09 {
     background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
     transition: background 0.3s ease;
 }

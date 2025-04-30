@@ -213,8 +213,10 @@ input[type="text"] {
     height: 100px; 
     border: 1px solid var(--border-color);
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start; /* changed from center */
+    justify-content: flex-start; /* changed from center */
+    padding: 5px; /* added padding */
+    overflow: auto;
 }
 
 .bio-box {
@@ -223,6 +225,7 @@ input[type="text"] {
     margin-top: 10px;
     width: 95%;
     min-height: 175px;
+    color: #222;
 }
 
 .adventure-box {
@@ -376,4 +379,26 @@ input[type="text"] {
 
 #kindred-panel a:hover {
     text-decoration: underline;
+}
+
+/* Updated grid styling for souvenir icons */
+.souvenirs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 29px);
+    grid-template-rows: repeat(2, 29px);
+    gap: 2px;
+    justify-items: start;
+    align-items: start;
+    align-self: flex-start;
+    justify-self: flex-start;
+}
+.souvenirs-grid a img {
+    width: 29px;
+    height: 29px;
+    object-fit: cover;
+}
+
+.handle-result,
+.dreamer-id {
+    color: darkgrey;
 }

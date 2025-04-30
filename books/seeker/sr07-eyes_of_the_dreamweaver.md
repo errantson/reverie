@@ -1,5 +1,3 @@
-# **Chapter 7** Eyes of the Dreamweaver
-
 Entering the maze, Seeker feels the thrill of challenge. Much about dreams has been explained to him, but he has yet to feel the triumph of application. This is his first opportunity to prove his competence in the art of dreamweaving. He arrives in Bakun's labyrinth completely sure of the phanera's artifice. Seeker is aware of the unreal.
 
 The room where he begins is square, built of smooth sandstone and wholly uninteresting. There is a single torch held by a sconce near a single exit, which leads down a dark hallway. The walls stand at least thrice his height, but stay open to a twinkling expanse of dark night sky.
@@ -148,7 +146,7 @@ He decides he will see a chamber of many doors. There are now infinite doors bef
 
 *When does it end?*
 
-	*Whenever you choose.*
+*Whenever you choose.*
 
 Dreamweaver Seeker exits Bakun's Labyrinth.
 

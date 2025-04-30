@@ -1,0 +1,10 @@
+[
+    {
+        "id": 1,
+        "name": "Strange Dream",
+        "art": "/souvenirs/strange_dream.png",
+        "description": "Memories of a reverie too bizarre to explain.",
+        "epoch": 13,
+        "issued": "@reverie.house"
+    }
+]

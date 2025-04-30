@@ -20,7 +20,10 @@
             },
             "mimeType": "image/png",
             "size": 121285
-        }
+        },
+        "souvenirs": [
+            1
+        ]
     },
     {
         "name": "coldflame",
@@ -82,7 +85,10 @@
             },
             "mimeType": "image/jpeg",
             "size": 704367
-        }
+        },
+        "souvenirs": [
+            1
+        ]
     },
     {
         "name": "keris",
@@ -226,7 +232,10 @@
             },
             "mimeType": "image/jpeg",
             "size": 668854
-        }
+        },
+        "souvenirs": [
+            2
+        ]
     },
     {
         "name": "napostriouf",
@@ -250,5 +259,21 @@
             "mimeType": "image/jpeg",
             "size": 66689
         }
+    },
+    {
+        "name": "mappy",
+        "handle": "mappy.reverie.house",
+        "did": "did:plc:76vflmjszrezzzk4dmyxe53c",
+        "server": "https://reverie.house",
+        "bio": "",
+        "avatar": {
+            "$type": "blob",
+            "ref": {
+                "$link": "bafkreida3mhk6vcf7qtnbi7mx7o2yr3gvw7dhvzju2eee5xj3qsqjfxioy"
+            },
+            "mimeType": "image/jpeg",
+            "size": 341793
+        },
+        "banner": null
     }
 ]

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reverie House - Souvenirs</title>
+    <link rel="stylesheet" href="styles/souvenirs.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <script src="components/nav.js" defer></script>
+</head>
+<body>
+    <div id="nav-container" style="margin-top: 10px;"></div>
+    <div id="souvenir-container">
+        <div id="souvenir-data">
+            <!-- Data will be populated here -->
+        </div>
+        <div id="users-section">
+            <h2>Keepers</h2>
+            <div id="users-list"><!-- Keepers will be listed here --></div>
+        </div>
+    </div>
+    <script>
+        // Get query parameter 'id'
+        const params = new URLSearchParams(window.location.search);
+        let idParam = params.get('id');
+        let souvenirId = parseInt(idParam, 10);
+        if (isNaN(souvenirId)) {
+            souvenirId = 1; // default to id 1
+        }
+        fetch('data/souvenirs.json')
+            .then(response => response.json())
+            .then(data => {
+                const souvenir = data.find(s => s.id === souvenirId);
+                if (souvenir) {
+                    document.getElementById('souvenir-data').innerHTML = `
+                        <div class="souvenir-info">
+                            <div class="souvenir-image">
+                                <img src="/souvenirs/${souvenirId}.png" alt="${souvenir.name}">
+                            </div>
+                            <div class="souvenir-text">
+                                <h2>${souvenir.name}</h2>
+                                <p>${souvenir.description}</p>
+                                <p class="souvenir-details">id ${souvenir.id.toString().padStart(3, '0')} | epoch ${souvenir.epoch.toString().padStart(3, '0')} | ${souvenir.issued}</p>
+                            </div>
+                        </div>
+                        <div id="souvenir-art" style="width:95%; margin:20px auto; text-align:center;">
+                            <img src="${souvenir.art}" alt="${souvenir.name} art" style="width:100%; height:auto;">
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('souvenir-data').innerText = "Souvenir not found.";
+                }
+            })
+            .catch(error => {
+                document.getElementById('souvenir-data').innerText = "Error loading souvenir data.";
+                console.error(error);
+            });
+        // Fetch dreamers (Keepers) using absolute path and update the list with refined display and link
+        fetch('/data/dreamers.json')
+            .then(response => response.json())
+            .then(dreamers => {
+                const users = dreamers.filter(user => Array.isArray(user.souvenirs) && user.souvenirs.includes(souvenirId));
+                if (users.length > 0) {
+                    document.getElementById('users-list').innerHTML =
+                        '<ul>' +
+                        users.map(u => {
+                            let iconSrc = '';
+                            let iconAlt = '';
+                            let iconStyle = '';
+                            if (u.server === 'https://reverie.house') {
+                                if (u.handle.endsWith('reverie.house')) {
+                                    iconSrc = '../assets/icon_transp.png';
+                                    iconAlt = 'Reverie House';
+                                } else {
+                                    iconSrc = '../assets/icon_transp.png';
+                                    iconAlt = 'Reverie House';
+                                    iconStyle = 'filter: grayscale(100%);';
+                                }
+                            } else if (u.server.includes('bsky.network')) {
+                                if (u.handle.endsWith('bsky.social')) {
+                                    iconSrc = 'assets/bluesky.svg';
+                                    iconAlt = 'Bluesky';
+                                } else if (u.handle.endsWith('reverie.house')) {
+                                    iconSrc = 'assets/icon_transp.png';
+                                    iconAlt = 'Dreamweaver';
+                                    iconStyle = 'filter: saturate(40%);';
+                                } else {
+                                    iconSrc = 'assets/bluesky.svg';
+                                    iconAlt = 'Dreamer';
+                                    iconStyle = 'filter: brightness(50%) saturate(80%);';
+                                }
+                            } else {
+                                iconSrc = '../assets/our_wild_mindscape.svg';
+                                iconAlt = 'Our Wild Mindscape';
+                            }
+                            return `<li>
+  <img src="${iconSrc}" alt="${iconAlt}" title="${iconAlt}" style="width:20px; height:20px; vertical-align:middle; margin-right:5px; ${iconStyle}">
+  <a href="dreamer.html?name=${encodeURIComponent(u.name)}">${u.name}</a>
+  (<a href="https://bsky.app/profile/${u.handle.replace(/^@/, '')}" title="${u.handle.replace(/^@/, '')}">${u.handle.replace(/^@/, '')}</a>)
+</li>`;
+                        }).join('') +
+                        '</ul>';
+                } else {
+                    document.getElementById('users-list').innerText = "No keepers found.";
+                }
+            })
+            .catch(error => {
+                document.getElementById('users-list').innerText = "Error loading users data.";
+                console.error(error);
+            });
+    </script>
+</body>
+</html>
