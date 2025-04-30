@@ -59,6 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.dispatchEvent(new Event('input'));
     });
 
+    // New code to load epoch information from world.json
+    fetch('data/world.json')
+        .then(response => response.json())
+        .then(worldData => {
+            const epochDisplay = document.getElementById('epoch-display');
+            if (epochDisplay) {
+                epochDisplay.textContent = `Epoch: ${worldData.epoch}`;
+            }
+        })
+        .catch(error => console.error('Error loading world data:', error));
+
     // Function to pick a random profile from dreamers filtered by a server condition
     function displayRandomProfile() {
         const reverieDreamers = dreamers.filter(d => d.server === 'https://reverie.house');
