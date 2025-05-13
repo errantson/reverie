@@ -141,6 +141,28 @@
     --gradient-end: #6f83c7;
 }
 
+:root.ch10 {
+    --primary-color: #333333;
+    --secondary-color: #9f51a7;
+    --text-color: #333333;
+    --background-color: #f3e8ff; 
+    --border-color: #9f51a7;
+    --page-background-color: #cecece;
+    --gradient-start: #13642e;
+    --gradient-end: #9f51a7;
+}
+
+:root.ch11 {
+    --primary-color: #333333;
+    --secondary-color: #681d29;
+    --text-color: #333333;
+    --background-color: #f3e8ff; 
+    --border-color: #681d29;
+    --page-background-color: #cecece;
+    --gradient-start: #681d29;
+    --gradient-end: #0c020e;
+}
+
 body {
     background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
     background-attachment: fixed;
@@ -191,6 +213,16 @@ body.ch08 {
     transition: background 0.3s ease;
 }
 body.ch09 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    transition: background 0.3s ease;
+}
+
+body.ch10 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    transition: background 0.3s ease;
+}
+
+body.ch11 {
     background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
     transition: background 0.3s ease;
 }
