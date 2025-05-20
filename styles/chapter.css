@@ -163,6 +163,17 @@
     --gradient-end: #0c020e;
 }
 
+:root.ch12 {
+    --primary-color: #333333;
+    --secondary-color: #24033a;
+    --text-color: #333333;
+    --background-color: #f3e8ff; 
+    --border-color: #24033a;
+    --page-background-color: #cecece;
+    --gradient-start: #0f0118;
+    --gradient-end: #0c0b0c;
+}
+
 body {
     background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
     background-attachment: fixed;
@@ -223,6 +234,11 @@ body.ch10 {
 }
 
 body.ch11 {
+    background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
+    transition: background 0.3s ease;
+}
+
+body.ch12 {
     background: linear-gradient(to top, var(--gradient-end), var(--gradient-start));
     transition: background 0.3s ease;
 }
