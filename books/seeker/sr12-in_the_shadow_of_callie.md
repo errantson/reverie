@@ -124,13 +124,13 @@ Their voices come from the place between worlds. The true soul. The boy's accept
 
 *It's safe here.*
 
-	*I promise.*
+*I promise.*
 
 The boy and his turtle make good. Dumbfounded and delighted, Bakun and others rejoice. The dream-beast comes around and stops at their service, offering their transport away from the remnants of safety.
 
 *Thank you.*
 
-	*Pleased to meet you.*
+*Pleased to meet you.*
 
 The dreamweavers begin to weave dreams.
 
