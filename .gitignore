@@ -1,0 +1,231 @@
+# Python
+__pycache__/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local configuration
+config.local.*
+.env
+.env.local
+secrets.json
+.backup/
+.session.json
+
+# Logs
+logs/
+*.log
+
+# Sensitive directories
+cert/
+secrets/
+
+# Infrastructure configs (contain internal IPs, service architecture, secrets)
+docker-compose.yml
+caddy.conf
+Caddyfile
+
+# Scripts with hardcoded credentials
+**/scripts/*password*.py
+**/scripts/*delete*.py
+**/scripts/*clean*.py
+**/scripts/*import*.py
+
+# Data directories (databases, backups, runtime data)
+data/
+data-runtime/
+backups/
+
+# Documentation (internal notes, experiments, planning)
+docs/
+
+# Archives and cleanup
+.archive/
+trash/
+
+# Payment processing (could contain sensitive config)
+stripe/
+
+# Checkpoints and model data
+checkpoints/
+
+# Test directory (empty)
+test/
+
+# External projects (separate repositories)
+lorefarm/
+caddy/
+
+# Temporary files and backups
+*.bak
+*.backup
+*.backup[0-9]
+*.old
+*.broken
+*.tmp
+*.swp
+*.swo
+*~
+
+# Node modules (if any JS projects)
+node_modules/
+package-lock.json
+
+# Python cache
+*.pyc
+*.pyo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Backup files (use git for version control)
+*.bak
+*.backup
+*.old
+*.temp
+*~
+
+# Database dumps (too large, should be in backups/)
+backups/database/
+*.sql.gz
+
+# Beta environment (belongs in separate branch/repo)
+../beta/
+
+# Additional recommended ignores
+# Docker / runtime secrets
+/run/secrets/
+run/secrets/
+secrets/*.txt
+
+# Private certificates and keys
+*.pem
+*.key
+
+# Python type checking cache
+.mypy_cache/
+
+# Terraform
+.terraform/
+
+# Editor swap / history
+*.session
+
+# Package metadata
+pip-wheel-metadata/
+
+# Composer / PHP (just in case)
+vendor/
+
+# Additional conservative ignores for security
+# Any credentials or tokens
+*credentials*
+*token*
+*.token
+*secret*
+!secrets/  # already ignored above but being explicit
+
+# SSH keys
+id_rsa*
+id_ed25519*
+*.ppk
+
+# Production/staging configs with potential secrets
+config.production.*
+config.staging.*
+
+# Session files
+*.session
+session_*
+
+# SQLite databases (may contain user data)
+*.db
+*.sqlite
+*.sqlite3
+
+# Any API keys
+*api_key*
+*apikey*
+
+# Docker secrets and configs
+docker-compose.override.yml
+.dockerignore
+
+# Any local development overrides
+local.*
+*.local
+
+# Core dumps
+core
+core.*

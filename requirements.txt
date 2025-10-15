@@ -1,0 +1,21 @@
+# Reverie House Python Dependencies
+
+# Core web framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# Database
+psycopg2-binary==2.9.9
+python-dateutil==2.9.0
+
+# ATProto / Bluesky
+atproto==0.0.64
+
+# HTTP requests
+requests==2.31.0
+
+# Data processing
+python-dotenv==1.0.0
+
+# Utilities
+pytz==2024.1
