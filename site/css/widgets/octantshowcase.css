@@ -1,0 +1,334 @@
+/* Octant Showcase Widget - Unified styling for inline and popup displays */
+
+/* Trigger styling */
+.octant-showcase-trigger {
+    position: relative;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.octant-showcase-trigger:hover {
+    opacity: 0.8;
+}
+
+/* Popup overlay */
+.octant-showcase-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+.octant-showcase-overlay.active {
+    opacity: 1;
+}
+
+/* Popup container */
+.octant-showcase-popup {
+    position: fixed;
+    background: white;
+    border: 3px solid var(--popup-color, var(--user-color, #734ba1));
+    border-radius: 0;
+    padding: 0;
+    max-width: 1000px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(115, 75, 161, 0.4);
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.octant-showcase-popup.active {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Popup header */
+.octant-showcase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--popup-color, var(--user-color, #734ba1));
+    color: white;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.octant-showcase-title {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-family: monospace;
+}
+
+/* Grid layout */
+.octant-showcase-grid,
+.modality-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 20px;
+}
+
+/* Octant Card - shared by inline and popup */
+.octant-card {
+    border-radius: 0;
+    padding: 16px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    min-height: 160px;
+    border: 2px solid;
+}
+
+.octant-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.octant-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Octant-specific backgrounds (using octants.css variables) */
+.octant-adaptive { 
+    background: var(--octant-adaptive); 
+    border-color: var(--octant-adaptive-dark);
+}
+
+.octant-chaotic { 
+    background: var(--octant-chaotic); 
+    border-color: var(--octant-chaotic-dark);
+}
+
+.octant-intended { 
+    background: var(--octant-intended); 
+    border-color: var(--octant-intended-dark);
+}
+
+.octant-prepared { 
+    background: var(--octant-prepared); 
+    border-color: var(--octant-prepared-dark);
+}
+
+.octant-contented { 
+    background: var(--octant-contented); 
+    border-color: var(--octant-contented-dark);
+}
+
+.octant-assertive { 
+    background: var(--octant-assertive); 
+    border-color: var(--octant-assertive-dark);
+}
+
+.octant-ordered { 
+    background: var(--octant-ordered); 
+    border-color: var(--octant-ordered-dark);
+}
+
+.octant-guarded { 
+    background: var(--octant-guarded); 
+    border-color: var(--octant-guarded-dark);
+}
+
+.octant-equilibrium { 
+    background: var(--octant-equilibrium); 
+    border-color: var(--octant-equilibrium-dark);
+}
+
+/* Octant Header */
+.octant-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+    background: none;
+}
+
+.octant-title {
+    text-align: center;
+    background: none;
+}
+
+.octant-name {
+    font-size: 1.1em;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+    background: none;
+}
+
+/* Octant-specific text colors */
+.octant-adaptive .octant-name { color: var(--octant-adaptive-darker); }
+.octant-chaotic .octant-name { color: var(--octant-chaotic-darker); }
+.octant-intended .octant-name { color: var(--octant-intended-darker); }
+.octant-prepared .octant-name { color: var(--octant-prepared-darker); }
+.octant-contented .octant-name { color: var(--octant-contented-darker); }
+.octant-assertive .octant-name { color: var(--octant-assertive-darker); }
+.octant-ordered .octant-name { color: var(--octant-ordered-darker); }
+.octant-guarded .octant-name { color: var(--octant-guarded-darker); }
+.octant-equilibrium .octant-name { color: var(--octant-equilibrium-darker); }
+
+/* Octant Axes */
+.octant-axes {
+    font-size: 0.8em;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    line-height: 1.4;
+    font-weight: 600;
+}
+
+.octant-adaptive .octant-axes { color: var(--octant-adaptive-dark); }
+.octant-chaotic .octant-axes { color: var(--octant-chaotic-dark); }
+.octant-intended .octant-axes { color: var(--octant-intended-dark); }
+.octant-prepared .octant-axes { color: var(--octant-prepared-dark); }
+.octant-contented .octant-axes { color: var(--octant-contented-dark); }
+.octant-assertive .octant-axes { color: var(--octant-assertive-dark); }
+.octant-ordered .octant-axes { color: var(--octant-ordered-dark); }
+.octant-guarded .octant-axes { color: var(--octant-guarded-dark); }
+.octant-equilibrium .octant-axes { color: var(--octant-equilibrium-dark); }
+
+/* Octant Description */
+.octant-description {
+    font-size: 0.75em;
+    text-align: center;
+    font-style: italic;
+    line-height: 1.4;
+    position: relative;
+    z-index: 1;
+    opacity: 0.85;
+}
+
+.octant-adaptive .octant-description { color: var(--octant-adaptive-darker); }
+.octant-chaotic .octant-description { color: var(--octant-chaotic-darker); }
+.octant-intended .octant-description { color: var(--octant-intended-darker); }
+.octant-prepared .octant-description { color: var(--octant-prepared-darker); }
+.octant-contented .octant-description { color: var(--octant-contented-darker); }
+.octant-assertive .octant-description { color: var(--octant-assertive-darker); }
+.octant-ordered .octant-description { color: var(--octant-ordered-darker); }
+.octant-guarded .octant-description { color: var(--octant-guarded-darker); }
+.octant-equilibrium .octant-description { color: var(--octant-equilibrium-darker); }
+
+/* Dreamer Avatars */
+.octant-dreamers {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    margin-top: auto;
+    min-height: 40px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.octant-dreamer-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    object-fit: cover;
+}
+
+.dreamer-avatar-link {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.dreamer-avatar-link:hover .octant-dreamer-avatar {
+    transform: scale(1.1);
+    border-color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.octant-empty {
+    font-size: 0.75em;
+    opacity: 0.6;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+    .octant-showcase-grid,
+    .modality-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 16px;
+    }
+    
+    .octant-card {
+        min-height: 140px;
+        padding: 14px;
+    }
+}
+
+@media (max-width: 600px) {
+    .octant-showcase-popup {
+        max-width: calc(100vw - 20px);
+        width: calc(100vw - 20px);
+    }
+    
+    .octant-showcase-grid,
+    .modality-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 12px;
+    }
+    
+    .octant-card {
+        min-height: 120px;
+        padding: 12px;
+    }
+    
+    .octant-name {
+        font-size: 1em;
+    }
+    
+    .octant-axes {
+        font-size: 0.75em;
+    }
+    
+    .octant-description {
+        font-size: 0.7em;
+    }
+    
+    .octant-dreamer-avatar {
+        width: 28px;
+        height: 28px;
+    }
+}

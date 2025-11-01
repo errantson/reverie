@@ -1,0 +1,119 @@
+/**
+ * Octants Color System
+ * 
+ * Standardized color references for all 9 octant types (8 octants + equilibrium).
+ * These CSS variables should be used throughout the application for consistent octant theming.
+ * 
+ * Each octant has:
+ * - Base color (bright, saturated)
+ * - Light variant (for backgrounds, highlights)
+ * - Dark variant (for text, borders, accents)
+ * - Very dark variant (for strong emphasis, shadows)
+ */
+
+:root {
+    /* Adaptive (Flow) - +++: Entropy • Liberty • Receptive */
+    --octant-adaptive: rgb(100, 255, 200);
+    --octant-adaptive-light: rgb(200, 255, 235);
+    --octant-adaptive-dark: rgb(45, 140, 100);
+    --octant-adaptive-darker: rgb(30, 95, 70);
+    
+    /* Chaotic (Experiment) - ++-: Entropy • Liberty • Skeptic */
+    --octant-chaotic: rgb(100, 200, 255);
+    --octant-chaotic-light: rgb(200, 235, 255);
+    --octant-chaotic-dark: rgb(45, 110, 150);
+    --octant-chaotic-darker: rgb(30, 75, 110);
+    
+    /* Intended (Command) - +-+: Entropy • Authority • Skeptic */
+    --octant-intended: rgb(255, 100, 150);
+    --octant-intended-light: rgb(255, 200, 220);
+    --octant-intended-dark: rgb(160, 50, 90);
+    --octant-intended-darker: rgb(120, 35, 65);
+    
+    /* Prepared (Strategy) - +--: Entropy • Authority • Receptive */
+    --octant-prepared: rgb(255, 180, 100);
+    --octant-prepared-light: rgb(255, 225, 200);
+    --octant-prepared-dark: rgb(150, 100, 50);
+    --octant-prepared-darker: rgb(110, 70, 35);
+    
+    /* Contented (Peace) - -++: Oblivion • Liberty • Receptive */
+    --octant-contented: rgb(255, 150, 255);
+    --octant-contented-light: rgb(255, 220, 255);
+    --octant-contented-dark: rgb(141, 87, 141);
+    --octant-contented-darker: rgb(126, 73, 126);
+    
+    /* Assertive (Wisdom) - -+-: Oblivion • Liberty • Skeptic */
+    --octant-assertive: rgb(150, 150, 255);
+    --octant-assertive-light: rgb(220, 220, 255);
+    --octant-assertive-dark: rgb(80, 80, 150);
+    --octant-assertive-darker: rgb(60, 60, 115);
+    
+    /* Ordered (Order) - --+: Oblivion • Authority • Receptive */
+    --octant-ordered: rgb(255, 255, 100);
+    --octant-ordered-light: rgb(255, 255, 200);
+    --octant-ordered-dark: rgb(140, 140, 50);
+    --octant-ordered-darker: rgb(100, 100, 35);
+    
+    /* Guarded (Guard) - ---: Oblivion • Authority • Skeptic */
+    --octant-guarded: rgb(169, 85, 214);
+    --octant-guarded-light: rgb(210, 180, 230);
+    --octant-guarded-dark: rgb(100, 50, 130);
+    --octant-guarded-darker: rgb(75, 40, 100);
+    
+    /* Equilibrium - Balanced center point (all three axes balanced) */
+    --octant-equilibrium: rgb(200, 200, 200);
+    --octant-equilibrium-light: rgb(240, 240, 240);
+    --octant-equilibrium-dark: rgb(100, 100, 100);
+    --octant-equilibrium-darker: rgb(70, 70, 70);
+    
+    /* Confused - Balanced on one axis */
+    --octant-confused: #7F7D69;
+    --octant-confused-light: rgb(210, 209, 200);
+    --octant-confused-dark: #7F7D69;
+    --octant-confused-darker: #5a594f;
+    
+    /* Singling - Balanced on two axes */
+    --octant-uncertain: #414141;
+    --octant-uncertain-light: rgb(180, 180, 180);
+    --octant-uncertain-dark: #414141;
+    --octant-uncertain-darker: #2a2a2a;
+}
+
+/* Octant-specific utility classes for backgrounds */
+.octant-bg-adaptive { background-color: var(--octant-adaptive) !important; }
+.octant-bg-chaotic { background-color: var(--octant-chaotic) !important; }
+.octant-bg-intended { background-color: var(--octant-intended) !important; }
+.octant-bg-prepared { background-color: var(--octant-prepared) !important; }
+.octant-bg-contented { background-color: var(--octant-contented) !important; }
+.octant-bg-assertive { background-color: var(--octant-assertive) !important; }
+.octant-bg-ordered { background-color: var(--octant-ordered) !important; }
+.octant-bg-guarded { background-color: var(--octant-guarded) !important; }
+.octant-bg-equilibrium { background-color: var(--octant-equilibrium) !important; }
+.octant-bg-confused { background-color: var(--octant-confused) !important; }
+.octant-bg-uncertain { background-color: var(--octant-uncertain) !important; }
+
+/* Octant-specific utility classes for text */
+.octant-text-adaptive { color: var(--octant-adaptive-dark) !important; }
+.octant-text-chaotic { color: var(--octant-chaotic-dark) !important; }
+.octant-text-intended { color: var(--octant-intended-dark) !important; }
+.octant-text-prepared { color: var(--octant-prepared-dark) !important; }
+.octant-text-contented { color: var(--octant-contented-dark) !important; }
+.octant-text-assertive { color: var(--octant-assertive-dark) !important; }
+.octant-text-ordered { color: var(--octant-ordered-dark) !important; }
+.octant-text-guarded { color: var(--octant-guarded-dark) !important; }
+.octant-text-equilibrium { color: var(--octant-equilibrium-dark) !important; }
+.octant-text-confused { color: var(--octant-confused-dark) !important; }
+.octant-text-uncertain { color: var(--octant-uncertain-dark) !important; }
+
+/* Octant-specific utility classes for borders */
+.octant-border-adaptive { border-color: var(--octant-adaptive-dark) !important; }
+.octant-border-chaotic { border-color: var(--octant-chaotic-dark) !important; }
+.octant-border-intended { border-color: var(--octant-intended-dark) !important; }
+.octant-border-prepared { border-color: var(--octant-prepared-dark) !important; }
+.octant-border-contented { border-color: var(--octant-contented-dark) !important; }
+.octant-border-assertive { border-color: var(--octant-assertive-dark) !important; }
+.octant-border-ordered { border-color: var(--octant-ordered-dark) !important; }
+.octant-border-guarded { border-color: var(--octant-guarded-dark) !important; }
+.octant-border-equilibrium { border-color: var(--octant-equilibrium-dark) !important; }
+.octant-border-confused { border-color: var(--octant-confused-dark) !important; }
+.octant-border-uncertain { border-color: var(--octant-uncertain-dark) !important; }

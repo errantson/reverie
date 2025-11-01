@@ -1,0 +1,403 @@
+/* Octant Display Widget Styles */
+
+.octant-display-loading,
+.octant-display-error,
+.octant-display-empty {
+    padding: 24px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.octant-display-error {
+    color: #d9534f;
+}
+
+.octant-display-container {
+    padding: 16px;
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0;
+}
+
+/* Wide octant display box */
+.octant-display-wide {
+    width: 100%;
+    height: auto;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.octant-header {
+    padding: 6px 8px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Apply octant colors to header and footer */
+.octant-display-container[data-octant="adaptive"] .octant-header,
+.octant-display-container[data-octant="adaptive"] .octant-footer {
+    color: var(--octant-adaptive-darker);
+}
+
+.octant-display-container[data-octant="chaotic"] .octant-header,
+.octant-display-container[data-octant="chaotic"] .octant-footer {
+    color: var(--octant-chaotic-darker);
+}
+
+.octant-display-container[data-octant="intended"] .octant-header,
+.octant-display-container[data-octant="intended"] .octant-footer {
+    color: var(--octant-intended-darker);
+}
+
+.octant-display-container[data-octant="prepared"] .octant-header,
+.octant-display-container[data-octant="prepared"] .octant-footer {
+    color: var(--octant-prepared-darker);
+}
+
+.octant-display-container[data-octant="contented"] .octant-header,
+.octant-display-container[data-octant="contented"] .octant-footer {
+    color: var(--octant-contented-darker);
+}
+
+.octant-display-container[data-octant="assertive"] .octant-header,
+.octant-display-container[data-octant="assertive"] .octant-footer {
+    color: var(--octant-assertive-darker);
+}
+
+.octant-display-container[data-octant="ordered"] .octant-header,
+.octant-display-container[data-octant="ordered"] .octant-footer {
+    color: var(--octant-ordered-darker);
+}
+
+.octant-display-container[data-octant="guarded"] .octant-header,
+.octant-display-container[data-octant="guarded"] .octant-footer {
+    color: var(--octant-guarded-darker);
+}
+
+.octant-display-container[data-octant="equilibrium"] .octant-header,
+.octant-display-container[data-octant="equilibrium"] .octant-footer {
+    color: var(--octant-equilibrium-darker);
+}
+
+.octant-display-container[data-octant="confused"] .octant-header,
+.octant-display-container[data-octant="confused"] .octant-footer {
+    color: var(--octant-confused-darker);
+}
+
+.octant-display-container[data-octant="singling"] .octant-header,
+.octant-display-container[data-octant="singling"] .octant-footer {
+    color: var(--octant-singling-darker);
+}
+
+.octant-display-wide .octant-scores {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2px;
+    width: calc(100% - 6px); /* Account for padding on both sides */
+    padding: 3px;
+    margin: 0 auto;
+}
+
+.octant-footer {
+    padding: 6px 8px;
+    text-align: center;
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-top: 1px solid rgba(255, 255, 255, 0.6);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.octant-footer-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.octant-footer-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.65rem;
+    opacity: 0.8;
+}
+
+.octant-footer-value {
+    font-weight: 500;
+}
+
+.octant-footer-btn {
+    padding: 3px 6px;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+}
+
+.octant-footer-btn div {
+    line-height: 1;
+}
+
+.octant-footer-btn:hover {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Octant-specific backgrounds and borders */
+.octant-display-container[data-octant="adaptive"] {
+    background: var(--octant-adaptive-light);
+    border-color: var(--octant-adaptive-dark);
+}
+
+.octant-display-container[data-octant="chaotic"] {
+    background: var(--octant-chaotic-light);
+    border-color: var(--octant-chaotic-dark);
+}
+
+.octant-display-container[data-octant="intended"] {
+    background: var(--octant-intended-light);
+    border-color: var(--octant-intended-dark);
+}
+
+.octant-display-container[data-octant="prepared"] {
+    background: var(--octant-prepared-light);
+    border-color: var(--octant-prepared-dark);
+}
+
+.octant-display-container[data-octant="contented"] {
+    background: var(--octant-contented-light);
+    border-color: var(--octant-contented-dark);
+}
+
+.octant-display-container[data-octant="assertive"] {
+    background: var(--octant-assertive-light);
+    border-color: var(--octant-assertive-dark);
+}
+
+.octant-display-container[data-octant="ordered"] {
+    background: var(--octant-ordered-light);
+    border-color: var(--octant-ordered-dark);
+}
+
+.octant-display-container[data-octant="guarded"] {
+    background: var(--octant-guarded-light);
+    border-color: var(--octant-guarded-dark);
+}
+
+.octant-display-container[data-octant="equilibrium"] {
+    background: var(--octant-equilibrium-light);
+    border-color: var(--octant-equilibrium-dark);
+}
+
+.octant-display-container[data-octant="confused"] {
+    background: var(--octant-confused-light);
+    border-color: var(--octant-confused-dark);
+}
+
+.octant-display-container[data-octant="singling"] {
+    background: var(--octant-singling-light);
+    border-color: var(--octant-singling-dark);
+}
+
+.octant-score-row {
+    background: rgba(255, 255, 255, 0.4);
+    padding: 3px 2px 4px 2px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.85rem;
+    overflow: hidden;
+    cursor: help;
+    transition: all 0.2s ease;
+    opacity: 0.65;
+}
+
+.octant-score-row:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.octant-score-row.score-higher {
+    opacity: 1;
+    border-color: rgba(255, 255, 255, 0.9);
+}
+
+/* Dual-dominant styling for balanced axes (confused/singling states) */
+.octant-score-row.score-balanced {
+    opacity: 1;
+    border-color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.octant-score-row.score-balanced .score-value {
+    font-weight: 700;
+}
+
+.octant-score-row.score-balanced .score-label {
+    font-weight: 700;
+    opacity: 1;
+}
+
+/* Confused octant (one balanced axis) - use confused colors for balanced scores */
+.octant-display-container[data-octant="confused"] .octant-score-row.score-balanced .score-label,
+.octant-display-container[data-octant="confused"] .octant-score-row.score-balanced .score-value {
+    color: var(--octant-confused-darker);
+}
+
+/* Singling octant (two balanced axes) - use singling colors for balanced scores */
+.octant-display-container[data-octant="singling"] .octant-score-row.score-balanced .score-label,
+.octant-display-container[data-octant="singling"] .octant-score-row.score-balanced .score-value {
+    color: var(--octant-singling-darker);
+}
+
+/* Special border highlight for paired balanced axes */
+.octant-score-row.score-balanced-pair {
+    z-index: 1;
+    position: relative;
+}
+
+/* Remove the gap between paired balanced scores to make them feel unified */
+.octant-display-wide .octant-scores {
+    gap: 2px;
+}
+
+/* All pairs are VERTICAL - Layout: [Entropy Liberty Receptive] / [Oblivion Authority Skeptic] */
+/* Remove border between vertical pairs (top row cells remove bottom border) */
+.octant-display-container[data-octant="confused"] .octant-score-row.score-balanced-pair:nth-child(1),
+.octant-display-container[data-octant="confused"] .octant-score-row.score-balanced-pair:nth-child(2),
+.octant-display-container[data-octant="confused"] .octant-score-row.score-balanced-pair:nth-child(3),
+.octant-display-container[data-octant="singling"] .octant-score-row.score-balanced-pair:nth-child(1),
+.octant-display-container[data-octant="singling"] .octant-score-row.score-balanced-pair:nth-child(2),
+.octant-display-container[data-octant="singling"] .octant-score-row.score-balanced-pair:nth-child(3) {
+    /* Top row - remove bottom borders */
+    border-bottom: none;
+    padding-bottom: 2px;
+}
+
+/* Bottom row cells remove top border */
+.octant-display-container[data-octant="confused"] .octant-score-row.score-balanced-pair:nth-child(4),
+.octant-display-container[data-octant="confused"] .octant-score-row.score-balanced-pair:nth-child(5),
+.octant-display-container[data-octant="confused"] .octant-score-row.score-balanced-pair:nth-child(6),
+.octant-display-container[data-octant="singling"] .octant-score-row.score-balanced-pair:nth-child(4),
+.octant-display-container[data-octant="singling"] .octant-score-row.score-balanced-pair:nth-child(5),
+.octant-display-container[data-octant="singling"] .octant-score-row.score-balanced-pair:nth-child(6) {
+    /* Bottom row - remove top borders */
+    border-top: none;
+    padding-top: 2px;
+}
+
+.score-label {
+    display: block;
+    font-size: 0.55rem;
+    font-weight: 600;
+    font-family: monospace;
+    letter-spacing: 0.3px;
+    opacity: 0.7;
+    text-align: center;
+    line-height: 1;
+    margin-top: 2px;
+    text-transform: uppercase;
+    cursor: help;
+}
+
+.score-value {
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-family: monospace;
+    line-height: 1;
+}
+
+/* Bold the higher values in each axis pair */
+.octant-score-row.score-higher .score-value {
+    font-weight: 600;
+}
+
+.octant-score-row.score-higher .score-label,
+.octant-score-row.score-higher .score-value {
+    font-weight: 700;
+}
+
+/* All octant text uses octant colors */
+.octant-display-container[data-octant="adaptive"] .score-label,
+.octant-display-container[data-octant="adaptive"] .score-value {
+    color: var(--octant-adaptive-darker);
+}
+
+.octant-display-container[data-octant="chaotic"] .score-label,
+.octant-display-container[data-octant="chaotic"] .score-value {
+    color: var(--octant-chaotic-darker);
+}
+
+.octant-display-container[data-octant="intended"] .score-label,
+.octant-display-container[data-octant="intended"] .score-value {
+    color: var(--octant-intended-darker);
+}
+
+.octant-display-container[data-octant="prepared"] .score-label,
+.octant-display-container[data-octant="prepared"] .score-value {
+    color: var(--octant-prepared-darker);
+}
+
+.octant-display-container[data-octant="contented"] .score-label,
+.octant-display-container[data-octant="contented"] .score-value {
+    color: var(--octant-contented-darker);
+}
+
+.octant-display-container[data-octant="assertive"] .score-label,
+.octant-display-container[data-octant="assertive"] .score-value {
+    color: var(--octant-assertive-darker);
+}
+
+.octant-display-container[data-octant="ordered"] .score-label,
+.octant-display-container[data-octant="ordered"] .score-value {
+    color: var(--octant-ordered-darker);
+}
+
+.octant-display-container[data-octant="guarded"] .score-label,
+.octant-display-container[data-octant="guarded"] .score-value {
+    color: var(--octant-guarded-darker);
+}
+
+.octant-display-container[data-octant="equilibrium"] .score-label,
+.octant-display-container[data-octant="equilibrium"] .score-value {
+    color: var(--octant-equilibrium-darker);
+}
+
+.octant-display-container[data-octant="confused"] .score-label,
+.octant-display-container[data-octant="confused"] .score-value {
+    color: var(--octant-confused-darker);
+}
+
+.octant-display-container[data-octant="singling"] .score-label,
+.octant-display-container[data-octant="singling"] .score-value {
+    color: var(--octant-singling-darker);
+}
