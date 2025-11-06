@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverie House — Canon</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Explore the living lore of Reverie House through the stories and (mis)adventures of fellow dreamweavers.">
+    <meta name="keywords" content="reverie house, canon, lore, dreamweaving, collaborative storytelling, worldbuilding">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/canon.html">
+    <meta property="og:title" content="Canon - Reverie House">
+    <meta property="og:description" content="Explore the living lore of Reverie House through the stories and (mis)adventures of fellow dreamweavers.">
+    <meta property="og:image" content="https://reverie.house/assets/og-image.png">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Canon - Reverie House">
+    <meta name="twitter:description" content="Explore the living lore of Reverie House through the stories and (mis)adventures of fellow dreamweavers.">
+    <meta name="twitter:image" content="https://reverie.house/assets/og-image.png">
+    
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/pages/canon.css">
+    <link rel="stylesheet" href="css/widgets/login.css">
+    <link rel="stylesheet" href="css/widgets/createdreamer.css">
+    <link rel="stylesheet" href="css/widgets/dialogue.css">
+    <link rel="stylesheet" href="css/widgets/world.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    
+    <!-- Core utilities -->
+    <script src="js/core/world-config-cache.js"></script>
+    <script src="js/core/color-manager.js"></script>
+    <script src="js/utils/shadowbox.js"></script>
+    
+    <!-- Widgets -->
+    <script src="js/widgets/header.js" defer></script>
+    <script type="module" src="js/widgets/oauth-manager.js"></script>
+    <script src="js/widgets/login.js" defer></script>
+    <script src="js/widgets/createdreamer.js" defer></script>
+    <script src="js/widgets/world.js" defer></script>
+    <script src="js/widgets/drawer.js" defer></script>
+    <script src="js/widgets/konami.js" defer></script>
+    
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <div id="canon-container" style="margin-bottom: 40px;">        
+        <!-- World Widget Container -->
+        <div class="world-widget">
+            <!-- World widget content will be populated by world-widget.js -->
+        </div>
+        <div class="world-status-header" style="margin-top: 24px; margin-bottom: 10px;">
+            <h3 style="margin: 0; font-family: monospace; font-size: 1.4rem; font-weight: bold; color: #5a4a7a;">Canon</h3>
+        </div>
+        <div id="log-content"></div>
+    <div style="margin: 18px 0 0 0; margin-left: 10px;">
+            <button id="load-more-btn" style="
+                display: none;
+                width: 100%;
+                font-family: monospace;
+                font-size: 1.08rem;
+                background: linear-gradient(90deg, #f8f6ff 0%, #e0d7f0 100%);
+                color: #5a4a7a;
+                border: 1.5px solid #d0c7f0;
+                border-radius: 0;
+                padding: 12px 0;
+                margin: 0 auto 10px auto;
+                box-shadow: 0 1px 4px rgba(115,75,161,0.04);
+                cursor: pointer;
+                transition: background 0.2s, color 0.2s;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+            " onmouseover="this.style.background='#e0d7f0';this.style.color='#372e42'" onmouseout="this.style.background='linear-gradient(90deg, #f8f6ff 0%, #e0d7f0 100%)';this.style.color='#5a4a7a'">Load More</button>
+        </div>
+        <!-- User listing box -->
+        <div id="user-listing-container" style="margin-top: 0;">
+            <div class="log-entry" style="background-color: #f5f5f5; margin-left: 10px; text-align: center; border-top: 1px solid white;">
+                <span><strong>our wild mindscape begins</strong><div id="user-listing-content" style="margin: 3px 20px;"></div><strong>are first to explore</strong></span>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            Promise.all([
+                fetch('/api/world').then(response => response.json()),
+                fetch('/api/canon').then(response => response.json()),
+                fetch('/api/dreamers').then(response => response.json())
+            ])
+            .then(([world, canonEntries, dreamers]) => {
+                console.log('Canon data loaded:', {
+                    canonEntries: canonEntries.length,
+                    dreamers: dreamers.length,
+                    world: world
+                });
+                
+                // Handle empty or invalid data gracefully
+                if (!world || typeof world !== 'object') {
+                    world = { epoch: Date.now() / 1000, keeper: "unknown", keeper_did: "", color: "#734ba1" };
+                }
+                if (!Array.isArray(canonEntries)) {
+                    canonEntries = [];
+                }
+                if (!Array.isArray(dreamers)) {
+                    dreamers = [];
+                }
+                
+                // Apply color to Load More button
+                const coreColor = world.color || '#734ba1';
+                const loadMoreBtn = document.getElementById('load-more-btn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.style.background = `linear-gradient(90deg, ${coreColor}22 0%, ${coreColor}44 100%)`;
+                    loadMoreBtn.style.color = coreColor;
+                    loadMoreBtn.style.borderColor = `${coreColor}88`;
+                    
+                    loadMoreBtn.onmouseover = function() {
+                        this.style.background = `${coreColor}44`;
+                        this.style.color = '#fff';
+                    };
+                    loadMoreBtn.onmouseout = function() {
+                        this.style.background = `linear-gradient(90deg, ${coreColor}22 0%, ${coreColor}44 100%)`;
+                        this.style.color = coreColor;
+                    };
+                }
+                
+                // Use dreamers from database for name lookup
+                const allDreamers = dreamers;
+                
+                const logContent = document.getElementById('log-content');
+                const dreamerMap = allDreamers.reduce((acc, dreamer) => {
+                    acc[dreamer.did] = dreamer.name;
+                    return acc;
+                }, {});
+
+                // Group and process entries
+                const processedEntries = [];
+                const discoveryEntries = canonEntries.filter(entry => 
+                    entry.epoch === 0 && entry.event === "discovered our wild mindscape"
+                );
+                // Show ALL entries (don't filter out arrivals)
+                const otherEntries = canonEntries.filter(entry => 
+                    !(entry.epoch === 0 && entry.event === "discovered our wild mindscape")
+                );
+                
+                console.log('Filtering results:', {
+                    discoveryEntries: discoveryEntries.length,
+                    otherEntries: otherEntries.length,
+                    totalProcessed: discoveryEntries.length + otherEntries.length
+                });
+
+                // Add merged discovery entry if there are any
+                if (discoveryEntries.length > 0) {
+                    const discoverers = discoveryEntries.map(entry => 
+                        dreamerMap[entry.did] || "Unknown"
+                    ).filter((name, index, arr) => arr.indexOf(name) === index); // Remove duplicates
+                    
+                    processedEntries.push({
+                        event: "discovered our wild mindscape",
+                        discoverers: discoverers,
+                        epoch: 0,
+                        isGrouped: true
+                    });
+                }
+
+                // Add other entries
+                processedEntries.push(...otherEntries);
+
+                // Sort by epoch (descending) first
+                processedEntries.sort((a, b) => b.epoch - a.epoch);
+                
+                console.log('Final processed entries:', processedEntries.length);
+
+                // Handle empty canon
+                if (processedEntries.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'log-entry';
+                    emptyMessage.style.textAlign = 'center';
+                    emptyMessage.style.fontStyle = 'italic';
+                    emptyMessage.style.color = '#999';
+                    emptyMessage.style.padding = '20px';
+                    emptyMessage.innerHTML = 'No canon entries found.';
+                    logContent.appendChild(emptyMessage);
+                    return;
+                }
+
+
+                // Pagination logic
+                let entriesShown = 15;
+                function renderLogEntries() {
+                    logContent.innerHTML = '';
+                    processedEntries.slice(0, entriesShown).forEach((entry, index) => {
+                        const logEntry = document.createElement('div');
+                        logEntry.className = 'log-entry';
+                        logEntry.style.backgroundColor = index % 2 === 0 ? '#f0f0f0' : '#ffffff';
+                        logEntry.style.marginLeft = '10px';
+
+                        if (entry.isGrouped) {
+                            logEntry.style.backgroundColor = '#f5f5f5';
+                            logEntry.style.marginLeft = '10px';
+                            logEntry.style.textAlign = 'center';
+                            // Map discoverers to DIDs for proper linking
+                            const discovererLinks = entry.discoverers.map(name => {
+                                // Find DID for this name
+                                const dreamer = allDreamers.find(d => d.name === name);
+                                const did = dreamer ? dreamer.did : '';
+                                return did ? `<a href="/dreamer?did=${encodeURIComponent(did)}">${name}</a>` : name;
+                            }).join(' ');
+                            logEntry.innerHTML = `<span><strong>our wild mindscape begins</strong><div style="margin: 3px 20px;">${discovererLinks}</div><strong>are first to explore</strong></span>`;
+                        } else {
+                            const name = dreamerMap[entry.did] || "Unknown";
+                            const did = entry.did || '';
+                            const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}">${name}</a>` : name;
+                            let eventLink = entry.event;
+                            if (entry.url && entry.url.trim()) {
+                                eventLink = `<a href="${entry.url}" target="_blank">${entry.event}</a>`;
+                            } else if (entry.uri && entry.uri.trim() && entry.uri.startsWith('/')) {
+                                eventLink = `<a href="${entry.uri}">${entry.event}</a>`;
+                            }
+                            let postIdElement = '';
+                            if (entry.uri && entry.uri.trim()) {
+                                // Check if it's a stripe: URI (link to order page)
+                                if (entry.uri.startsWith('stripe:')) {
+                                    const sessionCode = entry.uri.substring(7); // Remove "stripe:" prefix
+                                    const isMobile = window.innerWidth <= 600;
+                                    const postIdStyle = isMobile ?
+                                        'display: block; margin-top: 5px; text-align: right; font-family: monospace; font-size: 0.7em; color: #ccc; cursor: pointer; text-decoration: none;' :
+                                        'float: right; font-family: monospace; font-size: 0.8em; color: #ccc; cursor: pointer; text-decoration: none;';
+                                    
+                                    // Link to order page if URL is available
+                                    if (entry.url && entry.url.startsWith('/')) {
+                                        postIdElement = `<a href="${entry.url}" style="${postIdStyle}" onmouseover="this.style.color='#999'" onmouseout="this.style.color='#ccc'">${sessionCode}</a>`;
+                                    } else {
+                                        postIdElement = `<code style="${postIdStyle.replace('cursor: pointer;', 'cursor: default;')}">${sessionCode}</code>`;
+                                    }
+                                } else {
+                                    // Regular AT Protocol URI - create clickable link
+                                    const uriParts = entry.uri.split('/');
+                                    const lastPart = uriParts[uriParts.length - 1];
+                                    if (lastPart) {
+                                        const atprotoUrl = `https://atproto-browser.vercel.app/at/${entry.uri}`;
+                                        const isMobile = window.innerWidth <= 600;
+                                        const postIdStyle = isMobile ?
+                                            'display: block; margin-top: 5px; text-align: right; font-family: monospace; font-size: 0.7em; color: #ccc; cursor: pointer; text-decoration: none;' :
+                                            'float: right; font-family: monospace; font-size: 0.8em; color: #ccc; cursor: pointer; text-decoration: none;';
+                                        postIdElement = `<code style="${postIdStyle}" onmouseover="this.style.color='#999'" onmouseout="this.style.color='#ccc'" onclick="window.open('${atprotoUrl}', '_blank')">${lastPart}</code>`;
+                                    }
+                                }
+                            }
+                            logEntry.innerHTML = `<span>${nameLink} ${eventLink}</span>${postIdElement}`;
+                        }
+                        logContent.appendChild(logEntry);
+                    });
+                    // Show/hide Load More button
+                    const loadMoreBtn = document.getElementById('load-more-btn');
+                    if (processedEntries.length > entriesShown) {
+                        loadMoreBtn.style.display = 'inline-block';
+                    } else {
+                        loadMoreBtn.style.display = 'none';
+                    }
+                }
+
+                renderLogEntries();
+                document.getElementById('load-more-btn').onclick = function() {
+                    entriesShown += 15;
+                    renderLogEntries();
+                };
+
+                // Populate user listing box
+                const userListingContent = document.getElementById('user-listing-content');
+                // Show all dreamers from database, sorted by arrival (newest first)
+                const sortedDreamers = dreamers
+                    .filter(dreamer => dreamer.name)
+                    .sort((a, b) => (b.arrival || 0) - (a.arrival || 0));
+                if (sortedDreamers.length > 0) {
+                    const userLinks = sortedDreamers.map(dreamer => {
+                        return `<a href="/dreamer?name=${encodeURIComponent(dreamer.name)}">${dreamer.name}</a>`;
+                    }).join(' ');
+                    userListingContent.innerHTML = userLinks;
+                } else {
+                    userListingContent.innerHTML = '<em style="color: #999;">No dreamers found</em>';
+                }
+            })
+            .catch(error => console.error('Error loading data:', error));
+        });
+    </script>
+
+</body>
+</html>

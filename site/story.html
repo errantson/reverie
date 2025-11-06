@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverie House - Community Lore Archive</title>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/pages/story.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    <link rel="stylesheet" href="/css/widgets/createdreamer.css">
+    <link rel="stylesheet" href="/css/widgets/dialogue.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    
+    <!-- Core utilities (must load first) -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/widgets/background.js"></script>
+    
+    <!-- Scripts -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/widgets/createdreamer.js" defer></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    <script src="/js/widgets/sharelore.js" defer></script>
+    <script src="/js/widgets/explainer.js" defer></script>
+    <script src="/js/widgets/dreamer-hover.js" defer></script>
+</head>
+<body class="story-page">
+    <div id="header-container"></div>
+    
+    <!-- Dynamic background managed by background.js -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera Residence" class="scene-layer background-layer">
+        </div>
+    </div>
+
+    <!-- Main Content (positioned above background) -->
+    <div class="main-content">
+        <div class="story-container">
+
+        <!-- Unified Story Header and Controls -->
+        <div class="story-unified-header">
+            <!-- Top Section: Logo and Description -->
+            <div class="story-header-top">
+                <div class="story-logo-container">
+                    <img src="/assets/logo.png" alt="Reverie House Logo">
+                    <div class="story-logo-label">CANON</div>
+                </div>
+                <div class="story-header-info">
+                    <div class="story-header-description">
+                        <span class="desktop-text">Share your adventures throughout our wild mindscape as journals, acts, stories, or any other sorts of dreams you may compose.</span>
+                        <span class="mobile-text">Share your adventures as journals, acts, stories, or dreams.</span>
+                        <br><br>
+                        Your contributions will join the collective Reverie House lore.
+                    </div>
+                </div>
+                <button class="learn-more-btn" onclick="openExplanationModal()">
+                    How It Works
+                </button>
+            </div>
+
+            <!-- Divider -->
+            <div class="story-header-divider"></div>
+
+            <!-- Bottom Section: Controls -->
+            <div class="controls">
+                <div class="controls-left">
+                    <button class="share-story-btn" id="shareStoryBtn" onclick="handleShareClick()">
+                        <span id="shareStoryBtnText">Share Your <span class="rotating-word"></span></span>
+                    </button>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="canon" title="Stories officially recognized by the Keeper as part of the shared canon">Canon Only</button>
+                        <button class="filter-btn" data-filter="all" title="All stories tagged as lore by dreamers, including community contributions">Expanded Lore</button>
+                    </div>
+                </div>
+                <div class="stats">
+                    <strong id="story-count">0</strong> stories
+                    (<strong id="canon-count">0</strong> canon)
+                </div>
+            </div>
+        </div>
+
+        <div id="stories-container">
+            <div class="loading">Restoring Canon...</div>
+        </div>
+    </div>
+    </div>
+
+    <div id="footer-container"></div>
+    
+    <!-- Explanation Modal -->
+    <div class="explanation-modal-overlay" id="explanationModalOverlay">
+        <div class="explanation-modal">
+            <h2>lore.farm</h2>
+            
+            <p style="max-width: 450px; margin-left: auto; margin-right: auto; margin-bottom: 24px;">
+                <strong><a href="https://lore.farm" target="_blank" style="color: #734ba1; text-decoration: none; font-weight: 700;">lore.farm</a></strong> is a decentralized canonization and proof of lore system for shared creative worlds across <a href="https://atproto.com" target="_blank" style="color: #734ba1; text-decoration: none; font-weight: 600;">ATProtocol</a>.
+            </p>
+            
+            <p style="max-width: 450px; margin-left: auto; margin-right: auto;">
+                <span class="badge-tag lore-tag" onclick="showLoreExplanation()" style="cursor: pointer;">lore</span>
+            </p>
+            <p style="margin-top: 8px; max-width: 450px; margin-left: auto; margin-right: auto;">
+                Any dreamer may use this universal label to signify any of their dreams as intended for our collective <strong>Reverie House</strong> lore.
+            </p>
+            
+            <p style="margin-top: 20px; max-width: 450px; margin-left: auto; margin-right: auto;">
+                <span class="badge-tag canon-tag" onclick="showCanonExplanation()" style="cursor: pointer;">canon</span>
+            </p>
+            <p style="margin-top: 8px; max-width: 450px; margin-left: auto; margin-right: auto;">
+                This label signifies that a dream has been declared to be part of the collective <strong>Reverie House</strong> canon by the loremasters.
+            </p>
+            <div class="loremasters-list" id="loremastersList">
+                <div style="text-align: center; color: #999; padding: 20px;">
+                    Loading loremasters...
+                </div>
+            </div>
+            
+            <button class="share-modal-btn" onclick="closeExplanationModal()" style="margin-top: 10px;">
+                Back
+            </button>
+            
+            <p style="font-size: 0.85em; color: #666; margin-top: 16px; margin-bottom: 0;">
+                Learn more at <a href="https://lore.farm" target="_blank" style="color: #734ba1; text-decoration: none; font-weight: 600;">lore.farm</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const LORE_FARM_API = 'https://lore.farm';
+        const WORLD_DOMAIN = 'reverie.house';
+        
+        let allStories = [];
+        let currentFilter = sessionStorage.getItem('storyFilter') || 'canon';
+        let allDreamers = []; // Store dreamers for handle resolution
+
+        // Fetch dreamers data
+        async function fetchDreamers() {
+            try {
+                const response = await fetch('/api/dreamers');
+                if (!response.ok) return [];
+                const data = await response.json();
+                return data || [];
+            } catch (error) {
+                console.error('Error fetching dreamers:', error);
+                return [];
+            }
+        }
+
+        // Check if a handle belongs to a registered dreamer
+        function getDreamerByHandle(handle) {
+            if (!handle) return null;
+            const normalizedHandle = handle.toLowerCase().replace('@', '');
+            return allDreamers.find(d => d.handle && d.handle.toLowerCase() === normalizedHandle);
+        }
+
+        // Convert @mentions, URLs, and hashtags in text to clickable links
+        function linkifyHandles(text) {
+            if (!text) return text;
+            
+            // First, escape HTML special characters except for what we'll add
+            const escapeHtml = (str) => {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            };
+            
+            // Patterns to match
+            const handleRegex = /@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?/g;
+            const urlRegex = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?:\/[^\s]*)?/g;
+            const hashtagRegex = /#[a-zA-Z0-9_]+/g;
+            
+            // Find all matches with their types
+            const matches = [];
+            let match;
+            
+            // Find handles
+            handleRegex.lastIndex = 0;
+            while ((match = handleRegex.exec(text)) !== null) {
+                matches.push({
+                    index: match.index,
+                    length: match[0].length,
+                    text: match[0],
+                    type: 'handle'
+                });
+            }
+            
+            // Find URLs
+            urlRegex.lastIndex = 0;
+            while ((match = urlRegex.exec(text)) !== null) {
+                // Don't match if it's part of a handle (already matched)
+                const isPartOfHandle = matches.some(m => 
+                    m.type === 'handle' && 
+                    match.index >= m.index - 1 && 
+                    match.index < m.index + m.length
+                );
+                if (!isPartOfHandle) {
+                    matches.push({
+                        index: match.index,
+                        length: match[0].length,
+                        text: match[0],
+                        type: 'url'
+                    });
+                }
+            }
+            
+            // Find hashtags
+            hashtagRegex.lastIndex = 0;
+            while ((match = hashtagRegex.exec(text)) !== null) {
+                // Don't match if it's part of a URL or handle
+                const isPartOfOther = matches.some(m => 
+                    match.index >= m.index && 
+                    match.index < m.index + m.length
+                );
+                if (!isPartOfOther) {
+                    matches.push({
+                        index: match.index,
+                        length: match[0].length,
+                        text: match[0],
+                        type: 'hashtag'
+                    });
+                }
+            }
+            
+            // Sort by index
+            matches.sort((a, b) => a.index - b.index);
+            
+            // Build the final HTML
+            const parts = [];
+            let lastIndex = 0;
+            
+            matches.forEach(match => {
+                // Add text before the match
+                if (match.index > lastIndex) {
+                    parts.push(escapeHtml(text.substring(lastIndex, match.index)));
+                }
+                
+                if (match.type === 'handle') {
+                    const handle = match.text.substring(1); // Remove @
+                    const dreamer = getDreamerByHandle(handle);
+                    
+                    if (dreamer) {
+                        parts.push(`<a href="/dreamer?did=${encodeURIComponent(dreamer.did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">${escapeHtml(match.text)}</a>`);
+                    } else {
+                        parts.push(`<a href="https://bsky.app/profile/${encodeURIComponent(handle)}" target="_blank" style="color: var(--primary-color); text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escapeHtml(match.text)}</a>`);
+                    }
+                } else if (match.type === 'url') {
+                    // Add protocol if missing
+                    let url = match.text;
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        url = 'https://' + url;
+                    }
+                    parts.push(`<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escapeHtml(match.text)}</a>`);
+                } else if (match.type === 'hashtag') {
+                    // Link to Bluesky search
+                    const searchQuery = encodeURIComponent(match.text);
+                    parts.push(`<a href="https://bsky.app/search?q=${searchQuery}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escapeHtml(match.text)}</a>`);
+                }
+                
+                lastIndex = match.index + match.length;
+            });
+            
+            // Add remaining text
+            if (lastIndex < text.length) {
+                parts.push(escapeHtml(text.substring(lastIndex)));
+            }
+            
+            return parts.join('');
+        }
+
+        // Dreamer Hover Card functionality
+        let hoverCard = null;
+        let hoverTimeout = null;
+        let currentHoverDid = null;
+
+        function createHoverCard() {
+            if (!hoverCard) {
+                hoverCard = document.createElement('div');
+                hoverCard.className = 'dreamer-hover-card';
+                document.body.appendChild(hoverCard);
+            }
+            return hoverCard;
+        }
+
+        function showDreamerHover(link, did) {
+            // Clear any pending hover
+            clearTimeout(hoverTimeout);
+            
+            // Delay showing to avoid flashing on quick mouse-through
+            hoverTimeout = setTimeout(async () => {
+                const dreamer = allDreamers.find(d => d.did === decodeURIComponent(did));
+                if (!dreamer) return;
+
+                const card = createHoverCard();
+                currentHoverDid = did;
+
+                // Build hover card content
+                const avatar = dreamer.avatar || '/assets/icon_face.png';
+                const name = dreamer.name || dreamer.display_name || dreamer.handle;
+                const handle = dreamer.handle;
+                const description = dreamer.description || 'A dreamer in the Reverie House...';
+                
+                // Get arrival date
+                const arrivalDate = dreamer.arrival ? new Date(dreamer.arrival * 1000).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                }) : 'Unknown';
+
+                // Build souvenirs HTML
+                let souvenirsHTML = '';
+                if (dreamer.souvenirs && Object.keys(dreamer.souvenirs).length > 0) {
+                    try {
+                        const response = await fetch('/api/souvenirs');
+                        const rawSouvenirs = await response.json();
+                        const userFormKeys = Object.keys(dreamer.souvenirs);
+                        const souvenirIcons = [];
+                        
+                        userFormKeys.forEach(formKey => {
+                            for (const [souvenirKey, souvenirData] of Object.entries(rawSouvenirs)) {
+                                if (souvenirData.key === formKey) {
+                                    souvenirIcons.push({
+                                        icon: souvenirData.icon,
+                                        name: souvenirData.name,
+                                        key: formKey
+                                    });
+                                    break;
+                                }
+                            }
+                        });
+
+                        if (souvenirIcons.length > 0) {
+                            souvenirsHTML = '<div class="dreamer-hover-souvenirs">';
+                            souvenirIcons.forEach(s => {
+                                souvenirsHTML += `<img src="${s.icon}" alt="${s.name}" title="${s.name}" class="dreamer-hover-souvenir-icon">`;
+                            });
+                            souvenirsHTML += '</div>';
+                        }
+                    } catch (err) {
+                        console.error('Error loading souvenirs for hover card:', err);
+                    }
+                }
+
+                card.innerHTML = `
+                    <div class="dreamer-hover-header">
+                        <img src="${avatar}" alt="${name}" class="dreamer-hover-avatar" onerror="this.src='/assets/icon_face.png'">
+                        <div class="dreamer-hover-info">
+                            <div class="dreamer-hover-name">${name}</div>
+                            <div class="dreamer-hover-handle">@${handle}</div>
+                        </div>
+                    </div>
+                    ${description ? `<div class="dreamer-hover-description">${description}</div>` : ''}
+                    <div class="dreamer-hover-stats">
+                        <div class="dreamer-hover-stat">
+                            <div class="dreamer-hover-stat-value">${arrivalDate}</div>
+                            <div class="dreamer-hover-stat-label">Arrived</div>
+                        </div>
+                        ${souvenirsHTML}
+                    </div>
+                `;
+
+                // Position the card near the link
+                const rect = link.getBoundingClientRect();
+                const cardWidth = 320;
+                const cardHeight = card.offsetHeight || 200;
+                
+                // Try to position below and to the right of the link
+                let left = rect.left;
+                let top = rect.bottom + 8;
+
+                // Adjust if it would go off-screen
+                if (left + cardWidth > window.innerWidth - 20) {
+                    left = window.innerWidth - cardWidth - 20;
+                }
+                if (left < 20) {
+                    left = 20;
+                }
+                if (top + cardHeight > window.innerHeight - 20) {
+                    // Position above instead
+                    top = rect.top - cardHeight - 8;
+                }
+                if (top < 20) {
+                    top = 20;
+                }
+
+                card.style.left = `${left}px`;
+                card.style.top = `${top}px`;
+                card.classList.add('visible');
+            }, 300); // 300ms delay before showing
+        }
+
+        function hideDreamerHover() {
+            clearTimeout(hoverTimeout);
+            if (hoverCard) {
+                hoverCard.classList.remove('visible');
+                currentHoverDid = null;
+            }
+        }
+
+        // Set up event delegation for dreamer links
+        document.addEventListener('mouseover', (e) => {
+            const link = e.target.closest('.dreamer-link');
+            if (link && link.dataset.dreamerDid) {
+                showDreamerHover(link, link.dataset.dreamerDid);
+            }
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            const link = e.target.closest('.dreamer-link');
+            if (link) {
+                hideDreamerHover();
+            }
+        });
+
+        // Show image in shadowbox using the widget
+        function showImageShadowbox(imageUrl, imageAlt) {
+            if (window.Shadowbox) {
+                window.Shadowbox.show(imageUrl, imageAlt, {
+                    enableBubbles: false,
+                    enableGrowth: false
+                });
+            }
+        }
+
+        async function fetchLabels() {
+            try {
+                console.log('Fetching labels from:', `${LORE_FARM_API}/xrpc/com.atproto.label.queryLabels`);
+                const response = await fetch(`${LORE_FARM_API}/xrpc/com.atproto.label.queryLabels?uriPatterns=*&limit=100`);
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Response error:', text);
+                    throw new Error('Failed to fetch labels');
+                }
+                const data = await response.json();
+                console.log('Fetched labels:', data.labels?.length || 0, 'labels');
+                console.log('Sample labels:', data.labels?.slice(0, 3));
+                return data.labels || [];
+            } catch (error) {
+                console.error('Error fetching labels:', error);
+                return [];
+            }
+        }
+
+        async function fetchPostDetails(uri) {
+            try {
+                console.log('Fetching post details for:', uri);
+                // Use Bluesky's public API to fetch post content
+                const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=0`);
+                if (!response.ok) {
+                    if (response.status === 400) {
+                        console.warn('⚠️ Post not found or deleted:', uri);
+                    } else {
+                        console.warn('Failed to fetch post details for:', uri, response.status);
+                    }
+                    return null;
+                }
+                const data = await response.json();
+                
+                // Check if the post was actually deleted or blocked
+                if (data.thread?.notFound || data.thread?.blocked) {
+                    console.warn('⚠️ Post unavailable (deleted or blocked):', uri);
+                    return null;
+                }
+                
+                console.log('Post details fetched for:', uri, data);
+                // Return the thread post data
+                return data.thread?.post || null;
+            } catch (error) {
+                console.error('Error fetching post details:', error);
+                return null;
+            }
+        }
+
+        function groupLabelsByPost(labels) {
+            const grouped = {};
+            
+            console.log('Grouping labels, total:', labels.length);
+            
+            labels.forEach(label => {
+                const val = label.val || '';
+                if (!val.startsWith('lore:') && !val.startsWith('canon:')) return;
+                
+                const [type, domain] = val.split(':');
+                if (domain !== WORLD_DOMAIN) {
+                    console.log('Skipping label for different domain:', domain);
+                    return;
+                }
+                
+                const uri = label.uri;
+                if (!grouped[uri]) {
+                    grouped[uri] = { lore: false, canon: false, label };
+                }
+                
+                if (type === 'lore') grouped[uri].lore = true;
+                if (type === 'canon') grouped[uri].canon = true;
+            });
+            
+            console.log('Grouped posts:', Object.keys(grouped).length);
+            return grouped;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        /**
+         * Escape text for safe use in HTML attributes and JavaScript strings
+         * Handles newlines, quotes, backslashes, and other special characters
+         */
+        function escapeForAttribute(text) {
+            if (!text) return '';
+            return text
+                .replace(/\\/g, '\\\\')  // Escape backslashes first
+                .replace(/\n/g, '\\n')     // Escape newlines
+                .replace(/\r/g, '\\r')     // Escape carriage returns
+                .replace(/'/g, '\\\'')     // Escape single quotes
+                .replace(/"/g, '&quot;')  // Escape double quotes for HTML
+                .replace(/</g, '&lt;')    // Escape less than
+                .replace(/>/g, '&gt;');   // Escape greater than
+        }
+
+        function createStoryCard(story) {
+            console.log('Creating card for story:', story.uri);
+            console.log('Story data:', story);
+            console.log('Story CID:', story.post?.cid);
+            const canonClass = story.isCanon ? 'canon' : '';
+            
+            // Extract text from post and linkify handles
+            const rawText = story.post?.record?.text || 'No text available';
+            const postText = linkifyHandles(rawText);
+            
+            // Get author info
+            const authorHandle = story.post?.author?.handle || 'unknown';
+            const authorDisplayName = story.post?.author?.displayName || 'Unknown';
+            const authorAvatar = story.post?.author?.avatar || '';
+            const authorDid = story.post?.author?.did || '';
+            
+            // Check if author is a registered dreamer
+            const dreamer = getDreamerByHandle(authorHandle);
+            const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(dreamer.did)}` : `https://bsky.app/profile/${authorHandle}`;
+            const bskyProfileUrl = `https://bsky.app/profile/${authorHandle}`;
+            
+            // Build avatar HTML with link to bsky profile
+            const avatarHtml = authorAvatar 
+                ? `<a href="${bskyProfileUrl}" target="_blank" onclick="event.stopPropagation();">
+                     <img src="${authorAvatar}" alt="${authorDisplayName}" class="author-avatar">
+                   </a>`
+                : '';
+            
+            // Build image HTML - check for embed images
+            let imageHtml = '';
+            if (story.post?.embed?.images && story.post.embed.images.length > 0) {
+                const imgUrl = story.post.embed.images[0].thumb || story.post.embed.images[0].fullsize;
+                const imgAlt = story.post.embed.images[0].alt || 'Story image';
+                imageHtml = `<img src="${imgUrl}" alt="${imgAlt}" class="story-image" onclick="showImageShadowbox('${imgUrl}', '${imgAlt.replace(/'/g, "\\'")}')">`;
+            } else if (story.post?.embed?.$type === 'app.bsky.embed.images#view' && story.post?.embed?.images) {
+                const imgUrl = story.post.embed.images[0].thumb || story.post.embed.images[0].fullsize;
+                const imgAlt = story.post.embed.images[0].alt || 'Story image';
+                imageHtml = `<img src="${imgUrl}" alt="${imgAlt}" class="story-image" onclick="showImageShadowbox('${imgUrl}', '${imgAlt.replace(/'/g, "\\'")}')">`;
+            }
+            
+            // Convert AT URI to web URL
+            const postUrl = story.uri.replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/');
+            
+            // Get interaction counts
+            const likeCount = story.post?.likeCount || 0;
+            const repostCount = story.post?.repostCount || 0;
+            const replyCount = story.post?.replyCount || 0;
+            
+            // Check if user is logged in
+            const session = window.oauthManager ? window.oauthManager.getSession() : null;
+            const isLoggedIn = !!session;
+            
+            // Check viewer state (liked, reposted, etc)
+            const isLiked = story.post?.viewer?.like || false;
+            const isReposted = story.post?.viewer?.repost || false;
+            
+            // Build actions HTML (only for logged-in users)
+            // Use data attributes for complex data to avoid escaping issues in onclick
+            let actionsHtml = '';
+            if (isLoggedIn) {
+                const escapedDisplayName = escapeForAttribute(authorDisplayName);
+                // Truncate to 30 chars for reply preview
+                const truncatedText = rawText.substring(0, 30) + (rawText.length > 30 ? '...' : '');
+                const escapedPostText = escapeForAttribute(truncatedText);
+                
+                actionsHtml = `
+                    <div class="story-actions">
+                        <button class="story-action-btn like-btn ${isLiked ? 'liked' : ''}" 
+                                data-uri="${story.uri}"
+                                data-cid="${story.post?.cid || ''}"
+                                data-liked="${isLiked}"
+                                onclick="handleLike(this.dataset.uri, this.dataset.cid, this.dataset.liked === 'true', this)" 
+                                title="${isLiked ? 'Unlike' : 'Like'} this post">
+                            <span>Like</span>
+                            <span class="action-count">${likeCount > 0 ? likeCount : ''}</span>
+                        </button>
+                        <button class="story-action-btn repost-btn ${isReposted ? 'reposted' : ''}" 
+                                data-uri="${story.uri}"
+                                data-cid="${story.post?.cid || ''}"
+                                data-reposted="${isReposted}"
+                                onclick="handleRepost(this.dataset.uri, this.dataset.cid, this.dataset.reposted === 'true', this)"
+                                title="${isReposted ? 'Undo repost' : 'Repost'} to your timeline">
+                            <span>Repost</span>
+                            <span class="action-count">${repostCount > 0 ? repostCount : ''}</span>
+                        </button>
+                        <button class="story-action-btn reply-btn" 
+                                data-uri="${story.uri}"
+                                data-cid="${story.post?.cid || ''}"
+                                data-handle="${authorHandle}"
+                                data-displayname="${escapedDisplayName}"
+                                data-text="${escapedPostText}"
+                                onclick="handleReply(this.dataset.uri, this.dataset.cid, this.dataset.handle, this.dataset.displayname, this.dataset.text)"
+                                title="Reply to this post">
+                            <span>Reply</span>
+                            <span class="action-count">${replyCount > 0 ? replyCount : ''}</span>
+                        </button>
+                        <button class="story-action-btn share-btn" 
+                                data-url="${postUrl}"
+                                data-handle="${authorHandle}"
+                                onclick="handleShare(this.dataset.url, this.dataset.handle)"
+                                title="Share link to this post">
+                            <span>Share</span>
+                        </button>
+                    </div>
+                `;
+            }
+            
+            const canonBadge = story.isCanon ? '<span class="badge canon">canon</span>' : '<span class="badge lore">lore</span>';
+            
+            return `
+                <div class="story-card ${canonClass}" data-uri="${story.uri}">
+                    <div class="story-card-header">
+                        ${avatarHtml}
+                        <div class="author-info" onclick="window.location.href='${dreamerUrl}'">
+                            <div class="author-name">${authorDisplayName}</div>
+                            <div class="author-handle">@${authorHandle}</div>
+                        </div>
+                        <div class="badges">
+                            ${canonBadge}
+                        </div>
+                    </div>
+                    <div class="story-content">
+                        <div class="story-text">${postText}</div>
+                        ${imageHtml}
+                    </div>
+                    <div class="story-meta">
+                        <div class="story-meta-left">
+                            <span class="post-date">${formatDate(story.post?.record?.createdAt || story.label.cts)}</span>
+                            ${actionsHtml}
+                        </div>
+                        <a href="${postUrl}" target="_blank" class="post-link">View →</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStories() {
+            console.log('Rendering stories, filter:', currentFilter, 'total stories:', allStories.length);
+            const container = document.getElementById('stories-container');
+            
+            // Filter out reposts and apply canon filter
+            let filtered = allStories.filter(s => {
+                // Exclude reposts (posts with reason field indicating they're reposts)
+                if (s.post?.record?.reason || s.post?.reason) return false;
+                
+                // Apply canon filter
+                return currentFilter === 'all' || s.isCanon;
+            });
+            
+            console.log('Filtered stories:', filtered.length);
+            console.log('Sample story:', filtered[0]);
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state">No stories found matching your filter.</div>';
+                return;
+            }
+            
+            const html = filtered.map(createStoryCard).join('');
+            console.log('Generated HTML length:', html.length);
+            container.innerHTML = html;
+            console.log('Stories rendered to DOM');
+            console.log('Container element:', container);
+            console.log('Container children:', container.children.length);
+            console.log('First story card:', container.querySelector('.story-card'));
+        }
+
+        function updateStats() {
+            document.getElementById('story-count').textContent = allStories.length;
+            document.getElementById('canon-count').textContent = allStories.filter(s => s.isCanon).length;
+        }
+
+        async function loadStories() {
+            console.log('Starting to load stories...');
+            
+            // Fetch dreamers first
+            allDreamers = await fetchDreamers();
+            console.log('Dreamers loaded:', allDreamers.length);
+            
+            // Initialize dreamer hover widget with loaded dreamers
+            if (window.DreamerHoverWidget) {
+                if (!dreamerHoverWidget) {
+                    dreamerHoverWidget = new DreamerHoverWidget(allDreamers);
+                    dreamerHoverWidget.init();
+                } else {
+                    dreamerHoverWidget.setDreamers(allDreamers);
+                }
+            }
+            
+            const labels = await fetchLabels();
+            console.log('Labels fetched:', labels.length);
+            
+            if (labels.length === 0) {
+                document.getElementById('stories-container').innerHTML = 
+                    '<div class="empty-state">No labels found from lore.farm API. Check console for details.</div>';
+                return;
+            }
+            
+            const grouped = groupLabelsByPost(labels);
+            console.log('Posts grouped:', Object.keys(grouped).length);
+            
+            if (Object.keys(grouped).length === 0) {
+                document.getElementById('stories-container').innerHTML = 
+                    '<div class="empty-state">No stories found for ' + WORLD_DOMAIN + '</div>';
+                return;
+            }
+            
+            const stories = await Promise.all(
+                Object.entries(grouped).map(async ([uri, info]) => {
+                    const post = await fetchPostDetails(uri);
+                    return {
+                        uri,
+                        label: info.label,
+                        isCanon: info.canon,
+                        post
+                    };
+                })
+            );
+            
+            // Filter out stories where post fetch failed (deleted posts)
+            const validStories = stories.filter(story => {
+                if (!story.post) {
+                    console.warn('⚠️ Skipping deleted post:', story.uri);
+                    return false;
+                }
+                // Also check for valid author data
+                if (!story.post.author || !story.post.author.handle) {
+                    console.warn('⚠️ Skipping post with missing author:', story.uri);
+                    return false;
+                }
+                return true;
+            });
+            
+            console.log('Stories loaded:', stories.length, 'Valid:', validStories.length);
+            
+            allStories = validStories.sort((a, b) => {
+                const dateA = new Date(a.post?.record?.createdAt || a.label.cts);
+                const dateB = new Date(b.post?.record?.createdAt || b.label.cts);
+                return dateB - dateA;
+            });
+            
+            updateStats();
+            renderStories();
+        }
+
+        // Share Story Modal Functions
+        function handleShareClick() {
+            // Check if user is logged in
+            const session = window.oauthManager ? window.oauthManager.getSession() : null;
+            if (!session) {
+                // Trigger login
+                if (window.loginWidget && window.loginWidget.showLoginPopup) {
+                    window.loginWidget.showLoginPopup();
+                }
+                return;
+            }
+            
+            // User is logged in, open share modal via widget
+            if (window.shareLoreWidget) {
+                window.shareLoreWidget.show();
+                
+                // Listen for success to reload stories
+                window.addEventListener('sharelore:success', () => {
+                    setTimeout(() => {
+                        loadStories();
+                    }, 2000);
+                }, { once: true });
+            }
+        }
+        
+        // Update button text based on login state
+        function openExplanationModal() {
+            document.getElementById('explanationModalOverlay').classList.add('active');
+            loadLoremasters();
+        }
+        
+        function closeExplanationModal() {
+            document.getElementById('explanationModalOverlay').classList.remove('active');
+        }
+        
+        // Load loremasters from lore.farm API
+        async function loadLoremasters() {
+            const container = document.getElementById('loremastersList');
+            
+            try {
+                // Fetch world info from lore.farm
+                const response = await fetch(`${LORE_FARM_API}/api/worlds/${WORLD_DOMAIN}`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+                
+                const worldData = await response.json();
+                const loremasterDids = worldData.loremasters || [];
+                
+                if (loremasterDids.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; color: #999; padding: 20px;">
+                            No loremasters configured yet.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Fetch profile details for each loremaster
+                const loremasterProfiles = await Promise.all(
+                    loremasterDids.map(async (did) => {
+                        try {
+                            const profileResponse = await fetch(
+                                `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
+                            );
+                            if (!profileResponse.ok) return null;
+                            return await profileResponse.json();
+                        } catch (error) {
+                            console.error('Error fetching loremaster profile:', error);
+                            return null;
+                        }
+                    })
+                );
+                
+                // Filter out failed fetches and render
+                const validProfiles = loremasterProfiles.filter(p => p !== null);
+                
+                if (validProfiles.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; color: #999; padding: 20px;">
+                            Unable to load loremaster profiles.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = validProfiles.map(profile => {
+                    const handle = profile.handle;
+                    const did = profile.did;
+                    const avatar = profile.avatar || '/assets/icon_face.png';
+                    
+                    // Try to find the dreamer in our local list to link to dreamer page
+                    const dreamer = allDreamers.find(d => d.did === did);
+                    const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(did)}` : `https://bsky.app/profile/${handle}`;
+                    const displayName = dreamer ? dreamer.name : `@${handle}`;
+                    
+                    return `
+                        <div class="loremaster-item">
+                            <img src="${avatar}" alt="${displayName}" class="loremaster-avatar" onerror="this.src='/assets/icon_face.png'">
+                            <a href="${dreamerUrl}" class="dreamer-link loremaster-link" data-dreamer-did="${encodeURIComponent(did)}">
+                                ${displayName}
+                            </a>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading loremasters:', error);
+                // Show a graceful fallback message
+                container.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 20px; font-size: 0.9em;">
+                        Unable to load loremasters. Please check the console for details.
+                    </div>
+                `;
+            }
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const explanationOverlay = document.getElementById('explanationModalOverlay');
+            if (e.target === explanationOverlay) {
+                closeExplanationModal();
+            }
+        });
+        
+        // Handle learn more link from sharelore widget
+        window.addEventListener('sharelore:learnMore', () => {
+            openExplanationModal();
+        });
+        
+        // Update button text based on login state
+        function updateShareButton() {
+            const btn = document.getElementById('shareStoryBtn');
+            const btnText = document.getElementById('shareStoryBtnText');
+            const session = window.oauthManager ? window.oauthManager.getSession() : null;
+            if (session) {
+                btnText.innerHTML = 'Share Your <span class="rotating-word"></span>';
+            } else {
+                btnText.innerHTML = 'Dreamweaver Login';
+            }
+        }
+        
+        // Listen for login state changes
+        window.addEventListener('oauth:login', updateShareButton);
+        window.addEventListener('oauth:logout', updateShareButton);
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(updateShareButton, 500);
+            
+            // Add event listener to save character registration preference
+            const characterCheck = document.getElementById('registerCharacterCheck');
+            if (characterCheck) {
+                characterCheck.addEventListener('change', function() {
+                    sessionStorage.setItem('registerAsCharacter', this.checked.toString());
+                    console.log('💾 Character registration preference saved:', this.checked);
+                });
+            }
+        });
+        
+        // Filter button handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                sessionStorage.setItem('storyFilter', currentFilter);
+                renderStories();
+            });
+        });
+        
+        // Set initial active button based on stored filter
+        document.addEventListener('DOMContentLoaded', () => {
+            const activeFilter = sessionStorage.getItem('storyFilter') || 'canon';
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === activeFilter) {
+                    btn.classList.add('active');
+                }
+            });
+        });
+
+        // Load stories on page load
+        loadStories();
+        
+        // Initialize explainer and dreamer hover widgets
+        let dreamerHoverWidget;
+        window.addEventListener('load', () => {
+            // Initialize dreamer hover after dreamers are loaded
+            if (window.DreamerHoverWidget && allDreamers.length > 0) {
+                dreamerHoverWidget = new DreamerHoverWidget(allDreamers);
+                dreamerHoverWidget.init();
+            }
+        });
+        
+        // Explainer functions for lore and canon
+        function showLoreExplanation() {
+            if (window.explainerWidget) {
+                window.explainerWidget.definitions['lore'] = {
+                    title: 'lore',
+                    text: 'The total collected stories and dreams of all dreamers and dreamweavers who pass through Reverie House. Anyone may contribute to the lore by tagging their posts with the #lore label on Bluesky.'
+                };
+                window.explainerWidget.show(null, 'lore');
+            }
+        }
+        
+        function showCanonExplanation() {
+            if (window.explainerWidget) {
+                window.explainerWidget.definitions['canon'] = {
+                    title: 'canon',
+                    text: 'The recognized history that\'s certainly shared by all dreamweavers. Canon is curated by the loremasters and represents the official timeline and foundational truths of Reverie House.'
+                };
+                window.explainerWidget.show(null, 'canon');
+            }
+        }
+        
+        // ============================================
+        // AT Protocol Interaction Handlers
+        // ============================================
+        
+        /**
+         * Update reply count for a post after successful reply
+         */
+        function updateReplyCount(postUri) {
+            console.log('🔄 [Story] Updating reply count for:', postUri);
+            
+            // Find the story card with this URI
+            const card = document.querySelector(`.story-card[data-uri="${postUri}"]`);
+            if (!card) {
+                console.warn('⚠️ [Story] Story card not found for URI:', postUri);
+                return;
+            }
+            
+            // Find the reply button and its count span
+            const replyBtn = card.querySelector('.reply-btn');
+            if (!replyBtn) {
+                console.warn('⚠️ [Story] Reply button not found in card');
+                return;
+            }
+            
+            const countSpan = replyBtn.querySelector('.action-count');
+            if (!countSpan) {
+                console.warn('⚠️ [Story] Reply count span not found');
+                return;
+            }
+            
+            // Increment the count
+            const currentCount = parseInt(countSpan.textContent) || 0;
+            countSpan.textContent = currentCount + 1;
+            
+            console.log(`✅ [Story] Reply count updated: ${currentCount} → ${currentCount + 1}`);
+        }
+        
+        /**
+         * Get the PDS endpoint URL from the session
+         * For PDS sessions, we need to resolve the user's PDS from their DID
+         */
+        function getPdsEndpoint(session) {
+            // For now, assume reverie.house PDS for .reverie.house handles
+            // or bsky.social for others
+            if (session?.handle?.endsWith('.reverie.house')) {
+                return 'https://reverie.house';
+            }
+            // Default to bsky.social
+            return 'https://bsky.social';
+        }
+        
+        /**
+         * Handle like/unlike action via AT Protocol
+         */
+        async function handleLike(uri, cid, isCurrentlyLiked, button) {
+            console.log('🔍 [Like] handleLike called with:', { uri, cid, isCurrentlyLiked });
+            
+            const session = window.oauthManager ? window.oauthManager.getSession() : null;
+            if (!session) {
+                alert('Please log in to like posts');
+                return;
+            }
+            
+            if (!cid) {
+                console.error('❌ [Like] No CID provided for post:', uri);
+                alert('Cannot like post: missing post identifier');
+                return;
+            }
+            
+            try {
+                button.disabled = true;
+                
+                if (isCurrentlyLiked) {
+                    // Unlike the post
+                    await unlikePost(uri, session);
+                    button.classList.remove('liked');
+                    button.querySelector('span:first-child').textContent = 'Like';
+                    button.title = 'Like this post';
+                    
+                    // Decrement count
+                    const countSpan = button.querySelector('.action-count');
+                    const currentCount = parseInt(countSpan.textContent) || 1;
+                    countSpan.textContent = currentCount > 1 ? currentCount - 1 : '';
+                } else {
+                    // Like the post
+                    await likePost(uri, cid, session);
+                    button.classList.add('liked');
+                    button.querySelector('span:first-child').textContent = 'Like';
+                    button.title = 'Unlike this post';
+                    
+                    // Increment count
+                    const countSpan = button.querySelector('.action-count');
+                    const currentCount = parseInt(countSpan.textContent) || 0;
+                    countSpan.textContent = currentCount + 1;
+                }
+                
+                // Update the data attribute to reflect new state
+                const newState = !isCurrentlyLiked;
+                button.setAttribute('data-liked', newState.toString());
+                
+            } catch (error) {
+                console.error('Error handling like:', error);
+                alert('Failed to like post. Please try again.');
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        /**
+         * Like a post via AT Protocol
+         * Uses the same pattern as createPost in oauth-manager.js
+         */
+        async function likePost(uri, cid, session) {
+            try {
+                // For PDS sessions, use direct API call with accessJwt
+                // PDS sessions have accessJwt from com.atproto.server.createSession
+                if (session.accessJwt) {
+                    console.log('🔐 Using PDS session for like');
+                    const pdsEndpoint = getPdsEndpoint(session);
+                    const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.createRecord`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.accessJwt}`
+                        },
+                        body: JSON.stringify({
+                            repo: session.did,
+                            collection: 'app.bsky.feed.like',
+                            record: {
+                                subject: {
+                                    uri: uri,
+                                    cid: cid
+                                },
+                                createdAt: new Date().toISOString()
+                            }
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Like API error:', response.status, errorText);
+                        throw new Error(`Failed to like post: ${response.status}`);
+                    }
+                    
+                    return await response.json();
+                }
+                
+                // For OAuth sessions, use the OAuth client's session.fetchHandler
+                console.log('🔐 Using OAuth session for like');
+                await window.oauthManager.ensureInitialized();
+                const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
+                const response = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        repo: session.sub || session.did,
+                        collection: 'app.bsky.feed.like',
+                        record: {
+                            subject: {
+                                uri: uri,
+                                cid: cid
+                            },
+                            createdAt: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Like API error:', response.status, errorText);
+                    throw new Error(`Failed to like post: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('❌ Like error:', error);
+                throw error;
+            }
+        }
+        
+        /**
+         * Unlike a post via AT Protocol
+         */
+        async function unlikePost(uri, session) {
+            try {
+                // For PDS sessions, use direct API call with accessJwt
+                if (session.accessJwt) {
+                    console.log('🔐 Using PDS session for unlike');
+                    const pdsEndpoint = getPdsEndpoint(session);
+                    
+                    // Find the like record
+                    const listResponse = await fetch(
+                        `${pdsEndpoint}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=app.bsky.feed.like&limit=100`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${session.accessJwt}`
+                            }
+                        }
+                    );
+                    
+                    if (!listResponse.ok) {
+                        const errorText = await listResponse.text();
+                        console.error('List likes API error:', listResponse.status, errorText);
+                        throw new Error('Failed to fetch likes');
+                    }
+                    
+                    const data = await listResponse.json();
+                    const likeRecord = data.records.find(r => r.value.subject.uri === uri);
+                    
+                    if (!likeRecord) {
+                        console.warn('Like record not found');
+                        return;
+                    }
+                    
+                    const rkey = likeRecord.uri.split('/').pop();
+                    
+                    // Delete the like record
+                    const deleteResponse = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.accessJwt}`
+                        },
+                        body: JSON.stringify({
+                            repo: session.did,
+                            collection: 'app.bsky.feed.like',
+                            rkey: rkey
+                        })
+                    });
+                    
+                    if (!deleteResponse.ok) {
+                        const errorText = await deleteResponse.text();
+                        console.error('Delete like API error:', deleteResponse.status, errorText);
+                        throw new Error(`Failed to unlike post: ${deleteResponse.status}`);
+                    }
+                    return;
+                }
+                
+                // For OAuth sessions, use the OAuth client's session.fetchHandler
+                console.log('🔐 Using OAuth session for unlike');
+                await window.oauthManager.ensureInitialized();
+                const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
+                
+                // Find the like record
+                const listResponse = await oauthSession.fetchHandler(
+                    `/xrpc/com.atproto.repo.listRecords?repo=${session.sub || session.did}&collection=app.bsky.feed.like&limit=100`,
+                    { method: 'GET' }
+                );
+                
+                if (!listResponse.ok) {
+                    throw new Error('Failed to fetch likes');
+                }
+                
+                const data = await listResponse.json();
+                const likeRecord = data.records.find(r => r.value.subject.uri === uri);
+                
+                if (!likeRecord) {
+                    console.warn('Like record not found');
+                    return;
+                }
+                
+                const rkey = likeRecord.uri.split('/').pop();
+                
+                // Delete the like record
+                const deleteResponse = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        repo: session.sub || session.did,
+                        collection: 'app.bsky.feed.like',
+                        rkey: rkey
+                    })
+                });
+                
+                if (!deleteResponse.ok) {
+                    throw new Error('Failed to unlike post');
+                }
+            } catch (error) {
+                console.error('❌ Unlike error:', error);
+                throw error;
+            }
+        }
+        
+        /**
+         * Handle repost/unrepost action
+         */
+        async function handleRepost(uri, cid, isCurrentlyReposted, button) {
+            console.log('🔁 [Repost] handleRepost called with:', { uri, cid, isCurrentlyReposted });
+            
+            const session = window.oauthManager ? window.oauthManager.getSession() : null;
+            if (!session) {
+                alert('Please log in to repost');
+                return;
+            }
+            
+            if (!cid) {
+                console.error('❌ [Repost] No CID provided for post:', uri);
+                alert('Cannot repost: missing post identifier');
+                return;
+            }
+            
+            try {
+                button.disabled = true;
+                
+                if (isCurrentlyReposted) {
+                    // Unrepost
+                    await unrepostPost(uri, session);
+                    button.classList.remove('reposted');
+                    button.title = 'Repost to your timeline';
+                    
+                    // Decrement count
+                    const countSpan = button.querySelector('.action-count');
+                    const currentCount = parseInt(countSpan.textContent) || 1;
+                    countSpan.textContent = currentCount > 1 ? currentCount - 1 : '';
+                } else {
+                    // Repost
+                    await repostPost(uri, cid, session);
+                    button.classList.add('reposted');
+                    button.title = 'Undo repost';
+                    
+                    // Increment count
+                    const countSpan = button.querySelector('.action-count');
+                    const currentCount = parseInt(countSpan.textContent) || 0;
+                    countSpan.textContent = currentCount + 1;
+                }
+                
+                // Update the data attribute to reflect new state
+                const newState = !isCurrentlyReposted;
+                button.setAttribute('data-reposted', newState.toString());
+                
+            } catch (error) {
+                console.error('Error handling repost:', error);
+                alert('Failed to repost. Please try again.');
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        /**
+         * Repost a post via AT Protocol
+         */
+        async function repostPost(uri, cid, session) {
+            try {
+                // For PDS sessions, use direct API call with accessJwt
+                if (session.accessJwt) {
+                    console.log('🔐 Using PDS session for repost');
+                    const pdsEndpoint = getPdsEndpoint(session);
+                    const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.createRecord`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.accessJwt}`
+                        },
+                        body: JSON.stringify({
+                            repo: session.did,
+                            collection: 'app.bsky.feed.repost',
+                            record: {
+                                subject: {
+                                    uri: uri,
+                                    cid: cid
+                                },
+                                createdAt: new Date().toISOString()
+                            }
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Repost API error:', response.status, errorText);
+                        throw new Error(`Failed to repost: ${response.status}`);
+                    }
+                    
+                    return await response.json();
+                }
+                
+                // For OAuth sessions, use the OAuth client's session.fetchHandler
+                console.log('🔐 Using OAuth session for repost');
+                await window.oauthManager.ensureInitialized();
+                const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
+                const response = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        repo: session.sub || session.did,
+                        collection: 'app.bsky.feed.repost',
+                        record: {
+                            subject: {
+                                uri: uri,
+                                cid: cid
+                            },
+                            createdAt: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Repost API error:', response.status, errorText);
+                    throw new Error(`Failed to repost: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('❌ Repost error:', error);
+                throw error;
+            }
+        }
+        
+        /**
+         * Unrepost a post via AT Protocol
+         */
+        async function unrepostPost(uri, session) {
+            try {
+                // For PDS sessions, use direct API call with accessJwt
+                if (session.accessJwt) {
+                    console.log('🔐 Using PDS session for unrepost');
+                    const pdsEndpoint = getPdsEndpoint(session);
+                    
+                    // Find the repost record
+                    const listResponse = await fetch(
+                        `${pdsEndpoint}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=app.bsky.feed.repost&limit=100`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${session.accessJwt}`
+                            }
+                        }
+                    );
+                    
+                    if (!listResponse.ok) {
+                        const errorText = await listResponse.text();
+                        console.error('List reposts API error:', listResponse.status, errorText);
+                        throw new Error('Failed to fetch reposts');
+                    }
+                    
+                    const data = await listResponse.json();
+                    const repostRecord = data.records.find(r => r.value.subject.uri === uri);
+                    
+                    if (!repostRecord) {
+                        console.warn('Repost record not found');
+                        return;
+                    }
+                    
+                    const rkey = repostRecord.uri.split('/').pop();
+                    
+                    const deleteResponse = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.accessJwt}`
+                        },
+                        body: JSON.stringify({
+                            repo: session.did,
+                            collection: 'app.bsky.feed.repost',
+                            rkey: rkey
+                        })
+                    });
+                    
+                    if (!deleteResponse.ok) {
+                        const errorText = await deleteResponse.text();
+                        console.error('Delete repost API error:', deleteResponse.status, errorText);
+                        throw new Error(`Failed to unrepost: ${deleteResponse.status}`);
+                    }
+                    return;
+                }
+                
+                // For OAuth sessions, use the OAuth client's session.fetchHandler
+                console.log('🔐 Using OAuth session for unrepost');
+                await window.oauthManager.ensureInitialized();
+                const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
+                
+                // Find the repost record
+                const listResponse = await oauthSession.fetchHandler(
+                    `/xrpc/com.atproto.repo.listRecords?repo=${session.sub || session.did}&collection=app.bsky.feed.repost&limit=100`,
+                    { method: 'GET' }
+                );
+                
+                if (!listResponse.ok) {
+                    throw new Error('Failed to fetch reposts');
+                }
+                
+                const data = await listResponse.json();
+                const repostRecord = data.records.find(r => r.value.subject.uri === uri);
+                
+                if (!repostRecord) {
+                    console.warn('Repost record not found');
+                    return;
+                }
+                
+                const rkey = repostRecord.uri.split('/').pop();
+                
+                const deleteResponse = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        repo: session.sub || session.did,
+                        collection: 'app.bsky.feed.repost',
+                        rkey: rkey
+                    })
+                });
+                
+                if (!deleteResponse.ok) {
+                    throw new Error('Failed to unrepost');
+                }
+            } catch (error) {
+                console.error('❌ Unrepost error:', error);
+                throw error;
+            }
+        }
+        
+        /**
+         * Handle reply - opens composer modal for reply
+         */
+        function handleReply(postUri, postCid, authorHandle, authorDisplayName, postText) {
+            console.log('💬 [Story] handleReply called:', { postUri, postCid, authorHandle, authorDisplayName, postText });
+            
+            if (!window.ComposerWidget) {
+                console.error('❌ [Story] ComposerWidget not loaded');
+                alert('Composer not available. Please refresh the page.');
+                return;
+            }
+            
+            if (!window.oauthManager || !window.oauthManager.getSession()) {
+                alert('Please log in to reply to posts.');
+                return;
+            }
+            
+            // Open composer in reply mode
+            new window.ComposerWidget({
+                mode: 'reply',
+                replyTo: {
+                    uri: postUri,
+                    cid: postCid,
+                    authorDisplayName: authorDisplayName,
+                    postText: postText
+                },
+                prefillText: `@${authorHandle} `,
+                onSuccess: () => {
+                    console.log('✅ [Story] Reply posted successfully');
+                    // Update reply count in the DOM
+                    updateReplyCount(postUri);
+                }
+            });
+        }
+        
+        /**
+         * Handle share - copies link to clipboard
+         */
+        async function handleShare(postUrl, authorHandle) {
+            try {
+                await navigator.clipboard.writeText(postUrl);
+                alert(`Link copied to clipboard!\n\nPost by @${authorHandle}`);
+            } catch (error) {
+                // Fallback for browsers that don't support clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = postUrl;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    alert(`Link copied to clipboard!\n\nPost by @${authorHandle}`);
+                } catch (err) {
+                    alert(`Failed to copy link. Please copy manually:\n\n${postUrl}`);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+    </script>
+</body>
+</html>
