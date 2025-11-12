@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverie House — Library</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Enjoy all of the Reverie House library for free online or via ePub and kindle, including Seeker's Reverie by errantson.">
+    <meta name="keywords" content="dream books, consciousness, lucid dreaming, psychology, reading list, library">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/library.html">
+    <meta property="og:title" content="Library - Reverie House">
+    <meta property="og:description" content="Enjoy all of the Reverie House library for free online or via ePub and kindle, including Seeker's Reverie by errantson.">
+    <meta property="og:image" content="https://reverie.house/assets/og-image.png">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Library - Reverie House">
+    <meta name="twitter:description" content="Enjoy all of the Reverie House library for free online or via ePub and kindle, including Seeker's Reverie by errantson.">
+    <meta name="twitter:image" content="https://reverie.house/assets/og-image.png">
+    
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/pages/books.css">
+    <link rel="stylesheet" href="/css/widgets/dialogue.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <!-- Core utilities (must load first) -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/widgets/background.js"></script>
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/widgets/toc.js" defer></script>
+    <script src="/js/widgets/bookshelf.js" defer></script>
+    <script src="/js/widgets/library.js" defer></script>
+    <script src="/js/utils/region.js" defer></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    <script>
+        async function openRegionalAmazonLink() {
+            const link = await getRegionalAmazonLink();
+            window.open(link, '_blank');
+        }
+    </script>
+    <style>
+        .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 16px;
+            padding-left: 60px;
+            min-width: 140px;
+        }
+        
+        .logo-container img {
+            height: 100px;
+            width: auto;
+            margin-bottom: 4px;
+        }
+        
+        .logo-label {
+            font-size: 0.95em;
+            font-weight: 700;
+            color: #87408d;
+            letter-spacing: 0.1em;
+            padding-bottom: 2px;
+        }
+        
+        .library-description {
+            font-size: 1em;
+            color: #333;
+            line-height: 1.8;
+            max-width: 540px;
+            width: 540px;
+        }
+        
+        .library-description .opening {
+            font-size: 1.1em;
+            font-weight: 500;
+            color: #2c2c2c;
+            display: block;
+            line-height: 1.3;
+        }
+        
+        .library-description .details {
+            font-weight: 400;
+            color: #555;
+            margin-top: 8px;
+            display: block;
+        }
+        
+        .invite-section {
+            background: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .toc-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .toc-stack > .toc-layout {
+            background: white;
+            border: 2px solid #d0d0d0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            overflow: visible;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <!-- Full-Screen Background Scene (matches dreamer.html structure) -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera Background" class="scene-layer background-layer">
+        </div>
+    </div>
+
+    <!-- Main Content (positioned above background) -->
+    <div class="main-content">
+        <div class="library-section">
+        <!-- Library Header Section -->
+        <div class="invite-section">
+            <div class="logo-container">
+                <img src="/assets/logo.png" alt="Reverie House Logo">
+                <div class="logo-label">LIBRARY</div>
+            </div>
+            <div class="library-description">
+                <span class="opening">
+                    Stories within the Reverie House library are free to enjoy.<br>
+                    Read them, share them, or rewrite them as you please.
+                </span>
+                <span class="details">
+                    These are the collected adventures of our wild mindscape.<br>
+                    They have always belonged to you, dreamweaver.
+                </span>
+            </div>
+        </div>
+        
+        <!-- Reader content area (hidden until chapter is loaded) -->
+        <div class="reader-content" style="display: none;">
+            <!-- Chapter content will be dynamically loaded here by library.js -->
+        </div>
+        
+        <!-- Library TOC view (shown by default) -->
+        <div class="toc-stack" id="toc-container">
+            <!-- TOCs will be rendered here -->
+        </div>
+    </div>
+    </div>
+    
+    <div id="footer-container"></div>
+    
+    <script>
+        // Wait for library.js to load, then initialize
+        window.addEventListener('load', () => {
+            if (!window.BooksWidget) {
+                console.error('BooksWidget not loaded');
+                return;
+            }
+            
+            // Check if we're on a chapter route
+            const path = window.location.pathname;
+            const isChapterRoute = path.match(/^\/books\/(seeker|princes)\/\d+/);
+            
+            if (isChapterRoute) {
+                // We're loading a specific chapter
+                const widget = new BooksWidget();
+                window.booksWidget = widget;
+                
+                // Hide the library TOC view immediately
+                const container = document.getElementById('toc-container');
+                if (container) {
+                    container.style.display = 'none';
+                }
+                
+                // Show the reader view
+                const readerContent = document.querySelector('.reader-content');
+                if (readerContent) {
+                    readerContent.style.display = 'block';
+                }
+                
+                // Hide the library section
+                const librarySection = document.querySelector('.library-section');
+                if (librarySection) {
+                    librarySection.querySelector('.invite-section')?.remove();
+                    librarySection.querySelector('hr')?.remove();
+                }
+                
+                // Initialize the widget which will handle routing
+                widget.init();
+            } else {
+                // We're showing the library view
+                // Create widget but DON'T call init() - we just need the data
+                const widget = new BooksWidget();
+                window.booksWidget = widget;
+                
+                // Check if Bookshelf widget is loaded
+                if (!window.Bookshelf) {
+                    console.error('Bookshelf widget not loaded');
+                    return;
+                }
+                
+                // Create and render bookshelf with complete TOC display
+                const bookshelf = new Bookshelf(widget);
+                bookshelf.render('toc-container');
+                
+                console.log('✅ Library bookshelf rendered');
+            }
+        });
+    </script>
+</body>
+</html>
