@@ -1,0 +1,2890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/">
+    <title>Reverie House — Workshop</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Become a self-appointed worker at Reverie House by taking on a role that will help its survival or enrich our wild mindscape. Retire whenever you please!">
+    <meta name="keywords" content="workshop, creative writing, collaboration, worldbuilding, storytelling, reverie house">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/work.html">
+    <meta property="og:title" content="Workshop - Reverie House">
+    <meta property="og:description" content="Become a self-appointed worker at Reverie House by taking on a role that will enrich our wild mindscape.">
+    <meta property="og:image" content="https://reverie.house/assets/og-image.png">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Workshop - Reverie House">
+    <meta name="twitter:description" content="Become a self-appointed worker at Reverie House by taking on a role that will help its survival or enrich our wild mindscape. Retire whenever you please!">
+    <meta name="twitter:image" content="https://reverie.house/assets/og-image.png">
+    
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/pages/work.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    <link rel="stylesheet" href="/css/widgets/createdreamer.css">
+    <link rel="stylesheet" href="/css/widgets/dialogue.css">
+    <link rel="stylesheet" href="/css/widgets/dreamer-hover.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    
+    <!-- Core utilities -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/widgets/background.js"></script>
+    <script src="/js/widgets/bubble.js"></script>
+    
+    <!-- Work utilities -->
+    <script src="/js/utils/work-api.js"></script>
+    <script src="/js/utils/work-events.js"></script>
+    
+    <!-- Work widgets -->
+        <script type="module" src="/js/widgets/spectrumpreview.js?v=1763454411"></script>    <!-- Header and drawer widgets -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/widgets/createdreamer.js" defer></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    <script src="/js/widgets/dreamer-hover.js" defer></script>
+    <script src="/js/widgets/wink.js" defer></script>
+    <script src="/js/widgets/stepdown.js" defer></script>
+    <script src="/js/widgets/upload_avatar.js" defer onerror="console.error('Failed to load upload_avatar.js')"></script>
+</head>
+<body>
+    <div id="header-container"></div>
+
+    <!-- Full-Screen Background Scene (matches homepage structure) -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera Residence" class="scene-layer background-layer">
+        </div>
+    </div>
+
+    <!-- Main Content (positioned above background) -->
+    <div class="page-container">
+        <div class="bulletin-board">
+
+        <div class="posting-content">
+            <!-- Two-column layout: Logo/Work/Do on left, Description on right -->
+            <div class="work-header-layout">
+                <!-- Left: Header -->
+                <div class="posting-header">
+                    <img src="/assets/logo.png" alt="Reverie House Logo" class="logo">
+                    <div class="title-row">
+                        <img src="/assets/icon.png" alt="" class="header-icon">
+                        <h1 class="posting-title">WORK</h1>
+                        <img src="/assets/icon_face.png" alt="" class="header-icon">
+                    </div>
+                    <p class="subtitle">Do those for which you care.</p>
+                </div>
+                
+                <!-- Right: Work System Description -->
+                <div class="work-description-box">
+                    <p>
+                        There are no jobs, no managers, no orders.<br>
+                        Yet, there are always things needing done.
+                    </p>
+                    <p>
+                        Work is self-assigned and voluntary.<br>
+                        You may step down or retire as you please.
+                    </p>
+                    <p>
+                        Our wild mindscape is bettered by your efforts.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Available Roles -->
+                    <div class="available-roles">
+                        <!-- Desktop: Tab buttons -->
+                        <div class="role-buttons">
+                            <button class="role-button active" data-role="greeter" onclick="selectRole('greeter')">
+                                <span class="role-name">Greeter</span>
+                            </button>
+                            <button class="role-button" data-role="mapper" onclick="selectRole('mapper')">
+                                <span class="role-name">Mapper</span>
+                            </button>
+                            <button class="role-button" data-role="cogitarian" onclick="selectRole('cogitarian')">
+                                <span class="role-name">Cogitarian</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Mobile: Dropdown selector -->
+                        <div class="role-selector-dropdown">
+                            <select id="role-selector-mobile" onchange="selectRole(this.value)">
+                                <option value="greeter" selected>Greeter</option>
+                                <option value="mapper">Mapper</option>
+                                <option value="cogitarian">Cogitarian</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="role-description">
+                            <h3 id="role-title">Greeter of Reveries</h3>
+
+                            <!-- Greeter Description (default) -->
+                            <div id="greeter-description" class="role-desc-content">
+                                <p class="role-description">
+                                    Newcomers to <b>Reverie House</b> often need someone to show them the way, and a <b>Greeter</b> is usually the one to do it. It doesn't take much, but when someone new arrives they'll have <u><span id="you-link">you</span></u> to introduce and guide them.
+                                </p>
+                                <br>
+                                <p class="role-description">
+                                    As <b>Greeter</b> you will automatically provide newcomers with their name, and offer them a friendly human hand to help them, should they need one.
+                                </p>
+                                <br>
+                                <div class="example-post-preview" style="background: rgba(139, 115, 85, 0.05); border: 2px solid rgba(139, 115, 85, 0.2); padding: 1rem; margin-top: 1rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                                    <div class="example-header" style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.75rem;">
+                                        <button class="example-nav-btn" onclick="previousExample(); event.stopPropagation();" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #8b7355; padding: 0.25rem 0.5rem;">‹</button>
+                                        <div class="example-label" style="font-family: 'Courier New', monospace; font-size: 0.85rem; font-weight: 600; color: #8b7355;">Welcome Greetings</div>
+                                        <button class="example-nav-btn" onclick="nextExample(); event.stopPropagation();" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #8b7355; padding: 0.25rem 0.5rem;">›</button>
+                                    </div>
+                                    <div class="example-post" id="example-post-greeter" style="font-family: 'Courier New', monospace; font-size: 0.9rem; line-height: 1.6; color: #2c1810; padding: 0.75rem; background: white; border-left: 3px solid #8b7355;">
+                                        <!-- Content will be populated by JS -->
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Cogitarian Description -->
+                            <div id="cogitarian-description" class="role-desc-content" style="display: none;">
+                                <p class="role-description">
+                                    Our <b>Cogitarian</b> is a humanizing authority who helps codify human elements within our shared technical foundation and help deter dehumanizations.
+                                </p>
+                                <br>
+                                <p class="role-description">
+                                    You will work closely with the current <b>Keeper(s)</b> to take responsibility for defining the immutably human aspects of our environment, in effort to keep our wild mindscape a more dependable place for real <span onclick="window.wink && window.wink(event)" style="cursor: pointer;">dreamrs</span>.
+                                </p>
+                            </div>
+                            
+                            <!-- Mapper Description -->
+                            <div id="mapper-description" class="role-desc-content" style="display: none;">
+                                <p class="role-description">
+                                    All dreamers who reach <b>Reverie House</b> have a calculable origin, where their dreaming first led them into our wild mindscape. Knowing this position can be very helpful, and thus our <b>Spectrum Mapper</b> assists in deducing and informing dreamers of their origins when available.
+                                </p>
+                                <br>
+                                <p class="role-description">
+                                    As <b>Spectrum Mapper</b> you will automatically reply the origin coordinates for all dreamers who reveal their beginnings within our wild mindscape.
+                                </p>
+                                <br>
+                                <div class="example-post-preview" style="background: rgba(139, 115, 85, 0.05); border: 2px solid rgba(139, 115, 85, 0.2); padding: 1rem; margin-top: 1rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+                                    <div class="example-label" style="font-family: 'Courier New', monospace; font-size: 0.85rem; font-weight: 600; color: #8b7355; text-align: center; margin-bottom: 0.75rem;">ORIGIN COORDINATE EXAMPLE</div>
+                                    <div class="example-post" id="origin-coordinate-example" style="font-family: 'Courier New', monospace; font-size: 1rem; line-height: 1.6; color: #2c1810; padding: 0.75rem; background: white; border-left: 3px solid #8b7355; text-align: center; letter-spacing: 2px; font-weight: 600;">
+                                        O22 A11 S05 R88 L63 E71
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    <!-- Current Worker Display -->
+                    <div class="current-worker" id="current-worker">
+                        <span class="worker-label" id="worker-label">CURRENT GREETER:</span>
+                        <div id="worker-display" style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="color: #999; font-style: italic;">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Spectrum Preview Widget (Mapper Tool) -->
+                    <div id="spectrum-preview-container" style="display: none;"></div>
+
+                    <!-- Actions (shown based on login state) -->
+                    <div class="action-section">
+                        <!-- Loading State -->
+                        <div id="loading-state" style="display: block; text-align: center; padding: 2rem;">
+                            <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(139, 115, 85, 0.3); border-top: 4px solid #8b7355; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem;"></div>
+                            <div style="color: #666; font-size: 0.9rem; font-style: italic;">
+                                <span id="loading-state-text">Checking session...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- User Status (integrated into action section) -->
+                        <div id="user-status" style="display: none;"></div>
+                        
+                        <div id="guest-prompt" style="display: none;">
+                            <button class="action-button login-button" onclick="triggerLogin()">
+                                Dreamweaver Login
+                            </button>
+                        </div>
+                        <div id="user-actions" style="display: none;">
+                            <button id="activate-btn" class="action-button" onclick="openWorkerModal('greeter')">
+                                Volunteer Now
+                    </button>
+                    <button id="deactivate-btn" class="action-button secondary" onclick="deactivateGreeter()" style="display: none;">
+                        Step Down
+                    </button>
+                    <button id="set-retiring-btn" class="action-button secondary" onclick="setRetiring()" style="display: none;">
+                        Ready to Retire
+                    </button>
+                    <button id="set-working-btn" class="action-button" onclick="setWorking()" style="display: none;">
+                        Continue Working
+                    </button>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Authorization Modal -->
+    <div id="auth-modal" class="modal" onclick="closeModalOnOutsideClick(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-intro">
+                <strong id="modal-role-title">Become Worker</strong><br>
+                <div id="modal-role-description" style="max-width: 500px; margin: 0.5rem auto 0 auto; font-size: 10pt;">
+                    <!-- Role-specific description will be inserted here -->
+                </div>
+            </div>
+            <div class="modal-body">
+                
+                <!-- Example Post Preview (shown for roles that need it) -->
+                <div class="example-post-preview" id="modal-example-preview" style="display: none; margin-top: 0.5rem;">
+                    <div class="example-header">
+                        <button class="example-nav-btn" onclick="previousExample()">‹</button>
+                        <div class="example-label" id="modal-example-label">Examples</div>
+                        <button class="example-nav-btn" onclick="nextExample()">›</button>
+                    </div>
+                    <div class="example-post" id="example-post">
+                        <!-- Content will be populated by JS -->
+                    </div>
+                </div>
+                
+                <p style="margin-top: 1rem;"><strong>Worker roles need permission to post on your behalf:</strong></p>
+                <ol>
+                    <li>Go to <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener noreferrer">Bluesky Settings → App Passwords</a></li>
+                    <li>Create a new password named "Reverie House"</li>
+                    <li>Copy and paste it below</li>
+                </ol>
+                
+                <div class="form-group">
+                    <label for="app-password">App Password <span id="modal-password-purpose">(for posting on your behalf)</span>:</label>
+                    <input type="text" id="app-password" placeholder="xxxx-xxxx-xxxx-xxxx" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    <p class="small-note">This allows the <span id="modal-role-name-lower">worker</span> to post on your behalf. You can revoke this anytime in your <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener noreferrer">Bluesky settings</a>.</p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="action-button authorize-btn" id="modal-submit-btn" onclick="submitWorkerActivation()">BECOME WORKER</button>
+                <div class="appreciation-text">we appreciate your authority in this matter</div>
+            </div>
+        </div>
+    </div> 
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Confirming your status...</div>
+        </div>
+    </div>
+
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            margin: 0 auto 1.5rem auto;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            letter-spacing: 0.05em;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+
+    <script>
+        let currentSession = null;
+        let roleStatuses = {
+            greeter: null,
+            mapper: null,
+            cogitarian: null
+        };
+        let currentTab = 'greeter';
+        let spectrumPreviewWidget = null; // Global spectrum preview widget instance
+        
+        // Restore tab from localStorage on page load
+        const savedTab = localStorage.getItem('work_current_tab');
+        if (savedTab && ['greeter', 'mapper', 'cogitarian'].includes(savedTab)) {
+            currentTab = savedTab;
+        }
+        let currentRole = 'greeter'; // Track selected role
+        let sessionCheckComplete = false;
+        let isInitializing = false; // Prevent duplicate initialization
+        let profileLoaded = false; // Track if profile is ready
+
+        // Role selection function
+        function selectRole(role) {
+            currentRole = role;
+            
+            // Save current role to localStorage
+            localStorage.setItem('work_current_tab', role);
+            
+            // Update button states (desktop tabs)
+            document.querySelectorAll('.role-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeButton = document.querySelector(`[data-role="${role}"]`);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+            
+            // Update dropdown value (mobile)
+            const mobileSelector = document.getElementById('role-selector-mobile');
+            if (mobileSelector) {
+                mobileSelector.value = role;
+            }
+            
+            // Check if user currently has a different role
+            const userHasRole = (roleStatuses.greeter && roleStatuses.greeter.is_worker) || 
+                              (roleStatuses.mapper && roleStatuses.mapper.is_worker) ||
+                              (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker);
+            
+            // Determine which role the user currently has
+            let userCurrentRole = null;
+            if (roleStatuses.greeter && roleStatuses.greeter.is_worker) userCurrentRole = 'greeter';
+            else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) userCurrentRole = 'mapper';
+            else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
+            
+            // Update role content with context-aware descriptions
+            document.querySelectorAll('.role-desc-content').forEach(desc => {
+                desc.style.display = 'none';
+            });
+            
+            const descriptionDiv = document.getElementById(`${role}-description`);
+            descriptionDiv.style.display = 'block';
+            
+            // If user is viewing a different role than their current one, show switching message
+            if (userHasRole && userCurrentRole && role !== userCurrentRole) {
+                const switchMessage = document.createElement('div');
+                switchMessage.className = 'role-switch-notice';
+                switchMessage.style.cssText = 'background: #fff9e6; border-left: 4px solid #ffcc00; padding: 0.75rem; margin-top: 1rem; font-family: "Courier New", monospace; font-size: 0.85rem; color: #856404; line-height: 1.5;';
+                
+                // Get role title from config
+                const userRoleConfig = roleConfigs[userCurrentRole];
+                const roleTitle = userRoleConfig ? userRoleConfig.title : userCurrentRole;
+                switchMessage.innerHTML = `You are currently working as the ${roleTitle} and may only hold one role at a time. To take on a new role, you must first step down.`;
+                
+                // Remove any existing switch notice
+                const existingNotice = descriptionDiv.querySelector('.role-switch-notice');
+                if (existingNotice) existingNotice.remove();
+                
+                // Add the notice at the bottom
+                descriptionDiv.appendChild(switchMessage);
+            } else {
+                // Remove switch notice if viewing own role
+                const existingNotice = descriptionDiv.querySelector('.role-switch-notice');
+                if (existingNotice) existingNotice.remove();
+            }
+            
+            // Update title
+            // Update title from roleConfigs
+            const config = roleConfigs[role];
+            document.getElementById('role-title').textContent = config ? config.title : role;
+            
+            // Update worker label
+            const labels = {
+                'greeter': 'CURRENT GREETER:',
+                'mapper': 'CURRENT MAPPER:',
+                'cogitarian': 'CURRENT COGITARIAN:'
+            };
+            document.getElementById('worker-label').textContent = labels[role];
+            
+            // Update current worker display based on role
+            if (role === 'cogitarian') {
+                // Load role status for cogitarian
+                loadRoleStatus(role);
+                // Hide spectrum preview widget for cogitarian
+                hideSpectrumPreview();
+            } else if (role === 'mapper') {
+                // Load role status for mapper and THEN update spectrum preview
+                loadRoleStatus(role).then(() => {
+                    // After role status is loaded, update spectrum preview with correct mapper status
+                    updateSpectrumPreview(role);
+                });
+                // Generate random origin coordinates
+                updateOriginCoordinateExample();
+            } else {
+                // Load role status for the selected role
+                loadRoleStatus(role);
+                // Hide spectrum preview widget for non-mapper roles
+                hideSpectrumPreview();
+            }
+            
+            // Update modal and actions based on role
+            updateRoleActions(role);
+            
+            // Update the bottom volunteer card to reflect the selected role
+            updateUI();
+        }
+        
+        // Generate random origin coordinates
+        function updateOriginCoordinateExample() {
+            const coordinateElement = document.getElementById('origin-coordinate-example');
+            if (coordinateElement) {
+                const O = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+                const A = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+                const S = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+                const R = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+                const L = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+                const E = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+                coordinateElement.textContent = `O${O} A${A} S${S} R${R} L${L} E${E}`;
+            }
+        }
+        
+        // Spectrum Preview Widget Management
+        function updateSpectrumPreview(role) {
+            if (role !== 'mapper') {
+                hideSpectrumPreview();
+                return;
+            }
+            
+            const container = document.getElementById('spectrum-preview-container');
+            if (!container) return;
+            
+            // Check if ANY mapper exists (not just if current user is mapper)
+            // The calculator should be enabled if there's an active mapper in the system
+            const hasActiveMapper = roleStatuses.mapper && 
+                                   roleStatuses.mapper.role_info && 
+                                   roleStatuses.mapper.role_info.workers && 
+                                   roleStatuses.mapper.role_info.workers.length > 0;
+            
+            console.log('🔍 [SPECTRUM] updateSpectrumPreview called');
+            console.log('🔍 [SPECTRUM] roleStatuses.mapper:', roleStatuses.mapper);
+            console.log('🔍 [SPECTRUM] hasActiveMapper:', hasActiveMapper);
+            
+            // Initialize widget if not already created
+            if (!spectrumPreviewWidget && window.SpectrumPreview) {
+                spectrumPreviewWidget = new window.SpectrumPreview(container, {
+                    isMapper: hasActiveMapper
+                });
+            } else if (spectrumPreviewWidget) {
+                // Update mapper status if widget exists
+                spectrumPreviewWidget.setMapperStatus(hasActiveMapper);
+            } else {
+                // SpectrumPreview not loaded yet, try again after delay
+                setTimeout(() => updateSpectrumPreview(role), 200);
+                return;
+            }
+            
+            // Show the container
+            container.style.display = 'block';
+        }
+        
+        function hideSpectrumPreview() {
+            const container = document.getElementById('spectrum-preview-container');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        function updateRoleActions(role) {
+            const activateBtn = document.getElementById('activate-btn');
+            if (!activateBtn) return;
+            
+            // Check if user has a different role
+            let userCurrentRole = null;
+            if (roleStatuses.greeter && roleStatuses.greeter.is_worker) userCurrentRole = 'greeter';
+            else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) userCurrentRole = 'mapper';
+            else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
+            
+            // If user has a different role, disable the button
+            if (userCurrentRole && userCurrentRole !== role) {
+                activateBtn.textContent = 'Step Down First';
+                activateBtn.disabled = true;
+                activateBtn.style.opacity = '0.5';
+                activateBtn.style.cursor = 'not-allowed';
+            } else {
+                // Allow volunteering
+                activateBtn.textContent = 'Volunteer Now';
+                activateBtn.disabled = false;
+                activateBtn.style.opacity = '1';
+                activateBtn.style.cursor = 'pointer';
+            }
+        }
+
+        // Listen for profile loaded event - this guarantees we have all session data
+        window.addEventListener('oauth:profile-loaded', async (event) => {
+            if (isInitializing) {
+                console.log('⏭️ Work: Already initializing, skipping duplicate profile-loaded event');
+                return;
+            }
+            
+            isInitializing = true;
+            console.log('🔐 Work: Profile loaded event received');
+            currentSession = event.detail.session;
+            profileLoaded = true;
+            sessionCheckComplete = true;
+            
+            // Now we have complete profile data, load all role statuses and update UI
+            console.log('🔄 [FLOW] oauth:profile-loaded → Loading all role statuses');
+            await loadRoleStatus('greeter');
+            await loadRoleStatus('mapper');
+            await loadRoleStatus('cogitarian');
+            console.log('🔄 [FLOW] oauth:profile-loaded → updateUI()');
+            updateUI();
+            isInitializing = false;
+        });
+
+        // Listen for OAuth login events (fired first, before profile loads)
+        document.addEventListener('oauth:login', async (event) => {
+            console.log('🔐 Work: Login event received');
+            // Just store the session - we'll wait for profile-loaded to update UI
+            currentSession = event.detail.session;
+            
+            // Don't reload greeter status here - profile-loaded will do it
+            // This prevents duplicate API calls
+        });
+
+        window.addEventListener('oauth:logout', async () => {
+            console.log('🔓 Work: User logged out');
+            currentSession = null;
+            roleStatuses = {
+                greeter: null,
+                mapper: null,
+                cogitarian: null
+            };
+            sessionCheckComplete = true;
+            profileLoaded = false;
+            
+            // Reload current role status to show current state
+            console.log('🔄 Work: Refreshing role status after logout...');
+            await loadRoleStatus(currentRole);
+            updateUI();
+        });
+
+        // Check for session - simplified since we rely on events
+        async function checkSession() {
+            if (isInitializing) {
+                return true;
+            }
+            
+            if (window.oauthManager) {
+                const session = window.oauthManager.getSession();
+                if (session) {
+                    // Check if profile is already loaded
+                    if (session.profile?.handle) {
+                        isInitializing = true;
+                        currentSession = session;
+                        profileLoaded = true;
+                        sessionCheckComplete = true;
+                        
+                        // Profile already loaded, load all role statuses
+                        await loadRoleStatus('greeter');
+                        await loadRoleStatus('mapper');
+                        await loadRoleStatus('cogitarian');
+                        updateUI();
+                        
+                        isInitializing = false;
+                        return true;
+                    } else {
+                        // Profile not loaded yet, events will handle it
+                        currentSession = session;
+                        return false; // Keep checking
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Check if already logged in on page load - with retries
+        document.addEventListener('DOMContentLoaded', () => {
+            let attempts = 0;
+            const maxAttempts = 5; // Reduced from 10 to 5
+            
+            console.log('🔄 [FLOW] DOMContentLoaded → Page initialization');
+            
+            // Check URL path for direct role navigation (e.g., /work/greeter, /work/mapper)
+            const pathParts = window.location.pathname.split('/');
+            const urlRole = pathParts[pathParts.length - 1]; // Get last part of path
+            
+            // Also check for hash fragment (e.g., #greeter, #mapper, #cogitarian)
+            const hashRole = window.location.hash.replace('#', '');
+            
+            // Build allowed roles list
+            let allowedRoles = ['greeter', 'mapper', 'cogitarian'];
+            
+            let initialTab = null;
+            
+            // Priority 1: Hash fragment (from redirects)
+            if (allowedRoles.includes(hashRole)) {
+                console.log('🔄 [FLOW] Hash specifies role:', hashRole);
+                initialTab = hashRole;
+            }
+            // Priority 2: URL path
+            else if (allowedRoles.includes(urlRole)) {
+                console.log('🔄 [FLOW] URL specifies role:', urlRole);
+                initialTab = urlRole;
+            } 
+            // Priority 3: Saved tab
+            else {
+                // Restore saved tab if any
+                const savedTab = localStorage.getItem('work_current_tab');
+                if (savedTab && allowedRoles.includes(savedTab)) {
+                    console.log('🔄 [FLOW] Restoring saved tab:', savedTab);
+                    initialTab = savedTab;
+                }
+            }
+            
+            if (initialTab) {
+                currentRole = initialTab;
+                // Update the UI to show the correct tab as active (desktop)
+                document.querySelectorAll('.role-button').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.getAttribute('data-role') === initialTab) {
+                        btn.classList.add('active');
+                    }
+                });
+                // Update the dropdown (mobile)
+                const mobileSelector = document.getElementById('role-selector-mobile');
+                if (mobileSelector) {
+                    mobileSelector.value = initialTab;
+                }
+                // Update the role display
+                selectRole(initialTab);
+            }
+            
+            // Load greeting templates immediately
+            loadGreetingTemplates();
+            
+            // Initialize origin coordinate example with random values
+            updateOriginCoordinateExample();
+            
+            // Load all role statuses immediately (works without login)
+            console.log('🔄 [FLOW] DOMContentLoaded → Loading all role statuses');
+            loadRoleStatus('greeter');
+            loadRoleStatus('mapper');
+            loadRoleStatus('cogitarian');
+            
+            // Setup work event listeners for cross-page synchronization
+            const setupWorkEvents = () => {
+                if (!window.WorkEvents) {
+                    console.log('⏳ Work: WorkEvents not ready, retrying in 100ms...');
+                    setTimeout(setupWorkEvents, 100);
+                    return;
+                }
+                
+                console.log('🎯 Work: Setting up WorkEvents listeners');
+                
+                // Listen for greeter activation from dashboard
+                window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_ACTIVATED, async (data) => {
+                    console.log('🎯 Work: Received GREETER_ACTIVATED event', data);
+                    await loadRoleStatus('greeter');
+                    updateUI();
+                });
+                
+                // Listen for greeter step-down from dashboard
+                window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_STEPPED_DOWN, async (data) => {
+                    console.log('🎯 Work: Received GREETER_STEPPED_DOWN event', data);
+                    await loadRoleStatus('greeter');
+                    updateUI();
+                });
+                
+                // Listen for general status changes
+                window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_STATUS_CHANGED, async (data) => {
+                    console.log('🎯 Work: Received GREETER_STATUS_CHANGED event', data);
+                    await loadRoleStatus('greeter');
+                    updateUI();
+                });
+            };
+            
+            // Start setup (will retry if not ready)
+            setupWorkEvents();
+            
+            // Set initial loading state
+            document.getElementById('loading-state-text').textContent = 'Checking session...';
+            
+            // Check immediately first
+            checkSession().then(found => {
+                if (found) {
+                    console.log('✅ [FLOW] Session found immediately!');
+                    return;
+                }
+                
+                // If not found, start interval checks
+                const checkInterval = setInterval(async () => {
+                    attempts++;
+                    
+                    console.log(`🔍 Work: Session check attempt ${attempts}/${maxAttempts}`);
+                    const found = await checkSession();
+                    if (found) {
+                        console.log('✅ Work: Session found!');
+                        clearInterval(checkInterval);
+                    } else if (attempts >= maxAttempts) {
+                        // No session found after max attempts
+                        console.log('⚠️ Work: No session found after max attempts');
+                        sessionCheckComplete = true;
+                        updateUI();
+                        clearInterval(checkInterval);
+                    }
+                }, 300); // Increased to 300ms to reduce frequency
+            });
+            
+            // App password auto-formatting (add dashes as user types)
+            const appPasswordInput = document.getElementById('app-password');
+            if (appPasswordInput) {
+                appPasswordInput.addEventListener('input', (e) => {
+                    let value = e.target.value.replace(/-/g, ''); // Remove existing dashes
+                    if (value.length > 16) {
+                        value = value.slice(0, 16); // Limit to 16 chars
+                    }
+                    
+                    // Add dashes every 4 characters
+                    let formatted = '';
+                    for (let i = 0; i < value.length; i++) {
+                        if (i > 0 && i % 4 === 0) {
+                            formatted += '-';
+                        }
+                        formatted += value[i];
+                    }
+                    
+                    e.target.value = formatted;
+                });
+            }
+            
+            const checkInterval = setInterval(async () => {
+                attempts++;
+                
+                console.log(`🔍 Work: Session check attempt ${attempts}/${maxAttempts}`);
+                const found = await checkSession();
+                if (found) {
+                    console.log('✅ Work: Session found!');
+                    clearInterval(checkInterval);
+                } else if (attempts >= maxAttempts) {
+                    // No session found after max attempts
+                    console.log('⚠️ Work: No session found after max attempts');
+                    sessionCheckComplete = true;
+                    updateUI();
+                    clearInterval(checkInterval);
+                }
+            }, 200); // Check every 200ms
+        });
+
+        // Safe login trigger that double-checks session before showing popup
+        async function triggerLogin() {
+            // Double-check if user is actually logged in before showing popup
+            if (window.oauthManager) {
+                const session = window.oauthManager.getSession();
+                if (session && session.profile?.handle) {
+                    // Already have complete profile
+                    currentSession = session;
+                    profileLoaded = true;
+                    sessionCheckComplete = true;
+                    await loadGreeterStatus();
+                    updateUI();
+                    return;
+                }
+            }
+            
+            // Actually show login popup
+            if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                window.loginWidget.showLoginPopup();
+            } else {
+                console.error('Login widget not available');
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Save current tab to localStorage
+            localStorage.setItem('work_current_tab', tab);
+            
+            // Update tab buttons
+            document.querySelectorAll('.work-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // For now, only Greeter is implemented
+            if (tab !== 'greeter') {
+                alert(`${tab.charAt(0).toUpperCase() + tab.slice(1)} work is coming soon!`);
+                return;
+            }
+
+            // Reload the appropriate content
+            updateUI();
+            if (currentSession) {
+                loadRoleStatus(tab);
+            }
+        }
+
+        function updateUI() {
+            const loadingState = document.getElementById('loading-state');
+            const userStatus = document.getElementById('user-status');
+            const guestPrompt = document.getElementById('guest-prompt');
+            const userActions = document.getElementById('user-actions');
+            const activateBtn = document.getElementById('activate-btn');
+            const deactivateBtn = document.getElementById('deactivate-btn');
+            const setRetiringBtn = document.getElementById('set-retiring-btn');
+            const setWorkingBtn = document.getElementById('set-working-btn');
+            const youLink = document.getElementById('you-link');
+
+            // Update "you" link
+            if (currentSession && profileLoaded) {
+                const userDid = currentSession.sub || currentSession.did;
+                const userHandle = currentSession.profile?.handle || currentSession.handle;
+                
+                const youLink = document.getElementById('you-link');
+                if (youLink) {
+                    if (userHandle && userHandle !== 'Unknown') {
+                        youLink.innerHTML = `<a href="/dreamer.html?did=${userDid}" class="dreamer-link" data-did="${userDid}" target="_blank" style="color: inherit; text-decoration: none;">you</a>`;
+                    } else {
+                        youLink.textContent = 'you';
+                    }
+                }
+            } else {
+                const youLink = document.getElementById('you-link');
+                if (youLink) {
+                    youLink.textContent = 'you';
+                }
+            }
+
+            // Show loading state if session check not complete
+            if (!sessionCheckComplete) {
+                loadingState.style.display = 'block';
+                document.getElementById('loading-state-text').textContent = 'Checking session...';
+                userStatus.style.display = 'none';
+                userActions.style.display = 'none';
+                guestPrompt.style.display = 'none';
+                return;
+            }
+
+            // If we have a session but profile not loaded yet
+            if (currentSession && !profileLoaded) {
+                loadingState.style.display = 'block';
+                document.getElementById('loading-state-text').textContent = 'Loading your profile...';
+                userStatus.style.display = 'none';
+                userActions.style.display = 'none';
+                guestPrompt.style.display = 'none';
+                return;
+            }
+
+            // Hide loading state - we're ready
+            loadingState.style.display = 'none';
+
+            // Don't show guest prompt until we've completed session check
+            if (!currentSession || !profileLoaded) {
+                userStatus.style.display = 'none';
+                userActions.style.display = 'none';
+                guestPrompt.style.display = 'block';
+                return;
+            }
+
+            guestPrompt.style.display = 'none';
+            userActions.style.display = 'block';
+
+            // Get handle from session - ensure we have valid data
+            const userHandle = currentSession.profile?.handle || currentSession.handle;
+            if (!userHandle || userHandle === 'Unknown') {
+                // Profile data not ready yet, wait for it
+                console.warn('⚠️ Profile data not ready, waiting...');
+                loadingState.style.display = 'block';
+                document.getElementById('loading-state-text').textContent = 'Loading profile data...';
+                return;
+            }
+
+            // Build user status card
+            // Find which role the user actually has (not just the selected tab)
+            let actualUserRole = null;
+            console.log('🔍 [DEBUG] Checking roleStatuses for user role:');
+            console.log('   roleStatuses.greeter:', roleStatuses.greeter);
+            console.log('   roleStatuses.mapper:', roleStatuses.mapper);
+            console.log('   roleStatuses.cogitarian:', roleStatuses.cogitarian);
+            
+            if (roleStatuses.greeter && roleStatuses.greeter.is_worker) actualUserRole = 'greeter';
+            else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) actualUserRole = 'mapper';
+            else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) actualUserRole = 'cogitarian';
+            
+            console.log('   → actualUserRole determined:', actualUserRole);
+            
+            // Check if viewing own role vs different role
+            const viewingOwnRole = actualUserRole && actualUserRole === currentRole;
+            const hasRole = actualUserRole !== null;
+            
+            // Get status for the selected tab role
+            const selectedRoleStatus = roleStatuses[currentRole];
+            const isWorkerForSelectedRole = selectedRoleStatus && selectedRoleStatus.is_worker;
+            const status = selectedRoleStatus?.status;
+            
+            console.log('═══════════════════════════════════════════════');
+            console.log('🎯 [UI UPDATE] Called at', new Date().toISOString());
+            console.log('🔧 [UI UPDATE] currentRole (selected tab):', currentRole);
+            console.log('🔧 [UI UPDATE] actualUserRole:', actualUserRole);
+            console.log('🔧 [UI UPDATE] viewingOwnRole:', viewingOwnRole);
+            console.log('🔧 [UI UPDATE] hasRole:', hasRole);
+            console.log('🔧 [UI UPDATE] isWorkerForSelectedRole:', isWorkerForSelectedRole);
+            console.log('🔧 [UI UPDATE] selectedRoleStatus:', selectedRoleStatus);
+            console.log('🔧 [UI UPDATE] status:', status);
+            console.log('🔧 [UI UPDATE] currentSession DID:', currentSession.sub || currentSession.did);
+            console.log('═══════════════════════════════════════════════');
+            
+            // Show worker status card ONLY if viewing own role
+            if (isWorkerForSelectedRole && viewingOwnRole) {
+                console.log('✅ [UI] Showing worker status card for', currentRole);
+                const displayName = currentSession.profile?.displayName || userHandle;
+                const avatar = currentSession.profile?.avatar || '/assets/icon.png';
+                
+                // Status display - just show the actual status value
+                const statusValue = status === 'working' ? 'working' : 'retiring';
+                
+                // Get role title from config
+                const currentRoleConfig = roleConfigs[currentRole];
+                const roleTitle = currentRoleConfig ? currentRoleConfig.title : currentRole;
+                
+                // Build card matching the not-volunteering style
+                userStatus.innerHTML = `
+                    <div class="user-status-card not-volunteering">
+                        <div class="profile-section">
+                            <img src="${avatar}" alt="${displayName}" class="user-avatar">
+                            <div class="user-info">
+                                <h3 class="user-display-name">${displayName}</h3>
+                                <p class="user-handle">@${userHandle}</p>
+                            </div>
+                            <div class="user-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">Roles</div>
+                                    <div class="stat-value">${roleTitle}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Status</div>
+                                    <div class="stat-value">${statusValue}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="volunteer-section">
+                            <div class="volunteer-prompt">
+                                <h4>You are currently ${roleTitle}</h4>
+                                <p>Thank you for working!</p>
+                                <p>${status === 'working' 
+                                    ? 'You may begin retiring, or step down immediately.' 
+                                    : 'You are already marked as retiring.<br>You will be replaced when someone new volunteers.'}</p>
+                            </div>
+                            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                ${status === 'working' 
+                                    ? `<button class="action-button" onclick="setRoleRetiring('${currentRole}')" style="background: #8b7355; border-color: #8b7355;">Begin Retiring</button>
+                                       <button class="action-button" onclick="deactivateRole('${currentRole}')" style="background: #5d4a37; border-color: #5d4a37;">Step Down</button>`
+                                    : `<button class="action-button" onclick="showAlreadyWorkingMessage()" style="background: #999; border-color: #999; opacity: 0.6; cursor: not-allowed;">Continue Working</button>
+                                       <button class="action-button" onclick="deactivateRole('${currentRole}')" style="background: #5d4a37; border-color: #5d4a37;">Step Down</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+                userStatus.style.display = 'block';
+
+                // Hide the separate action buttons
+                activateBtn.style.display = 'none';
+                deactivateBtn.style.display = 'none';
+                setRetiringBtn.style.display = 'none';
+                setWorkingBtn.style.display = 'none';
+            } else {
+                // Not volunteering for THIS role - show integrated profile + volunteer card
+                const displayName = currentSession.profile?.displayName || userHandle;
+                const avatar = currentSession.profile?.avatar || '/assets/icon.png';
+                const isReverieHouse = userHandle.endsWith('.reverie.house');
+                
+                // Determine current efforts
+                let currentEfforts = 'idle dreamer';
+                if (isReverieHouse) {
+                    currentEfforts = 'dreamweaver';
+                }
+                // If user has ANY role, show it
+                if (hasRole) {
+                    const userRoleConfig = roleConfigs[actualUserRole];
+                    currentEfforts = userRoleConfig ? userRoleConfig.title : actualUserRole;
+                }
+                
+                // Role configurations (use main roleConfigs as source of truth for titles)
+                const roleConfig = {
+                    'greeter': {
+                        title: roleConfigs.greeter.title,
+                        description: 'Welcomes every newcomer to Reverie House, offers their name, and provides them a helping hand in exploring our wild mindscape.',
+                        buttonText: 'BECOME GREETER',
+                        replaceText: 'REPLACE GREETER',
+                        onclickHandler: 'openGreeterModal()',
+                        workerNamePlaceholder: 'greeter-name-placeholder',
+                        activeNamePlaceholder: 'greeter-name-placeholder-active',
+                        retiringText: 'is ready to retire, if you\'re ready to replace them.',
+                        notRetiredText: 'is not yet ready to retire.',
+                        comingSoon: false
+                    },
+                    'mapper': {
+                        title: roleConfigs.mapper.title,
+                        description: 'Assists dreamers in deducing their origin coordinates when they reveal their beginnings within our wild mindscape.',
+                        buttonText: 'BECOME MAPPER',
+                        replaceText: 'REPLACE MAPPER',
+                        onclickHandler: 'openMapperModal()',
+                        workerNamePlaceholder: 'mapper-name-placeholder',
+                        activeNamePlaceholder: 'mapper-name-placeholder-active',
+                        retiringText: 'is ready to retire, if you\'re ready to replace them.',
+                        notRetiredText: 'is not yet ready to retire.',
+                        comingSoon: false
+                    },
+                    'cogitarian': {
+                        title: roleConfigs.cogitarian.title,
+                        description: 'Helps codify and immunize any inhuman elements of our foundations as this dream settles itself.',
+                        buttonText: 'BECOME COGITARIAN',
+                        replaceText: 'REPLACE COGITARIAN',
+                        onclickHandler: 'openCogitarianModal()',
+                        workerNamePlaceholder: 'cogitarian-name-placeholder',
+                        activeNamePlaceholder: 'cogitarian-name-placeholder-active',
+                        retiringText: 'is ready to retire, if you\'re ready to replace them.',
+                        notRetiredText: 'is not yet ready to retire.',
+                        comingSoon: false
+                    }
+                };
+                
+                const config = roleConfig[currentRole] || roleConfig['greeter'];
+                
+                // Check current worker status for the SELECTED role (not user's role)
+                const selectedRoleData = roleStatuses[currentRole];
+                const currentWorker = selectedRoleData?.current_worker;
+                const isRetiringWorker = currentWorker && currentWorker.status === 'retiring';
+                const isActiveWorker = currentWorker && currentWorker.status === 'working';
+                
+                // Get worker name for replacement notice
+                let workerName = '';
+                let replacementNotice = '';
+                
+                if (isRetiringWorker && selectedRoleData?.role_info?.workers?.length > 0) {
+                    const workerDid = selectedRoleData.role_info.workers[0].did;
+                    // Fetch worker name from dreamers (we'll need to do this async)
+                    // For now, use a placeholder - we'll update this after fetching
+                    replacementNotice = `
+                        <div class="replacement-notice retiring" style="margin-top: 0.75rem; text-align: center; font-size: 0.9rem; color: white;">
+                            <span id="${config.workerNamePlaceholder}">Loading...</span> ${config.retiringText}
+                        </div>
+                    `;
+                } else if (isActiveWorker && selectedRoleData?.role_info?.workers?.length > 0) {
+                    const workerDid = selectedRoleData.role_info.workers[0].did;
+                    // Simple white text for active worker
+                    replacementNotice = `
+                        <div class="replacement-notice active" style="margin-top: 0.75rem; text-align: center; font-size: 0.9rem; color: white;">
+                            <span id="${config.activeNamePlaceholder}">Loading...</span> ${config.notRetiredText}
+                        </div>
+                    `;
+                }
+                
+                // Check if user has a different role and create subtitle
+                let hasConflictingRole = hasRole && !viewingOwnRole;
+                let buttonSubtitle = '';
+                if (hasConflictingRole) {
+                    const userRoleConfig = roleConfigs[actualUserRole];
+                    const userRoleTitle = userRoleConfig ? userRoleConfig.title : actualUserRole;
+                    buttonSubtitle = `<div style="margin-top: 0.5rem; text-align: center; font-size: 0.85rem; color: #999; font-style: italic;">You are already ${userRoleTitle}</div>`;
+                }
+                
+                // For coming soon roles or conflicting roles, show disabled button
+                const isDisabled = config.comingSoon || isActiveWorker || hasConflictingRole;
+                const disabledStyles = isDisabled ? 'disabled style="opacity: 0.6; cursor: not-allowed; background: #999; border-color: #999;"' : '';
+                const buttonOnclick = (config.comingSoon || hasConflictingRole) ? '' : `onclick="${config.onclickHandler}"`;
+                
+                userStatus.innerHTML = `
+                    <div class="user-status-card not-volunteering">
+                        <div class="profile-section">
+                            <img src="${avatar}" alt="${displayName}" class="user-avatar">
+                            <div class="user-info">
+                                <h3 class="user-display-name">${displayName}</h3>
+                                <p class="user-handle">@${userHandle}</p>
+                            </div>
+                            <div class="user-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">Current Efforts</div>
+                                    <div class="stat-value">${currentEfforts}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="volunteer-section">
+                            <div class="volunteer-prompt">
+                                <h4>${config.title}</h4>
+                                <p>${config.description}</p>
+                            </div>
+                            <button class="action-button volunteer-now-btn" ${buttonOnclick} ${disabledStyles}>
+                                <span class="btn-text">${isRetiringWorker ? config.replaceText : config.buttonText}</span>
+                            </button>
+                            ${buttonSubtitle}
+                            ${replacementNotice}
+                            ${config.comingSoon ? '<div style="margin-top: 0.5rem; text-align: center; font-size: 0.85rem; color: #ccc; font-style: italic;">Coming Soon</div>' : ''}
+                        </div>
+                    </div>
+                `;
+                userStatus.style.display = 'block';
+                
+                // Fetch and update worker name if there's a current worker
+                if ((isRetiringWorker || isActiveWorker) && selectedRoleData?.role_info?.workers?.length > 0) {
+                    const workerDid = selectedRoleData.role_info.workers[0].did;
+                    updateGreeterNameInNotice(workerDid);
+
+                }
+                
+                // Hide the action buttons since they're now in the card
+                activateBtn.style.display = 'none';
+                deactivateBtn.style.display = 'none';
+                setRetiringBtn.style.display = 'none';
+                setWorkingBtn.style.display = 'none';
+            }
+        }
+
+        async function updateGreeterNameInNotice(greeterDid) {
+            try {
+                const response = await fetch(`/api/dreamers/${greeterDid}`);
+                if (response.ok) {
+                    const dreamer = await response.json();
+                    const displayName = dreamer.display_name || dreamer.handle || 'The current greeter';
+                    
+                    // Update all possible placeholders (handles different roles)
+                    const placeholderIds = [
+                        'greeter-name-placeholder',
+                        'greeter-name-placeholder-active',
+                        'mapper-name-placeholder',
+                        'mapper-name-placeholder-active',
+                        'cogitarian-name-placeholder',
+                        'cogitarian-name-placeholder-active'
+                    ];
+                    
+                    placeholderIds.forEach(id => {
+                        const placeholder = document.getElementById(id);
+                        if (placeholder) {
+                            placeholder.textContent = displayName;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch greeter name:', error);
+                
+                // Update all possible placeholders with fallback
+                const placeholderIds = [
+                    'greeter-name-placeholder',
+                    'greeter-name-placeholder-active',
+                    'mapper-name-placeholder',
+                    'mapper-name-placeholder-active',
+                    'cogitarian-name-placeholder',
+                    'cogitarian-name-placeholder-active'
+                ];
+                
+                placeholderIds.forEach(id => {
+                    const placeholder = document.getElementById(id);
+                    if (placeholder) {
+                        placeholder.textContent = 'The current worker';
+                    }
+                });
+            }
+        }
+
+        async function loadRoleStatus(role) {
+            try {
+                const startTime = performance.now();
+                console.log(`🌐 [API] Starting ${role} status fetch at`, new Date().toISOString());
+                
+                // Get token - use same priority as credentials check and activation
+                // Priority: backend session token > PDS accessJwt
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                let tokenSource = 'backend';
+                
+                if (!token && currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                    tokenSource = 'pds-jwt';
+                }
+
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                    console.log(`🔑 Work: Using ${tokenSource} token for ${role} auth`);
+                } else {
+                    console.warn(`⚠️ Work: No token found, ${role} API will return public info only`);
+                }
+
+                console.log(`🔄 Work: Loading ${role} status...`);
+                const fetchStart = performance.now();
+                const response = await fetch(`/api/work/${role}/status`, {
+                    headers: headers
+                });
+                const fetchDuration = performance.now() - fetchStart;
+                console.log(`⏱️ [API] ${role} status fetch took ${fetchDuration.toFixed(0)}ms (status: ${response.status})`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const totalDuration = performance.now() - startTime;
+                    console.log(`✅ [API] ${role} status loaded (total: ${totalDuration.toFixed(0)}ms):`, data);
+                    console.log(`📝 [STATE] Setting ${role}Status:`, data);
+                    roleStatuses[role] = data;
+                    
+                    // Update worker display if this is the current role and we got role_info
+                    if (role === currentRole && data.role_info) {
+                        console.log(`👤 [FLOW] Calling updateWorkerDisplay() for ${role}`);
+                        updateWorkerDisplay(data.role_info, role);
+                    } else if (role === currentRole) {
+                        console.log(`⚠️ [STATE] No role_info in ${role} response`);
+                        // No role_info in response, show None
+                        const workerDisplay = document.getElementById('worker-display');
+                        if (workerDisplay) {
+                            workerDisplay.innerHTML = '<span style="color: #666;">None</span>';
+                        }
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error(`❌ [API] ${role} status endpoint failed: ${response.status}`, errorText.substring(0, 200));
+                    console.log(`📝 [STATE] Setting ${role}Status to default (failed response)`);
+                    roleStatuses[role] = { is_worker: false, status: null };
+                    if (role === currentRole) {
+                        const workerDisplay = document.getElementById('worker-display');
+                        if (workerDisplay) {
+                            workerDisplay.innerHTML = '<span style="color: #666;">None</span>';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`❌ [API] Failed to load ${role} status:`, error);
+                console.log(`📝 [STATE] Setting ${role}Status to default (exception)`);
+                roleStatuses[role] = { is_worker: false, status: null };
+                if (role === currentRole) {
+                    const workerDisplay = document.getElementById('worker-display');
+                    if (workerDisplay) {
+                        workerDisplay.innerHTML = '<span style="color: #666;">None</span>';
+                    }
+                }
+            }
+        }
+
+        // Maintain backward compatibility - loadGreeterStatus now calls loadRoleStatus
+        async function loadGreeterStatus() {
+            return loadRoleStatus('greeter');
+        }
+
+        async function updateWorkerDisplay(roleInfo, role = 'greeter') {
+            const workerDisplay = document.getElementById('worker-display');
+            
+            console.log('🔧 Work: updateWorkerDisplay called with:', roleInfo);
+            
+            if (!roleInfo.workers || roleInfo.workers.length === 0) {
+                console.log('⚠️ Work: No workers found in role_info');
+                workerDisplay.innerHTML = '<span style="color: #666;">None</span>';
+                return;
+            }
+
+            const worker = roleInfo.workers[0];
+            console.log('👤 Work: Fetching dreamer info for:', worker.did);
+            
+            // Fetch dreamer info to get handle and avatar
+            try {
+                const fetchStart = performance.now();
+                console.log('🌐 [API] Starting dreamer fetch at', new Date().toISOString());
+                const dreamerResponse = await fetch(`/api/dreamers/${worker.did}`);
+                const fetchDuration = performance.now() - fetchStart;
+                console.log(`⏱️ [API] Dreamer fetch took ${fetchDuration.toFixed(0)}ms (status: ${dreamerResponse.status})`);
+                
+                if (dreamerResponse.ok) {
+                    const dreamer = await dreamerResponse.json();
+                    console.log('✅ Work: Dreamer info received:', dreamer);
+                    const statusText = worker.status === 'retiring' ? ' (Retiring)' : '';
+                    const handle = dreamer.handle || 'unknown';
+                    const displayName = dreamer.display_name || handle;
+                    const avatar = dreamer.avatar || '/assets/default-avatar.png';
+                    
+                    workerDisplay.innerHTML = `
+                        <img src="${avatar}" 
+                             alt="${handle}" 
+                             class="greeter-avatar"
+                             style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #8b7355; object-fit: cover;">
+                        <a href="/dreamer.html?did=${worker.did}" 
+                           class="worker-link dreamer-link" 
+                           data-did="${worker.did}"
+                           style="font-size: 1.1rem; font-weight: 600; color: #8b7355; text-decoration: none;">
+                            ${displayName} <span style="color: #999; font-weight: 400;">@${handle}</span>${statusText}
+                        </a>
+                    `;
+                    
+                    console.log('✅ Work: Worker display updated');
+                    
+                    // Initialize dreamer-hover for the link after DOM updates
+                    setTimeout(() => {
+                        if (window.DreamerHover) {
+                            window.DreamerHover.init();
+                        }
+                    }, 100);
+                } else {
+                    console.error('❌ Work: Dreamer API failed:', dreamerResponse.status);
+                    // Fallback if API fails - show DID
+                    workerDisplay.innerHTML = `
+                        <a href="/dreamer.html?did=${worker.did}" 
+                           style="font-size: 1rem; color: #8b7355; text-decoration: none;">
+                            ${worker.did.substring(0, 20)}...
+                        </a>
+                    `;
+                }
+            } catch (error) {
+                console.error('❌ Work: Failed to fetch dreamer info:', error);
+                // Fallback if network error - show DID
+                workerDisplay.innerHTML = `
+                    <a href="/dreamer.html?did=${worker.did}" 
+                       style="font-size: 1rem; color: #8b7355; text-decoration: none;">
+                        ${worker.did.substring(0, 20)}...
+                    </a>
+                `;
+            }
+        }
+
+        // LEGACY: Wrapper for backward compatibility
+        async function openGreeterModal() {
+            await openWorkerModal('greeter');
+        }
+        
+        // LEGACY: Wrapper for backward compatibility
+        async function activateWithExistingCredentials() {
+            await activateWorkerWithExistingCredentials('greeter');
+        }
+
+        // LEGACY: Wrapper for mapper
+        async function openMapperModal() {
+            await openWorkerModal('mapper');
+        }
+        
+        // LEGACY: Wrapper for cogitarian
+        async function openCogitarianModal() {
+            await openWorkerModal('cogitarian');
+        }
+        
+        // LEGACY: Wrapper for mapper
+        async function activateMapperWithExistingCredentials() {
+            await activateWorkerWithExistingCredentials('mapper');
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            const appPasswordInput = document.getElementById('app-password');
+            
+            if (appPasswordInput) {
+                appPasswordInput.value = '';
+            }
+            
+            if (modal) {
+                modal.classList.remove('active');
+                setTimeout(() => modal.style.display = 'none', 300);
+            }
+            
+            currentModalRole = null;
+            currentExampleIndex = 0;
+            updateExamplePost();
+        }
+
+        function closeModalOnOutsideClick(event) {
+            if (event.target.id === 'auth-modal') {
+                closeAuthModal();
+            }
+        }
+
+        // Loading overlay helpers
+        function showLoadingOverlay(message = 'Processing...') {
+            const overlay = document.getElementById('loading-overlay');
+            const textElement = overlay.querySelector('.loading-text');
+            if (textElement) {
+                textElement.textContent = message;
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'none';
+        }
+
+        // Example greeting posts - loaded from API
+        let greetingExamples = [];
+        
+        // Example mapper posts - origin declarations
+        let mapperExamples = [
+            {
+                text: '<div style="text-align: center; letter-spacing: 2px; font-weight: 600; font-family: \'Courier New\', monospace;">O22 A11 S05 R88 L63 E71</div>'
+            }
+        ];
+
+        // Role configuration for universal modal (defined early so selectRole can use it)
+        const roleConfigs = {
+            greeter: {
+                title: 'Greeter of Reveries',
+                description: 'You are one who wishes to welcome newcomers to Reverie House and help them find their way through our wild mindscape.<br><br>As Greeter you will automatically provide newcomers with their name, and offer them a friendly helping hand should they need one.',
+                exampleLabel: 'Welcome Greetings',
+                appPasswordName: 'Greeter of Reveries',
+                passwordPurpose: 'for posting greetings',
+                roleName: 'Greeter of Reveries',
+                roleNameLower: 'greeter',
+                buttonText: 'BECOME GREETER',
+                confirmTitle: 'Become Greeter of Reveries?',
+                confirmMessage: 'As Greeter, you will automatically welcome new dreamers to Reverie House.',
+                activationMessage: 'You are now the active greeter!',
+                showExamples: true,
+                getExamples: () => greetingExamples
+            },
+            mapper: {
+                title: 'Spectrum Mapper',
+                description: 'You are one who wishes to chart the origins of dreamers in our wild mindscape, mapping their outsets within the reverie spectrum.<br><br>As <b>Spectrum Mapper</b> you will automatically deduce and declare the starting coordinates of those who reveal their origins in our wild mindscape.',
+                exampleLabel: 'Origin Declarations',
+                appPasswordName: 'Spectrum Mapper',
+                passwordPurpose: 'for posting origin declarations',
+                roleName: 'Spectrum Mapper',
+                roleNameLower: 'mapper',
+                buttonText: 'BECOME MAPPER',
+                confirmTitle: 'Become Spectrum Mapper?',
+                confirmMessage: 'As Spectrum Mapper, you will automatically deduce and declare the starting coordinates of those who reveal their origins in our wild mindscape.',
+                activationMessage: 'You are now Spectrum Mapper of Reverie House\nThank you for working!\nPlease stop if it feels like work.',
+                showExamples: true,
+                getExamples: () => mapperExamples
+            },
+            cogitarian: {
+                title: 'Cogitarian (Prime)',
+                description: 'You are one who wishes to nurture thoughtful discourse in our wild mindscape, fostering the kinds of conversations that deepen understanding.<br><br>As Cogitarian you will help guide dreamers toward more contemplative dialogue.',
+                exampleLabel: 'Discourse Examples',
+                appPasswordName: 'Cogitarian (Prime)',
+                passwordPurpose: 'for fostering discourse',
+                roleName: 'Cogitarian (Prime)',
+                roleNameLower: 'cogitarian',
+                buttonText: 'BECOME COGITARIAN',
+                confirmTitle: 'Become Cogitarian (Prime)?',
+                confirmMessage: 'As Cogitarian, you will help foster thoughtful discourse in Reverie House.',
+                activationMessage: 'You are now the active cogitarian!',
+                showExamples: false,
+                getExamples: () => []
+            }
+        };
+
+        // Load greeting templates from API
+        async function loadGreetingTemplates() {
+            try {
+                const response = await fetch('/api/work/greeter/templates');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.templates && data.templates.length > 0) {
+                        // Convert templates to example format with placeholder handle
+                        greetingExamples = data.templates.map(template => ({
+                            text: template.replace(/@\{handle\}/g, '<a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>')
+                                         .replace(/\n/g, '<br>')
+                        }));
+                        // Update the display after loading templates
+                        updateExamplePost();
+                    } else {
+                        // Fallback templates if API fails
+                        useFallbackTemplates();
+                    }
+                } else {
+                    useFallbackTemplates();
+                }
+            } catch (error) {
+                console.error('Failed to load greeting templates:', error);
+                useFallbackTemplates();
+            }
+        }
+
+        function useFallbackTemplates() {
+            greetingExamples = [
+                {
+                    text: 'Welcome to Reverie House, <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>!<br><br>I\'m here to help if you have any questions.'
+                },
+                {
+                    text: 'Hello <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>, welcome to our wild mindscape!<br><br>Feel free to reach out if you need guidance.'
+                },
+                {
+                    text: 'Welcome, <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>! We\'re glad you found your way here.<br><br>Let me know if you have questions.'
+                },
+                {
+                    text: 'Greetings <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>!<br><br>Welcome to Reverie House. Happy to help you settle in.'
+                },
+                {
+                    text: 'Welcome to the mindscape, <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>!<br><br>Let me know if you have any questions.'
+                }
+            ];
+            // Update the display after setting fallback templates
+            updateExamplePost();
+        }
+
+        let currentExampleIndex = 0;
+
+        function updateExamplePost() {
+            // Update modal example based on current role
+            const examplePost = document.getElementById('example-post');
+            if (examplePost && currentModalRole) {
+                const config = roleConfigs[currentModalRole];
+                if (config) {
+                    const examples = config.getExamples();
+                    if (examples.length > 0) {
+                        examplePost.innerHTML = `<div class="post-text">${examples[currentExampleIndex].text}</div>`;
+                    }
+                }
+            }
+            
+            // Update greeter role description example (legacy)
+            const examplePostGreeter = document.getElementById('example-post-greeter');
+            if (examplePostGreeter && greetingExamples.length > 0) {
+                examplePostGreeter.innerHTML = `<div class="post-text">${greetingExamples[currentExampleIndex].text}</div>`;
+            }
+        }
+
+        function nextExample() {
+            if (currentModalRole) {
+                const config = roleConfigs[currentModalRole];
+                const examples = config ? config.getExamples() : greetingExamples;
+                currentExampleIndex = (currentExampleIndex + 1) % examples.length;
+            } else {
+                currentExampleIndex = (currentExampleIndex + 1) % greetingExamples.length;
+            }
+            updateExamplePost();
+        }
+
+        function previousExample() {
+            if (currentModalRole) {
+                const config = roleConfigs[currentModalRole];
+                const examples = config ? config.getExamples() : greetingExamples;
+                currentExampleIndex = (currentExampleIndex - 1 + examples.length) % examples.length;
+            } else {
+                currentExampleIndex = (currentExampleIndex - 1 + greetingExamples.length) % greetingExamples.length;
+            }
+            updateExamplePost();
+        }
+
+        // ====== UNIVERSAL WORKER MODAL SYSTEM ======
+        
+        let currentModalRole = null;
+
+        // Universal worker modal opener
+        async function openWorkerModal(role) {
+            if (!currentSession) {
+                showCelebration('Please log in first', 'error');
+                return;
+            }
+            
+            const config = roleConfigs[role];
+            if (!config) {
+                console.error('Unknown role:', role);
+                return;
+            }
+            
+            // Check if user has a different role first
+            let userCurrentRole = null;
+            if (roleStatuses.greeter && roleStatuses.greeter.is_worker) userCurrentRole = 'greeter';
+            else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) userCurrentRole = 'mapper';
+            else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
+            
+            if (userCurrentRole && userCurrentRole !== role) {
+                const currentRoleConfig = roleConfigs[userCurrentRole];
+                const currentRoleTitle = currentRoleConfig ? currentRoleConfig.title : userCurrentRole;
+                showCelebration(`You are currently ${currentRoleTitle}.\n\nStep down first to take on a new role.`, 'error');
+                return;
+            }
+            
+            currentModalRole = role;
+            
+            // Check if there's already an active worker for this role
+            const statusResponse = await fetch(`/api/work/${role}/status`);
+            if (statusResponse.ok) {
+                const statusData = await statusResponse.json();
+                if (statusData.activeWorker && statusData.activeWorker !== currentSession.did) {
+                    showCelebration(`There is already an active ${config.roleNameLower}`, 'error');
+                    return;
+                }
+            }
+            
+            // Check if user already has app password stored
+            // Priority: backend session token > PDS accessJwt > localStorage tokens
+            let token = null;
+            
+            // First try to get the backend session token (most reliable)
+            token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            
+            // Fall back to PDS accessJwt if no backend token
+            if (!token && currentSession && currentSession.accessJwt) {
+                token = currentSession.accessJwt;
+                console.log('🔑 Using accessJwt from session (no backend token found)');
+            } else if (token) {
+                console.log('🔑 Using backend session token from localStorage');
+            }
+            
+            if (!token) {
+                console.warn('⚠️ No token available for credentials check - showing password modal');
+                // No token means we can't verify - just show the modal
+                // User will enter password and it will be validated then
+            } else {
+                const headers = {};
+                headers['Authorization'] = `Bearer ${token}`;
+                
+                console.log(`🔍 Checking credentials for ${role}...`);
+                try {
+                    const credResponse = await fetch('/api/user/credentials/status', { headers });
+                    console.log(`🔍 Credentials check response: ${credResponse.status}`);
+                    
+                    if (credResponse.ok) {
+                        const credData = await credResponse.json();
+                        console.log('🔍 Credentials data:', credData);
+                        if (credData.connected && credData.valid) {
+                            // User already has valid credentials, activate directly
+                            console.log(`✅ Using existing credentials for ${role} activation`);
+                            activateWorkerWithExistingCredentials(role);
+                            return;
+                        } else {
+                            console.log(`⚠️ Credentials not valid: connected=${credData.connected}, valid=${credData.valid}`);
+                        }
+                    } else if (credResponse.status === 401) {
+                        // Token is invalid/expired - still allow them to proceed with password entry
+                        console.warn('⚠️ Session token expired or invalid - user will need to enter app password');
+                        const errorData = await credResponse.json().catch(() => ({}));
+                        console.log('Token validation error:', errorData);
+                    } else {
+                        console.error('❌ Credentials check failed:', await credResponse.text());
+                    }
+                } catch (error) {
+                    console.error('❌ Credentials check exception:', error);
+                    // Continue to show the modal even if the check fails
+                }
+            }
+            
+            // Populate modal with role-specific content
+            document.getElementById('modal-role-title').textContent = config.title;
+            document.getElementById('modal-role-description').innerHTML = config.description;
+            document.getElementById('modal-example-label').textContent = config.exampleLabel;
+            document.getElementById('modal-password-purpose').textContent = config.passwordPurpose;
+            document.getElementById('modal-role-name-lower').textContent = config.roleNameLower;
+            document.getElementById('modal-submit-btn').textContent = config.buttonText;
+            
+            // Show/hide examples based on role config
+            const examplePreview = document.getElementById('modal-example-preview');
+            if (config.showExamples) {
+                examplePreview.style.display = 'block';
+                const examples = config.getExamples();
+                if (examples.length > 0) {
+                    currentExampleIndex = 0;
+                    updateExamplePost();
+                    
+                    // Hide navigation arrows if only one example
+                    const navButtons = examplePreview.querySelectorAll('.example-nav-btn');
+                    navButtons.forEach(btn => {
+                        btn.style.display = examples.length > 1 ? 'block' : 'none';
+                    });
+                }
+            } else {
+                examplePreview.style.display = 'none';
+            }
+            
+            // Clear password input
+            const appPasswordInput = document.getElementById('app-password');
+            if (appPasswordInput) {
+                appPasswordInput.value = '';
+            }
+            
+            // Show modal
+            const modal = document.getElementById('auth-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('active'), 10);
+            }
+        }
+
+        async function activateWorkerWithExistingCredentials(role) {
+            const config = roleConfigs[role];
+            if (!config) return;
+            
+            try {
+                // Get token for authorization - use same priority as credentials check
+                // Priority: backend session token > PDS accessJwt
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                
+                if (!token && currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                    console.log('🔑 [Activation] Using accessJwt from session (no backend token found)');
+                } else if (token) {
+                    console.log('🔑 [Activation] Using backend session token from localStorage');
+                }
+                
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                } else {
+                    console.error('❌ [Activation] No valid token found!');
+                    showCelebration('Session expired - please refresh and try again', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`/api/work/${role}/activate`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ use_existing_credentials: true })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showCelebration(config.activationMessage, 'success');
+                    
+                    // Reload page to update UI
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    const error = await response.json();
+                    showCelebration(error.error || `Failed to activate ${config.roleNameLower}`, 'error');
+                }
+            } catch (error) {
+                console.error('Activation error:', error);
+                showCelebration(`Failed to activate ${config.roleNameLower}`, 'error');
+            }
+        }
+
+        // Universal worker activation submission
+        async function submitWorkerActivation() {
+            const appPasswordInput = document.getElementById('app-password');
+            const submitBtn = document.getElementById('modal-submit-btn');
+            
+            if (!currentSession) {
+                showCelebration('Please log in first', 'error');
+                return;
+            }
+            
+            if (!currentModalRole) {
+                showCelebration('Invalid role', 'error');
+                return;
+            }
+            
+            const config = roleConfigs[currentModalRole];
+            const appPassword = appPasswordInput ? appPasswordInput.value.replace(/-/g, '').trim() : '';
+            
+            // Validate app password is provided
+            if (!appPassword || appPassword.length !== 16) {
+                showCelebration('Please provide a valid 16-character app password', 'error');
+                if (appPasswordInput) {
+                    appPasswordInput.focus();
+                    appPasswordInput.parentElement.classList.add('error-shake');
+                    setTimeout(() => appPasswordInput.parentElement.classList.remove('error-shake'), 500);
+                }
+                return;
+            }
+
+            // Show confirmation popup before activating
+            showWorkerConfirmation(currentModalRole, () => performWorkerActivation(currentModalRole, appPassword, submitBtn));
+        }
+        
+        function showWorkerConfirmation(role, onConfirm) {
+            const config = roleConfigs[role];
+            
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'worker-confirmation-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.75);
+                backdrop-filter: blur(4px);
+                z-index: 10002;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.className = 'worker-confirmation-popup';
+            popup.style.cssText = `
+                background: linear-gradient(135deg, #2c1810 0%, #4a3428 100%);
+                padding: 2.5rem;
+                border: 3px solid var(--reverie-core-color, #734ba1);
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 
+                           0 0 40px rgba(115, 75, 161, 0.3);
+                max-width: 500px;
+                text-align: center;
+                transform: scale(0.9);
+                opacity: 0;
+                transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            `;
+            
+            popup.innerHTML = `
+                <div style="color: #e8d5c4; font-size: 1.4rem; font-weight: 700; margin-bottom: 1rem; 
+                           text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                    ${config.confirmTitle}
+                </div>
+                <div style="color: #c9b8a8; font-size: 1rem; line-height: 1.6; margin-bottom: 2rem;">
+                    ${config.confirmMessage}
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="confirm-btn" style="
+                        background: linear-gradient(135deg, #734ba1 0%, #9d6ec9 100%);
+                        color: white;
+                        border: none;
+                        padding: 0.75rem 2rem;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        box-shadow: 0 4px 12px rgba(115, 75, 161, 0.4);
+                        transition: all 0.2s ease;
+                    ">Yes, I Accept</button>
+                    <button class="cancel-btn" style="
+                        background: rgba(255, 255, 255, 0.1);
+                        color: #e8d5c4;
+                        border: 2px solid rgba(255, 255, 255, 0.2);
+                        padding: 0.75rem 2rem;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    ">Cancel</button>
+                </div>
+            `;
+            
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                overlay.style.opacity = '1';
+                popup.style.transform = 'scale(1)';
+                popup.style.opacity = '1';
+            });
+            
+            // Add hover effects
+            const confirmBtn = popup.querySelector('.confirm-btn');
+            const cancelBtn = popup.querySelector('.cancel-btn');
+            
+            confirmBtn.addEventListener('mouseenter', () => {
+                confirmBtn.style.transform = 'translateY(-2px)';
+                confirmBtn.style.boxShadow = '0 6px 16px rgba(115, 75, 161, 0.5)';
+            });
+            confirmBtn.addEventListener('mouseleave', () => {
+                confirmBtn.style.transform = 'translateY(0)';
+                confirmBtn.style.boxShadow = '0 4px 12px rgba(115, 75, 161, 0.4)';
+            });
+            
+            cancelBtn.addEventListener('mouseenter', () => {
+                cancelBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+                cancelBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            });
+            cancelBtn.addEventListener('mouseleave', () => {
+                cancelBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+                cancelBtn.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            });
+            
+            // Handle confirm
+            confirmBtn.addEventListener('click', () => {
+                overlay.style.opacity = '0';
+                popup.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                    onConfirm();
+                }, 300);
+            });
+            
+            // Handle cancel
+            cancelBtn.addEventListener('click', () => {
+                overlay.style.opacity = '0';
+                popup.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                }, 300);
+            });
+        }
+        
+        async function performWorkerActivation(role, appPassword, submitBtn) {
+            const config = roleConfigs[role];
+            
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'CONNECTING...';
+            }
+
+            try {
+                // STEP 1: First, save the app password to credentials table
+                console.log('🔑 Step 1: Connecting app password...');
+                
+                // Get auth token
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                if (!token && currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                }
+                
+                if (!token) {
+                    showCelebration('Session expired - please refresh and try again', 'error');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = config.buttonText;
+                    }
+                    return;
+                }
+                
+                const connectResponse = await fetch('/api/user/credentials/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ app_password: appPassword })
+                });
+                
+                if (!connectResponse.ok) {
+                    const connectError = await connectResponse.json();
+                    showCelebration(connectError.error || 'Invalid app password', 'error');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = config.buttonText;
+                    }
+                    return;
+                }
+                
+                console.log('✅ App password connected successfully');
+                
+                // STEP 2: Now activate the role
+                if (submitBtn) {
+                    submitBtn.textContent = 'ACTIVATING...';
+                }
+                
+                console.log(`🔑 Step 2: Activating as ${role}...`);
+                
+                const response = await fetch(`/api/work/${role}/activate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ use_existing_credentials: true })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Close the modal
+                    const modal = document.getElementById('auth-modal');
+                    if (modal) {
+                        modal.classList.remove('active');
+                        setTimeout(() => modal.style.display = 'none', 300);
+                    }
+                    
+                    showCelebration(config.activationMessage, 'success');
+                    
+                    // Reload page to update UI
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    const error = await response.json();
+                    showCelebration(error.error || `Failed to activate ${config.roleNameLower}`, 'error');
+                    
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = config.buttonText;
+                    }
+                }
+            } catch (error) {
+                console.error('Activation error:', error);
+                showCelebration(`Failed to activate ${config.roleNameLower}: ${error.message}`, 'error');
+                
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = config.buttonText;
+                }
+            }
+        }
+        
+        // ====== END UNIVERSAL WORKER MODAL SYSTEM ======
+
+        // LEGACY: Keep old greeter function for backward compatibility
+        async function submitGreeterActivation() {
+            const appPasswordInput = document.getElementById('app-password');
+            const submitBtn = document.querySelector('.authorize-btn');
+            
+            if (!currentSession) {
+                showCelebration('Please log in first', 'error');
+                return;
+            }
+
+            const appPassword = appPasswordInput ? appPasswordInput.value.replace(/-/g, '').trim() : '';
+            
+            // Validate app password is provided
+            if (!appPassword || appPassword.length !== 16) {
+                showCelebration('Please provide a valid 16-character app password', 'error');
+                if (appPasswordInput) {
+                    appPasswordInput.focus();
+                    appPasswordInput.parentElement.classList.add('error-shake');
+                    setTimeout(() => appPasswordInput.parentElement.classList.remove('error-shake'), 500);
+                }
+                return;
+            }
+
+            // Show confirmation popup before activating
+            showGreeterConfirmation(() => performGreeterActivation(appPassword, submitBtn));
+        }
+        
+        function showGreeterConfirmation(onConfirm) {
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'greeter-confirmation-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.75);
+                backdrop-filter: blur(4px);
+                z-index: 10002;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.className = 'greeter-confirmation-popup';
+            popup.style.cssText = `
+                background: linear-gradient(135deg, #2c1810 0%, #4a3428 100%);
+                padding: 2.5rem;
+                border: 3px solid var(--reverie-core-color, #734ba1);
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 
+                           0 0 40px rgba(115, 75, 161, 0.3);
+                max-width: 500px;
+                text-align: center;
+                transform: scale(0.9);
+                opacity: 0;
+                transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            `;
+            
+            popup.innerHTML = `
+                <div style="color: #e8d5c4; font-size: 1.4rem; font-weight: 700; margin-bottom: 1rem; 
+                           text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                    Become Greeter of Reveries?
+                </div>
+                <div style="color: #d4c1b0; font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; opacity: 0.9;">
+                    You will greet newcomers and welcome them to our world.<br>
+                    This role requires care and attention.<br>
+                    <strong style="color: #f4e4d4;">Please stop if it feels like work.</strong>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="greeter-confirm-no" 
+                            style="padding: 0.85rem 2rem; 
+                                   background: rgba(255, 255, 255, 0.1); 
+                                   color: #e8d5c4; 
+                                   border: 2px solid rgba(255, 255, 255, 0.2); 
+                                   font-weight: 600; 
+                                   font-size: 0.95rem; 
+                                   cursor: pointer; 
+                                   transition: all 0.2s;
+                                   text-transform: uppercase;
+                                   letter-spacing: 0.5px;">
+                        Not Yet
+                    </button>
+                    <button class="greeter-confirm-yes" 
+                            style="padding: 0.85rem 2rem; 
+                                   background: var(--reverie-core-color, #734ba1); 
+                                   color: white; 
+                                   border: 2px solid var(--reverie-core-color, #734ba1); 
+                                   font-weight: 700; 
+                                   font-size: 0.95rem; 
+                                   cursor: pointer; 
+                                   transition: all 0.2s;
+                                   text-transform: uppercase;
+                                   letter-spacing: 0.5px;
+                                   box-shadow: 0 4px 12px rgba(115, 75, 161, 0.4);">
+                        Yes, Begin
+                    </button>
+                </div>
+            `;
+            
+            // Add hover effects
+            const style = document.createElement('style');
+            style.textContent = `
+                .greeter-confirm-no:hover {
+                    background: rgba(255, 255, 255, 0.15) !important;
+                    border-color: rgba(255, 255, 255, 0.3) !important;
+                    transform: translateY(-1px);
+                }
+                .greeter-confirm-yes:hover {
+                    filter: brightness(1.1);
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 16px rgba(115, 75, 161, 0.5) !important;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+            
+            // Trigger animations
+            requestAnimationFrame(() => {
+                overlay.style.opacity = '1';
+                popup.style.opacity = '1';
+                popup.style.transform = 'scale(1)';
+            });
+            
+            // Button handlers
+            popup.querySelector('.greeter-confirm-no').onclick = () => {
+                overlay.style.opacity = '0';
+                popup.style.transform = 'scale(0.9)';
+                setTimeout(() => overlay.remove(), 300);
+            };
+            
+            popup.querySelector('.greeter-confirm-yes').onclick = () => {
+                overlay.style.opacity = '0';
+                popup.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    overlay.remove();
+                    onConfirm();
+                }, 300);
+            };
+            
+            // Close on overlay click
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    overlay.style.opacity = '0';
+                    popup.style.transform = 'scale(0.9)';
+                    setTimeout(() => overlay.remove(), 300);
+                }
+            };
+        }
+        
+        async function performGreeterActivation(appPassword, submitBtn) {
+            // Update button state to show processing
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = 'BECOMING...';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+            submitBtn.style.cursor = 'wait';
+
+            try {
+                // Get auth token
+                // Get token from current session
+                let token = null;
+                if (currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                } else {
+                    token = localStorage.getItem('oauth_token');
+                    if (!token) {
+                        token = localStorage.getItem('admin_token');
+                    }
+                }
+
+                const payload = {
+                    appPassword: appPassword  // Provide app password for greeter worker to use
+                };
+                
+                console.log('🔐 Activating greeter with app password for posting');
+
+                const response = await fetch('/api/work/greeter/activate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        greeterStatus = await response.json();
+                        
+                        // Close modal and show loading overlay
+                        closeAuthModal();
+                        showLoadingOverlay('Confirming your status...');
+                        
+                        // Refresh UI
+                        await loadGreeterStatus();
+                        updateUI();
+                        
+                        // Emit event for cross-page synchronization
+                        if (window.WorkEvents) {
+                            window.WorkEvents.emit(window.WorkEvents.EVENTS.GREETER_ACTIVATED, {
+                                timestamp: new Date().toISOString(),
+                                useExistingCredentials: false
+                            });
+                        }
+                        
+                        // Hide loading overlay
+                        hideLoadingOverlay();
+                        
+                        // Show celebration
+                        showCelebration('You are now Greeter of Reveries\nThank you for working!\nPlease stop if it feels like work.', 'success');
+                    } else {
+                        const text = await response.text();
+                        console.error('⚠️ Work: Non-JSON response:', text);
+                        closeAuthModal();
+                        showLoadingOverlay('Confirming your status...');
+                        await loadGreeterStatus();
+                        updateUI();
+                        hideLoadingOverlay();
+                        showCelebration('Activation succeeded but received unexpected response format', 'warning');
+                    }
+                } else {
+                    const contentType = response.headers.get('content-type');
+                    let errorMessage = 'Unknown error';
+                    let userFriendlyMessage = '';
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        const error = await response.json();
+                        errorMessage = error.message || error.error || 'Unknown error';
+                        console.error('❌ Work: Activation failed (JSON):', error);
+                    } else {
+                        errorMessage = await response.text();
+                        console.error('❌ Work: Activation failed (text):', errorMessage);
+                    }
+                    
+                    // Convert error messages to user-friendly versions
+                    if (response.status === 429 || errorMessage.includes('Rate limit') || errorMessage.includes('Rate Limit Exceeded')) {
+                        userFriendlyMessage = 'Too many authentication attempts.\n\nBluesky is temporarily blocking login attempts. Please wait 10-15 minutes and try again.';
+                    } else if (errorMessage.includes('Invalid app password') || 
+                        errorMessage.includes('authentication failed') ||
+                        errorMessage.includes('Invalid identifier or password') ||
+                        errorMessage.includes('AuthenticationRequired') ||
+                        response.status === 401) {
+                        userFriendlyMessage = 'The app password you entered is incorrect.\n\nPlease check that you copied it correctly from your Bluesky settings.';
+                    } else if (errorMessage.includes('Another greeter is currently active') || 
+                               response.status === 409) {
+                        userFriendlyMessage = 'Another greeter is currently active and working.\n\nThey must mark themselves as retiring before you can volunteer.';
+                    } else if (errorMessage.includes('Could not resolve PDS') || 
+                               errorMessage.includes('Failed to validate')) {
+                        userFriendlyMessage = 'Could not connect to your account server.\n\nPlease check your internet connection and try again.';
+                    } else if (errorMessage.includes('DID mismatch')) {
+                        userFriendlyMessage = 'The app password belongs to a different account.\n\nPlease make sure you\'re logged in with the correct account.';
+                    } else if (response.status === 500) {
+                        userFriendlyMessage = 'Something went wrong on our end.\n\nPlease try again in a moment.';
+                    } else {
+                        // Generic fallback with original error
+                        userFriendlyMessage = 'Activation failed.\n\n' + errorMessage;
+                    }
+                    
+                    // Reset button state
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                    
+                    showCelebration(userFriendlyMessage, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Work: Activation error:', error);
+                
+                // Hide loading overlay in case it was shown
+                hideLoadingOverlay();
+                
+                // Reset button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+                
+                // Friendly network error message
+                let userMessage = 'Could not connect to the server.\n\nPlease check your internet connection and try again.';
+                
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    userMessage = 'Unable to reach the server.\n\nPlease check your internet connection.';
+                } else if (error.message.includes('timeout')) {
+                    userMessage = 'The server took too long to respond.\n\nPlease try again.';
+                }
+                
+                showCelebration(userMessage, 'error');
+            }
+        }
+
+        // ====== UNIVERSAL ROLE MANAGEMENT FUNCTIONS ======
+        
+        async function deactivateRole(role) {
+            if (!window.StepDownWidget) {
+                console.error('StepDownWidget not loaded');
+                return;
+            }
+
+            window.StepDownWidget.show(role, async () => {
+                try {
+                    // Get token - use same priority as other API calls
+                    // Priority: backend session token > PDS accessJwt
+                    let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                    
+                    if (!token && currentSession && currentSession.accessJwt) {
+                        token = currentSession.accessJwt;
+                    }
+
+                    const response = await fetch(`/api/work/${role}/step-down`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        }
+                    });
+
+                    if (response.ok) {
+                        roleStatuses[role] = { is_worker: false, status: null };
+                        await loadRoleStatus(role);
+                        updateUI();
+                        
+                        if (window.WorkEvents) {
+                            const eventName = `${role.toUpperCase()}_STEPPED_DOWN`;
+                            if (window.WorkEvents.EVENTS[eventName]) {
+                                window.WorkEvents.emit(window.WorkEvents.EVENTS[eventName], {
+                                    timestamp: new Date().toISOString()
+                                });
+                            }
+                        }
+                        
+                        const config = roleConfigs[role];
+                        const roleTitle = config ? config.title : role;
+                        showCelebration(`You are no longer ${roleTitle}.\nThank you for your work!\nPlease return if you ever desire.`, 'success');
+                    } else {
+                        const errorText = await response.text();
+                        console.error('❌ Work: Step down failed:', response.status, errorText);
+                        showCelebration('Failed to step down. Please try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ Work: Step down error:', error);
+                    showCelebration('Failed to step down: ' + error.message, 'error');
+                }
+            });
+        }
+        
+        async function setRoleRetiring(role) {
+            try {
+                // Get token - use same priority as other API calls
+                // Priority: backend session token > PDS accessJwt
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                
+                if (!token && currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                }
+
+                const response = await fetch(`/api/work/${role}/set-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify({ status: 'retiring' })
+                });
+
+                if (response.ok) {
+                    await loadRoleStatus(role);
+                    updateUI();
+                    
+                    if (window.WorkEvents) {
+                        const eventName = `${role.toUpperCase()}_STATUS_CHANGED`;
+                        if (window.WorkEvents.EVENTS[eventName]) {
+                            window.WorkEvents.emit(window.WorkEvents.EVENTS[eventName], {
+                                timestamp: new Date().toISOString(),
+                                status: 'retiring'
+                            });
+                        }
+                    }
+                    
+                    showCelebration('Status updated to retiring.\nYou will be replaced when someone new volunteers.', 'success');
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Work: Status update failed:', response.status, errorText);
+                    showCelebration('Failed to update status. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Work: Status update error:', error);
+                showCelebration('Failed to update status: ' + error.message, 'error');
+            }
+        }
+        
+        // ====== LEGACY GREETER-SPECIFIC FUNCTIONS ======
+
+        async function deactivateGreeter() {
+            // Use the StepDownWidget for consistent UI
+            if (!window.StepDownWidget) {
+                console.error('StepDownWidget not loaded');
+                return;
+            }
+
+            window.StepDownWidget.show('greeter', async () => {
+                // Perform the actual step-down
+                try {
+                    // Get token from current session
+                    let token = null;
+                    if (currentSession && currentSession.accessJwt) {
+                        token = currentSession.accessJwt;
+                    } else {
+                        token = localStorage.getItem('oauth_token');
+                        if (!token) {
+                            token = localStorage.getItem('admin_token');
+                        }
+                    }
+
+                    const response = await fetch('/api/work/greeter/step-down', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        }
+                    });
+
+                    if (response.ok) {
+                        greeterStatus = { is_worker: false, status: null };
+                        await loadGreeterStatus();
+                        updateUI();
+                        
+                        // Emit event for cross-page synchronization
+                        if (window.WorkEvents) {
+                            window.WorkEvents.emit(window.WorkEvents.EVENTS.GREETER_STEPPED_DOWN, {
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                        
+                        showCelebration('You are no longer Greeter of Reveries.\nThank you for your work!\nPlease return if you ever desire.', 'success');
+                    } else {
+                        const errorText = await response.text();
+                        console.error('❌ Work: Step down failed:', response.status, errorText);
+                        showCelebration('Failed to step down. Please try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ Work: Step down error:', error);
+                    showCelebration('Failed to step down: ' + error.message, 'error');
+                }
+            });
+        }
+
+        async function setRetiring() {
+            // Show custom retirement options popup
+            showRetirementOptions();
+        }
+
+        // Retirement options popup with three buttons
+        function showRetirementOptions() {
+            // Create popup overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'retirement-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                z-index: 10001;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.className = 'retirement-popup';
+            popup.style.cssText = `
+                background: linear-gradient(135deg, #8b7355 0%, #a0826d 100%);
+                padding: 2rem 3rem;
+                border: 4px solid #5d4a37;
+                border-radius: 0;
+                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+                max-width: 550px;
+                text-align: center;
+                animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                position: relative;
+            `;
+            
+            popup.innerHTML = `
+                <div style="color: white; font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; line-height: 1.5;">
+                    Are you ready to retire?
+                </div>
+                <div style="color: rgba(255,255,255,0.9); font-size: 1rem; margin-bottom: 1.5rem; line-height: 1.6;">
+                    When someone else wishes to work as Greeter of Reveries, they will automatically release and replace you when they are ready to do so.<br><br>
+                    Or you may step down now if you wish, and leave the work immediately.
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                    <button class="retire-now" 
+                            style="padding: 0.75rem 1.5rem; background: #a0826d; color: white; border: 2px solid #8b7355; 
+                                   font-weight: 700; font-size: 0.95rem; cursor: pointer; border-radius: 0;
+                                   box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.2s;">
+                        STEP DOWN
+                    </button>
+                    <button class="retire-ready" 
+                            style="padding: 0.75rem 1.5rem; background: #5d4a37; color: white; border: 2px solid #3d2a1f; 
+                                   font-weight: 700; font-size: 0.95rem; cursor: pointer; border-radius: 0;
+                                   box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.2s;">
+                        READY TO RETIRE
+                    </button>
+                </div>
+                <div style="display: flex; justify-content: center;">
+                    <button class="retire-close continue-working-btn" 
+                            style="padding: 0.9rem 2rem; background: linear-gradient(135deg, #3d8b8b 0%, #2a6b6b 100%); 
+                                   color: white; border: 3px solid #2a6b6b; 
+                                   font-weight: 700; font-size: 1.05rem; cursor: pointer; border-radius: 0;
+                                   box-shadow: 0 6px 20px rgba(61, 139, 139, 0.4); 
+                                   transition: all 0.3s ease;
+                                   animation: gentlePulse 2s ease-in-out infinite;">
+                        CONTINUE WORKING
+                    </button>
+                </div>
+            `;
+            
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+            
+            // Add CSS animation for the Continue Working button
+            if (!document.getElementById('continue-working-styles')) {
+                const style = document.createElement('style');
+                style.id = 'continue-working-styles';
+                style.textContent = `
+                    @keyframes gentlePulse {
+                        0%, 100% { 
+                            transform: scale(1);
+                            box-shadow: 0 6px 20px rgba(61, 139, 139, 0.4);
+                        }
+                        50% { 
+                            transform: scale(1.02);
+                            box-shadow: 0 7px 24px rgba(61, 139, 139, 0.5);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Button handlers
+            popup.querySelector('.retire-ready').onclick = async () => {
+                overlay.remove();
+                await setRetiringStatus();
+            };
+            
+            popup.querySelector('.retire-now').onclick = async () => {
+                overlay.remove();
+                await deactivateGreeter();
+            };
+            
+            popup.querySelector('.retire-close').onclick = () => {
+                overlay.remove();
+            };
+        }
+
+        async function setRetiringStatus() {
+            try {
+                // Get token from current session
+                let token = null;
+                if (currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                } else {
+                    token = localStorage.getItem('oauth_token');
+                    if (!token) {
+                        token = localStorage.getItem('admin_token');
+                    }
+                }
+
+                const response = await fetch('/api/work/greeter/set-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify({ status: 'retiring' })
+                });
+
+                if (response.ok) {
+                    greeterStatus.status = 'retiring';
+                    await loadGreeterStatus();
+                    updateUI();
+                    
+                    // Emit event for cross-page synchronization
+                    if (window.WorkEvents) {
+                        window.WorkEvents.emit(window.WorkEvents.EVENTS.GREETER_STATUS_CHANGED, {
+                            status: 'retiring',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                    
+                    showCelebration('Congratulations on your retirement.\nYou will be replaced as soon as possible.\nThank you for working!\n\nPlease continue operating as you see fit.', 'success', 'OKAY?');
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Work: Set retiring failed:', response.status, errorText);
+                    showCelebration('Failed to set status. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Work: Set retiring error:', error);
+                showCelebration('Failed to set status: ' + error.message, 'error');
+            }
+        }
+
+        function showAlreadyWorkingMessage() {
+            showCelebration('You are already working.\nThank you for working!', 'success');
+        }
+
+        async function setWorking() {
+            try {
+                // Get token from current session
+                let token = null;
+                if (currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                } else {
+                    token = localStorage.getItem('oauth_token');
+                    if (!token) {
+                        token = localStorage.getItem('admin_token');
+                    }
+                }
+
+                const response = await fetch('/api/work/greeter/set-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify({ status: 'working' })
+                });
+
+                if (response.ok) {
+                    greeterStatus.status = 'working';
+                    await loadGreeterStatus();
+                    updateUI();
+                    
+                    // Emit event for cross-page synchronization
+                    if (window.WorkEvents) {
+                        window.WorkEvents.emit(window.WorkEvents.EVENTS.GREETER_STATUS_CHANGED, {
+                            status: 'working',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                    
+                    showCelebration('Welcome back! You are now actively working as Greeter again.', 'success');
+                } else {
+                    showCelebration('Failed to update status. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Set working error:', error);
+                showCelebration('Failed to update status: ' + error.message, 'error');
+            }
+        }
+
+        // Confirmation popup with two buttons
+        function showConfirmation(message, onConfirm) {
+            // Create popup overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'confirmation-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                z-index: 10001;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.className = 'confirmation-popup';
+            popup.style.cssText = `
+                background: linear-gradient(135deg, #8b7355 0%, #a0826d 100%);
+                padding: 2rem 3rem;
+                border: 4px solid #5d4a37;
+                border-radius: 0;
+                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+                max-width: 500px;
+                text-align: center;
+                animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                position: relative;
+            `;
+            
+            popup.innerHTML = `
+                <div style="color: white; font-size: 1.3rem; font-weight: 700; margin-bottom: 1.5rem; line-height: 1.5;">
+                    ${message}
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="confirm-no" 
+                            style="padding: 0.75rem 2rem; background: white; color: #8b7355; border: none; 
+                                   font-weight: 700; font-size: 1rem; cursor: pointer; border-radius: 0;
+                                   box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.2s;">
+                        NO NOT YET
+                    </button>
+                    <button class="confirm-yes" 
+                            style="padding: 0.75rem 2rem; background: #5d4a37; color: white; border: none; 
+                                   font-weight: 700; font-size: 1rem; cursor: pointer; border-radius: 0;
+                                   box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.2s;">
+                        STEP DOWN
+                    </button>
+                </div>
+            `;
+            
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+            
+            // Button handlers
+            popup.querySelector('.confirm-no').onclick = () => {
+                overlay.remove();
+            };
+            
+            popup.querySelector('.confirm-yes').onclick = () => {
+                overlay.remove();
+                onConfirm();
+            };
+        }
+
+        // Celebration popup and bubble system
+        function showCelebration(message, type = 'success', buttonText = 'OKAY') {
+            // Convert \n to <br> for multi-line messages
+            const formattedMessage = message.replace(/\n/g, '<br>');
+            
+            // Create popup overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'celebration-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                z-index: 10001;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.className = 'celebration-popup';
+            popup.style.cssText = `
+                background: linear-gradient(135deg, #8b7355 0%, #a0826d 100%);
+                padding: 2rem 3rem;
+                border: 4px solid #5d4a37;
+                border-radius: 0;
+                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+                max-width: 500px;
+                text-align: center;
+                animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                position: relative;
+            `;
+            
+            popup.innerHTML = `
+                <div style="color: white; font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; line-height: 1.5;">
+                    ${formattedMessage}
+                </div>
+                <button onclick="this.closest('.celebration-overlay').remove()" 
+                        style="padding: 0.75rem 2rem; background: white; color: #8b7355; border: none; 
+                               font-weight: 700; font-size: 1rem; cursor: pointer; border-radius: 0;
+                               box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.2s;">
+                    ${buttonText}
+                </button>
+            `;
+            
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+            
+            // Launch bubbles only for success messages
+            if (type === 'success') {
+                launchBubbles();
+            }
+            
+            // Add CSS animations
+            if (!document.getElementById('celebration-styles')) {
+                const style = document.createElement('style');
+                style.id = 'celebration-styles';
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes popIn {
+                        0% { transform: scale(0.3); opacity: 0; }
+                        50% { transform: scale(1.05); }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+                    @keyframes bubbleRise {
+                        0% { 
+                            transform: translateY(0) translateX(0) scale(0);
+                            opacity: 0;
+                        }
+                        10% {
+                            opacity: 1;
+                            transform: translateY(-10vh) translateX(0) scale(1);
+                        }
+                        90% {
+                            opacity: 1;
+                        }
+                        100% { 
+                            transform: translateY(-100vh) translateX(var(--drift)) scale(0.8);
+                            opacity: 0;
+                        }
+                    }
+                    .celebration-overlay button:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        async function launchBubbles() {
+            const bubbleCount = 20;
+            
+            // Get random souvenir icons
+            const souvenirIcons = await BubbleFactory.getRandomSouvenirIcons(bubbleCount);
+            
+            for (let i = 0; i < bubbleCount; i++) {
+                setTimeout(() => {
+                    const souvenir = souvenirIcons[i % souvenirIcons.length];
+                    const randomX = Math.random() * window.innerWidth;
+                    const randomDrift = (Math.random() - 0.5) * 200;
+                    const randomDuration = 3 + Math.random() * 2;
+                    const randomDelay = Math.random() * 0.5;
+                    const randomSize = 40 + Math.random() * 40;
+                    
+                    // Create bubble using standardized factory
+                    const bubble = BubbleFactory.createBubble(souvenir.icon, randomSize, {
+                        clickable: false,
+                        souvenirKey: souvenir.key,
+                        souvenirName: souvenir.name
+                    });
+                    
+                    bubble.style.cssText += `
+                        position: fixed;
+                        bottom: -100px;
+                        left: ${randomX}px;
+                        z-index: 10002;
+                        animation: bubbleRise ${randomDuration}s ease-out ${randomDelay}s forwards;
+                        --drift: ${randomDrift}px;
+                        opacity: 0.8;
+                    `;
+                    
+                    document.body.appendChild(bubble);
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        bubble.remove();
+                    }, (randomDuration + randomDelay) * 1000);
+                }, i * 100);
+            }
+        }
+    </script>
+</body>
+</html>
