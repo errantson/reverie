@@ -1,0 +1,55 @@
+{
+  "dreamId": "{{DREAM_ID}}",
+  "version": "0.1.0",
+  "title": "{{DREAM_TITLE}}",
+  "description": "{{DREAM_DESCRIPTION}}",
+  "author": "{{AUTHOR}}",
+  "created": "{{DATE}}",
+  
+  "manifest": {
+    "type": "{{DREAM_TYPE}}",
+    "entryPoint": "index.html",
+    "domain": "{{DREAM_ID}}.reverie.house",
+    "requiresAuth": false,
+    "permissions": {
+      "reverie": {
+        "read": ["spectrum"],
+        "write": ["canon"]
+      },
+      "atproto": {
+        "collections": ["house.reverie.dream.{{DREAM_ID}}"]
+      }
+    }
+  },
+  
+  "features": {
+    "interactive": true,
+    "narrative": true,
+    "minigame": false,
+    "dataVisualization": false,
+    "multiSession": false
+  },
+  
+  "integration": {
+    "pdsCollection": "house.reverie.dream.{{DREAM_ID}}",
+    "souvenirKeys": [
+      "dream/{{DREAM_ID}}/explorer",
+      "dream/{{DREAM_ID}}/complete"
+    ],
+    "questTriggers": [
+      "dream:{{DREAM_ID}}:entered",
+      "dream:{{DREAM_ID}}:complete"
+    ]
+  },
+  
+  "assets": {
+    "backdrop": "./assets/backdrop.png"
+  },
+  
+  "metadata": {
+    "tags": [],
+    "difficulty": "easy",
+    "estimatedDuration": "10-15 minutes",
+    "replayable": true
+  }
+}
