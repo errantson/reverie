@@ -1,0 +1,2270 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverie House — Database</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Pour over the details of our shared canon and the history of Reverie House.">
+    <meta name="keywords" content="database, archive, lore, dreamers, stories, locations, reverie house, worldbuilding">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/database.html">
+    <meta property="og:title" content="Database - Reverie House">
+    <meta property="og:description" content="Pour over the details of our shared canon and the history of Reverie House.">
+    <meta property="og:image" content="https://reverie.house/assets/og-image.png">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Database - Reverie House">
+    <meta name="twitter:description" content="Pour over the details of our shared canon and the history of Reverie House.">
+    <meta name="twitter:image" content="https://reverie.house/assets/og-image.png">
+    
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/widgets/header.css">
+    <link rel="stylesheet" href="css/pages/database.css">
+    <link rel="stylesheet" href="css/pages/canon.css">
+    <link rel="stylesheet" href="css/roles.css">
+    <link rel="stylesheet" href="css/widgets/login.css">
+    <link rel="stylesheet" href="css/widgets/createdreamer.css">
+    <link rel="stylesheet" href="css/widgets/dialogue.css">
+    <link rel="stylesheet" href="css/widgets/spectrum-timeline.css">
+    <link rel="stylesheet" href="css/widgets/world.css">
+    <link rel="stylesheet" href="css/widgets/dreamer-hover.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <!-- Core utilities (must load first) -->
+    <script src="js/core/world-config-cache.js"></script>
+    <script src="js/core/color-manager.js"></script>
+    <script src="js/utils/shadowbox.js"></script>
+    <script type="module" src="js/utils/octant.js"></script>
+    <script src="js/widgets/header.js" defer></script>
+    <script type="module" src="js/widgets/oauth-manager.js"></script>
+    <script src="js/widgets/login.js" defer></script>
+    <script src="js/widgets/createdreamer.js" defer></script>
+    <script src="js/widgets/dreamer-hover.js" defer></script>
+    <script src="js/widgets/world.js" defer></script>
+    <script src="js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <div class="page-header" style="justify-content: flex-start; gap: 10px;">
+        <div class="search-box">
+            <input type="text" id="search" placeholder="Search...">
+            <span class="search-icon">🔍</span>
+        </div>
+        <button class="btn btn-secondary" onclick="loadAllData()">
+            🔄 Refresh
+        </button>
+        <button class="btn btn-secondary" onclick="exportData()">
+            💾 Export
+        </button>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:8px; color:var(--text-dim); font-size:0.7em;">
+                <span>reverie.house</span>
+                <span id="last-updated">--</span>
+                <span id="total-records">0</span> records
+            </div>
+    </div>
+
+    <div class="table-tabs" id="table-selector">
+        <!-- Table buttons will be populated here -->
+    </div>
+    
+    <!-- Removed schema-info block, schema info now in page-header -->
+
+    <div class="table-header">
+        <div class="table-title" id="current-table-title">Dreamers</div>
+        <div class="table-count" id="current-table-count">0 rows</div>
+    </div>
+
+    <div id="rows-container">
+        <!-- Rows will be displayed here -->
+    </div>
+
+    <script>
+        // Database state
+        let currentTable = null;
+        let allData = {};
+        let filteredData = {};
+        let dreamerHoverWidget = null;
+        
+        // Table configurations
+        const tableConfig = {
+            events: {
+                title: 'History',
+                icon: '📜',
+                // epoch, type, avatar, canon (name + event unified), key, uri
+                columns: ['epoch', 'type', 'avatar', 'canon', 'key', 'uri'],
+                searchFields: ['name', 'event', 'uri', 'type', 'key']
+            },
+            dreamers: {
+                title: 'Dreamers',
+                icon: '🧙‍♂️',
+                // avatar, name, handle, souvenirs, spectrum, arrival, did
+                columns: ['avatar', 'name', 'handle', 'souvenirs', 'spectrum', 'arrival', 'did'],
+                searchFields: ['name', 'handle', 'did']
+            },
+            souvenirs: {
+                title: 'Souvenirs',
+                icon: '🫧',
+                // icon, key, name, category, keepers count, description
+                columns: ['icon', 'key', 'name', 'category', 'keepers', 'description'],
+                searchFields: ['name', 'category', 'description', 'key']
+            },
+            library: {
+                title: 'Library',
+                icon: '📚',
+                // unified books/chapters display with header rows
+                columns: ['cover', 'title', 'author', 'pages', 'release', 'epub'],
+                searchFields: ['title', 'author', 'chapter_title']
+            },
+            spectrum_snapshots: {
+                title: 'Spectrum',
+                icon: '🌌',
+                hidden: true,  // Hide this tab from the UI
+                // id, epoch, operation, dreamers, avg distance, distance traveled
+                columns: ['id', 'epoch', 'operation', 'dreamer_count', 'avg_distance_from_origin', 'total_distance_traveled'],
+                searchFields: ['operation']
+            },
+            mindscape: {
+                title: 'Mindscape',
+                icon: '🌳',
+                hidden: true,  // Hide this tab from the UI
+                columns: [],
+                searchFields: []
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderTableSelector();
+            setupSearch();
+            
+            // Restore last selected table from sessionStorage
+            let savedTable = sessionStorage.getItem('databaseCurrentTable');
+            
+            // Migrate old table names
+            if (savedTable === 'canon') savedTable = 'events';
+            if (savedTable === 'library_books') savedTable = 'library';
+            
+            // On mobile, switch from spectrum to events (or dreamers if spectrum was saved)
+            if (window.innerWidth <= 768 && savedTable === 'spectrum_snapshots') {
+                savedTable = 'events';
+            }
+            
+            // Default to events if no saved table or if table doesn't exist in config
+            if (!savedTable || !tableConfig[savedTable]) {
+                savedTable = 'events';
+            }
+            
+            // Load data first, then select table
+            await loadAllData();
+            
+            if (savedTable && tableConfig[savedTable]) {
+                selectTable(savedTable);
+            }
+        });
+        
+        // Reload data when page becomes visible (fixes tab switching issue)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && currentTable) {
+                // Page is now visible, reload data but keep current table selection
+                const savedTable = currentTable; // Save current selection
+                fetch('/api/database/all')
+                    .then(r => r.json())
+                    .then(data => {
+                        allData = data.tables || {};
+                        document.getElementById('last-updated').textContent = new Date().toLocaleString();
+                        const stats = data.stats || {};
+                        const total = Object.values(stats).reduce((sum, count) => sum + count, 0);
+                        document.getElementById('total-records').textContent = total.toLocaleString();
+                        // Restore the saved table selection instead of defaulting to dreamers
+                        renderTable(savedTable);
+                    })
+                    .catch(err => console.error('Error reloading data:', err));
+            }
+        });
+
+        async function loadAllData() {
+            try {
+                const response = await fetch('/api/database/all');
+                const data = await response.json();
+                
+                allData = data.tables || {};
+                
+                // Enrich dreamers with souvenirs from awards table
+                if (allData.dreamers && allData.awards) {
+                    console.log('💫 Enriching dreamers with souvenirs and spectrum data...');
+                    const souvenirsByDid = {};
+                    allData.awards.forEach(ds => {
+                        if (!souvenirsByDid[ds.did]) {
+                            souvenirsByDid[ds.did] = {};
+                        }
+                        souvenirsByDid[ds.did][ds.souvenir_key] = ds.earned_epoch;
+                    });
+                    
+                    console.log('💫 souvenirsByDid map:', Object.keys(souvenirsByDid).length, 'dreamers with souvenirs');
+                    
+                    // Add souvenirs to each dreamer
+                    allData.dreamers.forEach(dreamer => {
+                        dreamer.souvenirs = souvenirsByDid[dreamer.did] || {};
+                        
+                        // Also ensure spectrum is an object if scores exist
+                        if (dreamer.entropy !== undefined || dreamer.oblivion !== undefined) {
+                            dreamer.spectrum = {
+                                entropy: dreamer.entropy || 0,
+                                oblivion: dreamer.oblivion || 0,
+                                liberty: dreamer.liberty || 0,
+                                authority: dreamer.authority || 0,
+                                receptive: dreamer.receptive || 0,
+                                skeptic: dreamer.skeptic || 0,
+                                octant: dreamer.octant
+                            };
+                            console.log('💫 Built spectrum for', dreamer.name, ':', dreamer.spectrum);
+                        }
+                    });
+                    
+                    console.log('💫 Enrichment complete');
+                }
+                
+                // Initialize dreamer hover widget after loading dreamers
+                if (allData.dreamers && typeof DreamerHoverWidget !== 'undefined') {
+                    dreamerHoverWidget = new DreamerHoverWidget(allData.dreamers);
+                    dreamerHoverWidget.init();
+                    console.log('✅ Dreamer hover widget initialized in database');
+                }
+                
+                // Process library data: flatten books and chapters into rows with headers
+                if (allData.books && allData.chapters) {
+                    allData.library = [];
+                    
+                    // Sort books by release date (null/unreleased last)
+                    const sortedBooks = [...allData.books].sort((a, b) => {
+                        if (!a.release && !b.release) return 0;
+                        if (!a.release) return 1;
+                        if (!b.release) return -1;
+                        return a.release - b.release;
+                    });
+                    
+                    sortedBooks.forEach(book => {
+                        const bookChapters = allData.chapters
+                            .filter(ch => ch.book_id === book.id)
+                            .sort((a, b) => (a.chapter_order || 0) - (b.chapter_order || 0));
+                        
+                        // Add book data row (header row removed)
+                        allData.library.push({
+                            type: 'book',
+                            id: book.id,
+                            title: book.title,
+                            author: book.author,
+                            pages: book.pages,
+                            release: book.release,
+                            cover: book.cover,
+                            epub: book.epub,
+                            chapters_count: bookChapters.length
+                        });
+                        
+                        // Add chapter rows
+                        bookChapters.forEach((chapter, idx) => {
+                            allData.library.push({
+                                type: 'chapter',
+                                book_id: book.id,
+                                book_title: book.title,
+                                title: chapter.title,
+                                chapter_order: chapter.chapter_order || (idx + 1),
+                                chapter_file: chapter.file,
+                                author: null,
+                                pages: null,
+                                release: null,
+                                cover: null,
+                                epub: null
+                            });
+                        });
+                    });
+                }
+                
+                document.getElementById('last-updated').textContent = new Date().toLocaleString();
+                
+                // Calculate total records
+                const stats = data.stats || {};
+                const total = Object.values(stats).reduce((sum, count) => sum + count, 0);
+                document.getElementById('total-records').textContent = total.toLocaleString();
+                
+                // Note: Table selection is now handled in DOMContentLoaded after await
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Unable to connect to database API.');
+                document.getElementById('total-records').textContent = '0';
+            }
+        }
+        
+        async function viewSnapshotDetails(snapshotId) {
+            try {
+                const response = await fetch(`/api/database/snapshot/${snapshotId}`);
+                const snapshot = await response.json();
+                
+                if (!snapshot || !snapshot.data) {
+                    alert('Snapshot not found');
+                    return;
+                }
+                
+                const data = snapshot.data;
+                const stats = data.statistics || {};
+                
+                // Create modal content
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+                
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = 'background: white; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow: auto; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);';
+                
+                const timestamp = new Date(snapshot.epoch * 1000).toLocaleString();
+                const dreamerCount = data.total_dreamers || 0;
+                
+                modalContent.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+                        <div>
+                            <h2 style="color: var(--primary); margin: 0 0 10px 0;">Spectrum Snapshot #${snapshotId}</h2>
+                            <div style="color: #666; font-size: 0.9rem;">
+                                <div><strong>Time:</strong> ${timestamp}</div>
+                                <div><strong>Operation:</strong> ${snapshot.operation}</div>
+                                <div><strong>Dreamers:</strong> ${dreamerCount} (${data.dreamers_with_spectrum} with spectrum)</div>
+                                <div><strong>Avg Distance from Origin:</strong> ${stats.avg_distance_from_origin || 0}</div>
+                                <div><strong>Total Distance Traveled:</strong> ${stats.total_distance_traveled || 0}</div>
+                            </div>
+                        </div>
+                        <button onclick="this.closest('[style*=fixed]').remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">Close</button>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; overflow: auto; max-height: 60vh;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <thead>
+                                <tr style="background: #e9ecef; font-weight: 600;">
+                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">Name</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Heading</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">X</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Y</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Z</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Dist</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">E</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">O</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">L</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">A</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">R</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">S</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.dreamers.map((d, idx) => {
+                                    const coords = d.coordinates || {};
+                                    const spectrum = d.spectrum || {};
+                                    const dist = d.distance_from_origin !== null ? d.distance_from_origin.toFixed(2) : '—';
+                                    return `
+                                    <tr style="border-bottom: 1px solid #dee2e6; ${idx % 2 === 0 ? 'background: white;' : ''}">
+                                        <td style="padding: 8px;">${d.name || '—'}</td>
+                                        <td style="padding: 8px; text-align: center; font-family: monospace; font-size: 0.75rem;">${d.heading || 'none'}</td>
+                                        <td style="padding: 8px; text-align: center; font-family: monospace;">${coords.x !== undefined ? coords.x.toFixed(1) : '—'}</td>
+                                        <td style="padding: 8px; text-align: center; font-family: monospace;">${coords.y !== undefined ? coords.y.toFixed(1) : '—'}</td>
+                                        <td style="padding: 8px; text-align: center; font-family: monospace;">${coords.z !== undefined ? coords.z.toFixed(1) : '—'}</td>
+                                        <td style="padding: 8px; text-align: center; font-family: monospace; font-weight: 600; color: var(--primary);">${dist}</td>
+                                        <td style="padding: 8px; text-align: center;">${spectrum.entropy !== undefined ? spectrum.entropy : '—'}</td>
+                                        <td style="padding: 8px; text-align: center;">${spectrum.oblivion !== undefined ? spectrum.oblivion : '—'}</td>
+                                        <td style="padding: 8px; text-align: center;">${spectrum.liberty !== undefined ? spectrum.liberty : '—'}</td>
+                                        <td style="padding: 8px; text-align: center;">${spectrum.authority !== undefined ? spectrum.authority : '—'}</td>
+                                        <td style="padding: 8px; text-align: center;">${spectrum.receptive !== undefined ? spectrum.receptive : '—'}</td>
+                                        <td style="padding: 8px; text-align: center;">${spectrum.skeptic !== undefined ? spectrum.skeptic : '—'}</td>
+                                    </tr>
+                                `}).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+                
+                // Close on background click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading snapshot:', error);
+                alert('Failed to load snapshot details');
+            }
+        }
+
+        function renderTableSelector() {
+            const selector = document.getElementById('table-selector');
+            selector.innerHTML = '';
+            
+            for (const [table, config] of Object.entries(tableConfig)) {
+                // Skip hidden tabs
+                if (config.hidden) continue;
+                
+                const btn = document.createElement('button');
+                btn.className = 'table-btn';
+                btn.innerHTML = `${config.icon} ${config.title}`;
+                btn.onclick = () => selectTable(table);
+                btn.dataset.table = table;
+                selector.appendChild(btn);
+            }
+        }
+
+        function selectTable(tableName) {
+            currentTable = tableName;
+            
+            // Save to sessionStorage for persistence across reloads
+            sessionStorage.setItem('databaseCurrentTable', tableName);
+            
+            // Clean up spectrum viewer when switching away from spectrum_snapshots
+            if (historicalSpectrum && tableName !== 'spectrum_snapshots') {
+                historicalSpectrum.stopAnimation();
+                historicalSpectrum = null;
+            }
+            
+            // Disable search input for spectrum_snapshots and mindscape (but keep visible)
+            const searchInput = document.getElementById('search');
+            if (searchInput) {
+                if (tableName === 'spectrum_snapshots' || tableName === 'mindscape') {
+                    searchInput.disabled = true;
+                    searchInput.value = ''; // Clear search
+                    searchInput.placeholder = tableName === 'spectrum_snapshots' ? 
+                        'Search not available for Spectrum' : 
+                        'Search not available for Mindscape';
+                    searchInput.style.opacity = '0.5';
+                    searchInput.style.cursor = 'not-allowed';
+                } else {
+                    searchInput.disabled = false;
+                    searchInput.placeholder = 'Search...';
+                    searchInput.style.opacity = '1';
+                    searchInput.style.cursor = 'text';
+                }
+            }
+            
+            // Update active button in tabs
+            document.querySelectorAll('.table-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.table === tableName);
+            });
+            
+            renderTable(tableName);
+        }
+
+        function renderTable(tableName) {
+            const config = tableConfig[tableName];
+            const data = allData[tableName] || [];
+            
+            // Always show table title/count (including for spectrum_snapshots)
+            document.getElementById('current-table-title').textContent = 
+                `${config.icon} ${config.title}`;
+            document.getElementById('current-table-count').textContent = 
+                `${data.length} ${tableName === 'spectrum_snapshots' ? 'snapshots' : 'rows'}`;
+            document.getElementById('current-table-title').style.display = '';
+            document.getElementById('current-table-count').style.display = '';
+            
+            const container = document.getElementById('rows-container');
+            
+            // Special rendering for spectrum_snapshots - show historical spectrum viewer
+            if (tableName === 'spectrum_snapshots') {
+                renderHistoricalSpectrum(data, container);
+                return;
+            }
+            
+            // Special rendering for mindscape - show world widget and canon
+            if (tableName === 'mindscape') {
+                renderMindscape(container);
+                return;
+            }
+            
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="row-entry" style="text-align: center; color: var(--text-dim); display: block;">
+                        No data available in this table yet.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Build data rows (header removed for cleaner view)
+            let html = '';
+            
+            // Helper function for column headers (kept for reference but not displayed)
+            function formatColumnHeader(col, table) {
+                // Special cases
+                if (col === 'avatar') return '';
+                if (col === 'cover') return '';
+                if (col === 'icon') return '🏅';
+                if (col === 'phanera') return '🎨';
+                if (col === 'did') return 'DID';
+                if (col === 'uri') return 'URI';
+                if (col === 'epoch' && table === 'canon') return 'TIME';
+                if (col === 'canon' && table === 'canon') return 'CANON';
+                if (col === 'chapters_count') return 'CHAPTERS';
+                if (col === 'epub') return 'DOWNLOAD';
+                if (col === 'title' && table === 'library') return 'BOOK / CHAPTER';
+                
+                // Dreamers specific headers
+                if (col === 'heading' && table === 'dreamers') return 'HEADING';
+                if (col === 'last_change') return 'LAST CHANGE';
+                
+                // Spectrum snapshots specific headers
+                if (col === 'epoch' && table === 'spectrum_snapshots') return 'TIME';
+                if (col === 'operation' && table === 'spectrum_snapshots') return 'OPERATION';
+                if (col === 'dreamer_count') return 'DREAMERS';
+                if (col === 'avg_distance_from_origin') return 'AVG DIST';
+                if (col === 'total_distance_traveled') return 'ΔTOTAL';
+                
+                // Default: capitalize first letter, replace underscores
+                return col.charAt(0).toUpperCase() + col.slice(1).replace(/_/g, ' ');
+            }
+            
+            // Build data rows
+            data.forEach((row, idx) => {
+                // Filter: reactions are only shown beneath their parent event
+                if (tableName === 'events' && row.reaction_to) return;
+                
+                // Apply user color styling to canon key rows
+                let canonColorVars = '';
+                if (tableName === 'events' && row.key === 'canon' && row.color_hex) {
+                    // Convert hex to rgba with multiple opacity levels for gradient
+                    const hex = row.color_hex.replace('#', '');
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+                    canonColorVars = `--canon-color: ${row.color_hex}; --canon-color-rgb: ${r}, ${g}, ${b};`;
+                }
+                
+                // Special styling for library rows
+                const isHeaderRow = tableName === 'library' && row.type === 'header';
+                const isBookRow = tableName === 'library' && row.type === 'book';
+                const isChapterRow = tableName === 'library' && row.type === 'chapter';
+                
+                // Skip header rows completely
+                if (isHeaderRow) return;
+                
+                // Check if this is a canon row
+                const isCanonRow = tableName === 'events' && row.key === 'canon';
+                
+                const rowClass = isBookRow ? 'row-entry book-row' : 
+                                 isChapterRow ? 'row-entry chapter-row' :
+                                 isCanonRow ? 'row-entry canon-row' : 'row-entry';
+                
+                // Make souvenir rows clickable
+                const souvenirKey = (tableName === 'souvenirs' && row.key) ? row.key : null;
+                let rowOnClick = souvenirKey ? `window.location.href='/souvenirs?key=${encodeURIComponent(souvenirKey)}'` : '';
+                
+                // Make events rows clickable to URL (if exists)
+                if (tableName === 'events' && row.url && !rowOnClick) {
+                    rowOnClick = `window.open('${row.url}', '_blank')`;
+                }
+                
+                // Don't make dreamer rows clickable - individual columns handle their own clicks
+                // This prevents interference with click-to-copy DID and other column features
+                
+                // Make chapter rows clickable to chapter page
+                if (isChapterRow && tableName === 'library') {
+                    const bookId = row.book_id || '';
+                    const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
+                    const chapterUrl = bookId ? `/books/${bookId}/${chapterNum}` : '';
+                    if (chapterUrl) {
+                        rowOnClick = `window.location.href='${chapterUrl}'`;
+                    }
+                }
+                
+                // Make book rows open TOC (via toc.js if available)
+                if (isBookRow && tableName === 'library') {
+                    const bookId = row.id || '';
+                    if (bookId) {
+                        // Convert book ID to the format expected by TOC.js
+                        const tocBookId = bookId === 'seeker' ? 'seekers-reverie' : 'princes-reverie';
+                        rowOnClick = `if(window.booksWidget && window.booksWidget.toc){window.booksWidget.toc.show('${tocBookId}');}else{window.location.href='/library';}`;
+                    }
+                }
+                
+                // Build style attribute combining cursor and canon colors
+                let rowStyles = [];
+                if (rowOnClick) rowStyles.push('cursor: pointer');
+                if (canonColorVars) rowStyles.push(canonColorVars);
+                const rowStyleAttr = rowStyles.length > 0 ? ` style="${rowStyles.join('; ')}"` : '';
+                const rowOnClickAttr = rowOnClick ? ` onclick="${rowOnClick}"` : '';
+                
+                html += `<div class="${rowClass}"${rowOnClickAttr}${rowStyleAttr}>`;
+                
+                // For chapter rows, render author (chapter #) first, then title
+                if (isChapterRow && tableName === 'library') {
+                    // Render chapter number first
+                    const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
+                    html += `<div class="cell author">${chapterNum}.</div>`;
+                    
+                    // Render chapter title second (plain text, row is clickable)
+                    html += `<div class="cell title">${row.title || ''}</div>`;
+                } else {
+                    // Normal column rendering for all other rows
+                    config.columns.forEach(col => {
+                    const value = row[col];
+                    let displayValue = '';
+                    
+                    // Skip columns for chapter rows except author (chapter #) and title
+                    if (isChapterRow && tableName === 'library' && col !== 'author' && col !== 'title') {
+                        return; // Don't render this cell for chapters
+                    }
+                    
+                    // Handle synthetic 'canon' column first (before null check)
+                    if (col === 'canon' && tableName === 'events') {
+                        // Display unified "name event" for canon table with links
+                        const name = row.name || 'unknown';
+                        const event = row.event || 'an event occurred';
+                        const did = row.did || '';
+                        const url = row.url || '';
+                        
+                        // Name links to dreamer page (stop propagation to prevent row click)
+                        const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
+                        
+                        // Event text is non-clickable (row click will open URL)
+                        const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;
+                        
+                        displayValue = `<span style="white-space: normal;">${nameLink} ${eventText}</span>`;
+                    } else if (col === 'author' && tableName === 'library') {
+                        // Show author for book rows with link to dreamer page OR chapter numbers
+                        // Handle BEFORE null check since chapters have null author but need to show chapter #
+                        if (isBookRow && value) {
+                            // Check if author is a DID
+                            if (value.startsWith('did:')) {
+                                // Find the dreamer name from allData
+                                const dreamer = allData.dreamers?.find(d => d.did === value);
+                                const authorName = dreamer?.name || 'unknown';
+                                displayValue = `<a href="/dreamer?did=${encodeURIComponent(value)}" style="color: inherit; text-decoration: none; font-weight: 500;">${authorName}</a>`;
+                            } else {
+                                displayValue = value;
+                            }
+                        } else if (isChapterRow) {
+                            // Show chapter number for chapter rows
+                            const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
+                            displayValue = `<span style="color: var(--text-dim); font-family: monospace; font-weight: 600;">${chapterNum}.</span>`;
+                        } else {
+                            displayValue = '';
+                        }
+                    } else if (value === null || value === undefined) {
+                        if (col === 'avatar') {
+                            // Show default icon face for missing avatar
+                            displayValue = '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'avatar') {
+                        // Display avatar image or default icon - clickable to dreamer page with dreamer-link class
+                        const dreamerLink = (tableName === 'dreamers' || tableName === 'events') && row.did ? `/dreamer?did=${encodeURIComponent(row.did)}` : '#';
+                        if (value) {
+                            displayValue = (tableName === 'dreamers' || tableName === 'events') && row.did ? 
+                                `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()"><img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>` :
+                                `<img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
+                        } else {
+                            displayValue = (tableName === 'dreamers' || tableName === 'events') && row.did ?
+                                `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()"><img src="/assets/icon_face.png" class="avatar-img" alt="avatar" style="cursor: pointer;"></a>` :
+                                '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
+                        }
+                    } else if (col === 'icon') {
+                        // Display souvenir icon (image)
+                        if (value && tableName === 'souvenirs') {
+                            displayValue = `<img src="${value}" alt="icon" style="width: 32px; height: 32px; object-fit: contain;" onerror="this.src='/assets/icon.png'">`;
+                        } else {
+                            displayValue = value ? value : '—';
+                        }
+                    } else if (col === 'cover') {
+                        // Display book cover image (only for book rows)
+                        if (value && tableName === 'library' && isBookRow) {
+                            displayValue = `<img src="${value}" alt="cover" style="width: 50px; height: auto; object-fit: contain; border-radius: 4px;" onerror="this.style.display='none'">`;
+                        } else {
+                            displayValue = '';
+                        }
+                    } else if (col === 'title' && tableName === 'library') {
+                        // Display book title (bold) or chapter title with link
+                        if (isBookRow) {
+                            displayValue = `<span style="font-weight: 600; font-size: 1.05em;">${value || '—'}</span>`;
+                        } else if (isChapterRow) {
+                            const bookId = row.book_id || '';
+                            const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
+                            const chapterUrl = bookId ? `/books/${bookId}/${chapterNum}` : '';
+                            if (chapterUrl) {
+                                displayValue = `<a href="${chapterUrl}" style="color: inherit; text-decoration: none;">${value}</a>`;
+                            } else {
+                                displayValue = value || '';
+                            }
+                        } else {
+                            displayValue = value || '';
+                        }
+                    } else if (col === 'pages' && tableName === 'library') {
+                        // Only show pages for book rows
+                        if (isBookRow && value) {
+                            displayValue = value;
+                        } else {
+                            displayValue = '';
+                        }
+                    } else if (col === 'release' && tableName === 'library') {
+                        // Format release date for books (only book rows)
+                        if (isBookRow && typeof value === 'number') {
+                            const date = new Date(value * 1000);
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = date.getFullYear();
+                            displayValue = `${month}/${year}`;
+                        } else if (isBookRow && !value) {
+                            displayValue = '<span style="color: var(--text-dim);">TBD</span>';
+                        } else {
+                            displayValue = '';
+                        }
+                    } else if (col === 'epub' && tableName === 'library') {
+                        // Display epub download link (only for book rows)
+                        if (isBookRow && value) {
+                            const filename = value.split('/').pop();
+                            displayValue = `<a href="/${value}" download="${filename}" onclick="event.stopPropagation()" style="color: var(--primary); text-decoration: none;">📥 EPUB</a>`;
+                        } else {
+                            displayValue = '';
+                        }
+                    } else if (col === 'keepers') {
+                        // Display keeper count for souvenirs
+                        if (tableName === 'souvenirs' && typeof value === 'number') {
+                            displayValue = `<span style="font-weight: 600; color: var(--primary);">${value}</span>`;
+                        } else {
+                            displayValue = value || '0';
+                        }
+                    } else if (col === 'phanera') {
+                        // Display phanera image if available
+                        if (value) {
+                            displayValue = `<img src="${value}" class="phanera-img" alt="phanera art" onerror="this.style.display='none'">`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'did') {
+                        // Display full DID and make clickable to copy
+                        displayValue = `<span title="Click to copy: ${value}" onclick="copyToClipboard('${value}')" style="cursor: pointer; user-select: none; font-size: 0.75em;">${value}</span>`;
+                    } else if (col === 'souvenirs' && tableName === 'dreamers') {
+                        // Display souvenir icons like in dreamer-hover
+                        if (row.souvenirs && Object.keys(row.souvenirs).length > 0) {
+                            // We need to fetch souvenirs data to get icons
+                            // For now, we'll use a placeholder that will be filled in after render
+                            displayValue = `<div class="souvenir-icons-placeholder" data-did="${encodeURIComponent(row.did)}"></div>`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'spectrum' && tableName === 'dreamers') {
+                        // Display spectrum scores with hover labels for each
+                        console.log('🎨 Rendering spectrum for:', row.name, 'spectrum:', row.spectrum);
+                        if (row.spectrum) {
+                            const s = row.spectrum;
+                            const spectrumData = [
+                                { key: 'entropy', value: s.entropy, label: 'Entropy' },
+                                { key: 'oblivion', value: s.oblivion, label: 'Oblivion' },
+                                { key: 'liberty', value: s.liberty, label: 'Liberty' },
+                                { key: 'authority', value: s.authority, label: 'Authority' },
+                                { key: 'receptive', value: s.receptive, label: 'Receptive' },
+                                { key: 'skeptic', value: s.skeptic, label: 'Skeptic' }
+                            ];
+                            const scoreSpans = spectrumData.map(item => {
+                                const score = item.value !== undefined ? String(item.value).padStart(2, '0') : '—';
+                                return `<span class="spectrum-score" data-label="${item.label}">${score}</span>`;
+                            }).join(' ');
+                            displayValue = `<div style="font-family: monospace; font-size: 1em; color: #333;">${scoreSpans}</div>`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'octant' && tableName === 'dreamers') {
+                        // Display octant from database or calculate if needed
+                        if (row.spectrum && window.OctantUtil) {
+                            // Use calculateOctant for proper color calculation with intensity
+                            const octantData = window.OctantUtil.calculateOctant(row.spectrum);
+                            
+                            if (octantData && octantData.code) {
+                                displayValue = `<span style="font-family: var(--font-sans); font-weight: 600; color: ${octantData.color}; font-size: 1em;" title="${octantData.code}">${octantData.name}</span>`;
+                            } else {
+                                displayValue = '<span style="color: var(--text-dim);">—</span>';
+                            }
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'handle') {
+                        // Red color for handle.invalid, outlink to bsky profile for valid handles with dreamer-link class
+                        // Always show @ prefix
+                        if (value && value.includes('handle.invalid')) {
+                            displayValue = `<span class="handle-invalid">@${value}</span>`;
+                        } else if (value && tableName === 'dreamers' && row.did) {
+                            displayValue = `<a href="https://bsky.app/profile/${value}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color: inherit; text-decoration: underline;">@${value}</a>`;
+                        } else if (value) {
+                            displayValue = `@${value}`;
+                        } else {
+                            displayValue = value;
+                        }
+                    } else if (col === 'name') {
+                        // Make name clickable to dreamer page with dreamer-link class
+                        if (value && (tableName === 'dreamers' || tableName === 'events') && row.did) {
+                            displayValue = `<a href="/dreamer?did=${encodeURIComponent(row.did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()" style="color: inherit; text-decoration: underline; font-weight: 500;">${value}</a>`;
+                        } else {
+                            displayValue = value;
+                        }
+                    } else if (col === 'event' && tableName === 'events') {
+                        // Display event with larger text, no truncation
+                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                    } else if (col === 'uri' && tableName === 'events') {
+                        // Display URI - link to URL if available, otherwise convert to web link
+                        if (value) {
+                            if (value.startsWith('stripe:')) {
+                                // Stripe session code - link to order page if URL available
+                                const sessionCode = value.substring(7); // Remove "stripe:" prefix
+                                if (row.url && row.url.startsWith('/')) {
+                                    // Link to internal URL (e.g., /order)
+                                    displayValue = `<a href="${row.url}" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${sessionCode}</a>`;
+                                } else {
+                                    // No URL, display as non-clickable text
+                                    displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${sessionCode}</span>`;
+                                }
+                            } else if (value.startsWith('at://')) {
+                                // AT Protocol URI - convert to Bluesky web link
+                                const parts = value.split('/');
+                                const endpoint = parts[parts.length - 1] || value;
+                                
+                                // Parse AT URI: at://did:plc:xxx/app.bsky.feed.post/rkey
+                                const match = value.match(/^at:\/\/(did:[^\/]+)\/app\.bsky\.feed\.post\/(.+)$/);
+                                if (match) {
+                                    const did = match[1];
+                                    const rkey = match[2];
+                                    const webUrl = `https://bsky.app/profile/${did}/post/${rkey}`;
+                                    displayValue = `<a href="${webUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${endpoint}</a>`;
+                                } else {
+                                    // Other AT URIs (like profile/self) - display as text or use row.url if available
+                                    if (row.url) {
+                                        displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${endpoint}</a>`;
+                                    } else {
+                                        displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                                    }
+                                }
+                            } else if (row.url) {
+                                // URL field exists - link to it directly
+                                const parts = value.split('/');
+                                const endpoint = parts[parts.length - 1] || value;
+                                displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${endpoint}</a>`;
+                            } else {
+                                // Other URIs - display as non-clickable text
+                                const parts = value.split('/');
+                                const endpoint = parts[parts.length - 1] || value;
+                                displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                            }
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'description') {
+                        // Show truncated bio with ellipsis
+                        if (value) {
+                            const truncated = value.length > 80 ? value.substring(0, 80) + '...' : value;
+                            displayValue = `<span title="${value}" style="font-size: 0.9em; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${truncated}</span>`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'epoch' && tableName === 'spectrum_snapshots' && typeof value === 'number') {
+                        // Format epoch timestamp for spectrum_snapshots
+                        const date = new Date(value * 1000);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = String(date.getFullYear()).slice(-2);
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
+                    } else if (col === 'timestamp' && typeof value === 'number') {
+                        // Format timestamp for other tables
+                        const date = new Date(value * 1000);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = String(date.getFullYear()).slice(-2);
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
+                    } else if (col === 'operation' && tableName === 'spectrum_snapshots') {
+                        // Format operation type with badge
+                        if (value) {
+                            const colors = {
+                                'world_tick': '#6b4fa1',
+                                'world_tick_loop': '#8b7ba8',
+                                'world_display': '#4a90a4',
+                                'manual': '#e67e22'
+                            };
+                            const color = colors[value] || '#999';
+                            const displayText = value.replace(/_/g, ' ').replace('world ', '');
+                            displayValue = `<span style="background: ${color}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${displayText}</span>`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'avg_distance_from_origin' && tableName === 'spectrum_snapshots') {
+                        // Format average distance
+                        if (typeof value === 'number') {
+                            displayValue = `<span style="font-family: monospace; color: var(--primary); font-weight: 600;">${value.toFixed(2)}</span>`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'total_distance_traveled' && tableName === 'spectrum_snapshots') {
+                        // Format distance traveled with delta indicator
+                        if (typeof value === 'number') {
+                            if (value > 0) {
+                                displayValue = `<span style="font-family: monospace; color: #27ae60; font-weight: 600;">+${value.toFixed(2)}</span>`;
+                            } else {
+                                displayValue = `<span style="font-family: monospace; color: var(--text-dim); font-weight: 600;">${value.toFixed(2)}</span>`;
+                            }
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'operation_type') {
+                        // Format operation type with badge (legacy)
+                        if (value) {
+                            const colors = {
+                                'tick': '#6b4fa1',
+                                'tick_loop': '#8b7ba8',
+                                'show_state': '#4a90a4'
+                            };
+                            const color = colors[value] || '#999';
+                            displayValue = `<span style="background: ${color}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${value.replace('_', ' ')}</span>`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'dreamer_count' && typeof value === 'number') {
+                        // Format dreamer count
+                        displayValue = `<span style="font-weight: 600; color: var(--primary);">${value} dreamers</span>`;
+                    } else if (col === 'id' && tableName === 'spectrum_snapshots') {
+                        // Make ID clickable to view snapshot details
+                        displayValue = `<a href="#" onclick="viewSnapshotDetails(${value}); return false;" style="color: var(--primary); font-weight: 600; text-decoration: underline;">#${value}</a>`;
+                    } else if (col === 'arrival' && typeof value === 'number') {
+                        // Format arrival as microtext like last_change
+                        const date = new Date(value * 1000);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = String(date.getFullYear()).slice(-2);
+                        displayValue = `${day}/${month}/${year}`;
+                    } else if (col === 'heading' && tableName === 'dreamers') {
+                        // Format heading
+                        if (value) {
+                            displayValue = `<span style="font-family: monospace; font-weight: 600;">${value}</span>`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">drift</span>';
+                        }
+                    } else if (col === 'last_change' && typeof value === 'number') {
+                        // Format last heading change timestamp as microtext
+                        const date = new Date(value * 1000);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = String(date.getFullYear()).slice(-2);
+                        displayValue = `${day}/${month}/${year}`;
+                    } else if (col === 'entropy' || col === 'oblivion' || col === 'liberty' || col === 'authority' || col === 'receptive' || col === 'skeptic') {
+                        // Format spectrum scores (should not appear in dreamers table anymore)
+                        if (typeof value === 'number') {
+                            displayValue = `<span style="font-weight: 600; color: var(--primary);">${value}</span>`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col.includes('epoch') && typeof value === 'number') {
+                        // Format epoch timestamps
+                        const date = new Date(value * 1000);
+                        if (tableName === 'events') {
+                            // For events table, show full date and time
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
+                        } else {
+                            displayValue = date.toLocaleDateString();
+                        }
+                    } else if (col === 'key' && tableName === 'events') {
+                        // Just display the key value, styling handled at row level for canon rows
+                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                    } else if (typeof value === 'number') {
+                        displayValue = value.toLocaleString();
+                    } else if (typeof value === 'boolean') {
+                        displayValue = value ? '✓' : '✗';
+                    } else if (typeof value === 'string' && value.length > 80) {
+                        displayValue = `<span title="${value}">${value.substring(0, 80)}...</span>`;
+                    } else {
+                        displayValue = value;
+                    }
+                    const extraClass = ` ${col}`;
+                    html += `<div class="cell${extraClass}">${displayValue}</div>`;
+                    });
+                } // End else block for normal column rendering
+                
+                html += '</div>';
+                
+                // Render reaction row beneath parent event (events table only)
+                if (tableName === 'events' && row.reaction_id) {
+                    const reactionRow = {
+                        id: row.reaction_id,
+                        did: row.reaction_did,
+                        event: row.reaction_event,
+                        type: row.reaction_type,
+                        key: row.reaction_key,
+                        uri: row.reaction_uri,
+                        url: row.reaction_url,
+                        epoch: row.reaction_epoch || null,
+                        name: row.reaction_name,
+                        avatar: row.reaction_avatar
+                    };
+                    
+                    const reactionClickAttr = reactionRow.url ? `onclick="window.open('${reactionRow.url}', '_blank')" style="cursor: pointer;"` : '';
+                    const roleClass = reactionRow.key ? `reaction-${reactionRow.key}` : '';
+                    html += `<div class="row-entry reaction-row ${roleClass}" ${reactionClickAttr}>`;
+                    
+                    config.columns.forEach(col => {
+                        const value = reactionRow[col];
+                        let displayValue = '';
+                        
+                        if (col === 'epoch') {
+                            if (value) {
+                                const date = new Date(value * 1000);
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const year = String(date.getFullYear()).slice(-2);
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
+                            } else {
+                                displayValue = '<span style="color: var(--text-dim);">—</span>';
+                            }
+                        } else if (col === 'type') {
+                            displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                        } else if (col === 'avatar') {
+                            const dreamerLink = reactionRow.did ? `/dreamer?did=${encodeURIComponent(reactionRow.did)}` : '#';
+                            let avatarHtml = '';
+                            if (value) {
+                                avatarHtml = reactionRow.did ? 
+                                    `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(reactionRow.did)}" onclick="event.stopPropagation()"><img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>` :
+                                    `<img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
+                            } else {
+                                avatarHtml = reactionRow.did ?
+                                    `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(reactionRow.did)}" onclick="event.stopPropagation()"><img src="/assets/icon_face.png" class="avatar-img" alt="avatar" style="cursor: pointer;"></a>` :
+                                    '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
+                            }
+                            displayValue = `<span style="color: var(--primary); font-size: 1em; margin-right: 8px;">↳</span>${avatarHtml}`;
+                        } else if (col === 'canon') {
+                            const name = reactionRow.name || 'unknown';
+                            const event = reactionRow.event || '';
+                            const did = reactionRow.did || '';
+                            const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
+                            const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;
+                            displayValue = `<span style="white-space: normal; padding-left: 4px;">${nameLink} ${eventText}</span>`;
+                        } else if (col === 'key') {
+                            // Color the key cell for canon rows with user color
+                            if (tableName === 'events' && value === 'canon' && row.color_hex) {
+                                displayValue = `<span style="color: ${row.color_hex}; font-weight: 600;">${value}</span>`;
+                            } else {
+                                displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                            }
+                        } else if (col === 'uri') {
+                            if (value) {
+                                const parts = value.split('/');
+                                const endpoint = parts[parts.length - 1] || value;
+                                if (value.startsWith('at://') || reactionRow.url) {
+                                    displayValue = reactionRow.url ? 
+                                        `<a href="${reactionRow.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${endpoint}</a>` :
+                                        `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                                } else {
+                                    displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                                }
+                            } else {
+                                displayValue = '<span style="color: var(--text-dim);">—</span>';
+                            }
+                        } else if (value === null || value === undefined) {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        } else {
+                            displayValue = value;
+                        }
+                        
+                        html += `<div class="cell ${col}">${displayValue}</div>`;
+                    });
+                    
+                    html += '</div>';
+                }
+            });
+            
+            container.innerHTML = html;
+            
+            // Populate souvenir icons after render (for dreamers table)
+            if (tableName === 'dreamers') {
+                populateSouvenirIcons();
+            }
+        }
+        
+        async function populateSouvenirIcons() {
+            try {
+                const response = await fetch('/api/souvenirs');
+                const rawSouvenirs = await response.json();
+                
+                console.log('📦 Souvenirs API data:', rawSouvenirs);
+                
+                // Find all placeholder elements
+                const placeholders = document.querySelectorAll('.souvenir-icons-placeholder');
+                console.log('📦 Found placeholders:', placeholders.length);
+                
+                placeholders.forEach(placeholder => {
+                    const did = decodeURIComponent(placeholder.dataset.did);
+                    const dreamer = allData.dreamers.find(d => d.did === did);
+                    
+                    if (!dreamer || !dreamer.souvenirs) {
+                        placeholder.innerHTML = '<span style="color: var(--text-dim);">—</span>';
+                        return;
+                    }
+                    
+                    console.log('📦 Dreamer souvenirs for', dreamer.name, ':', dreamer.souvenirs);
+                    
+                    const userFormKeys = Object.keys(dreamer.souvenirs);
+                    const souvenirIcons = [];
+                    
+                    userFormKeys.forEach(formKey => {
+                        // rawSouvenirs is keyed by souvenir key, each entry has a 'key' field
+                        for (const [souvenirKey, souvenirData] of Object.entries(rawSouvenirs)) {
+                            if (souvenirData.key === formKey) {
+                                souvenirIcons.push({
+                                    icon: souvenirData.icon,
+                                    name: souvenirData.name
+                                });
+                                break;
+                            }
+                        }
+                    });
+                    
+                    console.log('📦 Found icons for', dreamer.name, ':', souvenirIcons);
+                    
+                    if (souvenirIcons.length > 0) {
+                        placeholder.innerHTML = souvenirIcons.map(s => 
+                            `<img src="${s.icon}" alt="${s.name}" title="${s.name}" style="width: 20px; height: 20px; object-fit: contain; margin-right: 4px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));">`
+                        ).join('');
+                    } else {
+                        placeholder.innerHTML = '<span style="color: var(--text-dim);">—</span>';
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading souvenirs:', error);
+            }
+        }
+
+        function formatValue(col, value) {
+            if (value === null || value === undefined) return '<span style="color: var(--text-dim);">null</span>';
+            
+            if (col.includes('epoch') && typeof value === 'number') {
+                const date = new Date(value * 1000);
+                return `<span title="${value}">${date.toLocaleString()}</span>`;
+            }
+            
+            if (col.includes('did')) {
+                return `<span class="truncate" title="${value}">${value}</span>`;
+            }
+            
+            if (col.includes('uri') && value) {
+                return `<a href="${value}" class="link" target="_blank">🔗</a>`;
+            }
+            
+            if (typeof value === 'string' && value.length > 100) {
+                return `<span class="truncate" title="${value}">${value}</span>`;
+            }
+            
+            return value;
+        }
+
+        function viewDetails(row) {
+            const modal = document.getElementById('detail-modal');
+            const body = document.getElementById('modal-body');
+            
+            body.innerHTML = `
+                <h2 style="margin-bottom: 20px; color: var(--primary);">Record Details</h2>
+                <div class="json-view">${JSON.stringify(row, null, 2)}</div>
+            `;
+            
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').classList.remove('active');
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('search');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performSearch(e.target.value);
+                }, 300);
+            });
+        }
+
+        function performSearch(query) {
+            // Don't search in spectrum_snapshots tab
+            if (currentTable === 'spectrum_snapshots') {
+                return;
+            }
+            
+            if (!query.trim()) {
+                filteredData = {};
+                if (currentTable) renderTable(currentTable);
+                return;
+            }
+            
+            query = query.toLowerCase();
+            
+            // Search current table only
+            if (currentTable) {
+                const config = tableConfig[currentTable];
+                const rows = allData[currentTable] || [];
+                
+                filteredData[currentTable] = rows.filter(row => {
+                    return config.searchFields.some(field => {
+                        const value = row[field];
+                        return value && String(value).toLowerCase().includes(query);
+                    });
+                });
+                
+                const temp = allData[currentTable];
+                allData[currentTable] = filteredData[currentTable] || [];
+                renderTable(currentTable);
+                allData[currentTable] = temp;
+            }
+        }
+
+        function sortTable(column) {
+            if (!currentTable) return;
+            
+            const data = allData[currentTable];
+            if (!Array.isArray(data) || data.length === 0) return;
+            
+            const isAsc = data._sortedBy === column && data._sortOrder === 'asc';
+            
+            data.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+                
+                if (valA === null || valA === undefined) return 1;
+                if (valB === null || valB === undefined) return -1;
+                
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                
+                if (valA < valB) return isAsc ? 1 : -1;
+                if (valA > valB) return isAsc ? -1 : 1;
+                return 0;
+            });
+            
+            data._sortedBy = column;
+            data._sortOrder = isAsc ? 'desc' : 'asc';
+            
+            renderTable(currentTable);
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(allData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reverie_database_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showError(message) {
+            const error = document.createElement('div');
+            error.style.cssText = 'background: var(--danger); color: white; padding: 10px 20px; font-size: 0.85em; font-family: monospace; border-bottom: 1.5px solid var(--border);';
+            error.innerHTML = `<strong>⚠️ Error:</strong> ${message}`;
+            document.body.insertBefore(error, document.getElementById('header-container').nextSibling);
+            
+            setTimeout(() => error.remove(), 5000);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show temporary success message
+                const msg = document.createElement('div');
+                msg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--success, #28a745); color: white; padding: 12px 24px; border-radius: 6px; z-index: 10000; font-size: 0.9em; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+                msg.textContent = '✓ DID copied to clipboard';
+                document.body.appendChild(msg);
+                setTimeout(() => msg.remove(), 1500);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        function toggleChapters(bookId) {
+            // Find the book in library data
+            const book = allData.library?.find(b => b.id === bookId);
+            if (!book || !book.chapters || book.chapters.length === 0) {
+                return;
+            }
+
+            // Check if chapters are already shown
+            const existingChapters = document.getElementById(`chapters-${bookId}`);
+            if (existingChapters) {
+                existingChapters.remove();
+                return;
+            }
+
+            // Find the book row
+            const rows = document.querySelectorAll('.row-entry');
+            let bookRow = null;
+            rows.forEach(row => {
+                if (row.textContent.includes(book.title)) {
+                    bookRow = row;
+                }
+            });
+
+            if (!bookRow) return;
+
+            // Create chapters list
+            const chaptersDiv = document.createElement('div');
+            chaptersDiv.id = `chapters-${bookId}`;
+            chaptersDiv.style.cssText = 'background: var(--bg-secondary, #f8f9fa); padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid var(--primary);';
+            
+            let chaptersHtml = '<div style="font-weight: 600; margin-bottom: 10px; color: var(--primary);">📖 Chapters:</div>';
+            chaptersHtml += '<div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 0.9em;">';
+            
+            book.chapters.forEach((chapter, idx) => {
+                const chapterNum = String(idx + 1).padStart(2, '0');
+                chaptersHtml += `
+                    <div style="color: var(--text-dim); font-family: monospace;">${chapterNum}.</div>
+                    <div>
+                        <a href="/${chapter.file}" style="color: inherit; text-decoration: none;">
+                            ${chapter.title}
+                        </a>
+                    </div>
+                `;
+            });
+            
+            chaptersHtml += '</div>';
+            chaptersDiv.innerHTML = chaptersHtml;
+
+            // Insert after book row
+            bookRow.parentNode.insertBefore(chaptersDiv, bookRow.nextSibling);
+        }
+        
+        
+        // Mindscape Viewer (Canon Display)
+        async function renderMindscape(container) {
+            container.innerHTML = `
+                <div style="padding: 20px; background: white; max-width: 700px; margin: 0 auto;">
+                    <!-- World Widget Container -->
+                    <div class="world-widget" id="mindscape-world-widget">
+                        <!-- World widget content will be populated by world.js -->
+                    </div>
+                    <div class="world-status-header" style="margin-top: 24px; margin-bottom: 10px;">
+                        <h3 style="margin: 0; font-family: monospace; font-size: 1.4rem; font-weight: bold; color: #5a4a7a;">Canon</h3>
+                    </div>
+                    <div id="mindscape-log-content" style="margin-left: 10px;"></div>
+                    <div style="margin: 18px 0 0 0; margin-left: 10px;">
+                        <button id="mindscape-load-more-btn" style="
+                            display: none;
+                            width: 100%;
+                            font-family: monospace;
+                            font-size: 1.08rem;
+                            background: linear-gradient(90deg, #f8f6ff 0%, #e0d7f0 100%);
+                            color: #5a4a7a;
+                            border: 1.5px solid #d0c7f0;
+                            border-radius: 0;
+                            padding: 12px 0;
+                            margin: 0 auto 10px auto;
+                            box-shadow: 0 1px 4px rgba(115,75,161,0.04);
+                            cursor: pointer;
+                            transition: background 0.2s, color 0.2s;
+                            font-weight: 600;
+                            letter-spacing: 0.5px;
+                        " onmouseover="this.style.background='#e0d7f0';this.style.color='#372e42'" onmouseout="this.style.background='linear-gradient(90deg, #f8f6ff 0%, #e0d7f0 100%)';this.style.color='#5a4a7a'">Load More</button>
+                    </div>
+                    <!-- User listing box -->
+                    <div id="mindscape-user-listing-container" style="margin-top: 0; margin-left: 10px;">
+                        <div class="log-entry" style="background-color: #f5f5f5; text-align: center; border-top: 1px solid white; padding: 8px; margin-bottom: 10px;">
+                            <span><strong>our wild mindscape begins</strong><div id="mindscape-user-listing-content" style="margin: 3px 20px;"></div><strong>are first to explore</strong></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Initialize World widget manually for the dynamically created element
+            if (window.World) {
+                const worldWidget = new window.World();
+                const widgetContainer = document.getElementById('mindscape-world-widget');
+                if (widgetContainer) {
+                    worldWidget.container = widgetContainer;
+                    worldWidget.loadData();
+                    worldWidget.setupAutoRefresh();
+                }
+            }
+            
+            // Load canon data and render
+            try {
+                const [world, canonEntries, dreamers] = await Promise.all([
+                    fetch('/api/world').then(r => r.json()),
+                    fetch('/api/canon').then(r => r.json()),
+                    fetch('/api/dreamers').then(r => r.json())
+                ]);
+                
+                // Handle empty or invalid data gracefully
+                const validWorld = world || { epoch: Date.now() / 1000, keeper: "unknown", keeper_did: "", color: "#734ba1" };
+                const validCanonEntries = Array.isArray(canonEntries) ? canonEntries : [];
+                const validDreamers = Array.isArray(dreamers) ? dreamers : [];
+                
+                // Apply color to Load More button
+                const coreColor = validWorld.color || '#734ba1';
+                const mindscapeLoadMoreBtn = document.getElementById('mindscape-load-more-btn');
+                if (mindscapeLoadMoreBtn) {
+                    mindscapeLoadMoreBtn.style.background = `linear-gradient(90deg, ${coreColor}22 0%, ${coreColor}44 100%)`;
+                    mindscapeLoadMoreBtn.style.color = coreColor;
+                    mindscapeLoadMoreBtn.style.borderColor = `${coreColor}88`;
+                    
+                    mindscapeLoadMoreBtn.onmouseover = function() {
+                        this.style.background = `${coreColor}44`;
+                        this.style.color = '#fff';
+                    };
+                    mindscapeLoadMoreBtn.onmouseout = function() {
+                        this.style.background = `linear-gradient(90deg, ${coreColor}22 0%, ${coreColor}44 100%)`;
+                        this.style.color = coreColor;
+                    };
+                }
+                
+                const logContent = document.getElementById('mindscape-log-content');
+                const dreamerMap = validDreamers.reduce((acc, dreamer) => {
+                    acc[dreamer.did] = dreamer.name;
+                    return acc;
+                }, {});
+
+                // Group and process entries
+                const processedEntries = [];
+                const discoveryEntries = validCanonEntries.filter(entry => 
+                    entry.epoch === 0 && entry.event === "discovered our wild mindscape"
+                );
+                const otherEntries = validCanonEntries.filter(entry => 
+                    !(entry.epoch === 0 && entry.event === "discovered our wild mindscape")
+                );
+
+                // Add merged discovery entry if there are any
+                if (discoveryEntries.length > 0) {
+                    const discoverers = discoveryEntries.map(entry => 
+                        dreamerMap[entry.did] || "Unknown"
+                    ).filter((name, index, arr) => arr.indexOf(name) === index);
+                    
+                    processedEntries.push({
+                        event: "discovered our wild mindscape",
+                        discoverers: discoverers,
+                        epoch: 0,
+                        isGrouped: true
+                    });
+                }
+
+                // Add other entries
+                processedEntries.push(...otherEntries);
+
+                // Sort by epoch (descending)
+                processedEntries.sort((a, b) => b.epoch - a.epoch);
+
+                // Handle empty canon
+                if (processedEntries.length === 0) {
+                    logContent.innerHTML = '<div class="log-entry" style="text-align: center; font-style: italic; color: #999; padding: 20px; background: #f5f5f5; border: 1px solid #e8e8e8; margin-bottom: 10px;">No canon entries found.</div>';
+                    return;
+                }
+
+                // Pagination logic
+                let entriesShown = 15;
+                function renderLogEntries() {
+                    logContent.innerHTML = '';
+                    processedEntries.slice(0, entriesShown).forEach((entry, index) => {
+                        const logEntry = document.createElement('div');
+                        logEntry.className = 'log-entry';
+                        logEntry.style.backgroundColor = index % 2 === 0 ? '#f0f0f0' : '#ffffff';
+                        logEntry.style.padding = '3px 8px';
+                        logEntry.style.borderBottom = '1px solid #e8e8e8';
+                        logEntry.style.fontFamily = 'monospace';
+                        logEntry.style.fontSize = '0.85rem';
+                        logEntry.style.lineHeight = '1.3';
+                        logEntry.style.marginLeft = '8px';
+                        logEntry.style.textAlign = 'left';
+
+                        if (entry.isGrouped) {
+                            logEntry.style.backgroundColor = '#f5f5f5';
+                            logEntry.style.textAlign = 'center';
+                            logEntry.style.borderTop = '1px solid white';
+                            const discovererLinks = entry.discoverers.map(name => {
+                                const dreamer = validDreamers.find(d => d.name === name);
+                                const did = dreamer ? dreamer.did : '';
+                                return did ? `<a href="/dreamer?did=${encodeURIComponent(did)}">${name}</a>` : name;
+                            }).join(' ');
+                            logEntry.innerHTML = `<span><strong>our wild mindscape begins</strong><div style="margin: 3px 20px;">${discovererLinks}</div><strong>are first to explore</strong></span>`;
+                        } else {
+                            const name = dreamerMap[entry.did] || "Unknown";
+                            const did = entry.did || '';
+                            const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}">${name}</a>` : name;
+                            let eventLink = entry.event;
+                            if (entry.url && entry.url.trim()) {
+                                eventLink = `<a href="${entry.url}" target="_blank">${entry.event}</a>`;
+                            } else if (entry.uri && entry.uri.trim() && entry.uri.startsWith('/')) {
+                                eventLink = `<a href="${entry.uri}">${entry.event}</a>`;
+                            }
+                            let postIdElement = '';
+                            if (entry.uri && entry.uri.trim()) {
+                                if (entry.uri.startsWith('stripe:')) {
+                                    const sessionCode = entry.uri.substring(7);
+                                    const isMobile = window.innerWidth <= 600;
+                                    const postIdStyle = isMobile ?
+                                        'display: block; margin-top: 5px; text-align: right; font-family: monospace; font-size: 0.7em; color: #ccc; cursor: pointer; text-decoration: none;' :
+                                        'float: right; font-family: monospace; font-size: 0.8em; color: #ccc; cursor: pointer; text-decoration: none;';
+                                    
+                                    if (entry.url && entry.url.startsWith('/')) {
+                                        postIdElement = `<a href="${entry.url}" style="${postIdStyle}" onmouseover="this.style.color='#999'" onmouseout="this.style.color='#ccc'">${sessionCode}</a>`;
+                                    } else {
+                                        postIdElement = `<code style="${postIdStyle.replace('cursor: pointer;', 'cursor: default;')}">${sessionCode}</code>`;
+                                    }
+                                } else {
+                                    const uriParts = entry.uri.split('/');
+                                    const lastPart = uriParts[uriParts.length - 1];
+                                    if (lastPart) {
+                                        const atprotoUrl = `https://atproto-browser.vercel.app/at/${entry.uri}`;
+                                        const isMobile = window.innerWidth <= 600;
+                                        const postIdStyle = isMobile ?
+                                            'display: block; margin-top: 5px; text-align: right; font-family: monospace; font-size: 0.7em; color: #ccc; cursor: pointer; text-decoration: none;' :
+                                            'float: right; font-family: monospace; font-size: 0.8em; color: #ccc; cursor: pointer; text-decoration: none;';
+                                        postIdElement = `<code style="${postIdStyle}" onmouseover="this.style.color='#999'" onmouseout="this.style.color='#ccc'" onclick="window.open('${atprotoUrl}', '_blank')">${lastPart}</code>`;
+                                    }
+                                }
+                            }
+                            logEntry.innerHTML = `<span>${nameLink} ${eventLink}</span>${postIdElement}`;
+                        }
+                        logContent.appendChild(logEntry);
+                    });
+                    
+                    // Show/hide Load More button
+                    const btn = document.getElementById('mindscape-load-more-btn');
+                    if (btn) {
+                        if (processedEntries.length > entriesShown) {
+                            btn.style.display = 'inline-block';
+                        } else {
+                            btn.style.display = 'none';
+                        }
+                    }
+                }
+
+                renderLogEntries();
+                
+                // Load More button handler (reuse the button reference from above)
+                if (mindscapeLoadMoreBtn) {
+                    mindscapeLoadMoreBtn.onclick = function() {
+                        entriesShown += 15;
+                        renderLogEntries();
+                    };
+                }
+
+                // Populate user listing box
+                const userListingContent = document.getElementById('mindscape-user-listing-content');
+                const sortedDreamers = validDreamers
+                    .filter(dreamer => dreamer.name)
+                    .sort((a, b) => (b.arrival || 0) - (a.arrival || 0));
+                    
+                if (sortedDreamers.length > 0) {
+                    const userLinks = sortedDreamers.map(dreamer => {
+                        return `<a href="/dreamer?name=${encodeURIComponent(dreamer.name)}">${dreamer.name}</a>`;
+                    }).join(' ');
+                    userListingContent.innerHTML = userLinks;
+                } else {
+                    userListingContent.innerHTML = '<em style="color: #999;">No dreamers found</em>';
+                }
+            } catch (error) {
+                console.error('Error loading mindscape data:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; color: #c00; padding: 40px;">
+                        Error loading mindscape data. Please try again.
+                    </div>
+                `;
+            }
+        }
+
+        // Historical Spectrum Viewer
+        let currentSnapshotIndex = 0;
+        let snapshotsData = [];
+        let snapshotCache = new Map(); // Cache loaded snapshot data
+        let totalSnapshotCount = 0;
+        let historicalSpectrum = null;
+        
+        async function renderHistoricalSpectrum(snapshots, container) {
+            // Don't clean up viewer here - it will be recreated if needed
+            // The viewer stays alive across snapshot changes
+            
+            if (snapshots.length === 0) {
+                // Clean up if no snapshots
+                if (historicalSpectrum) {
+                    historicalSpectrum.stopAnimation();
+                    historicalSpectrum = null;
+                }
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-dim); padding: 40px;">
+                        No spectrum snapshots available yet.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort by epoch (oldest to newest) for consistent indexing
+            snapshotsData = snapshots.sort((a, b) => a.epoch - b.epoch);
+            totalSnapshotCount = snapshotsData.length;
+            
+            // Start at midpoint
+            const midpoint = Math.floor(totalSnapshotCount / 2);
+            currentSnapshotIndex = midpoint;
+            
+            // Clear cache when reloading
+            snapshotCache.clear();
+            
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 32px 20px; background: var(--bg-page);">
+                    <div style="width: 100%; max-width: 900px; background: white; border: 2px solid #d0c7f0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+                        <!-- Spectrum Canvas Container -->
+                        <div style="padding: 24px; text-align: center; border-bottom: 1px solid #e8e6f5;">
+                            <h3 id="snapshotTitle" style="margin: 0 0 8px 0; color: var(--primary); font-size: 1.1rem; font-weight: 600;">Spectrum Records</h3>
+                            <div id="snapshotInfo" style="color: #666; font-size: 0.85rem;">
+                                <span id="snapshotTime"></span> | 
+                                <span id="snapshotDreamers"></span> | 
+                                <span id="snapshotAvgDist"></span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: center; padding: 24px; background: #fafafa;">
+                            <canvas id="historicalSpectrumCanvas" width="600" height="600" 
+                                    style="border: 1px solid #e8e6f5; background: #faf7ff; cursor: grab;"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline Slider -->
+                    <div style="width: 100%; max-width: 900px; background: white; border: 2px solid #d0c7f0; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+                        <!-- Overview Timeline (Full Range) -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="font-size: 0.75rem; font-weight: 600; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Timeline
+                            </div>
+                            <div style="position: relative; height: 40px; background: #fafafa; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                                <!-- Full timeline bar -->
+                                <canvas id="overviewCanvas" style="position: absolute; width: 100%; height: 100%; cursor: pointer;"></canvas>
+                                
+                                <!-- Draggable window selector -->
+                                <div id="timelineWindow" style="position: absolute; height: 100%; background: rgba(107, 79, 161, 0.2); border-left: 2px solid var(--primary); border-right: 2px solid var(--primary); cursor: grab;">
+                                    <!-- Current position indicator (hard post) - grabbable -->
+                                    <div id="currentPositionPost" style="position: absolute; top: 0; bottom: 0; width: 12px; background: var(--primary); cursor: grab; transform: translateX(-50%); z-index: 10;"></div>
+                                    
+                                    <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; background: rgba(107, 79, 161, 0.4);" class="resize-handle-left"></div>
+                                    <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; background: rgba(107, 79, 161, 0.4);" class="resize-handle-right"></div>
+                                </div>
+                            </div>
+                            <div id="overviewRange" style="margin-top: 5px; font-size: 0.7rem; color: #999; display: flex; justify-content: space-between;">
+                                <span id="overviewStart"></span>
+                                <span id="overviewEnd"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Detail Timeline (Windowed Range) -->
+                        <div>
+                            <div style="position: relative; padding: 10px 0;">
+                                <input type="range" id="detailSlider" min="0" max="100" 
+                                       value="100" 
+                                       style="width: 100%; cursor: pointer;" />
+                                <div id="detailNotches" style="display: flex; justify-content: space-between; margin-top: 5px; padding: 0 5px;">
+                                    <!-- Detail notches will be added dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Experimental Notice -->
+                    <div style="width: 100%; max-width: 900px; text-align: center; padding: 20px; color: #999; font-size: 0.75rem; font-style: italic;">
+                        This is an experimental feature for reviewing historical spectrum data.
+                    </div>
+                </div>
+            `;
+            
+            // Load spectrum-timeline.js library
+            console.log('📊 [Database] Loading spectrum-timeline.js...');
+            console.log('📊 [Database] window.SpectrumTimelineViewer exists?', typeof window.SpectrumTimelineViewer !== 'undefined');
+            
+            if (!window.SpectrumTimelineViewer) {
+                await loadScript('/js/widgets/spectrum-timeline.js');
+                console.log('📊 [Database] spectrum-timeline.js loaded, SpectrumTimelineViewer available?', typeof window.SpectrumTimelineViewer !== 'undefined');
+            }
+            
+            // Wait for next animation frame to ensure DOM is fully laid out
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
+            // Setup two-tiered timeline controls
+            const detailSlider = document.getElementById('detailSlider');
+            const overviewCanvas = document.getElementById('overviewCanvas');
+            const timelineWindow = document.getElementById('timelineWindow');
+            
+            // Window state: defines which subset of snapshots is visible in detail view
+            // Center the window around the midpoint (currentSnapshotIndex was set above)
+            const windowSizeDefault = Math.min(20, totalSnapshotCount);
+            let windowStart = Math.max(0, currentSnapshotIndex - Math.floor(windowSizeDefault / 2));
+            let windowSize = windowSizeDefault;
+            let windowEnd = Math.min(totalSnapshotCount - 1, windowStart + windowSize - 1);
+            
+            // Dragging state
+            let isDraggingWindow = false;
+            let isDraggingLeftHandle = false;
+            let isDraggingRightHandle = false;
+            let isDraggingPost = false;
+            let dragStartX = 0;
+            let dragStartWindowStart = 0;
+            let dragStartWindowEnd = 0;
+            let dragStartSnapshotIndex = 0;
+            
+            // Initialize overview canvas
+            const initOverviewCanvas = () => {
+                const container = overviewCanvas.parentElement;
+                const rect = container.getBoundingClientRect();
+                overviewCanvas.width = rect.width;
+                overviewCanvas.height = rect.height;
+                drawOverview();
+                updateWindowPosition();
+            };
+            
+            // Draw the overview timeline with activity visualization
+            const drawOverview = () => {
+                const ctx = overviewCanvas.getContext('2d');
+                const width = overviewCanvas.width;
+                const height = overviewCanvas.height;
+                
+                ctx.clearRect(0, 0, width, height);
+                
+                // Simple bar for each snapshot
+                const barWidth = Math.max(1, width / totalSnapshotCount);
+                
+                snapshotsData.forEach((snapshot, i) => {
+                    const x = (i / totalSnapshotCount) * width;
+                    const barHeight = 20;
+                    
+                    // Simple gray bars
+                    ctx.fillStyle = 'rgba(200, 200, 200, 0.6)';
+                    ctx.fillRect(x, (height - barHeight) / 2, barWidth, barHeight);
+                });
+            };
+            
+            // Update window position and size on overview
+            const updateWindowPosition = () => {
+                const container = overviewCanvas.parentElement;
+                const width = container.offsetWidth;
+                
+                const startPercent = (windowStart / totalSnapshotCount) * 100;
+                const endPercent = ((windowEnd + 1) / totalSnapshotCount) * 100; // +1 to make it inclusive
+                const widthPercent = endPercent - startPercent;
+                
+                timelineWindow.style.left = startPercent + '%';
+                timelineWindow.style.width = widthPercent + '%';
+                
+                // Update current position indicator (hard post)
+                const positionInWindow = (currentSnapshotIndex - windowStart) / (windowEnd - windowStart);
+                const postPosition = Math.max(0, Math.min(100, positionInWindow * 100));
+                document.getElementById('currentPositionPost').style.left = postPosition + '%';
+                
+                // Update overview range labels
+                const startDate = new Date(snapshotsData[windowStart].epoch * 1000);
+                const endDate = new Date(snapshotsData[windowEnd].epoch * 1000);
+                document.getElementById('overviewStart').textContent = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                document.getElementById('overviewEnd').textContent = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                // Redraw notches for detail view
+                updateDetailNotches();
+            };
+            
+            // Update detail slider notches based on current window
+            const updateDetailNotches = () => {
+                const notchesContainer = document.getElementById('detailNotches');
+                if (!notchesContainer) return;
+                
+                notchesContainer.innerHTML = '';
+                
+                const windowSnapshots = windowEnd - windowStart + 1;
+                const maxNotches = Math.min(10, windowSnapshots);
+                const step = Math.max(1, Math.floor(windowSnapshots / maxNotches));
+                
+                for (let i = 0; i < windowSnapshots; i += step) {
+                    const actualIndex = windowStart + i;
+                    const snapshot = snapshotsData[actualIndex];
+                    const date = new Date(snapshot.epoch * 1000);
+                    
+                    // Adaptive formatting
+                    let dateStr;
+                    if (windowSnapshots <= 24) {
+                        // Show hour:minute for small windows
+                        dateStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    } else if (windowSnapshots <= 100) {
+                        // Show day/month
+                        dateStr = `${date.getDate()}/${date.getMonth() + 1}`;
+                    } else {
+                        // Show month/year
+                        dateStr = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                    }
+                    
+                    const notch = document.createElement('div');
+                    notch.style.cssText = 'display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; color: #999;';
+                    notch.innerHTML = `
+                        <div style="width: 2px; height: 8px; background: #999; margin-bottom: 2px;"></div>
+                        <div>${dateStr}</div>
+                    `;
+                    notchesContainer.appendChild(notch);
+                }
+            };
+            
+            // Map detail slider position to snapshot index within window
+            const detailPercentageToIndex = (percentage) => {
+                const position = percentage / 100;
+                const windowIndex = Math.round(position * (windowEnd - windowStart));
+                return windowStart + windowIndex;
+            };
+            
+            const indexToDetailPercentage = (index) => {
+                if (index < windowStart) index = windowStart;
+                if (index > windowEnd) index = windowEnd;
+                const windowIndex = index - windowStart;
+                const position = windowIndex / (windowEnd - windowStart);
+                return Math.round(position * 100);
+            };
+            
+            // Detail slider events - only update detail slider position, not the snapshot selection
+            detailSlider.addEventListener('input', (e) => {
+                const percentage = parseInt(e.target.value);
+                const index = detailPercentageToIndex(percentage);
+                
+                // Update current snapshot
+                currentSnapshotIndex = index;
+                
+                // Update the hard post position
+                updateWindowPosition();
+                
+                loadSnapshotAtIndex(currentSnapshotIndex);
+            });
+            
+            // Window dragging
+            timelineWindow.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('resize-handle-left')) {
+                    isDraggingLeftHandle = true;
+                    dragStartX = e.clientX;
+                    dragStartWindowStart = windowStart;
+                    e.stopPropagation();
+                } else if (e.target.classList.contains('resize-handle-right')) {
+                    isDraggingRightHandle = true;
+                    dragStartX = e.clientX;
+                    dragStartWindowEnd = windowEnd;
+                    e.stopPropagation();
+                } else if (e.target.id === 'currentPositionPost') {
+                    isDraggingPost = true;
+                    dragStartX = e.clientX;
+                    dragStartWindowStart = windowStart;
+                    dragStartWindowEnd = windowEnd;
+                    dragStartSnapshotIndex = currentSnapshotIndex;
+                    e.target.style.cursor = 'grabbing';
+                    e.stopPropagation();
+                } else {
+                    isDraggingWindow = true;
+                    dragStartX = e.clientX;
+                    dragStartWindowStart = windowStart;
+                    dragStartWindowEnd = windowEnd;
+                    timelineWindow.style.cursor = 'grabbing';
+                }
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDraggingWindow && !isDraggingLeftHandle && !isDraggingRightHandle && !isDraggingPost) return;
+                
+                const container = overviewCanvas.parentElement;
+                const containerWidth = container.offsetWidth;
+                const deltaX = e.clientX - dragStartX;
+                const deltaIndex = Math.round((deltaX / containerWidth) * totalSnapshotCount);
+                
+                if (isDraggingWindow) {
+                    // Calculate proposed new window position
+                    const windowWidth = dragStartWindowEnd - dragStartWindowStart;
+                    let newStart = dragStartWindowStart + deltaIndex;
+                    let newEnd = dragStartWindowEnd + deltaIndex;
+                    
+                    // Hard constraint: don't allow window to move past current position
+                    // The "hard post" stays fixed relative to the absolute timeline
+                    if (currentSnapshotIndex < newStart) {
+                        // Window trying to move past post on the left - clamp it
+                        newStart = currentSnapshotIndex;
+                        newEnd = newStart + windowWidth;
+                    } else if (currentSnapshotIndex > newEnd) {
+                        // Window trying to move past post on the right - clamp it
+                        newEnd = currentSnapshotIndex;
+                        newStart = newEnd - windowWidth;
+                    }
+                    
+                    // Clamp to valid range
+                    if (newStart < 0) {
+                        newStart = 0;
+                        newEnd = windowWidth;
+                    }
+                    if (newEnd >= totalSnapshotCount) {
+                        newEnd = totalSnapshotCount - 1;
+                        newStart = newEnd - windowWidth;
+                    }
+                    
+                    windowStart = newStart;
+                    windowEnd = newEnd;
+                    
+                    // Update detail slider position to reflect current position within new window
+                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
+                    
+                } else if (isDraggingLeftHandle) {
+                    // Resize from left - don't allow resizing past current position
+                    let newStart = Math.max(0, Math.min(currentSnapshotIndex, dragStartWindowStart + deltaIndex));
+                    
+                    // Minimum window size of 2
+                    if (windowEnd - newStart < 1) {
+                        newStart = windowEnd - 1;
+                    }
+                    
+                    windowStart = newStart;
+                    windowSize = windowEnd - windowStart + 1;
+                    
+                    // Update detail slider position
+                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
+                    
+                } else if (isDraggingRightHandle) {
+                    // Resize from right - don't allow resizing past current position
+                    let newEnd = Math.max(currentSnapshotIndex, Math.min(totalSnapshotCount - 1, dragStartWindowEnd + deltaIndex));
+                    
+                    // Minimum window size of 2
+                    if (newEnd - windowStart < 1) {
+                        newEnd = windowStart + 1;
+                    }
+                    
+                    windowEnd = newEnd;
+                    windowSize = windowEnd - windowStart + 1;
+                    
+                    // Update detail slider position
+                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
+                    
+                } else if (isDraggingPost) {
+                    // Dragging the post moves both the window and the current position together
+                    // Keep window width constant
+                    const windowWidth = dragStartWindowEnd - dragStartWindowStart;
+                    let newSnapshotIndex = dragStartSnapshotIndex + deltaIndex;
+                    
+                    // Clamp to valid range
+                    newSnapshotIndex = Math.max(0, Math.min(totalSnapshotCount - 1, newSnapshotIndex));
+                    
+                    // Calculate window position to keep same relative position of post
+                    const relativePostPosition = (dragStartSnapshotIndex - dragStartWindowStart) / windowWidth;
+                    let newStart = Math.round(newSnapshotIndex - (relativePostPosition * windowWidth));
+                    let newEnd = newStart + windowWidth;
+                    
+                    // Adjust if we hit boundaries while maintaining window width
+                    if (newStart < 0) {
+                        newStart = 0;
+                        newEnd = windowWidth;
+                    }
+                    if (newEnd >= totalSnapshotCount) {
+                        newEnd = totalSnapshotCount - 1;
+                        newStart = newEnd - windowWidth;
+                    }
+                    
+                    windowStart = newStart;
+                    windowEnd = newEnd;
+                    currentSnapshotIndex = newSnapshotIndex;
+                    
+                    // Update detail slider position
+                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
+                    
+                    // Load the new snapshot
+                    loadSnapshotAtIndex(currentSnapshotIndex);
+                }
+                
+                updateWindowPosition();
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isDraggingWindow = false;
+                isDraggingLeftHandle = false;
+                isDraggingRightHandle = false;
+                isDraggingPost = false;
+                timelineWindow.style.cursor = 'grab';
+                document.getElementById('currentPositionPost').style.cursor = 'grab';
+            });
+            
+            // Click on overview to jump window
+            overviewCanvas.addEventListener('click', (e) => {
+                if (isDraggingWindow || isDraggingLeftHandle || isDraggingRightHandle || isDraggingPost) return;
+                
+                const rect = overviewCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const clickPercent = x / rect.width;
+                const clickIndex = Math.round(clickPercent * (totalSnapshotCount - 1));
+                
+                // Center window on clicked position
+                const halfWindow = Math.floor(windowSize / 2);
+                windowStart = Math.max(0, Math.min(totalSnapshotCount - windowSize, clickIndex - halfWindow));
+                windowEnd = windowStart + windowSize - 1;
+                
+                // Jump to that snapshot
+                currentSnapshotIndex = clickIndex;
+                detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
+                
+                updateWindowPosition();
+                loadSnapshotAtIndex(currentSnapshotIndex);
+            });
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (currentTable !== 'spectrum_snapshots') return;
+                
+                if (e.key === 'ArrowLeft' && currentSnapshotIndex > 0) {
+                    e.preventDefault();
+                    currentSnapshotIndex--;
+                    
+                    // Auto-scroll window if we move outside current window
+                    if (currentSnapshotIndex < windowStart) {
+                        windowEnd = windowStart;
+                        windowStart = Math.max(0, windowStart - windowSize);
+                        windowEnd = windowStart + windowSize - 1;
+                        updateWindowPosition();
+                    }
+                    
+                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
+                    loadSnapshotAtIndex(currentSnapshotIndex);
+                } else if (e.key === 'ArrowRight' && currentSnapshotIndex < totalSnapshotCount - 1) {
+                    e.preventDefault();
+                    currentSnapshotIndex++;
+                    
+                    // Auto-scroll window if we move outside current window
+                    if (currentSnapshotIndex > windowEnd) {
+                        windowStart = windowEnd;
+                        windowEnd = Math.min(totalSnapshotCount - 1, windowEnd + windowSize);
+                        windowStart = windowEnd - windowSize + 1;
+                        updateWindowPosition();
+                    }
+                    
+                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
+                    loadSnapshotAtIndex(currentSnapshotIndex);
+                }
+            });
+            
+            // Initialize
+            initOverviewCanvas();
+            window.addEventListener('resize', () => {
+                initOverviewCanvas();
+            });
+            
+            // Add timeline notches (show every 10th or proportional)
+            updateDetailNotches();
+            
+            // Load initial snapshot at midpoint
+            currentSnapshotIndex = Math.floor(totalSnapshotCount / 2);
+            detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
+            loadSnapshotAtIndex(currentSnapshotIndex);
+        }
+        
+        function addTimelineNotches() {
+            // This function is replaced by updateDetailNotches in two-tier system
+            // Keeping for compatibility but it does nothing
+        }
+        
+        async function loadSnapshotAtIndex(index) {
+            const snapshot = snapshotsData[index];
+            if (!snapshot) return;
+            
+            // Check cache first for instant loading
+            if (snapshotCache.has(snapshot.id)) {
+                const cachedData = snapshotCache.get(snapshot.id);
+                renderCachedSnapshot(snapshot, cachedData);
+                return;
+            }
+            
+            // Show loading state
+            document.getElementById('snapshotTitle').textContent = `Spectrum Records`;
+            
+            // Fetch full snapshot data
+            try {
+                const response = await fetch(`/api/database/snapshot/${snapshot.id}`);
+                const fullSnapshot = await response.json();
+                
+                if (!fullSnapshot || !fullSnapshot.data) {
+                    console.error('Failed to load snapshot data');
+                    return;
+                }
+                
+                // Cache the loaded data
+                snapshotCache.set(snapshot.id, fullSnapshot);
+                
+                // Render
+                renderCachedSnapshot(snapshot, fullSnapshot);
+                
+                // Preload adjacent snapshots for smoother navigation
+                preloadAdjacentSnapshots(index);
+                
+            } catch (error) {
+                console.error('Error loading snapshot:', error);
+                document.getElementById('snapshotTitle').textContent = `Error loading snapshot #${snapshot.id}`;
+            }
+        }
+        
+        function renderCachedSnapshot(snapshot, fullSnapshot) {
+            const data = fullSnapshot.data;
+            const stats = data.statistics || {};
+            
+            // Update info with cleaner formatting
+            const date = new Date(fullSnapshot.epoch * 1000);
+            const dateStr = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+            const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+            
+            document.getElementById('snapshotTitle').textContent = `Spectrum Records`;
+            document.getElementById('snapshotTime').textContent = `${dateStr}, ${timeStr}`;
+            document.getElementById('snapshotDreamers').textContent = `${data.total_dreamers} dreamers`;
+            document.getElementById('snapshotAvgDist').textContent = `Avg distance: ${stats.avg_distance_from_origin?.toFixed(2) || 0}`;
+            
+            // Render spectrum
+            renderHistoricalSpectrumCanvas(data.dreamers);
+        }
+        
+        async function preloadAdjacentSnapshots(currentIndex) {
+            // Preload previous and next snapshots for instant navigation
+            const toPreload = [];
+            
+            if (currentIndex > 0) {
+                const prev = snapshotsData[currentIndex - 1];
+                if (prev && !snapshotCache.has(prev.id)) {
+                    toPreload.push(prev.id);
+                }
+            }
+            
+            if (currentIndex < totalSnapshotCount - 1) {
+                const next = snapshotsData[currentIndex + 1];
+                if (next && !snapshotCache.has(next.id)) {
+                    toPreload.push(next.id);
+                }
+            }
+            
+            // Load in background
+            for (const id of toPreload) {
+                try {
+                    const response = await fetch(`/api/database/snapshot/${id}`);
+                    const fullSnapshot = await response.json();
+                    if (fullSnapshot && fullSnapshot.data) {
+                        snapshotCache.set(id, fullSnapshot);
+                    }
+                } catch (error) {
+                    // Silently fail preload
+                }
+            }
+            
+            // Limit cache size to prevent memory issues
+            if (snapshotCache.size > 50) {
+                // Remove oldest entries (simple LRU approximation)
+                const keys = Array.from(snapshotCache.keys());
+                for (let i = 0; i < 20; i++) {
+                    snapshotCache.delete(keys[i]);
+                }
+            }
+        }
+        
+        async function renderHistoricalSpectrumCanvas(dreamers) {
+            const canvas = document.getElementById('historicalSpectrumCanvas');
+            if (!canvas) {
+                console.error('❌ Historical spectrum canvas not found');
+                return;
+            }
+            
+            // Ensure canvas has proper dimensions before initializing
+            // Check both internal dimensions and computed style
+            const computedStyle = window.getComputedStyle(canvas);
+            const displayWidth = parseInt(computedStyle.width) || 600;
+            const displayHeight = parseInt(computedStyle.height) || 600;
+            
+            if (canvas.width === 0 || canvas.height === 0 || displayWidth === 0 || displayHeight === 0) {
+                console.log('📐 Setting canvas dimensions...');
+                canvas.width = 600;
+                canvas.height = 600;
+            }
+            
+            console.log('📐 Canvas ready:', canvas.width, 'x', canvas.height, 'Display:', displayWidth, 'x', displayHeight);
+            
+            // Convert dreamers data to format expected by SpectrumTimelineViewer
+            const spectrumData = dreamers.map(d => {
+                if (!d.coordinates || !d.spectrum) return null;
+                
+                return {
+                    did: d.did,
+                    handle: d.handle,
+                    name: d.name,
+                    x: d.coordinates.x,
+                    y: d.coordinates.y,
+                    z: d.coordinates.z,
+                    spectrum: {
+                        entropy: d.spectrum.entropy,
+                        oblivion: d.spectrum.oblivion,
+                        liberty: d.spectrum.liberty,
+                        authority: d.spectrum.authority,
+                        receptive: d.spectrum.receptive,
+                        skeptic: d.spectrum.skeptic
+                    },
+                    heading: d.heading
+                };
+            }).filter(d => d !== null);
+            
+            console.log('📊 Spectrum data ready:', spectrumData.length, 'dreamers');
+            
+            // Initialize or update spectrum visualization
+            // Check if we need to create a new viewer (no viewer exists OR canvas has changed)
+            const needsNewViewer = !historicalSpectrum || !historicalSpectrum.canvas || historicalSpectrum.canvas !== canvas;
+            
+            if (needsNewViewer) {
+                console.log('🎨 Creating new SpectrumTimelineViewer...');
+                
+                // Clean up old viewer if it exists
+                if (historicalSpectrum) {
+                    console.log('🧹 Cleaning up old viewer first');
+                    historicalSpectrum.stopAnimation();
+                }
+                
+                // Wait for canvas to be fully rendered in layout
+                await new Promise(resolve => requestAnimationFrame(() => {
+                    requestAnimationFrame(resolve);
+                }));
+                
+                try {
+                    historicalSpectrum = new window.SpectrumTimelineViewer(canvas, {
+                        showLabels: true,
+                        showAllNames: false,
+                        initialZoom: 1.5,
+                        showControls: false
+                    });
+                    console.log('✅ SpectrumTimelineViewer created successfully');
+                } catch (error) {
+                    console.error('❌ Failed to create SpectrumTimelineViewer:', error);
+                    return;
+                }
+            } else {
+                console.log('♻️ Reusing existing SpectrumTimelineViewer');
+            }
+            
+            // Load the snapshot data
+            console.log('📥 Loading snapshot data into viewer...');
+            historicalSpectrum.loadSnapshot(spectrumData);
+            console.log('✅ Snapshot loaded');
+        }
+        
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+    </script>
+
+</body>
+</html>
+
