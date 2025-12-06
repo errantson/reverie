@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quests - Reverie House</title>
+    <link rel="stylesheet" href="/css/base.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    
+    <!-- Core utilities (must load first) -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    
+    <!-- Header and drawer widgets -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    
+    <style>
+        :root {
+            --card-bg: #ffffff;
+            --card-border: #e5e5e5;
+            --text-primary: #171717;
+            --text-secondary: #6b7280;
+            --text-dim: #9ca3af;
+            --hover-bg: #f9fafb;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/quests.css">
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <div class="page-layout">
+        <!-- Section 1: Origin Carousel (rotating gallery) -->
+        <div class="origin-section">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                <h2 style="margin: 0; font-size: 1.2rem; color: var(--text-primary);">Quest Activity</h2>
+                <button class="create-quest-btn" id="create-quest-btn-top" style="margin: 0; width: auto; padding: 0.5rem 1rem; font-size: 0.8rem; display: block;" onclick="createBlankQuest()">+ Create New Quest</button>
+            </div>
+            <div class="carousel-controls">
+                <!-- Mini preview cards above slider -->
+                <div class="carousel-mini-previews" id="carousel-mini-previews">
+                    <!-- Mini cards will be inserted here -->
+                </div>
+                
+                <!-- Slider below -->
+                <div class="carousel-slider" id="carousel-slider">
+                    <div class="carousel-slider-track"></div>
+                    <div class="carousel-slider-notch" id="carousel-notch"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Main Window - Post Preview -->
+        <div class="post-section">
+            <div class="post-preview">
+                <div class="post-preview-art" id="post-preview-art">
+                    <div class="no-image">📝</div>
+                </div>
+                <div class="post-preview-details" id="post-preview-details">
+                    <div class="loading">Select an origin to view details...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Quest Cards (sorted: recent active -> old disabled) -->
+        <div class="quest-section">
+            <div id="loading" class="loading">Loading quests...</div>
+            <div id="error" style="display: none;" class="error"></div>
+            <div class="quest-cards" id="quest-cards" style="display: none;">
+                <!-- Quest cards will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/quests.js"></script>
+</body>
+</html>

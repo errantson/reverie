@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Personal Data Server</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #fff;
+            color: #000;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            line-height: 1.4;
+            text-align: center;
+        }
+        pre {
+            margin: 0;
+            font-family: monospace;
+            white-space: pre;
+            font-size: 0.7rem;
+            overflow-x: auto;
+            display: inline-block;
+            text-align: left;
+        }
+        .speech-bubble {
+            border: 2px solid #000;
+            padding: 1.5rem;
+            margin: 2rem auto;
+            position: relative;
+            background: #fff;
+            max-width: 600px;
+        }
+        .speech-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 20px solid #000;
+        }
+        .speech-bubble:before {
+            content: '';
+            position: absolute;
+            bottom: -16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 18px solid #fff;
+            z-index: 1;
+        }
+        .title-art {
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .subtitle {
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        .art-box {
+            margin: 2rem 0;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #000;
+            margin: 2rem auto;
+            max-width: 600px;
+        }
+        .info-section {
+            display: inline-block;
+            text-align: left;
+            max-width: 600px;
+        }
+        em {
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="title-art">
+<pre>
+  ██████╗ ██████╗ ██╗   ██╗███████╗██╗███╗   ██╗
+ ██╔════╝██╔═══██╗██║   ██║██╔════╝██║████╗  ██║
+ ██║     ██║   ██║██║   ██║███████╗██║██╔██╗ ██║
+ ██║     ██║   ██║██║   ██║╚════██║██║██║╚██╗██║
+ ╚██████╗╚██████╔╝╚██████╔╝███████║██║██║ ╚████║
+  ╚═════╝ ╚═════╝  ╚═════╝ ╚══════╝╚═╝╚═╝  ╚═══╝
+                                                  
+ ██╗   ██╗ █████╗  ██████╗  █████╗ ██████╗  ██████╗ ███╗   ██╗██████╗ 
+ ██║   ██║██╔══██╗██╔════╝ ██╔══██╗██╔══██╗██╔═══██╗████╗  ██║██╔══██╗
+ ██║   ██║███████║██║  ███╗███████║██████╔╝██║   ██║██╔██╗ ██║██║  ██║
+ ╚██╗ ██╔╝██╔══██║██║   ██║██╔══██║██╔══██╗██║   ██║██║╚██╗██║██║  ██║
+  ╚████╔╝ ██║  ██║╚██████╔╝██║  ██║██████╔╝╚██████╔╝██║ ╚████║██████╔╝
+   ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ 
+</pre>
+</div>
+
+<div class="subtitle">
+    <strong><span id="service-type">Sovereign Identity Guardian</span></strong>
+</div>
+
+<div class="speech-bubble">
+    <p style="text-align: center; font-size: 1.1rem; margin: 0;">
+        <strong>"If you want to get that <span id="insult">bastard</span>'s data,<br>
+        you'll have to go through ME!"</strong>
+    </p>
+</div>
+
+<div class="art-box">
+<pre>
+                                                                                            
+                                                -                                           
+                                         -+*%#=+++++=+++##+*+--                             
+                                      #****+====+++=+====++++++#++-=                        
+                                    %%%%%%#**+==+++++++*++*=+==++*+==%=                     
+                                      #%%%#%%#*++++++++++++======+*++++*                    
+                                         ####%%%%###*###***####%##*#%%%#-                   
+                                          **#%#*+****#%##%%%#%%%#####                       
+                                         +++#*+++==---=*%%%%%%%%%                          
+       -                                  -+%+++=+++++===*%%%%%##%#=                        
+       -*                                 ===###***#####*+**#**#*%##+                       
+        *                                 =#%%*#=-+*##*+=++*****%%%#*                       
+        **                                ==#%**+==+**++++**###%%##*+=                      
+        -*                                *-##**+===***++**##*##%*#*++*                     
+         **                             =-++**#*####++=***##%#%%%%##*=+=                    
+          **                            -=*=+###*#%%#***#%*#%##%###*+*=                     
+          **                             ---==*###*##***###%##*#%%##*=#                     
+           **                              -=--+########*#%%####%%##**++=                   
+           **                                 ==+###+*%##*%%###%%%#****+++++++              
+            **                               *#*#####%##*#%**##%##**++++++++++++++          
+            **                             **######%#*%#**%#%%%#+++++++*++++++++*++         
+             **                           ###*####%%%%###*#####+++*++*+++++**+++++++        
+             **=                         ##%#**%##%%%%###+#%##++++++*++**+**++*+#++++*      
+              **                        ###*######+*##****#%#++++++**+***###*+*+*#+%+%+     
+              **=                       ###**##*#%%%#####***++++++**++**##*+*#*+#+*++#%%    
+               **                      #*##**#######%####=**+++******+##%*#*+*#%##*=*%%++   
+               **=                    =#*#%##**####*####***+*********+%***#%+++%%+++**+*+   
+                **-                   *############*#####****+******+*####%#*%+%++++++++#   
+                **+=                 **###*##%%#***##*###*************%*#%%#+#%+*****++++*  
+                 **+=               +########%%#+***%#*%**#***#******%##%%%##*+*+**+++*+++  
+                 **#+==            =*%#####%#%#%++####***********#*#*%%%%%@#%+*#*#+#*+*++*  
+                 ==-*++===         ###########%#=%##+#****##+#*****##%%%%*#%+**+++==+**+++  
+                 ##**#++++****+***+###%%######%%###==****##*********#%%%%#%**#++++*****+*+  
+                ***+++#****###################%*#%#==**####*#*+**##*#%%%%************+***** 
+                ****=+=+++############%#%#######==#+%***#####*#*##**%%#%*##*#*%%%#+*++****+ 
+                =******=++#%############*%#*##%#*#*##**#####***##%###%%*#****#***++*++#***+ 
+                  =+##*%@@%%#######%%#####%#%%+%##=##**######**#*%##%###%####******+**#**** 
+                    %*#%%@%%#####%############+#####***#*#%*#*##*#%#%###########%#*+******* 
+                     ###%@%%%###%%%%%%####%#%=+###%##**###*#*###%%#%%%%%##%%%##*++*#**#*#** 
+                     =**###%%%%%%%%%%%######%#%===%#**###*#*####%#%#%*******++*+**#*#*#***  
+                      +*#=++#%%%%%%%%%#%####%%##*##%#*%#########%#%%%%##*#*##*+##*########  
+                       **=           *#####%%%####%%#*#####%#%%%##+++*++++*#*##***#######*  
+                        *            *#%%##%%%####%*#########%%#*+**+**#*+#****+*#########  
+                                     ##%%%#%%####%%**#*#%##+++**##*++*++*#*#%#%#%%####%#%   
+                                    +*##%##%%###%%%#**#%%+++++==*#*#*+*+++#**##%%%#%###%#   
+                                    #%#%%%%%%####%+++*+*++++++++++++***#*#%%#######%%%#*    
+                                    #%#%%%%%=+++++*+*****+*+****+*++################%#      
+                                   +##%%%%===****+*****#*#*###*##**##################       
+                                   +##%+=---=***#*#*###*##****################%####         
+                                   *###%+====*#***#**####*################%##%#####         
+</pre>
+</div>
+
+<hr>
+
+<div class="info-section">
+<pre>
+================================================================================
+DIRECT IP ACCESS DETECTED
+================================================================================
+
+You've accessed this server via numeric address instead of proper domain name.
+This typically indicates: automated scanning, misconfiguration, or curiosity.
+
+Now you have to taste the deadly katana of Cousin Vagabond...
+
+<span id="visitor-data"></span>
+
+That's right, bucko! We're gonna keep an eye on one another now.
+Everyone's gonna be on their best behaviour. <em>Nothin' personal.</em>
+
+NOW, you wanna get on my good side? <strong>Keep reading...</strong>
+
+-------------------------------------
+|     WHAT IS THIS SERVER?
+-------------------------------------
+This is a Personal Data Server implementing the AT Protocol. It hosts 
+decentralized social identities for bespoke communities. Those who can't 
+reliably house their data need a real box somewhere in the world, with
+someone to protect and maintain it.
+
+<em>That's where I come in!</em>
+
+Je m'appelle Cousin Vagabond, l'élu de Saint-Soulard and the best defense
+these chumps have got right now. So, if you wanna tangle then let's throw 
+down!!! <strong>[draws katana blade]</strong> No? Didn't think so... 
+
+This server believes in digital self-determination. Your identity shouldn't 
+be owned by any corporation, locked in a walled garden, or vulnerable to 
+arbitrary deplatforming, exploitation, and sale. The AT Protocol enables true 
+data portability and user sovereignty, and this is just one node in a vast 
+sea of independent operators.
+
+-------------------------------------
+|     WHY DOES HE DO IT?
+-------------------------------------
+Nobody asked me to do this, but I can, so I did. Someone needed the service.
+
+Now... <em>Here's where it gets interesting...</em>
+
+Everyone inside that server's trusting me a whole lot, and I've got rent to pay.
+
+If my lights go out, so do theirs. Big deal if you're a creative, right? <em>Way worse!!!</em>
+<strong>If I go down, they lose their digital lives.</strong> All their friends, all their memories.
+And they trusted me with it!!! <em>Ahahaha, what a bunch of fools.</em> Too easy, am I right?
+
+But, that's what we already hand over to the corps... <strong>So, how could I be any worse?</strong>
+
+Plus, now we're interested in each outher's survival. <em>Mutual benefits are sought.</em>
+
+-------------------------------------
+|     WHAT SHOULD I DO NOW?
+-------------------------------------
+
+You wanna park in this harbour or share the load?
+<strong>Send me an email.</strong>
+
+You wanna make sure I keep my landlord's next eviction attempt at bay?
+<strong>Go support the projects we host.</strong>
+
+----------------------------------------------------------------------------------
+If you're just looking for a specific person's profile or content, it's a public 
+social network. Just go on the web like a normal human! Stop being a creepy
+cyber-stalker. You know we're only half-joking about the katana... <em>right?</em>
+----------------------------------------------------------------------------------
+
+So, thanks for stopping by!
+Don't come back.
+
+--------------------------------------------------------------------------------
+<span id="server-stats">Loading server stats...</span>
+--------------------------------------------------------------------------------
+</pre>
+</div>
+
+<script>
+// Randomize insult
+const insults = [
+    'bastard', 'bitch', 'bozo', 'bimbo', 'retard', 'moron', 'idiot', 'loser',
+    'criminal', 'terrorist', 'peasant', 'paysan', 'pleeb', 'civilian', 'normie',
+    'slut', 'asshole', 'dipshit', 'retard', 'dick', 'dickhole', 'pussy', 'child',
+    'minor', 'pirate', 'gooner', 'cattle', 'sheep', 'degen', 'freak', 'queer',
+    'foreigner', 'crazy', 'outlaw', 'convict', 'migrant', 'bigot', 'person',
+];
+
+// Randomize service type
+const part1 = ['Cyber', 'Indie', 'Illicit', 'Private', 'Secure', 'Sovereign', 'Personal;'];
+const part2 = ['Crime', 'Game', 'Service', 'Digital', 'Pirate', 'Identity', 'Data'];
+const part3 = ['Server', 'Hosting', 'Hub', 'Network', 'Defense', 'Steward'];
+
+function getRandomItem(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+document.getElementById('insult').textContent = getRandomItem(insults);
+document.getElementById('service-type').textContent = 
+    `${getRandomItem(part1)} ${getRandomItem(part2)} ${getRandomItem(part3)}`;
+
+// Get visitor's actual IP
+async function getVisitorIP() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (e) {
+        return 'Unknown';
+    }
+}
+
+// Comprehensive visitor data collection and logging
+async function collectAndLogVisitorData() {
+    const visitorDataEl = document.getElementById('visitor-data');
+    const timestamp = new Date().toISOString();
+    
+    // Get actual visitor IP
+    const visitorIP = await getVisitorIP();
+    
+    // Collect comprehensive visitor data
+    const data = {
+        timestamp: timestamp,
+        ip: visitorIP,
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        languages: navigator.languages,
+        screen: {
+            width: screen.width,
+            height: screen.height,
+            colorDepth: screen.colorDepth,
+            pixelDepth: screen.pixelDepth,
+            availWidth: screen.availWidth,
+            availHeight: screen.availHeight,
+            orientation: screen.orientation ? screen.orientation.type : 'unknown'
+        },
+        window: {
+            innerWidth: window.innerWidth,
+            innerHeight: window.innerHeight,
+            outerWidth: window.outerWidth,
+            outerHeight: window.outerHeight
+        },
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezoneOffset: new Date().getTimezoneOffset(),
+        locale: Intl.DateTimeFormat().resolvedOptions().locale,
+        referrer: document.referrer || 'Direct access',
+        cookiesEnabled: navigator.cookieEnabled,
+        doNotTrack: navigator.doNotTrack,
+        hardwareConcurrency: navigator.hardwareConcurrency,
+        deviceMemory: navigator.deviceMemory,
+        maxTouchPoints: navigator.maxTouchPoints,
+        vendor: navigator.vendor,
+        connection: navigator.connection ? {
+            effectiveType: navigator.connection.effectiveType,
+            downlink: navigator.connection.downlink,
+            rtt: navigator.connection.rtt,
+            saveData: navigator.connection.saveData
+        } : 'Not available',
+        plugins: Array.from(navigator.plugins).map(p => ({
+            name: p.name,
+            description: p.description,
+            filename: p.filename
+        })),
+        mimeTypes: Array.from(navigator.mimeTypes).map(m => m.type),
+        canvasFingerprint: getCanvasFingerprint(),
+        webglFingerprint: getWebGLFingerprint(),
+        fonts: await detectFonts(),
+        battery: await getBatteryInfo(),
+        permissions: await checkPermissions(),
+        touchSupport: 'ontouchstart' in window,
+        geolocation: 'geolocation' in navigator
+    };
+
+    let displayData = [];
+    displayData.push('\n================================================================================');
+    displayData.push('              UNAUTHORIZED ACCESS DETECTED AND LOGGED');
+    displayData.push('================================================================================');
+    displayData.push('');
+    displayData.push('PROFILE:');
+    displayData.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    displayData.push('Source IP: ' + visitorIP);
+    displayData.push('Geolocation: ' + data.timezone + ' (UTC' + (data.timezoneOffset > 0 ? '-' : '+') + Math.abs(data.timezoneOffset/60) + ')');
+    displayData.push('Device Signature: ' + data.platform + ' [' + (data.hardwareConcurrency || '?') + ' cores]');
+    displayData.push('Screen Dimensions: ' + data.screen.width + 'x' + data.screen.height + 'px @ ' + data.screen.colorDepth + '-bit color');
+    
+    const webgl = data.webglFingerprint;
+    if (webgl && webgl !== 'Not available') {
+        if (webgl.unmaskedRenderer && webgl.unmaskedRenderer !== 'N/A') {
+            const gpu = webgl.unmaskedRenderer.length > 60 ? webgl.unmaskedRenderer.substring(0, 57) + '...' : webgl.unmaskedRenderer;
+            displayData.push('Graphics Hardware: ' + gpu);
+        } else if (webgl.renderer && webgl.renderer !== 'N/A') {
+            const gpu = webgl.renderer.length > 60 ? webgl.renderer.substring(0, 57) + '...' : webgl.renderer;
+            displayData.push('Graphics Hardware: ' + gpu + ' (masked)');
+        }
+    }
+    
+    if (data.connection && data.connection !== 'Not available') {
+        displayData.push('Network Speed: ' + data.connection.effectiveType.toUpperCase() + ' @ ' + data.connection.downlink + ' Mbps (RTT: ' + data.connection.rtt + 'ms)');
+    }
+    
+    displayData.push('');
+    displayData.push('FINGERPRINT:');
+    displayData.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    displayData.push('Browser Fingerprint: ' + data.vendor + ' on ' + data.platform);
+    
+    // Parse out main browser info and Gecko/engine separately
+    let browserMain = data.userAgent;
+    let engineInfo = '';
+    
+    // Extract Gecko or other engine info
+    const geckoMatch = data.userAgent.match(/(Gecko\/[\d]+|AppleWebKit\/[\d.]+|Chrome\/[\d.]+)/);
+    if (geckoMatch) {
+        // Get the part before the engine
+        const parts = data.userAgent.split(geckoMatch[0]);
+        browserMain = parts[0].trim();
+        engineInfo = geckoMatch[0];
+        // Add anything after if it exists
+        if (parts[1]) {
+            browserMain += ' ' + parts[1].trim();
+        }
+    }
+    
+    const ua = browserMain.length > 70 ? browserMain.substring(0, 67) + '...' : browserMain;
+    displayData.push('User-Agent: ' + ua);
+    if (engineInfo) {
+        displayData.push('Engine: ' + engineInfo);
+    }
+    
+    const canvasHash = data.canvasFingerprint ? data.canvasFingerprint.substring(22, 50) : 'UNKNOWN';
+    displayData.push('Canvas ID: ' + canvasHash + '... [TRACKED]');
+    
+    if (data.referrer !== 'Direct access') {
+        displayData.push('');
+        displayData.push('ARRIVAL VECTOR: ' + data.referrer);
+        displayData.push('>>> Tracked your path here. Nice try.');
+    }
+    
+    const battery = data.battery;
+    if (battery && battery !== 'Not available') {
+        displayData.push('');
+        displayData.push('POWER STATUS: ' + Math.round(battery.level * 100) + '% battery remaining');
+        if (!battery.charging && battery.dischargingTime !== Infinity && battery.dischargingTime > 0) {
+            const timeLeft = Math.round(battery.dischargingTime / 60);
+            displayData.push('>>> Your laptop will die in ~' + timeLeft + ' minutes. Might wanna plug in.');
+        } else if (battery.charging) {
+            displayData.push('>>> Currently charging. Smart move.');
+        }
+    }
+    
+    displayData.push('');
+    displayData.push('SESSION INFO:');
+    displayData.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    displayData.push('Timestamp: ' + new Date().toLocaleString('en-CA', { timeZone: data.timezone }));
+    displayData.push('Data Collection: Complete');
+    displayData.push('Retention Period: Indefinite (or until I need disk space)');
+    displayData.push('Shared With: Cousin Vagabond, obviously');
+    displayData.push('Your Privacy Rights: lol');
+    displayData.push('================================================================================\n');
+    
+    visitorDataEl.textContent = displayData.join('\n');
+    
+    // Send to server for logging
+    try {
+        await fetch('/api/log-visitor', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+    } catch (e) {
+        console.log('Logging endpoint not available (yet)');
+    }
+    
+    return data;
+}
+
+// Canvas fingerprinting
+function getCanvasFingerprint() {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 200;
+        canvas.height = 50;
+        ctx.textBaseline = 'top';
+        ctx.font = '14px "Arial"';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = '#069';
+        ctx.fillText('Vagabond watching', 2, 15);
+        ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+        ctx.fillText('Vagabond watching', 4, 17);
+        return canvas.toDataURL();
+    } catch (e) {
+        return 'Not available';
+    }
+}
+
+// WebGL fingerprinting
+function getWebGLFingerprint() {
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return 'Not available';
+        
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        return {
+            vendor: gl.getParameter(gl.VENDOR),
+            renderer: gl.getParameter(gl.RENDERER),
+            unmaskedVendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'N/A',
+            unmaskedRenderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'N/A'
+        };
+    } catch (e) {
+        return 'Not available';
+    }
+}
+
+// Font detection
+async function detectFonts() {
+    const baseFonts = ['monospace', 'sans-serif', 'serif'];
+    const testFonts = [
+        'Arial', 'Verdana', 'Times New Roman', 'Courier New', 'Georgia',
+        'Comic Sans MS', 'Trebuchet MS', 'Impact', 'Arial Black'
+    ];
+    
+    const detected = [];
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    for (const font of testFonts) {
+        let detected_flag = false;
+        for (const baseFont of baseFonts) {
+            ctx.font = `72px ${baseFont}`;
+            const baseWidth = ctx.measureText('mmmmmmmmmmlli').width;
+            ctx.font = `72px ${font}, ${baseFont}`;
+            const testWidth = ctx.measureText('mmmmmmmmmmlli').width;
+            if (baseWidth !== testWidth) {
+                detected_flag = true;
+                break;
+            }
+        }
+        if (detected_flag) detected.push(font);
+    }
+    
+    return detected;
+}
+
+// Battery info
+async function getBatteryInfo() {
+    try {
+        if ('getBattery' in navigator) {
+            const battery = await navigator.getBattery();
+            return {
+                charging: battery.charging,
+                level: battery.level,
+                chargingTime: battery.chargingTime,
+                dischargingTime: battery.dischargingTime
+            };
+        }
+    } catch (e) {
+        return 'Not available';
+    }
+    return 'Not available';
+}
+
+// Permission checks
+async function checkPermissions() {
+    const permissions = ['geolocation', 'notifications', 'microphone', 'camera'];
+    const results = {};
+    
+    for (const perm of permissions) {
+        try {
+            const result = await navigator.permissions.query({ name: perm });
+            results[perm] = result.state;
+        } catch (e) {
+            results[perm] = 'unknown';
+        }
+    }
+    
+    return results;
+}
+
+// Fetch and display server stats
+async function displayServerStats() {
+    const statsEl = document.getElementById('server-stats');
+    
+    const stats = [];
+    stats.push('Server IP: 76.10.130.3 | Location: Canada');
+    stats.push('Your session will be logged, analyzed, and stored indefinitely.');
+    
+    statsEl.textContent = stats.join('\n');
+}
+
+// Run both data collection and stats display
+collectAndLogVisitorData();
+displayServerStats();
+</script>
+
+</body>
+</html>

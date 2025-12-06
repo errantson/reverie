@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/">
+    <title>{{DREAM_TITLE}}</title>
+    
+    <!-- Dream-specific metadata -->
+    <meta name="dream:id" content="{{DREAM_ID}}">
+    <meta name="dream:type" content="{{DREAM_TYPE}}">
+    <meta name="dream:version" content="0.1.0">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{{DREAM_DESCRIPTION}}">
+    <meta property="og:title" content="{{DREAM_TITLE}}">
+    <meta property="og:description" content="{{DREAM_DESCRIPTION}}">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    
+    <!-- Core site styles -->
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    
+    <!-- Shared dream infrastructure -->
+    <link rel="stylesheet" href="/dreams/_shared/css/dream-core.css">
+    <link rel="stylesheet" href="/dreams/{{DREAM_ID}}/style.css">
+    
+    <!-- Core utilities -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/utils/shadowbox.js"></script>
+    
+    <!-- Header and drawer widgets -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    
+    <!-- Dream infrastructure -->
+    <script type="module" src="/dreams/_shared/js/dream-runtime.js"></script>
+    <script type="module" src="/dreams/{{DREAM_ID}}/js/main.js"></script>
+</head>
+<body class="dream-container" data-dream-id="{{DREAM_ID}}">
+    <div id="header-container"></div>
+    
+    <!-- Dream backdrop -->
+    <div class="dream-backdrop">
+        <img src="/dreams/{{DREAM_ID}}/assets/backdrop.png" alt="{{DREAM_TITLE}} background" class="dream-background-layer">
+    </div>
+    
+    <!-- Interactive layer -->
+    <div class="dream-interactive-layer" id="interactive-canvas">
+        <!-- Populated by dream-specific JavaScript -->
+    </div>
+    
+    <!-- UI overlay -->
+    <div class="dream-ui-overlay" id="ui-overlay">
+        <!-- Dream UI elements rendered here -->
+    </div>
+</body>
+</html>

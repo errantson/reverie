@@ -1,0 +1,14 @@
+[Unit]
+Description=Reverie World Tick - Spectrum Movement and Snapshot
+After=network.target
+
+[Service]
+Type=oneshot
+User=errantson
+WorkingDirectory=/srv
+ExecStart=/usr/bin/python3 /srv/world.py tick --quiet
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

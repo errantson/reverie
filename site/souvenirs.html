@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverie House — Souvenirs</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Collect souvenirs as mementoes of your journey through our wild mindscape, marking your adventures and unlocking more.">
+    <meta name="keywords" content="souvenirs, badges, achievements, collectibles, dreamweaving, reverie house">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/souvenirs.html">
+    <meta property="og:title" content="Souvenirs - Reverie House">
+    <meta property="og:description" content="Collect souvenirs as mementoes of your journey through our wild mindscape, marking your adventures and unlocking more.">
+    <meta property="og:image" content="https://reverie.house/assets/og-image.png">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Souvenirs - Reverie House">
+    <meta name="twitter:description" content="Collect souvenirs as mementoes of your journey through our wild mindscape, marking your adventures and unlocking more.">
+    <meta name="twitter:image" content="https://reverie.house/assets/og-image.png">
+    
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/pages/souvenirs.css">
+    <link rel="stylesheet" href="css/widgets/login.css">
+    <link rel="stylesheet" href="css/widgets/dialogue.css">
+    <link rel="stylesheet" href="css/widgets/dreamer-hover.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <!-- Core utilities (must load first) -->
+    <script src="js/core/world-config-cache.js"></script>
+    <script src="js/core/color-manager.js"></script>
+    <script src="js/utils/shadowbox.js"></script>
+    <script src="js/widgets/background.js"></script>
+    <script src="js/widgets/header.js" defer></script>
+    <script type="module" src="js/widgets/oauth-manager.js"></script>
+    <script src="js/widgets/login.js" defer></script>
+    <script src="js/widgets/dreamer-hover.js" defer></script>
+    <script src="js/widgets/canon.js"></script>
+    <script src="js/widgets/keepers.js"></script>
+    <script src="js/widgets/graph.js"></script>
+    <script src="js/widgets/drawer.js" defer></script>
+    <script src="js/widgets/konami.js" defer></script>
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <!-- Full-Screen Background Scene (matches homepage structure) -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera Residence" class="scene-layer background-layer">
+        </div>
+    </div>
+
+    <!-- Main Content (positioned above background) -->
+    <div id="souvenir-container">
+        <div id="souvenir-data">
+            <!-- Data will be populated here -->
+        </div>
+                <div id="users-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 id="view-title" style="margin: 0; color: var(--reverie-core-color, #734ba1);">Canon</h2>
+                <!-- View toggle functionality enabled -->
+                <button id="view-toggle" onclick="toggleView(souvenirKey)" style="background: var(--reverie-core-color, #734ba1); color: white; border: none; padding: 5px 15px; border-radius: 15px; font-size: 12px; cursor: pointer; display: none;">
+                    Change View
+                </button>
+            </div>
+            <div id="users-list"><!-- Keepers will be listed here --></div>
+            <div style="margin-top: 20px;">
+                <h2 style="margin: 0 0 10px 0; color: var(--reverie-core-color, #734ba1);">Timeline</h2>
+                <div id="chart-view"><!-- Chart will be displayed here --></div>
+            </div>
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+        </div>
+        <div id="other-souvenirs">
+            <!-- Other souvenirs will be added here -->
+        </div>
+    </div>
+    <script>
+        // Get query parameter 'key' (new) or 'id' (old compatibility)
+        const params = new URLSearchParams(window.location.search);
+        let requestedKey = params.get('key') || params.get('id');
+        // If no key specified, we'll pick a random one after loading souvenirs data
+        // (can't pick random here since we don't have the data yet)
+        
+        // These will be set after data loads
+        let souvenirKey = null;  // The actual souvenir category (dream, residence, crossroad)
+        let targetFormKey = null; // Specific form to display if a form key was requested
+        
+        // Utility functions for number and time formatting
+        function numberToWord(num) {
+            const words = {
+                0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+                6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
+                11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
+                16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen", 20: "twenty"
+            };
+            return words[num] || num.toString();
+        }
+        
+        function keeperCountText(count, timeText = "") {
+            if (count === 0) return "no keepers";
+            if (count === 1) return timeText ? `one keeper of ${timeText}` : "one keeper";
+            return timeText ? `${numberToWord(count)} keepers of ${timeText}` : `${numberToWord(count)} keepers`;
+        }
+        
+        function timeAgo(timestamp) {
+            const now = Date.now() / 1000;
+            const diff = now - timestamp;
+            const seconds = Math.floor(diff);
+            const days = Math.floor(diff / (24 * 60 * 60));
+            
+            if (seconds < 0) return "in the future";
+            
+            // Very recent times (under 1 hour)
+            if (seconds < 60) return "just now";
+            else if (seconds < 300) return "now";  // 5 minutes
+            else if (seconds < 1800) return "recent";  // 30 minutes  
+            else if (seconds < 3600) return "the hour";  // 1 hour
+            
+            // Hours (1-24)
+            else if (seconds < 86400) {  // 24 hours
+                const hours = Math.floor(seconds / 3600);
+                if (hours === 1) return "an hour";
+                else if (hours < 6) return `${numberToWord(hours)} hours`;
+                else if (hours < 12) {
+                    const currentHour = new Date().getHours();
+                    return currentHour >= 12 ? "this morning" : "earlier";
+                }
+                else if (hours < 18) return "earlier";
+                else return "yesterday";
+            }
+            
+            // Days with high nuance
+            else if (days === 1) return "yesterday";
+            else if (days === 2) return "two days";
+            else if (days === 3) return "three days";
+            else if (days <= 6) return "a few days";
+            else if (days === 7) return "one week";
+            else if (days <= 10) return "more than a week";
+            else if (days === 14) return "two weeks";
+            else if (days <= 17) return "more than two weeks";
+            else if (days <= 28) return "a few weeks";
+            
+            // Months
+            else if (days <= 45) return "about a month";
+            else if (days <= 60) return "two months";
+            else if (days <= 90) return "some months";
+            else if (days <= 150) return "several months";
+            else if (days <= 270) return "many months";
+            else if (days <= 365) return "about a year";
+            
+            // Years
+            else if (days <= 547) return "beyond the year";  // 1.5 years
+            else if (days <= 730) return "two years";  // 2 years
+            else if (days <= 1095) return "some years";  // 3 years
+            else if (days <= 1825) return "several years";  // 5 years
+            else if (days <= 3650) return "many years";  // 10 years
+            else if (days <= 5475) return "past a decade";  // 15 years
+            else if (days <= 7300) return "long ago";  // 20 years
+            else if (days <= 10950) return "very long ago";  // 30 years
+            else return "ancient history";
+        }
+        
+        // Store data for interactive features
+        let allSouvenirs = {};
+        let allDreamers = [];
+        let allCanonEntries = [];
+        let currentView = Math.random() < 0.5 ? 'canon' : 'keepers'; // Random 50/50 default
+        let currentForm = 'current'; // Track which form is being displayed
+        let coreColor = '#734ba1'; // Default fallback
+        
+        // Add effects styles and functions
+        addEffectStyles();
+        
+                // Function to resolve requested key to souvenir category and target form
+        function resolveRequestedKey(requestedKey, souvenirs) {
+            // Check if it's a direct souvenir category
+            if (souvenirs[requestedKey]) {
+                return { souvenirKey: requestedKey, targetFormKey: null };
+            }
+            
+            // Check if it's a form key - find which souvenir it belongs to
+            for (const [souvenirCat, souvenir] of Object.entries(souvenirs)) {
+                if (souvenir.key === requestedKey) {
+                    return { souvenirKey: souvenirCat, targetFormKey: requestedKey };
+                }
+            }
+            
+            // Fallback to default
+            return { souvenirKey: 'dream', targetFormKey: null };
+        }
+
+        Promise.all([
+            fetch('/api/world').then(r => r.json()),
+            fetch('/api/souvenirs').then(r => r.json()),
+            fetch('/api/dreamers').then(r => r.json()),
+            fetch('/api/canon').then(r => r.json())
+        ])
+        .then(([world, souvenirs, dreamers, canon]) => {
+            // Load color from world
+            if (world && world.color) {
+                coreColor = world.color;
+                document.documentElement.style.setProperty('--reverie-core-color', coreColor);
+            }
+            
+            // Apply color to view toggle button
+            const viewToggle = document.getElementById('view-toggle');
+            if (viewToggle) {
+                viewToggle.style.background = `var(--reverie-core-color, ${coreColor})`;
+            }
+            
+            // Initialize dreamer hover widget
+            if (typeof DreamerHoverWidget !== 'undefined') {
+                window.dreamerHoverWidget = new DreamerHoverWidget(dreamers);
+                window.dreamerHoverWidget.init();
+                console.log('✅ Dreamer hover widget initialized');
+            }
+            
+            // Transform API souvenirs data to match expected format with forms array
+            // The API returns flat objects, but the page expects a forms array for evolution states
+            const transformedSouvenirs = {};
+            for (const [key, souvenir] of Object.entries(souvenirs)) {
+                transformedSouvenirs[key] = {
+                    category: souvenir.category,
+                    forms: [{
+                        key: souvenir.key,
+                        name: souvenir.name,
+                        description: souvenir.description,
+                        icon: souvenir.icon,
+                        phanera: souvenir.phanera,
+                        epoch: souvenir.epoch || 0
+                    }]
+                };
+            }
+            
+            allSouvenirs = transformedSouvenirs;
+            allDreamers = dreamers;
+            allCanonEntries = canon;
+            
+            // If no key was specified, pick a random claimed souvenir
+            if (!requestedKey) {
+                // Filter to only claimed souvenirs
+                const allSouvenirKeys = Object.keys(transformedSouvenirs);
+                const claimedSouvenirKeys = allSouvenirKeys.filter(key => {
+                    const souvenir = transformedSouvenirs[key];
+                    const formKeys = souvenir.forms.map(form => form.key);
+                    // Check if any dreamer has claimed any form
+                    return dreamers.some(d => {
+                        if (!d.souvenirs) return false;
+                        return formKeys.some(formKey => formKey in d.souvenirs);
+                    });
+                });
+                
+                // Pick random from claimed souvenirs, or fallback to any if none claimed
+                const souvenirKeys = claimedSouvenirKeys.length > 0 ? claimedSouvenirKeys : allSouvenirKeys;
+                requestedKey = souvenirKeys[Math.floor(Math.random() * souvenirKeys.length)];
+            }
+            
+            // Resolve the requested key
+            const resolution = resolveRequestedKey(requestedKey, transformedSouvenirs);
+            souvenirKey = resolution.souvenirKey;
+            targetFormKey = resolution.targetFormKey;
+            
+            // Set the appropriate form to display
+            if (targetFormKey) {
+                currentForm = targetFormKey;
+            } else {
+                currentForm = 'current'; // Default to latest/current form
+            }
+            
+            displaySouvenir(souvenirKey);
+            displayKeepers(souvenirKey);
+            displayExploreSouvenirs(souvenirKey);
+        }).catch(error => {
+            document.getElementById('souvenir-data').innerText = "Error loading data: " + error.message;
+            console.error('Souvenir loading error:', error);
+        });
+        
+        function displaySouvenir(key) {
+            const souvenir = allSouvenirs[key];
+            if (!souvenir) {
+                document.getElementById('souvenir-data').innerText = "Souvenir not found.";
+                return;
+            }
+            
+            // Get the latest form (most recent epoch)
+            const latestForm = getLatestForm(souvenir);
+            if (!latestForm) {
+                document.getElementById('souvenir-data').innerText = "No forms found for souvenir.";
+                return;
+            }
+            
+            // Update page title
+            document.title = `Souvenir — ${latestForm.name}`;
+            
+            // Find dreamers who have ANY form of this souvenir
+            const formKeys = souvenir.forms.map(form => form.key);
+            const holders = allDreamers.filter(d => {
+                if (!d.souvenirs) return false;
+                return formKeys.some(formKey => formKey in d.souvenirs);
+            });
+            
+            let keeperText = "";
+            
+            if (holders.length > 0) {
+                // Get the earliest acquisition timestamp across all forms
+                const allTimestamps = holders.flatMap(h => 
+                    formKeys.map(fk => h.souvenirs[fk]).filter(t => t !== undefined)
+                );
+                const originTimestamp = Math.min(...allTimestamps);
+                const timeText = timeAgo(originTimestamp);
+                keeperText = keeperCountText(holders.length, timeText);
+            } else {
+                keeperText = keeperCountText(0);
+            }
+            
+            // Get current form data
+            const currentFormData = getCurrentFormData(souvenir, currentForm);
+            
+            document.getElementById('souvenir-data').innerHTML = `
+                <div class="souvenir-info">
+                    <div class="souvenir-image">
+                        <div style="
+                            width: 150px;
+                            height: 150px;
+                            border-radius: 50%;
+                            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(200,220,255,0.4));
+                            border: 3px solid rgba(255,255,255,0.6);
+                            box-shadow: 0 6px 24px rgba(0,0,0,0.15), 
+                                        inset -4px -4px 18px rgba(0,0,0,0.08),
+                                        inset 4px 4px 15px rgba(255,255,255,0.5);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">
+                            <img id="souvenir-icon" src="${currentFormData.icon}" alt="${currentFormData.name}" 
+                                 class="souvenir-icon-wave souvenir-icon-hover"
+                                 onclick="iconClickEffect(this)" 
+                                 style="cursor: pointer; width: 120px; height: 120px; opacity: 0.85; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));">
+                        </div>
+                    </div>
+                    <div class="souvenir-text">
+                        <h2 id="souvenir-title">${currentFormData.name}</h2>
+                        <p id="souvenir-description">${currentFormData.description}</p>
+                        <p class="souvenir-details">
+                            ${keeperText}
+                        </p>
+                    </div>
+                </div>
+                <div id="phanera-container" style="max-width: 100%; margin:20px auto; text-align:center;">
+                    <img id="main-phanera" src="${currentFormData.phanera}" alt="${currentFormData.name} phanera" 
+                         style="width:100%; height:auto; cursor: pointer; border: 2px solid var(--reverie-core-color, #734ba1); box-shadow: 0 4px 12px var(--reverie-core-color, #734ba1)40; border-radius: 0;">
+                    ${generateFormsSection(souvenir, key)}
+                </div>
+            `;
+            
+            // Apply phanera hover effect and click handler
+            const phanera = document.getElementById('main-phanera');
+            phaneraHoverEffect(phanera);
+            phanera.addEventListener('click', () => {
+                if (window.Shadowbox) {
+                    window.Shadowbox.show(currentFormData.phanera, currentFormData.name, {
+                        enableBubbles: true,
+                        enableGrowth: true,
+                        bubbleDelay: 10000,
+                        growthDelay: 5000
+                    });
+                }
+            });
+        }
+        
+        function displayExploreSouvenirs(currentKey) {
+            // Filter to only include souvenirs that have been claimed by at least one dreamer
+            const claimedSouvenirs = Object.entries(allSouvenirs).filter(([key, souvenir]) => {
+                if (key === currentKey) return false; // Exclude current souvenir
+                
+                // Check if any dreamer has claimed any form of this souvenir
+                const formKeys = souvenir.forms.map(form => form.key);
+                return allDreamers.some(d => {
+                    if (!d.souvenirs) return false;
+                    return formKeys.some(formKey => formKey in d.souvenirs);
+                });
+            });
+            
+            if (claimedSouvenirs.length === 0) return;
+            
+            // Shuffle and sample souvenirs for variety - limit to ensure single row
+            const shuffled = [...claimedSouvenirs].sort(() => Math.random() - 0.5);
+            const maxItems = Math.min(3, shuffled.length); // Max 3 items to ensure single row
+            const sampled = shuffled.slice(0, maxItems);
+            
+            document.getElementById('other-souvenirs').innerHTML = `
+                <div style="background: #f8f8f8; border: 1px solid #e0e0e0; padding: 20px; margin: 20px 0;">
+                    <h3 style="margin: 0 0 20px 0; color: #372e42; font-size: 18px; text-align: center; font-weight: bold;">Explore Souvenirs</h3>
+                    <div style="display: flex; justify-content: center; gap: 30px; align-items: stretch;">
+                        ${sampled.map(([key, souvenir]) => {
+                            const latestForm = getLatestForm(souvenir);
+                            return `
+                                <div style="text-align: center; cursor: pointer; padding: 12px 16px; background: white; transition: all 0.3s; border: 1px solid #ddd; flex: 0 0 auto; min-width: 120px; max-width: 140px;" 
+                                     onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='${coreColor}'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px ${coreColor}20'" 
+                                     onmouseout="this.style.background='white'; this.style.borderColor='#ddd'; this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                                     onclick="window.location.href='/souvenirs?key=${key}'">
+                                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(200,220,255,0.6)); border: 2px solid rgba(255,255,255,0.7); box-shadow: 0 2px 10px rgba(0,0,0,0.1), inset -2px -2px 10px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center;">
+                                        <img src="${latestForm ? latestForm.icon : '/assets/placeholder.png'}" alt="${latestForm ? latestForm.name : 'Unknown'}" style="width: 48px; height: 48px; object-fit: cover;">
+                                    </div>
+                                    <div style="font-weight: bold; font-size: 12px; color: #372e42; line-height: 1.2;">${latestForm ? latestForm.name : 'Unknown'}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function displayKeepers(key) {
+            // Find dreamers who have ANY form of this souvenir
+            const souvenir = allSouvenirs[key];
+            if (!souvenir || !souvenir.forms) {
+                document.getElementById('users-list').innerHTML = '<p style="color: #999; font-style: italic;">no forms available</p>';
+                document.getElementById('chart-view').innerHTML = '<p style="color: #999; font-style: italic;">no data</p>';
+                return;
+            }
+            
+            // Get all form keys for this souvenir
+            const formKeys = souvenir.forms.map(form => form.key);
+            
+            // Find dreamers who have any of these form keys
+            const holders = allDreamers.filter(d => {
+                if (!d.souvenirs) return false;
+                return formKeys.some(formKey => formKey in d.souvenirs);
+            });
+            
+            // Show/hide toggle button
+            const toggleButton = document.getElementById('view-toggle');
+            if (holders.length > 1) {
+                toggleButton.style.display = 'block';
+            } else {
+                toggleButton.style.display = 'none';
+            }
+            
+            if (holders.length === 0) {
+                document.getElementById('users-list').innerHTML = '<p style="color: #999; font-style: italic;">no keepers</p>';
+                document.getElementById('chart-view').innerHTML = '<p style="color: #999; font-style: italic;">no data</p>';
+                return;
+            }
+            
+            // Sort by acquisition date (most recent first) - use earliest form they have
+            holders.sort((a, b) => {
+                const aEpochs = formKeys.map(fk => a.souvenirs[fk]).filter(e => e !== undefined);
+                const bEpochs = formKeys.map(fk => b.souvenirs[fk]).filter(e => e !== undefined);
+                const aMin = Math.min(...aEpochs);
+                const bMin = Math.min(...bEpochs);
+                return bMin - aMin;
+            });
+            
+            // Display content based on currentView and update header to match
+            if (currentView === 'canon') {
+                document.getElementById('users-list').innerHTML = generateCanonView(holders, key);
+                document.getElementById('view-title').innerHTML = 'Canon';
+                toggleButton.innerHTML = '📅';
+            } else {
+                document.getElementById('users-list').innerHTML = generateKeepersView(holders, key, allCanonEntries);
+                document.getElementById('view-title').innerHTML = 'Keepers';
+                toggleButton.innerHTML = '📜';
+            }
+            
+            // Always show chart view in the dedicated chart section
+            document.getElementById('chart-view').innerHTML = generateGraphView(holders, key);
+        }
+        
+        function toggleView(key) {
+            // Find dreamers who have ANY form of this souvenir
+            const souvenir = allSouvenirs[key];
+            if (!souvenir || !souvenir.forms) return;
+            
+            const formKeys = souvenir.forms.map(form => form.key);
+            const holders = allDreamers.filter(d => {
+                if (!d.souvenirs) return false;
+                return formKeys.some(formKey => formKey in d.souvenirs);
+            });
+            
+            // Sort by acquisition date (most recent first) - use earliest form they have
+            holders.sort((a, b) => {
+                const aEpochs = formKeys.map(fk => a.souvenirs[fk]).filter(e => e !== undefined);
+                const bEpochs = formKeys.map(fk => b.souvenirs[fk]).filter(e => e !== undefined);
+                const aMin = Math.min(...aEpochs);
+                const bMin = Math.min(...bEpochs);
+                return bMin - aMin;
+            });
+            
+            const content = document.getElementById('users-list');
+            const button = document.getElementById('view-toggle');
+            const title = document.getElementById('view-title');
+            
+            if (currentView === 'canon') {
+                content.innerHTML = generateKeepersView(holders, key, allCanonEntries);
+                button.innerHTML = '📜';
+                title.innerHTML = 'Keepers';
+                currentView = 'keepers';
+            } else {
+                content.innerHTML = generateCanonView(holders, key);
+                button.innerHTML = '📅';
+                title.innerHTML = 'Canon';
+                currentView = 'canon';
+            }
+        }
+        
+        // Form management functions
+        function getLatestForm(souvenir) {
+            if (!souvenir || !souvenir.forms || souvenir.forms.length === 0) {
+                return null;
+            }
+            // Return the form with the highest epoch (most recent)
+            return souvenir.forms.reduce((latest, form) => {
+                return (form.epoch || 0) > (latest.epoch || 0) ? form : latest;
+            });
+        }
+        
+        function getCurrentFormData(souvenir, form) {
+            if (!souvenir || !souvenir.forms) {
+                return { name: 'Unknown', description: 'No data', icon: '/assets/placeholder.png', phanera: '/assets/placeholder.png' };
+            }
+            
+            if (form === 'current') {
+                // Return the latest form
+                return getLatestForm(souvenir) || souvenir.forms[0];
+            } else if (form.startsWith('form_')) {
+                const formIndex = parseInt(form.split('_')[1]);
+                const targetForm = souvenir.forms[formIndex];
+                if (targetForm) {
+                    return targetForm;
+                }
+            } else {
+                // Try to find form by key
+                const targetForm = souvenir.forms.find(f => f.key === form);
+                if (targetForm) {
+                    return targetForm;
+                }
+            }
+            // Fallback to latest form
+            return getLatestForm(souvenir) || souvenir.forms[0];
+        }
+        
+        function generateFormsSection(souvenir, key) {
+            if (!souvenir.forms || souvenir.forms.length <= 1) {
+                return '';
+            }
+            
+            // Sort forms by epoch (oldest to newest)
+            const sortedForms = [...souvenir.forms].sort((a, b) => (a.epoch || 0) - (b.epoch || 0));
+            
+            return `
+                <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 8px; align-items: center;">
+                    ${sortedForms.map((form, index) => `
+                        <div onclick="switchForm('${key}', 'form_${index}')" 
+                             style="cursor: pointer; transition: all 0.2s; opacity: ${currentForm === `form_${index}` ? '1' : '0.6'}; transform: scale(${currentForm === `form_${index}` ? '1.1' : '1'});" 
+                             onmouseover="this.style.opacity='1'; this.style.transform='scale(1.1)'" 
+                             onmouseout="this.style.opacity='${currentForm === `form_${index}` ? '1' : '0.6'}'; this.style.transform='scale(${currentForm === `form_${index}` ? '1.1' : '1'})'">
+                            <img src="${form.icon}" alt="${form.name}" title="${form.name}" 
+                                 class="souvenir-icon-wave souvenir-icon-hover" 
+                                 style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px; display: block; border: 2px solid ${currentForm === `form_${index}` ? coreColor : 'transparent'};">
+                        </div>
+                    `).join('')}
+                </div>`;
+        }
+        
+        function switchForm(souvenirKey, formId) {
+            currentForm = formId;
+            
+            const souvenir = allSouvenirs[souvenirKey];
+            const formData = getCurrentFormData(souvenir, formId);
+            
+            // Update URL to reflect the current form
+            if (formId.startsWith('form_')) {
+                const formIndex = parseInt(formId.split('_')[1]);
+                const targetForm = souvenir.forms[formIndex];
+                if (targetForm) {
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.set('key', targetForm.key);
+                    window.history.replaceState({}, '', newUrl);
+                }
+            } else if (formId === 'current') {
+                // Use souvenir category for current/latest form
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('key', souvenirKey);
+                window.history.replaceState({}, '', newUrl);
+            }
+            
+            // Update the display with smooth transitions
+            const icon = document.getElementById('souvenir-icon');
+            const phanera = document.getElementById('main-phanera');
+            const title = document.getElementById('souvenir-title');
+            const description = document.getElementById('souvenir-description');
+            
+            // Fade out
+            icon.style.opacity = '0.3';
+            phanera.style.opacity = '0.3';
+            
+            setTimeout(() => {
+                // Update content
+                icon.src = formData.icon;
+                icon.alt = formData.name;
+                phanera.src = formData.phanera;
+                phanera.alt = formData.name + ' phanera';
+                title.textContent = formData.name;
+                description.textContent = formData.description;
+                
+                // Regenerate the Forms section to update selection
+                const formsContainer = document.querySelector('#phanera-container > div:last-child');
+                if (formsContainer) {
+                    formsContainer.outerHTML = generateFormsSection(souvenir, souvenirKey);
+                }
+                
+                // Fade back in
+                icon.style.opacity = '1';
+                phanera.style.opacity = '1';
+            }, 150);
+        }
+        
+        function togglePhanera(key) {
+            // Future enhancement: cycle through evolution states
+            // For now, just add a subtle interaction
+            const img = document.getElementById('main-phanera');
+            if (img) {
+                img.style.opacity = '0.7';
+                setTimeout(() => img.style.opacity = '1', 150);
+            }
+        }
+        
+        // Effect functions (from utils/effects.py)
+        function addEffectStyles() {
+            if (!document.getElementById('effect-styles')) {
+                const style = document.createElement('style');
+                style.id = 'effect-styles';
+                style.textContent = `
+                    @keyframes sparkleFloat {
+                        0%, 100% { transform: translateY(0px) rotate(0deg); }
+                        50% { transform: translateY(-10px) rotate(180deg); }
+                    }
+                    
+                    @keyframes gentleWave {
+                        0%, 100% { transform: rotate(-0.5deg) translateY(0px); }
+                        50% { transform: rotate(0.5deg) translateY(-2px); }
+                    }
+                    
+                    @keyframes iconPulse {
+                        0% { transform: scale(1); }
+                        25% { transform: scale(1.15); }
+                        50% { transform: scale(0.95); }
+                        75% { transform: scale(1.08); }
+                        100% { transform: scale(1); }
+                    }
+                    
+                    @keyframes bubblePop {
+                        0% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.3); opacity: 0.8; }
+                        100% { transform: scale(0); opacity: 0; }
+                    }
+                    
+                    .souvenir-icon-wave {
+                        animation: gentleWave 4s ease-in-out infinite;
+                        transform-origin: center center;
+                    }
+                    
+                    .souvenir-icon-pulse {
+                        animation: iconPulse 0.6s ease-out;
+                    }
+                    
+                    .souvenir-icon-hover {
+                        transition: transform 0.3s ease, filter 0.3s ease;
+                    }
+                    
+                    .souvenir-icon-hover:hover {
+                        transform: scale(1.05) rotate(5deg);
+                        filter: brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
+        function iconClickEffect(element) {
+            // Add pulse animation
+            element.classList.remove('souvenir-icon-pulse');
+            void element.offsetWidth; // Trigger reflow
+            element.classList.add('souvenir-icon-pulse');
+            
+            // Remove animation class after it completes
+            setTimeout(() => {
+                element.classList.remove('souvenir-icon-pulse');
+            }, 600);
+            
+            // Create floating bubble effect with this icon (no sparkles)
+            createFloatingBubbles(element);
+        }
+        
+        function createFloatingBubbles(iconElement) {
+            // Get or create bubble container
+            let bubbleContainer = document.getElementById('floating-bubbles');
+            if (!bubbleContainer) {
+                bubbleContainer = document.createElement('div');
+                bubbleContainer.id = 'floating-bubbles';
+                bubbleContainer.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                    z-index: 999;
+                    overflow: hidden;
+                `;
+                document.body.appendChild(bubbleContainer);
+            }
+            
+            // Load souvenirs data to get random icons
+            fetch('/api/souvenirs')
+                .then(r => r.json())
+                .then(rawSouvenirs => {
+                    // Transform to expected format with forms array
+                    const souvenirs = {};
+                    for (const [key, souvenir] of Object.entries(rawSouvenirs)) {
+                        souvenirs[key] = {
+                            forms: [{
+                                key: souvenir.key,
+                                name: souvenir.name,
+                                icon: souvenir.icon
+                            }]
+                        };
+                    }
+                    
+                    // Filter to only claimed souvenirs
+                    const allSouvenirKeys = Object.keys(souvenirs);
+                    const claimedSouvenirKeys = allSouvenirKeys.filter(key => {
+                        const souvenir = souvenirs[key];
+                        const formKeys = souvenir.forms.map(form => form.key);
+                        // Check if any dreamer has claimed any form
+                        return allDreamers.some(d => {
+                            if (!d.souvenirs) return false;
+                            return formKeys.some(formKey => formKey in d.souvenirs);
+                        });
+                    });
+                    
+                    // Only create bubbles if there are claimed souvenirs
+                    if (claimedSouvenirKeys.length === 0) {
+                        return; // No bubbles if nothing claimed
+                    }
+                    
+                    // Create 8-12 floating bubbles with random souvenir icons
+                    const bubbleCount = Math.min(8 + Math.floor(Math.random() * 5), claimedSouvenirKeys.length);
+                    
+                    for (let i = 0; i < bubbleCount; i++) {
+                        setTimeout(() => {
+                            // Pick a random claimed souvenir
+                            const randomKey = claimedSouvenirKeys[Math.floor(Math.random() * claimedSouvenirKeys.length)];
+                            const souvenir = souvenirs[randomKey];
+                            const latestForm = souvenir.forms[souvenir.forms.length - 1];
+                            
+                            createSingleBubble(
+                                bubbleContainer,
+                                latestForm.icon,
+                                randomKey,
+                                latestForm.name
+                            );
+                        }, i * 200); // Stagger bubble creation
+                    }
+                })
+                .catch(err => console.error('Error loading souvenirs:', err));
+        }
+        
+        function createSingleBubble(container, iconSrc, souvenirKey = 'dream', souvenirName = 'Unknown') {
+            const bubble = document.createElement('div');
+            
+            // Vary bubble sizes for natural look
+            const size = 50 + Math.random() * 30; // 50-80px
+            
+            bubble.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                border-radius: 50%;
+                background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(200,220,255,0.4));
+                border: 2px solid rgba(255,255,255,0.5);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15), 
+                            inset -3px -3px 15px rgba(0,0,0,0.08),
+                            inset 3px 3px 12px rgba(255,255,255,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: auto;
+                opacity: 1;
+                cursor: pointer;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            `;
+            
+            // Store souvenir data for click handler
+            bubble.dataset.souvenirKey = souvenirKey;
+            bubble.dataset.souvenirName = souvenirName;
+            
+            // Add icon inside bubble - make it larger (80% instead of 65%)
+            const icon = document.createElement('img');
+            icon.src = iconSrc;
+            icon.style.cssText = `
+                width: ${size * 0.80}px;
+                height: ${size * 0.80}px;
+                opacity: 0.85;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+                pointer-events: none;
+            `;
+            bubble.appendChild(icon);
+            
+            // Click handler - navigate to souvenir page with pop animation
+            bubble.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Play pop animation
+                bubble.style.animation = 'bubblePop 0.4s ease-out forwards';
+                
+                // Navigate after animation
+                setTimeout(() => {
+                    window.location.href = `/souvenirs?key=${souvenirKey}`;
+                }, 350);
+            });
+            
+            // Hover effect - "gusted" by wind
+            bubble.addEventListener('mouseenter', () => {
+                bubble.style.transform = 'scale(1.15)';
+                bubble.style.boxShadow = '0 6px 30px rgba(0,0,0,0.25), inset -4px -4px 20px rgba(0,0,0,0.12), inset 4px 4px 18px rgba(255,255,255,0.6)';
+                // Add gust velocity boost
+                if (bubble.gustBoost) {
+                    bubble.gustBoost = true;
+                }
+            });
+            
+            bubble.addEventListener('mouseleave', () => {
+                bubble.style.transform = 'scale(1)';
+                bubble.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15), inset -3px -3px 15px rgba(0,0,0,0.08), inset 3px 3px 12px rgba(255,255,255,0.5)';
+                bubble.gustBoost = false;
+            });
+            
+            // Get phanera position to align spawn point
+            const phanera = document.getElementById('main-phanera');
+            const phaneraRect = phanera ? phanera.getBoundingClientRect() : null;
+            
+            // Start from off-screen left, aligned with phanera midpoint if available
+            const startX = -100; // Off-screen left
+            const centerY = phaneraRect ? phaneraRect.top + phaneraRect.height / 2 : window.innerHeight / 2;
+            const verticalSpread = 150; // Tighter spread around midpoint
+            const startY = centerY + (Math.random() - 0.5) * verticalSpread;
+            
+            bubble.style.left = startX + 'px';
+            bubble.style.top = startY + 'px';
+            
+            // Store independent rotation speed for this bubble
+            bubble.rotationSpeed = (Math.random() - 0.5) * 0.04; // Random rotation direction and speed
+            bubble.gustBoost = false; // Flag for hover gust effect
+            
+            container.appendChild(bubble);
+            
+            // Use wind-based physics for natural drift
+            animateBubbleWithPhysics(bubble, startX, startY, size);
+        }
+        
+        function animateBubbleWithPhysics(bubble, startX, startY, size) {
+            // Get wind from world data (if available)
+            const windHeading = window.dataManager?.data?.world?.wind?.heading || 85; // degrees
+            const windStrength = window.dataManager?.data?.world?.wind?.gales || 2.3; // gales
+            
+            // Convert wind to velocity - more gradual and lateral
+            const windRadians = (windHeading - 90) * Math.PI / 180;
+            const windForce = windStrength * 1.5; // Reduced from 3 for more gradual movement
+            
+            // Bubble physics properties
+            let x = startX;
+            let y = startY;
+            let vx = (Math.random() - 0.5) * 5; // Reduced initial velocity
+            let vy = (Math.random() - 0.5) * 5;
+            
+            // Buoyancy based on size - minimal upward force for lateral breeze
+            const buoyancy = 0.1 + (0.2 / (size / 50)); // Very reduced for nearly pure lateral movement
+            
+            // Wobble parameters for dandelion-like drift
+            let wobblePhase = Math.random() * Math.PI * 2;
+            const wobbleSpeed = 0.02 + Math.random() * 0.03;
+            const wobbleAmount = 15 + Math.random() * 20;
+            
+            // Independent rotation for this bubble
+            let rotation = Math.random() * 360;
+            const rotationSpeed = bubble.rotationSpeed || 0;
+            
+            const startTime = Date.now();
+            const duration = 20000 + Math.random() * 15000; // 20-35 seconds for longer lateral drift
+            
+            function updateBubble() {
+                const elapsed = Date.now() - startTime;
+                const progress = elapsed / duration;
+                
+                if (progress >= 1 || !bubble.parentNode) {
+                    bubble.remove();
+                    return;
+                }
+                
+                // Apply wind force gradually
+                vx += Math.cos(windRadians) * windForce * 0.008; // Halved for more gradual
+                vy += Math.sin(windRadians) * windForce * 0.008;
+                
+                // Apply gust boost if hovering
+                if (bubble.gustBoost) {
+                    vx += Math.cos(windRadians) * windForce * 0.04; // Extra push from "mouse wind"
+                    vy += Math.sin(windRadians) * windForce * 0.04;
+                }
+                
+                // Apply minimal buoyancy (upward drift)
+                vy -= buoyancy * 0.016;
+                
+                // Apply drag/air resistance
+                vx *= 0.99; // More drag for slower, steadier movement
+                vy *= 0.99;
+                
+                // Add wobble for dandelion effect
+                wobblePhase += wobbleSpeed;
+                const wobbleX = Math.cos(wobblePhase) * wobbleAmount * 0.016;
+                const wobbleY = Math.sin(wobblePhase * 1.3) * wobbleAmount * 0.5 * 0.016;
+                
+                // Update position
+                x += vx + wobbleX;
+                y += vy + wobbleY;
+                
+                bubble.style.left = x + 'px';
+                bubble.style.top = y + 'px';
+                
+                // Independent rotation for each bubble
+                rotation += rotationSpeed;
+                bubble.style.transform = `rotate(${rotation}deg)`;
+                
+                // Stay opaque until well off screen, then fade
+                const screenMargin = 300; // Stay visible 300px off screen
+                const isOffscreen = (
+                    x < -screenMargin || 
+                    x > window.innerWidth + screenMargin ||
+                    y < -screenMargin || 
+                    y > window.innerHeight + screenMargin
+                );
+                
+                if (isOffscreen) {
+                    // Calculate distance beyond screen margin for fade
+                    const fadeDistance = 200;
+                    let distanceBeyond = 0;
+                    
+                    if (x < -screenMargin) distanceBeyond = -screenMargin - x;
+                    else if (x > window.innerWidth + screenMargin) distanceBeyond = x - (window.innerWidth + screenMargin);
+                    else if (y < -screenMargin) distanceBeyond = -screenMargin - y;
+                    else if (y > window.innerHeight + screenMargin) distanceBeyond = y - (window.innerHeight + screenMargin);
+                    
+                    const fadeProgress = Math.min(1, distanceBeyond / fadeDistance);
+                    bubble.style.opacity = 1 - fadeProgress;
+                    
+                    if (fadeProgress >= 1) {
+                        bubble.remove();
+                        return;
+                    }
+                }
+                
+                requestAnimationFrame(updateBubble);
+            }
+            
+            requestAnimationFrame(updateBubble);
+        }
+        
+        function phaneraHoverEffect(element) {
+            element.style.transition = 'all 0.3s ease';
+            element.addEventListener('mouseenter', () => {
+                element.style.transform = 'scale(1.02)';
+                element.style.filter = 'brightness(1.05) saturate(1.1)';
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                element.style.transform = 'scale(1)';
+                element.style.filter = 'brightness(1) saturate(1)';
+            });
+        }
+    </script>
+    
+    <div id="footer-container"></div>
+</body>
+</html>

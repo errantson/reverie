@@ -1,0 +1,17 @@
+[Unit]
+Description=Reverie House Courier - Scheduled Post Delivery Service
+After=network.target
+
+[Service]
+Type=simple
+User=errantson
+WorkingDirectory=/srv/reverie.house
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/usr/bin/python3 /srv/reverie.house/core/courier.py --interval 60
+Restart=always
+RestartSec=10
+StandardOutput=append:/srv/reverie.house/logs/courier.log
+StandardError=append:/srv/reverie.house/logs/courier.error.log
+
+[Install]
+WantedBy=multi-user.target

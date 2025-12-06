@@ -1,0 +1,16 @@
+{
+  "name": "reverie-oauth",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "dependencies": {
+    "@atproto/oauth-client-browser": "^0.3.34"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

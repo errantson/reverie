@@ -1,0 +1,139 @@
+.status-explainer-trigger {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-explainer-trigger:hover {
+    opacity: 0.8;
+}
+
+.status-explainer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.status-explainer-overlay.active {
+    opacity: 1;
+}
+
+.status-explainer-popup {
+    position: fixed;
+    background: white;
+    border: 3px solid var(--status-color, var(--user-color, #734ba1));
+    border-radius: 0;
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(115, 75, 161, 0.4);
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.status-explainer-popup.active {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.status-explainer-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: var(--status-color, var(--user-color, #734ba1));
+    color: white;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.status-explainer-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: brightness(0) invert(1);
+}
+
+.status-explainer-title {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-family: monospace;
+}
+
+.status-explainer-list {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.status-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.status-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--status-color, var(--user-color, #734ba1));
+    font-family: monospace;
+    letter-spacing: 0.3px;
+}
+
+.status-description {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #5a4a7a;
+    padding-left: 8px;
+    font-style: italic;
+}
+
+@media (max-width: 600px) {
+    .status-explainer-popup {
+        max-width: calc(100vw - 40px);
+        width: calc(100vw - 40px);
+    }
+    
+    .status-explainer-list {
+        padding: 16px 20px;
+        gap: 16px;
+    }
+    
+    .status-group {
+        gap: 10px;
+        padding: 10px;
+    }
+    
+    .status-label {
+        font-size: 0.85rem;
+    }
+    
+    .status-description {
+        font-size: 0.8rem;
+    }
+}

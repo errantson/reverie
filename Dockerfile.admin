@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+WORKDIR /srv
+
+# Install system dependencies including fonts
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-dejavu-core \
+    fonts-dejavu-extra \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install required Python packages
+RUN pip install --no-cache-dir \
+    flask \
+    requests \
+    python-dotenv \
+    atproto \
+    pyjwt \
+    cryptography \
+    Pillow \
+    psycopg2-binary
+
+# The actual code will be mounted as a volume
+# This just ensures dependencies are cached
+
+CMD ["python3", "/srv/admin.py", "--port=4444"]

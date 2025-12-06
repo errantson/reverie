@@ -1,0 +1,371 @@
+# ConversationTree System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         YOUR APPLICATION                             │
+│  (homepage.js, other pages, etc.)                                   │
+└───────────────────────┬─────────────────────────────────────────────┘
+                        │
+                        │ Creates & configures
+                        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    CONVERSATION TREE MANAGER                         │
+│                  (js/core/conversation-tree.js)                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
+│  │   Node       │  │    State     │  │   Context    │               │
+│  │  Registry    │  │  Management  │  │  Providers   │               │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤               │
+│  │ • Nodes      │  │ • Variables  │  │ • Async data │               │
+│  │ • Trees      │  │ • Flags      │  │ • User info  │               │
+│  │ • Navigation │  │ • History    │  │ • API calls  │               │
+│  └──────────────┘  └──────────────┘  └──────────────┘               │
+│                                                                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
+│  │  Condition   │  │   Dynamic    │  │    Event     │               │
+│  │  Evaluator   │  │   Content    │  │    Hooks     │               │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤               │
+│  │ • AND/OR/NOT │  │ • Interpolate│  │ • onNodeEnter│               │
+│  │ • Comparisons│  │ • Variants   │  │ • onChoice   │               │
+│  │ • Functions  │  │ • Functions  │  │ • onChange   │               │
+│  └──────────────┘  └──────────────┘  └──────────────┘               │
+│                                                                       │
+└───────────────────┬───────────────────────────┬─────────────────────┘
+                    │                           │
+                    │ Uses                      │ Reads
+                    ▼                           ▼
+┌─────────────────────────────────┐  ┌──────────────────────────────┐
+│      DIALOGUE WIDGET             │  │   TREE DEFINITIONS           │
+│   (js/widgets/dialogue.js)       │  │ (js/conversations/*.js)      │
+├─────────────────────────────────┤  ├──────────────────────────────┤
+│ • Displays dialogue boxes        │  │ • Node structures            │
+│ • Shows choices/buttons          │  │ • Dialogue content           │
+│ • Typewriter effect              │  │ • Choice options             │
+│ • Rotating text                  │  │ • Conditional logic          │
+│ • Avatar/speaker display         │  │ • Context providers          │
+└─────────────────────────────────┘  └──────────────────────────────┘
+```
+
+## Data Flow
+
+```
+User Action (click choice)
+    │
+    ├─→ ConversationTree.makeChoice()
+    │       │
+    │       ├─→ Execute onSelect callback
+    │       ├─→ Set variables/flags
+    │       ├─→ Fire onChoiceMade hook
+    │       └─→ Navigate to target node
+    │
+    └─→ ConversationTree.gotoNode(nodeId)
+            │
+            ├─→ Fire onNodeExit hook
+            ├─→ Get node definition
+            ├─→ Check entry condition
+            ├─→ Execute onEnter callback
+            ├─→ Gather context from providers
+            ├─→ Build dialogue sequence
+            │       │
+            │       ├─→ Interpolate variables
+            │       ├─→ Apply variants (if conditions match)
+            │       └─→ Build choice buttons
+            │
+            ├─→ Fire onNodeEnter hook
+            └─→ Display via Dialogue Widget
+                    │
+                    └─→ User sees dialogue
+                            │
+                            └─→ (cycle repeats)
+```
+
+## Node Type Processing
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     Node Type: SEQUENCE                       │
+├──────────────────────────────────────────────────────────────┤
+│ dialogue: [                                                   │
+│   { speaker: 'A', text: 'Message 1' },                       │
+│   { speaker: 'A', text: 'Message 2' }                        │
+│ ]                                                            │
+│                                                              │
+│ Process:                                                     │
+│  1. Build all dialogue entries                               │
+│  2. Show sequentially                                        │
+│  3. Auto-continue to 'next' node (if specified)              │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│                     Node Type: CHOICE                         │
+├──────────────────────────────────────────────────────────────┤
+│ dialogue: { text: 'What will you do?' }                      │
+│ choices: [                                                    │
+│   { text: 'OPTION A', target: 'node_a' },                   │
+│   { text: 'OPTION B', target: 'node_b' }                    │
+│ ]                                                            │
+│                                                              │
+│ Process:                                                     │
+│  1. Build dialogue entry                                     │
+│  2. Filter choices by conditions                             │
+│  3. Create button callbacks                                  │
+│  4. Wait for user selection                                  │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│                    Node Type: REDIRECT                        │
+├──────────────────────────────────────────────────────────────┤
+│ target: 'destination_node'                                    │
+│ // or                                                        │
+│ target: (tree) => condition ? 'node_a' : 'node_b'            │
+│                                                              │
+│ Process:                                                     │
+│  1. Evaluate target (function or string)                     │
+│  2. Immediately navigate to target                           │
+│  3. No dialogue displayed                                    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## Condition Evaluation Flow
+
+```
+evaluateCondition(condition)
+    │
+    ├─→ Is Function?
+    │       └─→ Call function(tree) → return boolean
+    │
+    ├─→ Is String?
+    │       └─→ Check if flag or variable is set
+    │
+    └─→ Is Object?
+            │
+            ├─→ Has 'and'?
+            │       └─→ ALL sub-conditions must be true
+            │
+            ├─→ Has 'or'?
+            │       └─→ ANY sub-condition must be true
+            │
+            ├─→ Has 'not'?
+            │       └─→ Negate sub-condition
+            │
+            ├─→ Has 'variable'?
+            │       ├─→ equals → variable === value
+            │       ├─→ notEquals → variable !== value
+            │       ├─→ greaterThan → variable > value
+            │       ├─→ lessThan → variable < value
+            │       └─→ contains → string.includes(value)
+            │
+            ├─→ Has 'flag'?
+            │       └─→ Check if flag is set
+            │
+            └─→ Has 'visited'?
+                    └─→ Check if node in history
+```
+
+## State Management
+
+```
+┌────────────────────────────────────────────────────────┐
+│                    TREE STATE                           │
+├────────────────────────────────────────────────────────┤
+│                                                         │
+│  Variables (Map)              Flags (Set)              │
+│  ┌──────────────────┐         ┌──────────────────┐    │
+│  │ userName: "Alice"│         │ tutorial_done    │    │
+│  │ score: 100       │         │ vip              │    │
+│  │ level: 5         │         │ quest_active     │    │
+│  └──────────────────┘         └──────────────────┘    │
+│                                                         │
+│  History (Array)              Choice History           │
+│  ┌──────────────────┐         ┌──────────────────┐    │
+│  │ welcome_start    │         │ {nodeId, choice, │    │
+│  │ new_user         │         │  timestamp}      │    │
+│  │ ask_name         │         │ ...              │    │
+│  └──────────────────┘         └──────────────────┘    │
+│                                                         │
+│                    Current Node: "central_spine"        │
+└────────────────────────────────────────────────────────┘
+        │
+        │ Can serialize to:
+        ▼
+┌────────────────────────────────────────────────────────┐
+│              LocalStorage / JSON                        │
+├────────────────────────────────────────────────────────┤
+│ {                                                       │
+│   currentNodeId: "central_spine",                       │
+│   variables: { userName: "Alice", score: 100 },         │
+│   flags: ["tutorial_done", "vip"],                      │
+│   history: ["welcome_start", "new_user", ...],          │
+│   choiceHistory: [...]                                  │
+│ }                                                       │
+└────────────────────────────────────────────────────────┘
+```
+
+## Widget Integration Pattern
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Tree Node                             │
+│  (opens external widget)                                │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  onEnter: async (tree) => {                              │
+│      const widget = new ExternalWidget();                │
+│                                                          │
+│      widget.show({                                       │
+│          onSuccess: async (data) => {                    │
+│              tree.setVariable('result', data);           │
+│              await tree.gotoNode('success_node');        │
+│          },                                              │
+│          onCancel: async () => {                         │
+│              await tree.gotoNode('cancel_node');         │
+│          }                                               │
+│      });                                                 │
+│  }                                                       │
+│                                                          │
+└───────────┬─────────────────────────────────────────────┘
+            │
+            │ Opens
+            ▼
+┌─────────────────────────────────────────────────────────┐
+│              External Widget                             │
+│         (BlueskyPoster, Directory, etc.)                │
+├─────────────────────────────────────────────────────────┤
+│  • Shows modal/interface                                 │
+│  • User interacts                                        │
+│  • Fires success/cancel callback                         │
+└───────────┬─────────────────────────────────────────────┘
+            │
+            │ Callback
+            ▼
+┌─────────────────────────────────────────────────────────┐
+│              Tree resumes                                │
+│         (navigates to next node)                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Context Provider Pattern
+
+```
+Tree Definition
+    │
+    └─→ contextProviders: {
+            async userSession(tree) {
+                const session = await getSession();
+                return {
+                    userName: session.name,
+                    isLoggedIn: true
+                };
+            },
+            async stats(tree) {
+                const data = await fetch('/api/stats');
+                return {
+                    score: data.score,
+                    level: data.level
+                };
+            }
+        }
+
+When node is displayed:
+    │
+    ├─→ Call all specified providers
+    │       └─→ Merge results into context object
+    │
+    ├─→ Pass context to dialogue builder
+    │       └─→ Interpolate {{variables}} from context
+    │
+    └─→ Display dialogue with live data
+```
+
+## Directory Structure
+
+```
+js/
+├── core/
+│   └── conversation-tree.js         ← Core manager class
+│
+├── conversations/                   ← Tree definitions
+│   ├── README.md                    ← Full documentation
+│   ├── INTEGRATION.md               ← How to integrate
+│   ├── QUICK_REFERENCE.md           ← Cheatsheet
+│   ├── SUMMARY.md                   ← Overview
+│   ├── ARCHITECTURE.md              ← This file
+│   ├── simple-example.js            ← Minimal example
+│   └── homepage-welcome.js          ← Full homepage tree
+│
+├── widgets/
+│   ├── dialogue.js                  ← Display component
+│   └── homepage.js                  ← Uses the tree
+│
+└── utils/
+    └── ...                          ← Other utilities
+```
+
+## Execution Timeline
+
+```
+Page Load
+    │
+    ├─→ Load dialogue.js
+    ├─→ Load conversation-tree.js
+    ├─→ Load homepage-welcome.js
+    └─→ Load homepage.js
+            │
+            └─→ new HomepageScene()
+                    │
+                    └─→ Initialize dialogue widget
+                    └─→ Initialize conversation tree
+                    └─→ Register tree definition
+                    └─→ Wait for user interaction
+                            │
+                            └─→ Start tree
+                                    │
+                                    └─→ Navigate to root node
+                                            │
+                                            └─→ Display dialogue
+                                                    │
+                                                    └─→ User makes choice
+                                                            │
+                                                            └─→ (cycle continues)
+```
+
+## Memory Model
+
+```
+┌────────────────────────────────────────────────────────┐
+│                 Browser Memory                          │
+├────────────────────────────────────────────────────────┤
+│                                                         │
+│  ConversationTree Instance                              │
+│  ┌──────────────────────────────────────────────┐      │
+│  │ nodes: Map (all registered nodes)            │      │
+│  │ variables: Map (current state)               │      │
+│  │ flags: Set (boolean states)                  │      │
+│  │ history: Array (visited nodes)               │      │
+│  │ contextProviders: Map (data fetchers)        │      │
+│  └──────────────────────────────────────────────┘      │
+│                                                         │
+│  Tree Definitions (static objects)                      │
+│  ┌──────────────────────────────────────────────┐      │
+│  │ HomepageWelcomeTree: { nodes: {...} }        │      │
+│  │ SimpleGreetingTree: { nodes: {...} }         │      │
+│  └──────────────────────────────────────────────┘      │
+│                                                         │
+│  Dialogue Widget Instance                               │
+│  ┌──────────────────────────────────────────────┐      │
+│  │ container: DOM element                        │      │
+│  │ currentDialogue: Array                        │      │
+│  │ currentIndex: number                          │      │
+│  └──────────────────────────────────────────────┘      │
+│                                                         │
+└────────────────────────────────────────────────────────┘
+
+LocalStorage (persistent)
+┌────────────────────────────────────────────────────────┐
+│ 'conversation_state': JSON string                       │
+│   → Can restore tree state on page reload               │
+└────────────────────────────────────────────────────────┘
+```
+
+This architecture provides a clean separation of concerns with the ConversationTree managing all state and logic, the Dialogue widget handling presentation, and tree definitions remaining purely declarative.

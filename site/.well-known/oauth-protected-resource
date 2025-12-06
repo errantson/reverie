@@ -1,0 +1,14 @@
+{
+  "resource": "https://reverie.house",
+  "authorization_servers": [
+    "https://auth.reverie.house"
+  ],
+  "scopes_supported": [
+    "atproto",
+    "transition:generic"
+  ],
+  "bearer_methods_supported": [
+    "header"
+  ],
+  "resource_documentation": "https://atproto.com"
+}

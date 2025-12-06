@@ -1,0 +1,382 @@
+# =============================================================================
+# MAIN DOCKER COMPOSE - REVERIE HOUSE PRODUCTION STACK
+# =============================================================================
+# This is the PRIMARY docker-compose.yml that runs all production services.
+# Location: /srv/reverie.house/docker-compose.yml
+#
+# NETWORK: All services use bridge networking (reverie_network) for security.
+# Only Caddy exposes ports 80/443 to the host. Internal services communicate
+# via Docker DNS (e.g., reverie_db, api, feedgen).
+#
+# CONTAINER SUMMARY (15 total):
+#
+# DATABASE (1):
+#   - reverie_db             : PostgreSQL 15 database (internal port 5432)
+#
+# WEB & ROUTING (2):
+#   - caddy                  : Reverse proxy and SSL termination (80/443/2222)
+#   - reverie_pds            : Bluesky Personal Data Server (port 3333)
+#
+# MONITORS (6):
+#   - reverie_dreamerhose    : Dreamer profile firehose (real-time avatars, bios, handles)
+#   - reverie_questhose      : Quest reply firehose (real-time quest monitoring)
+#   - reverie_greeter        : Namegiver quest polling (60s intervals)
+#   - reverie_mapper         : Origin quest polling (60s intervals)
+#   - reverie_dreamhose      : Dream post detection firehose (entire network)
+#   - reverie_workerwatch    : Worker credential checking (3min intervals)
+#
+# APPLICATION SERVICES (5):
+#   - reverie_api            : Admin API and website backend (port 4444)
+#   - reverie_feedgen        : Feed generator service (port 3001)
+#   - reverie_aviary         : Feed update notifications
+#   - reverie_stripe         : Payment processing (port 5555)
+#   - reverie_origincards    : Spectrum image generator (port 3050)
+#
+# UTILITIES (1):
+#   - watchtower             : Auto-updates Docker images
+#
+# Usage:
+#   cd /srv/reverie.house
+#   docker compose up -d                    # Start all services
+#   docker compose restart <service>        # Restart a specific service
+#   docker compose logs -f <service>        # View logs
+# =============================================================================
+
+networks:
+  reverie_network:
+    driver: bridge
+    name: reverie_network
+
+services:
+  # ===========================================================================
+  # DATABASE
+  # ===========================================================================
+  
+  reverie_db:
+    image: postgres:15-alpine
+    container_name: reverie_db
+    restart: unless-stopped
+    networks:
+      - reverie_network
+    volumes:
+      - reverie_db_data:/var/lib/postgresql/data
+      - ./sql/init/03_schema_corrected.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./data/backups:/backups
+      - ../secrets:/secrets:ro
+      - ../cert:/certs:ro
+    environment:
+      - POSTGRES_DB=reverie_house
+      - POSTGRES_USER=reverie
+      - POSTGRES_PASSWORD_FILE=/secrets/reverie_db_password.txt
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=en_US.UTF-8
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reverie -d reverie_house"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # ===========================================================================
+  # WEB & ROUTING
+  # ===========================================================================
+  
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    networks:
+      - reverie_network
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2222:2222"
+    volumes:
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../caddy:/srv/caddy:ro
+      - ../caddy/data:/data
+      - ./cert:/cert
+      - ./site:/srv/site:ro
+      - ../flawed.center:/srv/flawed.center:ro
+      - ../avonlea.town:/srv/avonlea.town:ro
+      - ../lakeblood.ca:/srv/lakeblood.ca:ro
+      - ../biblio.bond:/srv/bibliobond:ro
+      - ../lore.farm/public:/srv/lorefarm/public:ro
+
+  # PDS is managed separately via /pds/compose.yaml
+  # Do not add it here as it requires env_file with secrets
+
+  # ===========================================================================
+  # MONITORS (Firehose + Polling Services)
+  # ===========================================================================
+
+  dreamerhose:
+    image: python:3.11-slim
+    container_name: reverie_dreamerhose
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary && python3 -u core/dreamerhose.py --verbose"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  questhose:
+    image: python:3.11-slim
+    container_name: reverie_questhose
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary && python3 -u core/questhose.py --verbose"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  greeter:
+    image: python:3.11-slim
+    container_name: reverie_greeter
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary && python3 -u core/greeterwatch.py --verbose"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+      - /srv/secrets:/srv/secrets:ro
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  mapper:
+    image: python:3.11-slim
+    container_name: reverie_mapper
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary && python3 -u core/mapperwatch.py --verbose"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+      - /srv/secrets:/srv/secrets:ro
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  dreamhose:
+    image: python:3.11-slim
+    container_name: reverie_dreamhose
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary && python3 -u core/dreamhose.py --verbose"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  bibliowatch:
+    image: python:3.11-slim
+    container_name: reverie_bibliowatch
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary && python3 -u core/bibliowatch.py --verbose"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  work:
+    image: python:3.11-slim
+    container_name: reverie_work
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary cryptography && python3 -u core/workerwatch.py --verbose"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+      - /srv/secrets:/srv/secrets:ro
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  courier:
+    image: python:3.11-slim
+    container_name: reverie_courier
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary cryptography && python3 -u core/courier.py --interval 60"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+      - /srv/secrets:/srv/secrets:ro
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  # ===========================================================================
+  # APPLICATION SERVICES
+  # ===========================================================================
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    container_name: reverie_api
+    restart: unless-stopped
+    networks:
+      - reverie_network
+    working_dir: /srv
+    command: python3 /srv/admin.py --port=4444
+    volumes:
+      - .:/srv
+      - /srv/secrets:/srv/secrets:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+      - POSTGRES_PASSWORD_FILE=/srv/secrets/reverie_db_password.txt
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+      dreamerhose:
+        condition: service_started
+
+  feedgen:
+    image: python:3.11-slim
+    container_name: reverie_feedgen
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install flask atproto requests python-dotenv websocket-client cbor2 psycopg2-binary && python3 -u core/feedgen_server.py"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  aviary:
+    image: python:3.11-slim
+    container_name: reverie_aviary
+    restart: unless-stopped
+    working_dir: /srv
+    command: sh -c "pip install atproto requests python-dotenv psycopg2-binary && python3 -u aviary.py --verbose"
+    networks:
+      - reverie_network
+    volumes:
+      - .:/srv
+    environment:
+      - PYTHONPATH=/srv
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  stripe:
+    build:
+      context: .
+      dockerfile: ./stripe/Dockerfile
+    container_name: reverie_stripe
+    restart: unless-stopped
+    networks:
+      - reverie_network
+    env_file:
+      - /srv/secrets/stripe.env
+    volumes:
+      - ./data-runtime:/srv/data
+    environment:
+      - SUCCESS_URL=https://reverie.house/order?success=true
+      - CANCEL_URL=https://reverie.house/order?canceled=true
+      - POSTGRES_HOST=reverie_db
+    depends_on:
+      reverie_db:
+        condition: service_healthy
+
+  biblio_app:
+    image: python:3.11-slim
+    container_name: biblio_api
+    restart: unless-stopped
+    working_dir: /srv/biblio.bond
+    command: sh -c "pip install flask atproto python-dotenv psycopg2-binary requests Pillow && python3 -u bibliobond.py"
+    networks:
+      - reverie_network
+    volumes:
+      - ../biblio.bond:/srv/biblio.bond
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/srv/biblio.bond
+      - FLASK_SECRET_KEY=change-this-in-production-biblio-bond-2025
+
+  origincards:
+    build:
+      context: ./services/origincards
+      dockerfile: Dockerfile
+    container_name: reverie_origincards
+    restart: unless-stopped
+    networks:
+      - reverie_network
+    volumes:
+      - ./site:/srv/site
+    environment:
+      - NODE_ENV=production
+
+  # ===========================================================================
+  # ===========================================================================
+  # UTILITIES
+  # ===========================================================================
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_POLL_INTERVAL=86400
+
+volumes:
+  reverie_db_data:
+    name: reverie_db_data
+    external: false

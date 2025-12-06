@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bug Tracker - Reverie House Admin</title>
+    <link rel="stylesheet" href="/css/base.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    
+    <!-- Core utilities -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/error-tracker.js"></script>
+    
+    <!-- Header and drawer widgets -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    
+    <style>
+        :root {
+            --card-bg: #ffffff;
+            --card-border: #e5e5e5;
+            --text-primary: #171717;
+            --text-secondary: #6b7280;
+            --text-dim: #9ca3af;
+            --hover-bg: #f9fafb;
+            --error-critical: #dc2626;
+            --error-warning: #f59e0b;
+            --error-success: #10b981;
+            --badge-blue: #3b82f6;
+            --badge-purple: #9333ea;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--page-background-color);
+            font-family: Georgia, 'Times New Roman', serif;
+            line-height: 1.6;
+        }
+
+        .page-layout {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            padding-top: 60px;
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar - Fixed between header and drawer */
+        .bugs-sidebar {
+            width: 280px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            position: fixed;
+            left: 10px;
+            top: 80px;
+            bottom: 74px;
+            overflow-y: auto;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .sidebar-header {
+            padding: 0.75rem;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+            background: #0d0d0d;
+        }
+        
+        .sidebar-title {
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #666;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.1em;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .sidebar-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-bottom: 0.75rem;
+        }
+        
+        .sidebar-stat {
+            background: #262626;
+            padding: 4px 6px;
+            border-radius: 3px;
+            border: 1px solid #333;
+        }
+        
+        .sidebar-stat-label {
+            font-size: 8px;
+            color: #888;
+            margin-bottom: 1px;
+            font-family: 'SF Mono', Monaco, monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            line-height: 1;
+        }
+        
+        .sidebar-stat-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #999;
+            font-family: 'SF Mono', Monaco, monospace;
+            line-height: 1;
+        }
+        
+        .sidebar-stat.critical .sidebar-stat-value {
+            color: #ff4444;
+        }
+        
+        .sidebar-stat.warning .sidebar-stat-value {
+            color: #ffaa00;
+        }
+        
+        .sidebar-stat.success .sidebar-stat-value {
+            color: #44ff44;
+        }
+        
+        .sidebar-section {
+            padding: 0.75rem;
+            border-bottom: 1px solid #333;
+        }
+        
+        .sidebar-section-title {
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #666;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.1em;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .sidebar-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .sidebar-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .sidebar-filter-label {
+            font-size: 0.625rem;
+            color: #888;
+            font-family: 'SF Mono', Monaco, monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .sidebar-filter-group select {
+            background: #262626;
+            color: #999;
+            border: 1px solid #333;
+            padding: 0.375rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .sidebar-filter-group select:focus {
+            outline: none;
+            border-color: #555;
+        }
+        
+        .sidebar-actions {
+            display: flex;
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+        }
+        
+        .sidebar-btn {
+            flex: 1;
+            padding: 0.375rem 0.5rem;
+            font-size: 0.625rem;
+            font-weight: 600;
+            border: 1px solid #333;
+            background: #262626;
+            color: #999;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'SF Mono', Monaco, monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .sidebar-btn:hover {
+            background: #333;
+            border-color: #555;
+            color: #bbb;
+        }
+        
+        .sidebar-btn.primary {
+            background: #d4af37;
+            border-color: #d4af37;
+            color: #0d0d0d;
+        }
+        
+        .sidebar-btn.primary:hover {
+            background: #c49d2e;
+            border-color: #c49d2e;
+        }
+        
+        .sidebar-breakdown {
+            padding: 0.75rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.375rem;
+            background: #262626;
+            border-radius: 3px;
+            border: 1px solid #333;
+        }
+        
+        .breakdown-item-name {
+            font-size: 0.75rem;
+            color: #999;
+            font-family: 'SF Mono', Monaco, monospace;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .breakdown-item-count {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #d4af37;
+            font-family: 'SF Mono', Monaco, monospace;
+            margin-left: 0.5rem;
+        }
+
+        /* Main Content Area */
+        .bugs-main {
+            flex: 1;
+            margin-left: 300px;
+            margin-right: 10px;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .page-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0 0 1.5rem 0;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .bugs-sidebar {
+                display: none;
+            }
+            
+            .bugs-main {
+                margin-left: 10px;
+            }
+            
+            .error-table-header {
+                display: none;
+            }
+            
+            .error-row {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+                padding: 1rem;
+            }
+            
+            .error-col {
+                grid-column: 1;
+            }
+        }
+        
+        /* Error Table */
+        .error-table {
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            overflow: hidden;
+        }
+        
+        .error-table-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 120px 100px 100px 80px;
+            gap: 1rem;
+            padding: 0.75rem 1.5rem;
+            background: #f9fafb;
+            border-bottom: 2px solid var(--card-border);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .error-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 120px 100px 100px 80px;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            cursor: pointer;
+            transition: background 0.2s;
+            align-items: center;
+        }
+        
+        .error-row:hover {
+            background: var(--hover-bg);
+        }
+        
+        .error-row:last-child {
+            border-bottom: none;
+        }
+        
+        .error-col {
+            overflow: hidden;
+        }
+        
+        .error-col-type {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+        
+        .error-col-message {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .error-col-time {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        
+        .error-col-badges {
+            display: flex;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            display: inline-block;
+        }
+
+        .badge.new {
+            background: var(--badge-blue);
+            color: white;
+        }
+
+        .badge.investigating {
+            background: var(--error-warning);
+            color: white;
+        }
+
+        .badge.resolved {
+            background: var(--error-success);
+            color: white;
+        }
+
+        .badge.ignored {
+            background: var(--text-dim);
+            color: white;
+        }
+
+        .badge.critical {
+            background: var(--error-critical);
+            color: white;
+        }
+
+        .badge.error {
+            background: #ef4444;
+            color: white;
+        }
+
+        .badge.warning {
+            background: var(--error-warning);
+            color: white;
+        }
+
+        .badge.client {
+            background: var(--badge-purple);
+            color: white;
+        }
+        
+        .occurrence-badge {
+            background: var(--error-critical);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.625rem;
+            font-weight: 700;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .error-details {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--card-border);
+        }
+
+        .error-details.open {
+            display: block;
+        }
+        
+        .error-details h4 {
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+        
+        .error-details h4:first-child {
+            margin-top: 0;
+        }
+
+        .stack-trace {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--card-border);
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--error-critical);
+            margin-top: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .error-actions button {
+            background: white;
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 0.875rem;
+        }
+
+        .error-actions button:hover {
+            background: var(--hover-bg);
+            border-color: var(--text-secondary);
+        }
+
+        .error-actions button.primary {
+            background: var(--text-primary);
+            color: white;
+            border-color: var(--text-primary);
+        }
+
+        .error-actions button.primary:hover {
+            background: var(--text-secondary);
+        }
+
+        .occurrence-count {
+            background: var(--error-critical);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-dim);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-dim);
+        }
+
+        .empty-state h3 {
+            color: var(--error-success);
+            margin-bottom: 0.5rem;
+        }
+
+        .refresh-btn {
+            background: transparent !important;
+            border: 1px solid var(--text-primary) !important;
+            color: var(--text-primary) !important;
+            padding: 0.5rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--text-primary) !important;
+            color: white !important;
+        }
+
+        .error-breakdown {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            margin-bottom: 2rem;
+        }
+
+        .error-breakdown h2 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .breakdown-item strong {
+            color: var(--text-primary);
+        }
+
+        .breakdown-bar {
+            background: #f3f4f6;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .breakdown-bar-fill {
+            height: 100%;
+            background: var(--text-primary);
+            transition: width 0.3s;
+        }
+        
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .page-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0 0 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <div class="page-layout">
+        <!-- Sidebar -->
+        <div class="bugs-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">Bug Tracker</div>
+                <div class="sidebar-stats">
+                    <div class="sidebar-stat">
+                        <div class="sidebar-stat-label">Total</div>
+                        <div class="sidebar-stat-value" id="stat-total">-</div>
+                    </div>
+                    <div class="sidebar-stat">
+                        <div class="sidebar-stat-label">New</div>
+                        <div class="sidebar-stat-value" id="stat-new">-</div>
+                    </div>
+                    <div class="sidebar-stat success">
+                        <div class="sidebar-stat-label">Resolved</div>
+                        <div class="sidebar-stat-value" id="stat-resolved">-</div>
+                    </div>
+                    <div class="sidebar-stat critical">
+                        <div class="sidebar-stat-label">Critical</div>
+                        <div class="sidebar-stat-value" id="stat-critical">-</div>
+                    </div>
+                    <div class="sidebar-stat warning">
+                        <div class="sidebar-stat-label">Warning</div>
+                        <div class="sidebar-stat-value" id="stat-warning">-</div>
+                    </div>
+                    <div class="sidebar-stat">
+                        <div class="sidebar-stat-label">Client</div>
+                        <div class="sidebar-stat-value" id="stat-client">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Filters</div>
+                <div class="sidebar-filters">
+                    <div class="sidebar-filter-group">
+                        <label class="sidebar-filter-label">Status</label>
+                        <select id="filterStatus">
+                            <option value="">All</option>
+                            <option value="new" selected>New</option>
+                            <option value="investigating">Investigating</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="ignored">Ignored</option>
+                        </select>
+                    </div>
+                    
+                    <div class="sidebar-filter-group">
+                        <label class="sidebar-filter-label">Severity</label>
+                        <select id="filterSeverity">
+                            <option value="">All</option>
+                            <option value="critical">Critical</option>
+                            <option value="error">Error</option>
+                            <option value="warning">Warning</option>
+                        </select>
+                    </div>
+                    
+                    <div class="sidebar-filter-group">
+                        <label class="sidebar-filter-label">Time Range</label>
+                        <select id="filterHours">
+                            <option value="6">Last 6 hours</option>
+                            <option value="24" selected>Last 24 hours</option>
+                            <option value="168">Last week</option>
+                            <option value="720">Last month</option>
+                            <option value="0">All time</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="sidebar-actions">
+                    <button class="sidebar-btn primary" onclick="loadErrors()">Apply</button>
+                    <button class="sidebar-btn" onclick="loadErrors()">🔄 Refresh</button>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Top Error Types</div>
+                <div class="sidebar-breakdown" id="sidebar-breakdown">
+                    <div class="loading" style="text-align: center; color: #666; padding: 1rem;">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="bugs-main">
+            <div class="error-table" id="errorTable">
+                <div class="error-table-header">
+                    <div>Error Type & Message</div>
+                    <div>Time</div>
+                    <div>Status</div>
+                    <div>Severity</div>
+                    <div>Source</div>
+                    <div>Count</div>
+                </div>
+                <div id="errorTableBody">
+                    <div class="loading" style="text-align: center; padding: 3rem; color: var(--text-dim);">
+                        Loading errors...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = localStorage.getItem('admin_token');
+        let currentErrors = [];
+
+        // Load errors on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadErrors();
+            loadStats();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                loadErrors();
+                loadStats();
+            }, 30000);
+        });
+
+        async function loadStats() {
+            try {
+                const hours = document.getElementById('filterHours').value || 24;
+                const response = await fetch(`/api/admin/errors/stats?hours=${hours}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load stats');
+
+                const data = await response.json();
+                const stats = data.stats;
+
+                // Update sidebar stat cards
+                document.getElementById('stat-total').textContent = stats.total_errors || 0;
+                document.getElementById('stat-critical').textContent = stats.critical_errors || 0;
+                document.getElementById('stat-warning').textContent = stats.warnings || 0;
+                document.getElementById('stat-new').textContent = stats.new_errors || 0;
+                document.getElementById('stat-resolved').textContent = stats.resolved_errors || 0;
+                document.getElementById('stat-client').textContent = stats.client_errors || 0;
+
+                // Update sidebar breakdown
+                const breakdownDiv = document.getElementById('sidebar-breakdown');
+                if (stats.error_types && stats.error_types.length > 0) {
+                    breakdownDiv.innerHTML = stats.error_types.slice(0, 8).map(type => `
+                        <div class="breakdown-item">
+                            <div class="breakdown-item-name" title="${type.error_type}">${type.error_type}</div>
+                            <div class="breakdown-item-count">${type.occurrences}×</div>
+                        </div>
+                    `).join('');
+                } else {
+                    breakdownDiv.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">No errors</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadErrors() {
+            const errorTableBody = document.getElementById('errorTableBody');
+            errorTableBody.innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--text-dim);">Loading errors...</div>';
+
+            try {
+                const status = document.getElementById('filterStatus').value;
+                const severity = document.getElementById('filterSeverity').value;
+                const hours = document.getElementById('filterHours').value;
+
+                const params = new URLSearchParams({
+                    limit: 100,
+                    hours: hours || 24
+                });
+
+                if (status) params.append('status', status);
+                if (severity) params.append('severity', severity);
+
+                const response = await fetch(`/api/admin/errors?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load errors');
+
+                const data = await response.json();
+                currentErrors = data.errors;
+
+                if (currentErrors.length === 0) {
+                    errorTableBody.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; color: var(--text-dim);">
+                            <h3 style="color: var(--error-success); margin-bottom: 0.5rem;">✨ No errors found!</h3>
+                            <p>Everything is running smoothly.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                errorTableBody.innerHTML = currentErrors.map(error => renderErrorRow(error)).join('');
+            } catch (error) {
+                console.error('Failed to load errors:', error);
+                errorTableBody.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: var(--text-dim);">
+                        <h3 style="color: var(--error-critical); margin-bottom: 0.5rem;">⚠️ Failed to load errors</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderErrorRow(error) {
+            const timestamp = new Date(error.timestamp * 1000).toLocaleString();
+            const relativeTime = getRelativeTime(error.timestamp);
+            
+            return `
+                <div class="error-row" onclick="showErrorDetails(${error.id})">
+                    <div class="error-col">
+                        <div class="error-col-type">${escapeHtml(error.error_type)}</div>
+                        <div class="error-col-message">${escapeHtml(error.error_message)}</div>
+                    </div>
+                    <div class="error-col">
+                        <div class="error-col-time" title="${timestamp}">${relativeTime}</div>
+                    </div>
+                    <div class="error-col-badges">
+                        <span class="badge ${error.status}">${error.status}</span>
+                    </div>
+                    <div class="error-col-badges">
+                        <span class="badge ${error.severity}">${error.severity}</span>
+                    </div>
+                    <div class="error-col-badges">
+                        ${error.client_side ? '<span class="badge client">Client</span>' : '<span class="badge" style="background: #6b7280;">Server</span>'}
+                    </div>
+                    <div class="error-col">
+                        ${error.occurrence_count > 1 ? `<span class="occurrence-badge">${error.occurrence_count}×</span>` : '-'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function getRelativeTime(timestamp) {
+            const seconds = Math.floor(Date.now() / 1000 - timestamp);
+            
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+            if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
+            return Math.floor(seconds / 604800) + 'w ago';
+        }
+        
+        function showErrorDetails(errorId) {
+            const error = currentErrors.find(e => e.id === errorId);
+            if (!error) return;
+            
+            // Create modal with error details
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 2rem;
+            `;
+            
+            const timestamp = new Date(error.timestamp * 1000).toLocaleString();
+            const firstSeen = new Date(error.first_seen * 1000).toLocaleString();
+            const lastSeen = new Date(error.last_seen * 1000).toLocaleString();
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    border-radius: 8px;
+                    max-width: 900px;
+                    width: 100%;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                ">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <h2 style="margin: 0; color: var(--text-primary);">${escapeHtml(error.error_type)}</h2>
+                            <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary);">${escapeHtml(error.error_message)}</p>
+                        </div>
+                        <button onclick="this.closest('.modal-wrapper').remove()" style="
+                            background: none;
+                            border: none;
+                            font-size: 1.5rem;
+                            cursor: pointer;
+                            color: var(--text-dim);
+                            padding: 0;
+                            width: 2rem;
+                            height: 2rem;
+                        ">×</button>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div>
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">Status</strong>
+                                <div><span class="badge ${error.status}">${error.status}</span></div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">Severity</strong>
+                                <div><span class="badge ${error.severity}">${error.severity}</span></div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">Occurrences</strong>
+                                <div style="color: var(--text-primary);">${error.occurrence_count}×</div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">Source</strong>
+                                <div>${error.client_side ? '<span class="badge client">Client</span>' : '<span class="badge" style="background: #6b7280;">Server</span>'}</div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">First Seen</strong>
+                                <div style="color: var(--text-primary); font-size: 0.875rem;">${firstSeen}</div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">Last Seen</strong>
+                                <div style="color: var(--text-primary); font-size: 0.875rem;">${lastSeen}</div>
+                            </div>
+                            ${error.endpoint ? `
+                                <div style="grid-column: 1 / -1;">
+                                    <strong style="color: var(--text-secondary); font-size: 0.75rem;">Endpoint</strong>
+                                    <div style="color: var(--text-primary); font-size: 0.875rem; font-family: monospace;">${escapeHtml(error.endpoint)}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        ${error.stack_trace ? `
+                            <div style="margin-bottom: 1.5rem;">
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">Stack Trace</strong>
+                                <div class="stack-trace">${escapeHtml(error.stack_trace)}</div>
+                            </div>
+                        ` : ''}
+                        
+                        ${error.request_data ? `
+                            <div style="margin-bottom: 1.5rem;">
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">Request Data</strong>
+                                <div class="stack-trace">${escapeHtml(error.request_data)}</div>
+                            </div>
+                        ` : ''}
+                        
+                        ${error.notes ? `
+                            <div style="margin-bottom: 1.5rem;">
+                                <strong style="color: var(--text-secondary); font-size: 0.75rem;">Notes</strong>
+                                <p style="color: var(--text-primary);">${escapeHtml(error.notes)}</p>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="error-actions">
+                            ${error.status !== 'resolved' ? `
+                                <button class="primary" onclick="resolveError(${error.id}); this.closest('.modal-wrapper').remove();">✓ Mark Resolved</button>
+                            ` : ''}
+                            ${error.status !== 'investigating' ? `
+                                <button onclick="updateStatus(${error.id}, 'investigating'); this.closest('.modal-wrapper').remove();">🔍 Investigate</button>
+                            ` : ''}
+                            ${error.status !== 'ignored' ? `
+                                <button onclick="updateStatus(${error.id}, 'ignored'); this.closest('.modal-wrapper').remove();">🙈 Ignore</button>
+                            ` : ''}
+                            ${error.status !== 'new' ? `
+                                <button onclick="updateStatus(${error.id}, 'new'); this.closest('.modal-wrapper').remove();">↩️ Reset to New</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.className = 'modal-wrapper';
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            
+            document.body.appendChild(modal);
+        }
+
+        async function resolveError(errorId) {
+            try {
+                const notes = prompt('Add resolution notes (optional):');
+                
+                const response = await fetch(`/api/admin/errors/${errorId}/resolve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ notes })
+                });
+
+                if (!response.ok) throw new Error('Failed to resolve error');
+
+                alert('Error marked as resolved');
+                loadErrors();
+                loadStats();
+            } catch (error) {
+                alert('Failed to resolve error: ' + error.message);
+            }
+        }
+
+        async function updateStatus(errorId, status) {
+            try {
+                const response = await fetch(`/api/admin/errors/${errorId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+
+                if (!response.ok) throw new Error('Failed to update status');
+
+                loadErrors();
+                loadStats();
+            } catch (error) {
+                alert('Failed to update status: ' + error.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+    </div>
+</body>
+</html>

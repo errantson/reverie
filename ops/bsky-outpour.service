@@ -1,0 +1,20 @@
+[Unit]
+Description=Bluesky Outpour - Unified Bluesky Management Service
+After=network.target
+
+[Service]
+Type=simple
+User=errantson
+WorkingDirectory=/srv
+ExecStart=/usr/bin/python3 /srv/core/bsky_outpour.py --daemon --verbose
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits
+MemoryMax=256M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

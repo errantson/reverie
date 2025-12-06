@@ -1,0 +1,13 @@
+{
+  "name": "reverie-origincards",
+  "version": "1.0.0",
+  "description": "Server-side spectrum origin image generator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "canvas": "^2.11.2"
+  }
+}

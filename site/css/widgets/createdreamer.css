@@ -1,0 +1,616 @@
+/**
+ * CreateDreamer Widget Styles
+ * Account creation modal for Reverie House
+ */
+
+/**
+ * CreateDreamer Widget Styles
+ */
+
+.create-dreamer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10002; /* Above shadowbox (10000) and BskyExplain (10001) */
+    backdrop-filter: blur(4px);
+}
+
+.create-dreamer-overlay.active {
+    display: flex;
+}
+
+.create-dreamer-modal {
+    background: #faf9f7;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.create-dreamer-modal .modal-header {
+    background: var(--reverie-core-color, #734ba1);
+    color: white;
+    padding: 20px 24px;
+    position: relative;
+}
+
+.create-dreamer-modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+}
+
+.create-dreamer-modal .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: opacity 0.2s;
+}
+
+.create-dreamer-modal .close-btn:hover {
+    opacity: 0.7;
+}
+
+.create-dreamer-modal .modal-body {
+    padding: 20px 24px;
+}
+
+/* Welcome Section with Logo */
+.create-dreamer-modal .welcome-section {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+}
+
+.create-dreamer-modal .welcome-logo {
+    width: 180px;
+    height: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .welcome-section {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .create-dreamer-modal .welcome-logo {
+        width: 120px;
+    }
+}
+
+.create-dreamer-modal .welcome-content {
+    flex: 1;
+}
+
+.create-dreamer-modal .welcome-text {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #2d2d2d;
+    font-family: monospace;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .welcome-text {
+        font-size: 0.8rem;
+        text-align: center;
+    }
+}
+
+.create-dreamer-modal .welcome-subtext {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: rgba(45, 45, 45, 0.7);
+    font-family: monospace;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .welcome-subtext {
+        font-size: 0.7rem;
+        text-align: center;
+    }
+}
+
+/* ATProto Info Box */
+.create-dreamer-modal .atproto-info {
+    background: linear-gradient(135deg, #e8f4f8 0%, #f0e8ff 100%);
+    border: 1.5px solid #b8d4e0;
+    padding: 10px 14px;
+    margin: 0 auto 18px auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 88%;
+}
+
+.create-dreamer-modal .atproto-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.create-dreamer-modal .atproto-text {
+    margin: 0;
+    font-size: 0.65rem;
+    line-height: 1.4;
+    color: #2d5a6b;
+    font-family: monospace;
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .atproto-info {
+        padding: 10px 12px;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    
+    .create-dreamer-modal .atproto-logo {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .create-dreamer-modal .atproto-text {
+        font-size: 0.6rem;
+        line-height: 1.3;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+    }
+}
+
+.create-dreamer-modal .modal-header {
+    background: #f8f6ff;
+    border-bottom: 1.5px solid #d0c7f0;
+    color: var(--reverie-core-color, #734ba1);
+    padding: 16px 24px;
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .modal-header {
+        padding: 14px 16px;
+        flex-shrink: 0;
+    }
+}
+
+.create-dreamer-modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.1em;
+    text-align: center;
+    color: var(--reverie-core-color, #734ba1);
+    font-family: monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .modal-header h2 {
+        font-size: 1.1em;
+    }
+}
+
+.create-dreamer-modal .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: white;
+    border: 1.5px solid #d0c7f0;
+    font-size: 20px;
+    cursor: pointer;
+    color: #5a4a7a;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+    border-radius: 0;
+}
+
+.create-dreamer-modal .close-btn:hover {
+    background: #f0ebff;
+    border-color: var(--reverie-core-color, #734ba1);
+    color: #372e42;
+}
+
+.create-dreamer-modal .modal-body {
+    padding: 28px 32px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .modal-body {
+        padding: 16px;
+    }
+}
+
+.create-dreamer-modal .welcome-text {
+    color: #5a4a7a;
+    line-height: 1.5;
+    margin: 0 0 24px 0;
+    text-align: center;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+/* Form Rows for Two-Column Layout */
+.create-dreamer-modal .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+        margin-bottom: 0;
+    }
+}
+
+.create-dreamer-modal .form-group {
+    margin-bottom: 0;
+    text-align: left;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .form-group {
+        margin-bottom: 14px;
+    }
+}
+
+.create-dreamer-modal .form-group label {
+    display: block;
+    font-weight: 600;
+    color: #5a4a7a;
+    margin-bottom: 6px;
+    font-family: monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.create-dreamer-modal .form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #d0c7f0;
+    border-radius: 0;
+    font-size: 0.95em;
+    font-family: monospace;
+    transition: all 0.2s;
+    background: white;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .form-group input {
+        padding: 12px;
+        font-size: 16px;
+    }
+}
+
+.create-dreamer-modal .form-group input:focus {
+    outline: none;
+    border-color: var(--reverie-core-color, #734ba1);
+    background: #f8f6ff;
+}
+
+.create-dreamer-modal .form-group input:invalid:not(:placeholder-shown) {
+    border-color: #ff6b6b;
+}
+
+.create-dreamer-modal .username-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+.create-dreamer-modal .username-wrapper input {
+    flex: 1;
+    min-width: 0;
+}
+
+.create-dreamer-modal .domain-suffix {
+    color: rgba(90, 74, 122, 0.7);
+    font-weight: 500;
+    white-space: nowrap;
+    font-family: monospace;
+    font-size: 0.85em;
+    position: absolute;
+    right: 12px;
+    pointer-events: none;
+}
+
+.create-dreamer-modal .form-group input.available {
+    border-color: #51cf66;
+    background-color: #f0fff4;
+}
+
+.create-dreamer-modal .form-group input.taken {
+    border-color: #ff6b6b;
+    background-color: #fff5f5;
+}
+
+.create-dreamer-modal .help-text {
+    display: block;
+    color: rgba(90, 74, 122, 0.65);
+    font-size: 0.7rem;
+    margin-top: 4px;
+    font-family: monospace;
+}
+
+/* Capacity Section */
+.create-dreamer-modal .capacity-section {
+    background: #f8f6ff;
+    border: 1.5px solid #d0c7f0;
+    border-radius: 0;
+    padding: 12px 16px;
+    margin: 18px 0 16px 0;
+    text-align: center;
+}
+
+.create-dreamer-modal .capacity-label {
+    display: block;
+    font-weight: 700;
+    color: var(--reverie-core-color, #734ba1);
+    margin-bottom: 8px;
+    font-family: monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.create-dreamer-modal .capacity-bar {
+    background: white;
+    border: 1.5px solid #d0c7f0;
+    height: 28px;
+    margin-bottom: 6px;
+    position: relative;
+    overflow: hidden;
+}
+
+.create-dreamer-modal .capacity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #a89bc7, #734ba1);
+    transition: width 0.5s ease, background 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.create-dreamer-modal .capacity-fill.high {
+    background: linear-gradient(90deg, #ff9966, #ff6b6b);
+}
+
+.create-dreamer-modal .capacity-text {
+    font-family: monospace;
+    font-size: 0.6rem;
+    color: rgba(90, 74, 122, 0.65);
+    font-style: italic;
+    margin-top: 6px;
+    line-height: 1.3;
+}
+
+.create-dreamer-modal .code-display.code-ready .code-text {
+    color: var(--reverie-core-color, #734ba1);
+    animation: codeGlow 2s ease-in-out;
+}
+
+.create-dreamer-modal .code-display.code-error {
+    background: #fff5f5;
+    border-color: #ff6b6b;
+}
+
+.create-dreamer-modal .code-display.code-error .code-text {
+    color: #d63031;
+    font-size: 0.9em;
+}
+
+.create-dreamer-modal .invite-help {
+    margin: 0;
+    font-size: 0.7rem;
+    color: rgba(90, 74, 122, 0.7);
+    line-height: 1.4;
+    text-align: center;
+    font-family: monospace;
+}
+
+@keyframes codeGlow {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.create-dreamer-modal .error-message {
+    background: #fff5f5;
+    border: 1.5px solid #ff6b6b;
+    border-radius: 0;
+    padding: 10px 14px;
+    color: #c92a2a;
+    margin: 12px 0;
+    font-size: 0.85em;
+    font-family: monospace;
+}
+
+.create-dreamer-modal .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .modal-actions {
+        gap: 8px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .create-dreamer-modal .modal-actions {
+        flex-direction: column;
+    }
+}
+
+.create-dreamer-modal .btn-primary,
+.create-dreamer-modal .btn-secondary {
+    flex: 1;
+    padding: 10px 20px;
+    border: 1.5px solid #d0c7f0;
+    border-radius: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: monospace;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .btn-primary,
+    .create-dreamer-modal .btn-secondary {
+        padding: 14px 20px;
+        font-size: 0.8rem;
+        min-height: 48px;
+    }
+}
+
+.create-dreamer-modal .btn-primary {
+    background: white;
+    color: #5a4a7a;
+}
+
+.create-dreamer-modal .btn-primary:hover:not(:disabled) {
+    background: #f0ebff;
+    border-color: var(--reverie-core-color, #734ba1);
+    color: #372e42;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(115, 75, 161, 0.2);
+}
+
+.create-dreamer-modal .btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.create-dreamer-modal .btn-primary:disabled {
+    background: #f0f0f0;
+    border-color: #ddd;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.create-dreamer-modal .btn-secondary {
+    background: white;
+    color: rgba(90, 74, 122, 0.7);
+    border-color: #e8e6f5;
+}
+
+.create-dreamer-modal .btn-secondary:hover {
+    background: #f8f6ff;
+    border-color: #d0c7f0;
+    color: #5a4a7a;
+    transform: translateY(-1px);
+}
+
+.create-dreamer-modal .btn-secondary:active {
+    transform: translateY(0);
+}
+
+.create-dreamer-modal .modal-footer {
+    background: #f8f6ff;
+    padding: 16px 32px;
+    border-top: 1.5px solid #d0c7f0;
+}
+
+@media (max-width: 768px) {
+    .create-dreamer-modal .modal-footer {
+        padding: 12px 16px;
+        flex-shrink: 0;
+    }
+}
+
+.create-dreamer-modal .footer-note {
+    margin: 0;
+    font-size: 0.7rem;
+    color: rgba(90, 74, 122, 0.7);
+    text-align: center;
+    font-family: monospace;
+}
+
+.create-dreamer-modal .footer-note a {
+    color: var(--reverie-core-color, #734ba1);
+    text-decoration: underline;
+}
+
+.create-dreamer-modal .footer-note a:hover {
+    opacity: 0.7;
+}

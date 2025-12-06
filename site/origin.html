@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrum Origin - Reverie House</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Discover your dreamweaver origin in the spectrum of Oblivion, Entropy, Authority, Liberty, Skeptic, and Receptive.">
+    <meta name="keywords" content="reverie house, dreamweaving, spectrum origin, personality">
+    <meta name="author" content="Reverie House">
+    
+    <!-- Open Graph Meta Tags -->
+    <!-- NOTE: These are placeholders - dynamic OG tags are injected by admin.py when ?handle= is present -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/origin.html">
+    <meta property="og:title" content="Spectrum Origin - Reverie House">
+    <meta property="og:description" content="Discover your dreamweaver origin in the spectrum of Oblivion, Entropy, Authority, Liberty, Skeptic, and Receptive.">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://reverie.house/origin.html">
+    
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/pages/origin.css?v=27">
+    <link rel="stylesheet" href="css/widgets/login.css">
+    
+    <script>
+        console.log('📄 [Origin HTML] Page loading started');
+        console.log('📄 [Origin HTML] URL:', window.location.href);
+        console.log('📄 [Origin HTML] Search params:', window.location.search);
+    </script>
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/android-chrome-512x512.png">
+    <link rel="manifest" href="/assets/site.webmanifest">
+    
+    <!-- Core utilities -->
+    <script src="js/core/world-config-cache.js"></script>
+    <script src="js/core/color-manager.js"></script>
+    <script src="js/widgets/background.js"></script>
+    <script src="js/widgets/bubble.js"></script>
+    
+    <!-- Header, drawer, and auth -->
+    <script src="js/widgets/header.js" defer></script>
+    <script src="js/widgets/drawer.js" defer></script>
+    <script src="js/widgets/login.js" defer></script>
+    <script src="js/widgets/sharelore.js" defer></script>
+    <script type="module" src="js/widgets/oauth-manager.js"></script>
+    
+    <!-- Origin-specific scripts -->
+    <script src="js/widgets/origin.js?v=16" defer></script>
+</head>
+<body class="origin-page">
+    <div id="header-container"></div>
+    <div id="drawer-container"></div>
+    
+    <!-- Full-Screen Background Scene (matches work.html structure) -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera" class="scene-layer background-layer">
+        </div>
+        <!-- Particle layers (homepage-style) -->
+        <div class="magic-dust-container"></div>
+        <div class="wind-particles-container"></div>
+    </div>
+    
+    <!-- Centered Origin Display -->
+    <div id="origin-display-container">
+        <canvas id="origin-canvas"></canvas>
+        <div id="origin-carousel">
+            <!-- Carousel cards will be inserted here -->
+        </div>
+        <div id="origin-actions"></div>
+    </div>
+</body>
+</html>

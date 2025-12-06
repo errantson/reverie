@@ -1,0 +1,378 @@
+/* Spectrum Calculator Modal */
+
+.spectrum-calculator-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 10500; /* Above dashboard modals (10000) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 20px;
+}
+
+.spectrum-calculator-overlay.visible {
+    opacity: 1;
+}
+
+.spectrum-calculator-modal {
+    background: #ffffff;
+    border: 2px solid var(--reverie-core-color, #734ba1);
+    border-radius: 0; /* Square corners like rest of site */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    max-width: 460px;
+    width: 100%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95);
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.spectrum-calculator-overlay.visible .spectrum-calculator-modal {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* Header */
+.spectrum-calculator-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: var(--reverie-core-color, #734ba1);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.spectrum-calculator-modal-title {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+}
+
+.spectrum-calculator-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #ffffff;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 0; /* Square corners */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.spectrum-calculator-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Body */
+.spectrum-calculator-modal-body {
+    padding: 0;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Override spectrum preview widget styles for compact modal layout */
+.spectrum-calculator-modal-body .spectrum-preview-widget {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-header {
+    display: none; /* Hide widget header since modal has its own */
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-helper-text {
+    padding: 1rem 1.5rem 0.5rem;
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.8125rem;
+    text-align: left;
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.5;
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-body {
+    background: #ffffff;
+    border: none;
+    border-radius: 0;
+    padding: 1rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    grid-template-columns: 1fr; /* Override grid layout */
+}
+
+/* Input section - compact and centered */
+.spectrum-calculator-modal-body .spectrum-preview-left {
+    width: 100%;
+    max-width: none;
+    display: flex;
+    justify-content: center;
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-input-group {
+    max-width: 320px;
+    width: 100%;
+    gap: 0.75rem;
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-input {
+    background: #f9fafb;
+    color: #171717;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 0; /* Square corners */
+    padding: 0.75rem 1rem;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.875rem;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-input:focus {
+    background: #ffffff;
+    border-color: var(--reverie-core-color, #734ba1);
+    box-shadow: 0 0 0 3px rgba(115, 75, 161, 0.1);
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-input::placeholder {
+    color: #9ca3af;
+    font-size: 0.8125rem;
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-calculate-btn {
+    background: var(--reverie-core-color, #734ba1);
+    border: none;
+    border-radius: 0; /* Square corners */
+    padding: 0.75rem 1.25rem;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease;
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-calculate-btn:hover:not(:disabled) {
+    background: #8b5fc7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.3);
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-calculate-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Results section - compact octant display */
+.spectrum-calculator-modal-body .spectrum-preview-right {
+    width: 100%;
+    max-width: none;
+}
+
+.spectrum-calculator-modal-body .spectrum-preview-results {
+    width: 100%;
+}
+
+/* Compact octant display styling */
+.spectrum-calculator-modal-body .octant-display-widget {
+    border: 1px solid #e5e7eb;
+    border-radius: 0; /* Square corners */
+    background: #f9fafb;
+}
+
+.spectrum-calculator-modal-body .octant-display-header {
+    padding: 0.75rem 1rem;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.spectrum-calculator-modal-body .octant-display-name {
+    font-size: 0.875rem;
+}
+
+.spectrum-calculator-modal-body .octant-display-handle {
+    font-size: 0.75rem;
+}
+
+.spectrum-calculator-modal-body .octant-display-body {
+    padding: 1rem;
+}
+
+/* Ensure octant title uses correct font from octants.css */
+.spectrum-calculator-modal-body .octant-title {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+}
+
+.spectrum-calculator-modal-body .octant-display-widget {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+}
+
+.spectrum-calculator-modal-body .octant-display-name,
+.spectrum-calculator-modal-body .octant-display-handle,
+.spectrum-calculator-modal-body .octant-label,
+.spectrum-calculator-modal-body .octant-value {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+}
+
+/* Footer */
+.spectrum-calculator-modal-footer {
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+.mapper-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem 0;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.mapper-status.active {
+    color: #15803d;
+}
+
+.mapper-status.inactive {
+    color: #d97706;
+}
+
+.mapper-status a {
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.mapper-status a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mapper-status.active .status-indicator {
+    background: #15803d;
+    box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.2);
+}
+
+.mapper-status.inactive .status-indicator {
+    background: #d97706;
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.calculator-hint {
+    color: #6b7280;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.become-mapper-link {
+    color: var(--reverie-core-color, #734ba1);
+    text-decoration: underline;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.become-mapper-link:hover {
+    color: #8b5fc7;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .spectrum-calculator-overlay {
+        padding: 10px;
+    }
+    
+    .spectrum-calculator-modal {
+        max-width: 100%;
+        max-height: 90vh;
+    }
+    
+    .spectrum-calculator-modal-header {
+        padding: 0.875rem 1rem;
+    }
+    
+    .spectrum-calculator-modal-title {
+        font-size: 0.75rem;
+    }
+    
+    .spectrum-calculator-close-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 1.125rem;
+    }
+    
+    .spectrum-calculator-modal-body .spectrum-preview-helper-text {
+        padding: 0.875rem 1rem 0.5rem;
+    }
+    
+    .spectrum-calculator-modal-body .spectrum-preview-body {
+        padding: 0.875rem 1rem 1rem;
+        gap: 1.25rem;
+    }
+    
+    .spectrum-calculator-modal-footer {
+        padding: 0.875rem 1rem;
+    }
+}
+
+/* Scrollbar styling for modal body */
+.spectrum-calculator-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.spectrum-calculator-modal-body::-webkit-scrollbar-track {
+    background: #f9fafb;
+}
+
+.spectrum-calculator-modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 0;
+}
+
+.spectrum-calculator-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
