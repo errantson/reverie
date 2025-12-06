@@ -1,0 +1,35 @@
+/**
+ * Roles Color System
+ * 
+ * Standardized color references for worker roles (greeter, mapper, cogitarian).
+ * These CSS variables define subtle colors for role-based styling.
+ */
+
+:root {
+    /* Greeter - Blue tones (welcoming, calm) */
+    --role-greeter: rgb(60, 120, 200);
+    --role-greeter-light: rgba(60, 120, 200, 0.05);
+    --role-greeter-medium: rgba(60, 120, 200, 0.15);
+    --role-greeter-dark: rgb(45, 90, 150);
+    
+    /* Mapper - Green tones (exploration, coordinates) */
+    --role-mapper: rgb(45, 140, 100);
+    --role-mapper-light: rgba(45, 140, 100, 0.05);
+    --role-mapper-medium: rgba(45, 140, 100, 0.15);
+    --role-mapper-dark: rgb(30, 95, 70);
+    
+    /* Cogitarian - Orange-red tones (wisdom, knowledge) */
+    --role-cogitarian: rgb(210, 95, 50);
+    --role-cogitarian-light: rgba(210, 95, 50, 0.05);
+    --role-cogitarian-medium: rgba(210, 95, 50, 0.15);
+    --role-cogitarian-dark: rgb(160, 70, 35);
+}
+
+/* Role-specific utility classes */
+.role-bg-greeter { background-color: var(--role-greeter-light) !important; }
+.role-bg-mapper { background-color: var(--role-mapper-light) !important; }
+.role-bg-cogitarian { background-color: var(--role-cogitarian-light) !important; }
+
+.role-text-greeter { color: var(--role-greeter) !important; }
+.role-text-mapper { color: var(--role-mapper) !important; }
+.role-text-cogitarian { color: var(--role-cogitarian) !important; }
