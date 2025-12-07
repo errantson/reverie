@@ -60,10 +60,10 @@ CREATE TABLE spectrum (
 
 CREATE TABLE credentials (
     did TEXT PRIMARY KEY REFERENCES dreamers(did) ON DELETE CASCADE,
-    password_hash TEXT,
+    password TEXT NOT NULL,
     pds TEXT,
-    created_at INTEGER DEFAULT extract(epoch from now())::integer,
-    verified INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    verified TIMESTAMP,
     valid BOOLEAN DEFAULT TRUE
 );
 
@@ -105,8 +105,7 @@ CREATE TABLE events (
     uri TEXT,
     url TEXT,
     epoch INTEGER,
-    created_at INTEGER,
-    quantities JSONB DEFAULT NULL
+    created_at INTEGER
 );
 
 CREATE INDEX idx_events_did ON events(did);
@@ -114,8 +113,6 @@ CREATE INDEX idx_events_key ON events(key);
 CREATE INDEX idx_events_did_key ON events(did, key);
 CREATE INDEX idx_events_epoch ON events(epoch DESC);
 CREATE INDEX idx_events_type_key ON events(type, key);
-CREATE INDEX idx_events_quantities ON events USING GIN (quantities) WHERE quantities IS NOT NULL;
-CREATE INDEX idx_events_type_quantities ON events(type) WHERE type = 'order' AND quantities IS NOT NULL;
 
 CREATE TABLE souvenirs (
     key TEXT PRIMARY KEY,
@@ -169,24 +166,24 @@ CREATE INDEX idx_actions_user ON actions(user_did);
 
 CREATE TABLE quests (
     id SERIAL PRIMARY KEY,
-    title TEXT UNIQUE NOT NULL,
-    uri TEXT,
-    commands TEXT NOT NULL,
-    enabled BOOLEAN DEFAULT TRUE,
-    description TEXT,
-    canon_event TEXT,
-    canon_keys TEXT,
+    name TEXT,
+    trigger TEXT NOT NULL,
+    pattern TEXT,
+    command TEXT,
+    command_data TEXT,
+    active BOOLEAN DEFAULT TRUE,
     created_at INTEGER,
-    updated_at INTEGER,
+    label TEXT,
+    hint TEXT,
+    author_did TEXT,
+    reward_key TEXT,
     conditions TEXT,
-    condition_operator TEXT DEFAULT 'AND',
-    trigger_type TEXT DEFAULT 'bsky_reply',
-    trigger_config TEXT,
-    hose_service TEXT DEFAULT 'questhose'
+    cooldown INTEGER DEFAULT 0,
+    retry_count INTEGER DEFAULT 0
 );
 
-CREATE INDEX idx_quests_enabled ON quests(enabled);
-CREATE INDEX idx_quests_trigger_type ON quests(trigger_type);
+CREATE INDEX idx_quests_active ON quests(active);
+CREATE INDEX idx_quests_trigger ON quests(trigger);
 
 CREATE TABLE retries (
     id SERIAL PRIMARY KEY,
@@ -226,21 +223,21 @@ CREATE INDEX idx_kindred_b ON kindred(did_b);
 CREATE TABLE pigeons (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    status TEXT DEFAULT 'active',
-    trigger_type TEXT NOT NULL,
-    trigger_config TEXT,
-    dialogue_key TEXT NOT NULL,
-    conditions TEXT DEFAULT '[]',
-    condition_operator TEXT DEFAULT 'AND',
+    trigger TEXT NOT NULL,
+    template TEXT,
+    subject TEXT,
+    body TEXT,
+    active BOOLEAN DEFAULT TRUE,
+    created_at INTEGER,
+    conditions TEXT,
     priority INTEGER DEFAULT 50,
-    repeating INTEGER DEFAULT 1,
-    max_deliveries INTEGER,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    created_by TEXT
+    cooldown INTEGER DEFAULT 0,
+    max_sends INTEGER,
+    category TEXT,
+    author_did TEXT
 );
 
-CREATE INDEX idx_pigeons_status ON pigeons(status);
+CREATE INDEX idx_pigeons_active ON pigeons(active);
 
 CREATE TABLE deliveries (
     id SERIAL PRIMARY KEY,
