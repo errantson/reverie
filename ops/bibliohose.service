@@ -1,0 +1,16 @@
+[Unit]
+Description=Reverie Bibliohose - Monitor biblio.bond records for quests
+After=network.target
+
+[Service]
+Type=simple
+User=errantson
+WorkingDirectory=/srv/reverie.house
+ExecStart=/usr/bin/python3 /srv/reverie.house/core/bibliohose.py -v
+Restart=always
+RestartSec=10
+StandardOutput=append:/srv/reverie.house/logs/bibliohose.log
+StandardError=append:/srv/reverie.house/logs/bibliohose-error.log
+
+[Install]
+WantedBy=multi-user.target
