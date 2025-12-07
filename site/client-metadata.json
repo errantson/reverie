@@ -1,0 +1,23 @@
+{
+  "client_id": "https://reverie.house/client-metadata.json",
+  "client_name": "Reverie House",
+  "client_uri": "https://reverie.house",
+  "logo_uri": "https://reverie.house/assets/icon.png",
+  "redirect_uris": [
+    "https://reverie.house/oauth/callback"
+  ],
+  "scope": "atproto transition:generic repo:app.bsky.feed.post?action=create",
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "application_type": "web",
+  "token_endpoint_auth_method": "none",
+  "dpop_bound_access_tokens": true,
+  "authorization_servers": [
+    "https://auth.reverie.house"
+  ]
+}
