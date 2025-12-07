@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverie House — Keeper Entry</title>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    
+    <!-- Core utilities (must load first) -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    
+    <!-- Header and drawer widgets -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: var(--page-background-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            padding-bottom: 15vh; /* Shift login form higher */
+        }
+
+        .login-container {
+            background: #faf7fc;
+            border: 2px solid #87408d;
+            border-radius: 0;
+            box-shadow: 0 8px 32px rgba(135, 64, 141, 0.3);
+            padding: 32px;
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-logo {
+            width: 60%;
+            max-width: 200px;
+            margin-bottom: 8px;
+        }
+
+        .login-title {
+            margin: 0 0 4px 0;
+            color: #87408d;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .login-subtitle {
+            font-size: 0.9rem;
+            color: #87408d;
+            margin: 0;
+            opacity: 0.8;
+        }
+
+        .login-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #87408d;
+            text-align: left;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #d0c7f0;
+            border-radius: 0;
+            font-size: 1rem;
+            box-sizing: border-box;
+            text-align: center;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #87408d;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: white;
+            background: #87408d;
+            border: none;
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+
+        .login-button:hover:not(:disabled) {
+            background: #6f336f;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(135, 64, 141, 0.3);
+        }
+
+        .login-button:active:not(:disabled) {
+            background: #5a2a5a;
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(135, 64, 141, 0.2);
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            padding: 12px;
+            background: #fed7d7;
+            color: #c53030;
+            border: 2px solid #c53030;
+            border-radius: 0;
+            font-size: 0.875rem;
+            display: none;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .info-box {
+            margin-top: 24px;
+            padding: 16px;
+            background: white;
+            border: 2px solid #d0c7f0;
+            border-radius: 0;
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .info-box strong {
+            color: #87408d;
+        }
+
+        .info-box code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 0;
+            font-family: monospace;
+            color: #87408d;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading .spinner {
+            display: inline-block;
+        }
+
+        .loading-text {
+            display: none;
+        }
+
+        .loading .loading-text {
+            display: inline;
+        }
+
+        .loading .normal-text {
+            display: none;
+        }
+
+        @media (max-width: 500px) {
+            .login-container {
+                padding: 24px 16px 16px;
+            }
+            
+            .login-logo {
+                width: 60%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="login-header">
+                <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
+                <p class="login-subtitle">Keeper Access Only</p>
+            </div>
+
+            <div class="error-message" id="error-message"></div>
+            <div class="error-message" id="info-message" style="display: none; background: #fff3cd; color: #856404; border-color: #ffc107;"></div>
+
+            <form class="login-form" id="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="password">App Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        class="password-input" 
+                        placeholder="xxxx-xxxx-xxxx-xxxx"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="login-button" id="login-button">
+                    <span class="spinner" style="display: none;"></span>
+                    <span class="normal-text">KEEPER ENTRY</span>
+                    <span class="loading-text">CONFIRMING...</span>
+                </button>
+            </form>
+
+            <div class="info-box">
+                Only <code>reverie.house</code> may access this keeper's panel.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('login-form');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const errorMessage = document.getElementById('error-message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            console.log('🔑 Admin login form submitted');
+
+            const handle = 'reverie.house'; // Fixed handle for admin
+            const password = passwordInput.value;
+
+            console.log('📝 Password length:', password.length);
+
+            // Hide previous errors
+            errorMessage.classList.remove('show');
+
+            // Validate
+            if (!password) {
+                showError('Please enter your app password');
+                return;
+            }
+
+            // Set loading state
+            loginButton.disabled = true;
+            loginButton.classList.add('loading');
+            
+            console.log('🔐 Attempting keeper login...');
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ handle, password })
+                });
+
+                console.log('📡 Response received:', response.status, response.statusText);
+                const data = await response.json();
+                console.log('📦 Response data:', data);
+
+                if (response.ok) {
+                    console.log('✅ Login successful!');
+                    
+                    // Show success message briefly
+                    const infoMsg = document.getElementById('info-message');
+                    infoMsg.textContent = '✓ Authentication successful! Redirecting...';
+                    infoMsg.style.background = '#d4edda';
+                    infoMsg.style.color = '#155724';
+                    infoMsg.style.borderColor = '#28a745';
+                    infoMsg.style.display = 'block';
+                    
+                    // Store token and session info in localStorage
+                    localStorage.setItem('admin_token', data.token);
+                    
+                    // Create a mock session object for the drawer
+                    const adminSession = {
+                        did: data.did,
+                        handle: data.handle,
+                        displayName: data.handle,
+                        isAdmin: true
+                    };
+                    
+                    // Store session data
+                    sessionStorage.setItem('admin_session', JSON.stringify(adminSession));
+                    
+                    // Dispatch login event for drawer
+                    window.dispatchEvent(new CustomEvent('oauth:login', {
+                        detail: { session: adminSession }
+                    }));
+                    
+                    // Redirect to admin dashboard after brief delay
+                    setTimeout(() => {
+                        window.location.href = '/admin/quests.html';
+                    }, 500);
+                } else {
+                    // Show detailed error message
+                    let errorMsg = data.error || 'Login failed';
+                    
+                    // Check for rate limiting / lockout
+                    if (errorMsg.includes('locked out') || errorMsg.includes('Too many')) {
+                        const infoMsg = document.getElementById('info-message');
+                        infoMsg.textContent = '🔒 Security: IP temporarily locked due to multiple failed attempts';
+                        infoMsg.style.display = 'block';
+                    }
+                    
+                    // Add retry_after info for rate limit
+                    if (response.status === 429 && data.retry_after) {
+                        errorMsg += ` - Please wait ${data.retry_after} seconds before retrying.`;
+                    }
+                    
+                    // Log detailed error info to console
+                    console.error('Login failed:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        error: data.error,
+                        limit: data.limit,
+                        window: data.window,
+                        retry_after: data.retry_after,
+                        details: data.details
+                    });
+                    
+                    showError(errorMsg);
+                }
+            } catch (error) {
+                console.error('❌ Login error:', error);
+                showError('Connection error. Cannot reach authentication server.');
+                
+                const infoMsg = document.getElementById('info-message');
+                infoMsg.textContent = 'Ensure PDS server is running on localhost:3333';
+                infoMsg.style.background = '#f8d7da';
+                infoMsg.style.color = '#721c24';
+                infoMsg.style.borderColor = '#dc3545';
+                infoMsg.style.display = 'block';
+            } finally {
+                loginButton.disabled = false;
+                loginButton.classList.remove('loading');
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+        
+        // Clear messages when user types
+        passwordInput.addEventListener('input', () => {
+            errorMessage.classList.remove('show');
+            document.getElementById('info-message').style.display = 'none';
+        });
+
+        // Check if already logged in
+        const existingToken = localStorage.getItem('admin_token');
+        if (existingToken) {
+            // Verify token is still valid
+            fetch('/api/admin/verify', {
+                headers: {
+                    'Authorization': `Bearer ${existingToken}`
+                }
+            }).then(response => {
+                if (response.ok) {
+                    // Already logged in, redirect
+                    window.location.href = '/admin/quests.html';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

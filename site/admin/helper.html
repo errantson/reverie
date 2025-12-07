@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dialogue Editor - Reverie House</title>
+    <link rel="stylesheet" href="/css/base.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    
+    <!-- Core utilities (must load first) -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    
+    <!-- Header and drawer widgets -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    
+    <style>
+        :root {
+            --card-bg: #ffffff;
+            --card-border: #e5e5e5;
+            --text-primary: #171717;
+            --text-secondary: #6b7280;
+            --text-dim: #9ca3af;
+            --hover-bg: #f9fafb;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--page-background-color);
+            font-family: Georgia, 'Times New Roman', serif;
+            line-height: 1.6;
+        }
+
+        .page-layout {
+            padding-top: 60px;
+            width: 100%;
+            margin: 0;
+        }
+        
+        .page-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1.5rem 2rem;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .page-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        #app {
+            display: flex;
+            height: calc(100vh - 60px);
+            width: 100%;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.2rem;
+            margin: 0 0 5px 0;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .sidebar-section {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .sidebar-section h2 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin: 0 0 10px 0;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .tree-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tree-item {
+            padding: 10px 12px;
+            margin: 5px 0;
+            background: var(--hover-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tree-item:hover {
+            background: #f3f4f6;
+            border-color: var(--world-color, #734ba1);
+        }
+
+        .tree-item.active {
+            background: rgba(115, 75, 161, 0.1);
+            border-color: var(--world-color, #734ba1);
+            border-left: 3px solid var(--world-color, #734ba1);
+        }
+
+        .tree-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .tree-item-key {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: 'Courier New', monospace;
+            margin-top: 2px;
+        }
+
+        .tree-item-status {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        .tree-item-status.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .tree-item-status.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            background: var(--world-color, #734ba1);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 10px;
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Main Canvas */
+        .main-canvas {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #fafafa;
+        }
+
+        .canvas-header {
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .canvas-title {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .canvas-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .canvas-actions .btn {
+            width: auto;
+            margin: 0;
+            font-size: 0.85rem;
+            padding: 8px 16px;
+        }
+
+        .canvas-area {
+            flex: 1;
+            position: relative;
+            overflow: auto;
+            background: #fafafa;
+        }
+
+        #emptyState {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+        }
+
+        #emptyState svg {
+            width: 120px;
+            height: 120px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+
+        #emptyState h2 {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin: 0 0 10px 0;
+        }
+
+        #emptyState p {
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        #nodeGraph {
+            position: relative;
+            min-width: 100%;
+            min-height: 100%;
+            padding: 40px;
+        }
+
+        #connectionLines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .tree-level {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-bottom: 80px;
+            position: relative;
+            flex-wrap: wrap;
+        }
+
+        /* Dialogue Stack - Exact styling from dialogue widget */
+        .dialogue-node {
+            position: relative;
+            width: 450px;
+            background: rgba(255, 255, 255, 0.97);
+            border: 3px solid var(--card-border);
+            padding: 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s;
+            margin: 0;
+            z-index: 10;
+        }
+
+        .dialogue-node:hover {
+            border-color: var(--world-color, #734ba1);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .dialogue-node.selected {
+            border-color: var(--world-color, #734ba1);
+            border-width: 4px;
+            box-shadow: 0 12px 48px rgba(115, 75, 161, 0.4);
+        }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 15px;
+            background: var(--world-color, #734ba1);
+            border-bottom: 2px solid var(--card-border);
+            margin: 0;
+        }
+
+        .node-avatar {
+            width: 36px;
+            height: 36px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .node-speaker {
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            text-transform: lowercase;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            flex: 1;
+        }
+
+        .node-key {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+
+        .node-text {
+            padding: 25px 30px;
+            font-family: 'Georgia', serif;
+            font-size: 18px;
+            line-height: 1.6;
+            color: #333;
+            min-height: 90px;
+            text-align: left;
+            position: relative;
+            white-space: pre-wrap;
+        }
+
+        .node-continue-hint {
+            position: absolute;
+            bottom: 8px;
+            right: 15px;
+            font-size: 14px;
+            color: var(--world-color, #734ba1);
+            opacity: 0.6;
+        }
+
+        .node-options {
+            display: flex;
+            gap: 12px;
+            padding: 12px 20px;
+            border-top: 2px solid var(--card-border);
+            background: #f9fafb;
+            justify-content: center;
+            flex-wrap: wrap;
+            min-height: 60px;
+            align-items: center;
+        }
+
+        .node-option {
+            background: var(--world-color, #734ba1);
+            color: white;
+            border: 2px solid var(--world-color, #734ba1);
+            padding: 10px 20px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 140px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-radius: 0;
+        }
+
+        .node-option:hover {
+            background: white;
+            color: var(--world-color, #734ba1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .node-option.secondary {
+            background: white;
+            color: var(--world-color, #734ba1);
+            border: 2px solid var(--world-color, #734ba1);
+        }
+
+        .node-option.secondary:hover {
+            background: var(--world-color, #734ba1);
+            color: white;
+        }
+
+        .node-option.rotating {
+            position: relative;
+        }
+
+        .node-option.rotating::after {
+            content: '⟳';
+            margin-left: 6px;
+            opacity: 0.7;
+            font-size: 12px;
+        }
+        
+        .node-option[data-target-key] {
+            position: relative;
+        }
+        
+        /* Connection line styles */
+        .connection-line {
+            stroke: var(--world-color, #734ba1);
+            stroke-width: 3;
+            fill: none;
+            opacity: 0.6;
+            marker-end: url(#arrowhead);
+        }
+        
+        .connection-line.auto-flow {
+            stroke-dasharray: 5, 5;
+            opacity: 0.4;
+        }
+
+        /* Properties Panel */
+        .properties-panel {
+            width: 320px;
+            background: var(--card-bg);
+            border-left: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .properties-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .properties-header h2 {
+            font-size: 1.1rem;
+            margin: 0;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .properties-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: Georgia, 'Times New Roman', serif;
+            background: white;
+            color: var(--text-primary);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--world-color, #734ba1);
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .loading::before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--card-border);
+            border-top-color: var(--world-color, #734ba1);
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Standard Header (from header.js) -->
+    <div id="header-container"></div>
+    
+    <!-- Drawer Navigation (from drawer.js) -->
+    <div id="drawer-container"></div>
+    
+    <div class="page-layout">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">🎭 Dialogue Editor</h1>
+            <p class="page-subtitle">Visual editor for errantson's conversational trees</p>
+        </div>
+
+        <div id="app">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h1>Dialogue Trees</h1>
+                    <p>Manage conversation flows</p>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2>All Trees</h2>
+                    <div class="loading" id="treesLoading">Loading...</div>
+                    <ul class="tree-list" id="treeList" style="display: none;">
+                        <!-- Trees loaded dynamically -->
+                    </ul>
+                    <button class="btn" id="newTreeBtn">+ New Tree</button>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2>Quick Actions</h2>
+                    <button class="btn btn-secondary" id="exportBtn">Export JSON</button>
+                    <button class="btn btn-secondary" id="importBtn">Import JSON</button>
+                </div>
+            </div>
+
+            <!-- Main Canvas -->
+            <div class="main-canvas">
+                <div class="canvas-header">
+                    <div class="canvas-title" id="canvasTitle">Select a dialogue tree</div>
+                    <div class="canvas-actions">
+                        <button class="btn" id="addNodeBtn" style="display: none;">+ Add Node</button>
+                        <button class="btn" id="saveTreeBtn" style="display: none;">💾 Save</button>
+                    </div>
+                </div>
+                <div class="canvas-area">
+                    <div id="emptyState">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <h2>No tree selected</h2>
+                        <p>Select a dialogue tree from the sidebar or create a new one</p>
+                    </div>
+                    <svg id="connectionLines" style="display: none;">
+                        <!-- Connection lines drawn here -->
+                    </svg>
+                    <div id="nodeGraph" style="display: none;">
+                        <!-- Nodes rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Properties Panel -->
+            <div class="properties-panel" id="propertiesPanel" style="display: none;">
+                <div class="properties-header">
+                    <h2 id="propertiesTitle">Properties</h2>
+                </div>
+                <div class="properties-body" id="propertiesBody">
+                    <!-- Properties form rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dialogue Editor Widget -->
+    <script src="/js/widgets/dialogue-editor.js"></script>
+    <script>
+        // Initialize the dialogue editor when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            const editor = new DialogueEditor();
+            await editor.init();
+        });
+    </script>
+</body>
+</html>
