@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly Reverie World Tick Timer
+Requires=world-tick.service
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
