@@ -1,0 +1,195 @@
+/**
+ * Bluesky Explanation Modal Styles
+ * Simple, clean, Bluesky-branded
+ */
+
+.bskyexplain-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 10001; /* Above shadowbox (10000) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 20px;
+}
+
+.bskyexplain-overlay.visible {
+    opacity: 1;
+}
+
+.bskyexplain-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.bskyexplain-overlay.visible .bskyexplain-modal {
+    transform: scale(1);
+}
+
+/* Body */
+.bskyexplain-modal-body {
+    padding: 32px 32px 32px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.bskyexplain-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Embed Container */
+.bskyexplain-embed-container {
+    margin: 0;
+}
+
+.bskyexplain-embed-container .bluesky-embed {
+    margin: 0 !important;
+}
+
+/* Text */
+.bskyexplain-text {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #525252;
+    text-align: center;
+    line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Actions */
+.bskyexplain-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+    align-items: center;
+}
+
+.bskyexplain-btn {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+}
+
+.bskyexplain-btn-primary {
+    background: #1185fe;
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.bskyexplain-btn-primary:hover {
+    background: #0f6fd8;
+    color: #ffffff !important;
+}
+
+.bskyexplain-btn-primary:visited {
+    color: #ffffff !important;
+}
+
+.bskyexplain-btn-secondary {
+    background: #9d88b3;
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+.bskyexplain-btn-secondary:hover {
+    background: #8a76a0;
+    color: #ffffff !important;
+}
+
+.bskyexplain-btn-tertiary {
+    background: transparent;
+    color: #737373;
+    font-size: 0.85rem;
+    padding: 8px 16px;
+}
+
+.bskyexplain-btn-tertiary:hover {
+    background: #f5f5f5;
+    color: #525252;
+}
+
+/* Footer text */
+.bskyexplain-footer-text {
+    margin: 8px 0 0 0;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #737373;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.4;
+}
+
+/* Scrollbar styling */
+.bskyexplain-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.bskyexplain-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.bskyexplain-modal-body::-webkit-scrollbar-thumb {
+    background: #d4d4d4;
+    border-radius: 3px;
+}
+
+.bskyexplain-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #a3a3a3;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .bskyexplain-overlay {
+        padding: 16px;
+    }
+    
+    .bskyexplain-modal {
+        max-height: 95vh;
+        border-radius: 12px;
+    }
+    
+    .bskyexplain-modal-body {
+        padding: 32px 24px 24px;
+    }
+    
+    .bskyexplain-text {
+        font-size: 0.9rem;
+    }
+    
+    .bskyexplain-btn {
+        padding: 11px 18px;
+        font-size: 0.85rem;
+    }
+    
+    .bskyexplain-footer-text {
+        font-size: 0.8rem;
+    }
+}

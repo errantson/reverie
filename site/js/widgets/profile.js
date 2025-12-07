@@ -129,34 +129,6 @@ class Profile {
                 <div class="profile-souvenirs-face" style="display: none;"></div>
                 <div class="profile-spectrum-face" style="display: none;"></div>
             </div>
-            <div class="profile-row-3">
-                <div class="profile-bio-content"></div>
-                <div class="profile-spectrum-content"></div>
-            </div>
-            <div class="profile-row-2">
-                <div class="profile-souvenirs-box">
-                    <div class="profile-souvenirs-title">Souvenirs</div>
-                    <div class="profile-souvenirs-content"></div>
-                </div>
-                <div class="profile-kindred-box">
-                    <div class="profile-kindred-title">Kindred</div>
-                    <div class="profile-kindred-content"></div>
-                </div>
-            </div>
-            <div class="profile-row-2">
-                <div class="profile-souvenirs-box">
-                    <div class="profile-souvenirs-title">Recently Read</div>
-                    <div class="profile-recently-read-content"></div>
-                </div>
-                <div class="profile-kindred-box">
-                    <div class="profile-kindred-title">CHECK-IN</div>
-                    <div class="profile-messages-content"></div>
-                </div>
-            </div>
-            <div class="profile-row-4">
-                <div class="profile-info-content"></div>
-                <div class="profile-canon-content"></div>
-            </div>
         `;
     }
     async displayProfile(dreamer) {
@@ -258,18 +230,11 @@ class Profile {
             await this.updateAvatar(dreamer);
             await this.updateIdentity(dreamer, userStatus);
             await this.updateContributionCard(dreamer, userStatus);
-            await this.updateSpectrumCard(dreamer);
-            await this.updateSouvenirs(dreamer);
-            await this.updateKindredCard();
-            await this.updateRecentlyReadCard(dreamer);
-            await this.updateMessagesCard(dreamer);
-            await this.updateInfoCard(dreamer);
             await this.updateActivityCard(dreamer);
             await this.updateEventsCard(dreamer);
             await this.updateIdentityFace(dreamer);
             await this.updateSouvenirsFace(dreamer);
             await this.updateSpectrumFace(dreamer);
-            await this.updateCanonCard(dreamer);
             
             setTimeout(() => this.initializeExplainer(), 200);
         } catch (error) {
@@ -433,39 +398,14 @@ class Profile {
         const isCharacter = userStatus?.isCharacter || false;
         const characterLevel = userStatus?.characterLevel || null;
         
-        // Fetch real canon and lore counts from lore.farm labels
-        let canonCount = 0;
-        let loreCount = 0;
-        try {
-            // Query labels for this user's posts
-            const labelsResponse = await fetch(`https://lore.farm/xrpc/com.atproto.label.queryLabels?uriPatterns=at://${dreamer.did}/*&limit=1000`);
-            if (labelsResponse.ok) {
-                const labelsData = await labelsResponse.json();
-                const labels = labelsData.labels || [];
-                
-                // Count canon and lore labels that belong to this user
-                labels.forEach(label => {
-                    if (label.uri && label.uri.startsWith(`at://${dreamer.did}/`)) {
-                        if (label.val === 'canon:reverie.house') {
-                            canonCount++;
-                        } else if (label.val === 'lore:reverie.house') {
-                            loreCount++;
-                        }
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching label counts:', error);
-            // Fall back to stored values if lore.farm fails
-            canonCount = dreamer.canon_contribution || 0;
-            loreCount = dreamer.lore_contribution || 0;
-        }
+        // Get scores from database (already calculated by contributions.py)
+        const canonCount = dreamer.canon_score || 0;        // Raw count
+        const loreCount = dreamer.lore_score || 0;          // Raw count
+        const patronScore = dreamer.patron_score || 0;      // Book count × 150
+        const totalContribution = dreamer.contribution_score || 0;
         
-        // Get patron score
-        const patronScore = dreamer.patronage || 0;
-        
-        // Calculate total contribution (canon counts as 30 points, lore as 10, patron as 1)
-        const totalContribution = (canonCount * 30) + (loreCount * 10) + patronScore;
+        // Display patron as book count (divide by 150)
+        const patronCount = Math.floor(patronScore / 150);
 
         // Determine star character and tooltip based on character level
         let starChar = '✦';
@@ -489,11 +429,11 @@ class Profile {
 
         contributionCard.innerHTML = `
             ${characterSigil}
-            <div class="contribution-total">
+            <div class="contribution-total" style="text-align: center;">
                 <span class="contribution-label">Contribution</span>
                 <span class="contribution-value">${totalContribution}</span>
             </div>
-            <div class="contribution-breakdown">
+            <div class="contribution-breakdown" style="text-align: center;">
                 <div class="contribution-item">
                     <span class="contribution-sublabel">Canon</span>
                     <span class="contribution-subvalue">${canonCount}</span>
@@ -504,7 +444,7 @@ class Profile {
                 </div>
                 <div class="contribution-item">
                     <span class="contribution-sublabel">Patron</span>
-                    <span class="contribution-subvalue">${patronScore}</span>
+                    <span class="contribution-subvalue">${patronCount}</span>
                 </div>
             </div>
         `;
@@ -544,210 +484,6 @@ class Profile {
         
         const options = { year: 'numeric', month: 'short', day: 'numeric' };
         return date.toLocaleDateString('en-US', options);
-    }
-    async updateSouvenirs(dreamer) {
-        const souvenirsContent = this.container.querySelector('.profile-souvenirs-content');
-        if (!souvenirsContent) return;
-
-        if (!dreamer.souvenirs || Object.keys(dreamer.souvenirs).length === 0) {
-            souvenirsContent.innerHTML = '<div class="profile-empty">no souvenirs yet</div>';
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/souvenirs');
-            const rawSouvenirs = await response.json();
-            
-            const souvenirsData = {};
-            for (const [key, souvenir] of Object.entries(rawSouvenirs)) {
-                souvenirsData[key] = {
-                    forms: [{
-                        key: souvenir.key,
-                        name: souvenir.name,
-                        icon: souvenir.icon,
-                        phanera: souvenir.phanera
-                    }]
-                };
-            }
-
-            const userFormKeys = Object.keys(dreamer.souvenirs);
-            const userSouvenirs = [];
-            
-            userFormKeys.forEach(formKey => {
-                for (const [souvenirKey, souvenirData] of Object.entries(souvenirsData)) {
-                    const form = souvenirData.forms.find(f => f.key === formKey);
-                    if (form) {
-                        userSouvenirs.push({
-                            formKey: formKey,
-                            souvenirKey: souvenirKey,
-                            form: form,
-                            epoch: dreamer.souvenirs[formKey]
-                        });
-                        break;
-                    }
-                }
-            });
-
-            if (userSouvenirs.length > 0) {
-                userSouvenirs.sort((a, b) => b.epoch - a.epoch);
-                
-                const gridHTML = userSouvenirs.map(s => `
-                    <a href="/souvenirs.html?key=${s.formKey}" class="profile-souvenir-item" title="${s.form.name}">
-                        <div class="souvenir-icon">
-                            <img src="${s.form.icon}" 
-                                 alt="${s.form.name}"
-                                 onerror="this.src='/assets/icon_face.png'">
-                        </div>
-                        <div class="souvenir-name">${s.form.name}</div>
-                    </a>
-                `).join('');
-
-                souvenirsContent.innerHTML = `<div class="souvenirs-grid">${gridHTML}</div>`;
-            } else {
-                souvenirsContent.innerHTML = '<div class="profile-empty">no souvenirs yet</div>';
-            }
-        } catch (error) {
-            console.error('Error loading souvenirs:', error);
-            souvenirsContent.innerHTML = '<div class="profile-empty">no souvenirs yet</div>';
-        }
-    }
-
-    async updateInfoCard(dreamer) {
-        const infoContent = this.container.querySelector('.profile-info-content');
-        if (!infoContent) return;
-        
-        // Use the dreamer's color explicitly for info links
-        const dreamerColor = dreamer.color_hex || '#734ba1';
-        
-        // Parse server for display
-        const serverUrl = dreamer.server || 'https://reverie.house';
-        const serverClean = serverUrl.replace(/^https?:\/\//, '');
-        const isReverieHouse = serverClean === 'reverie.house';
-        const isBskyNetwork = serverClean.endsWith('bsky.network');
-        
-        // Determine label and display value
-        let serverLabel, serverDisplay;
-        if (isReverieHouse) {
-            serverLabel = 'Residence';
-            serverDisplay = 'Reverie House';
-        } else if (isBskyNetwork) {
-            serverLabel = 'Homestar';
-            // Extract and capitalize the prefix (e.g., "rhizopogon" -> "Rhizopogon")
-            const prefix = serverClean.split('.')[0];
-            serverDisplay = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-        } else {
-            serverLabel = 'Server';
-            serverDisplay = serverClean.split('.')[0];
-        }
-        
-        // Render alt names helper
-        const renderAltNames = (alts) => {
-            if (!alts || alts === 'none') return '<span style="opacity: 0.5;">none</span>';
-            return alts;
-        };
-        
-        let infoHTML = `
-            <div class="info-row">
-                <span class="profile-info-label">Name</span>
-                <span class="profile-info-value">${dreamer.name || dreamer.handle}</span>
-            </div>
-            <div class="info-row">
-                <span class="profile-info-label">Pseudonyms</span>
-                <span class="profile-info-value" title="${dreamer.alt_names || 'none'}">${renderAltNames(dreamer.alt_names)}</span>
-            </div>
-            <div class="info-row">
-                <span class="profile-info-label">Handle</span>
-                <a href="https://bsky.app/profile/${dreamer.handle}" 
-                   target="_blank" 
-                   rel="noopener"
-                   class="profile-info-value profile-info-link"
-                   style="color: ${dreamerColor};"
-                   title="View on Bluesky">@${dreamer.handle}</a>
-            </div>
-            <div class="info-row">
-                <span class="profile-info-label">${serverLabel}</span>
-                <a href="${serverUrl}" 
-                   target="_blank" 
-                   rel="noopener"
-                   class="profile-info-value profile-info-link"
-                   style="color: ${dreamerColor};">${serverDisplay}</a>
-            </div>
-            <div class="info-row">
-                <span class="profile-info-label">Patronage</span>
-                <span class="profile-info-value" title="${dreamer.patronage || 0} cents total from book purchases">${dreamer.patronage || 0}</span>
-            </div>
-            <div class="info-row">
-                <span class="profile-info-label">Dream ID</span>
-                <button class="profile-info-value profile-info-link profile-info-monospace did-copy-btn" 
-                   data-did="${dreamer.did}"
-                   style="color: ${dreamerColor}; cursor: pointer; background: none; border: none; padding: 0; text-decoration: underline;"
-                   title="Click to copy DID">${dreamer.did.replace('did:plc:', '')}</button>
-            </div>
-        `;
-        
-        infoContent.innerHTML = infoHTML;
-        
-        // Attach event listener for DID copy button
-        const didCopyBtn = infoContent.querySelector('.did-copy-btn');
-        if (didCopyBtn) {
-            didCopyBtn.onclick = async () => {
-                const did = didCopyBtn.dataset.did;
-                try {
-                    await navigator.clipboard.writeText(did);
-                    const originalText = didCopyBtn.textContent;
-                    didCopyBtn.textContent = 'Copied to Clipboard';
-                    setTimeout(() => {
-                        didCopyBtn.textContent = originalText;
-                    }, 2000);
-                } catch (err) {
-                    console.error('Failed to copy DID:', err);
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = did;
-                    textArea.style.position = 'fixed';
-                    textArea.style.left = '-999999px';
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        const originalText = didCopyBtn.textContent;
-                        didCopyBtn.textContent = 'Copied to Clipboard';
-                        setTimeout(() => {
-                            didCopyBtn.textContent = originalText;
-                        }, 2000);
-                    } catch (err2) {
-                        console.error('Fallback copy failed:', err2);
-                    }
-                    document.body.removeChild(textArea);
-                }
-            };
-        }
-    }
-    
-    async updateSpectrumCard(dreamer) {
-        const spectrumContent = this.container.querySelector('.profile-spectrum-content');
-        
-        if (!spectrumContent) return;
-
-        if (!dreamer.spectrum) {
-            spectrumContent.style.display = 'none';
-            return;
-        }
-
-        spectrumContent.style.display = 'block';
-
-        // Initialize or update the octant display widget
-        if (!this.octantDisplay) {
-            this.octantDisplay = new window.OctantDisplay(spectrumContent, {
-                did: dreamer.did,
-                onSetHeading: (d) => this.setHeadingToDreamer(d),
-                showHeader: true,
-                showFooter: true
-            });
-            await this.octantDisplay.updateDreamer(dreamer);
-        } else {
-            await this.octantDisplay.updateDreamer(dreamer);
-        }
     }
 
     async updateHeadingCard(dreamer) {
@@ -917,27 +653,23 @@ class Profile {
             const repostCount = activityData.repostCount || 0;
             const replyCount = activityData.replyCount || 0;
             
-            // Build interaction stats display naturally (including timestamp)
-            let interactionStats = '';
-            const stats = [];
+            // Build interaction stats display - always show all counts
+            const interactionButtons = `
+                <span class="activity-stats">
+                    <a href="${postUrl}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; cursor: pointer;">${likeCount} like${likeCount === 1 ? '' : 's'}</a> · 
+                    <a href="${postUrl}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; cursor: pointer;">${repostCount} repost${repostCount === 1 ? '' : 's'}</a> · 
+                    <a href="${postUrl}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; cursor: pointer;">${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}</a>
+                </span>
+            `;
             
-            // Add timestamp first
-            stats.push(`<a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${timeAgo}</a>`);
-            
-            // Add interaction counts
-            if (likeCount > 0) stats.push(`${likeCount} like${likeCount === 1 ? '' : 's'}`);
-            if (repostCount > 0) stats.push(`${repostCount} repost${repostCount === 1 ? '' : 's'}`);
-            if (replyCount > 0) stats.push(`${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`);
-            
-            interactionStats = `<span class="activity-stats">${stats.join(' · ')}</span>`;
-            
-            // Build info overlay (badge and stats together)
+            // Build info overlay (badge, timestamp, and interactions all on left as a unit)
             const infoOverlay = `
                 <div class="activity-info-overlay">
                     <div class="activity-overlay-content">
                         ${badgeOverlay}
+                        <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${timeAgo}</a>
+                        ${interactionButtons}
                     </div>
-                    <div class="activity-overlay-stats">${interactionStats}</div>
                 </div>
             `;
             
@@ -962,46 +694,85 @@ class Profile {
         if (!eventsContent) return;
         
         try {
-            // Fetch canon data
-            const response = await fetch('/api/canon');
-            if (!response.ok) throw new Error('Failed to load canon');
+            // Fetch canon data and dreamers for avatar/name lookups
+            const [canonResponse, dreamersResponse] = await Promise.all([
+                fetch('/api/canon'),
+                fetch('/api/dreamers')
+            ]);
             
-            const canon = await response.json();
-            const dreamerEvents = canon.filter(entry => 
+            if (!canonResponse.ok) throw new Error('Failed to load canon');
+            if (!dreamersResponse.ok) throw new Error('Failed to load dreamers');
+            
+            const allCanon = await canonResponse.json();
+            const allDreamers = await dreamersResponse.json();
+            
+            // Filter to this dreamer's events
+            const dreamerEvents = allCanon.filter(entry => 
                 entry.did?.toLowerCase() === dreamer.did.toLowerCase()
             );
             
-            dreamerEvents.sort((a, b) => b.epoch - a.epoch);
-            const recentEvents = dreamerEvents.slice(0, 8);
+            // Find reactionary events - events by others that reference this dreamer's URIs or roles
+            const dreamerURIs = new Set(dreamerEvents.map(e => e.uri).filter(Boolean));
+            const dreamerRoles = new Set(dreamerEvents.filter(e => e.key === 'greeter' || e.key === 'mapper').map(e => e.key));
+            const reactionaryEvents = allCanon.filter(event => {
+                // Skip the dreamer's own events
+                if (event.did?.toLowerCase() === dreamer.did.toLowerCase()) return false;
+                
+                // Check if this is a response to the greeter ("spoke their name")
+                if (dreamerRoles.has('greeter') && event.key === 'name') {
+                    return true;
+                }
+                
+                // Check if this is a response to the mapper (mapped their spectrum)
+                if (dreamerRoles.has('mapper') && event.key === 'spectrum') {
+                    return true;
+                }
+                
+                // Check if this event's URI is a reply to any of the dreamer's posts
+                if (event.uri && event.uri.includes('at://')) {
+                    for (const dreamerURI of dreamerURIs) {
+                        if (dreamerURI && event.uri.includes(dreamerURI.split('/').pop())) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            });
+            
+            // Combine and sort by epoch descending
+            const allRelevantEvents = [...dreamerEvents, ...reactionaryEvents];
+            allRelevantEvents.sort((a, b) => b.epoch - a.epoch);
+            
+            // Take most recent 12 events
+            const recentEvents = allRelevantEvents.slice(0, 12);
             
             if (recentEvents.length === 0) {
-                eventsContent.innerHTML = '<div class="activity-empty">No events recorded</div>';
+                eventsContent.innerHTML = '<div class=\"activity-empty\">No events recorded</div>';
                 return;
             }
             
-            const eventsHTML = recentEvents.map(ev => {
-                const timeAgo = this.getTimeAgo(ev.epoch * 1000);
-                
-                let eventText = ev.event;
-                if (ev.url?.trim()) {
-                    eventText = `<a href="${ev.url}" target="_blank" rel="noopener">${ev.event}</a>`;
-                } else if (ev.uri?.trim()?.startsWith('/')) {
-                    eventText = `<a href="${ev.uri}">${ev.event}</a>`;
-                }
-                
-                return `
-                    <div class="canon-entry">
-                        <span class="canon-text">${eventText}</span>
-                        <span class="canon-time">${timeAgo}</span>
-                    </div>
-                `;
-            }).join('');
+            // Get color for this dreamer's spectrum
+            const color = dreamer.color_hex || '#8b7355';
+            
+            // Import and use the unified event renderer
+            const { renderEventRows } = await import('/js/utils/event-renderer.js');
+            
+            const eventsHTML = renderEventRows(recentEvents, {
+                colorHex: color,
+                allDreamers: allDreamers,
+                showAvatar: true,
+                showType: false,
+                showKey: true,
+                showUri: false,
+                currentDid: dreamer.did
+            });
             
             eventsContent.innerHTML = `<div class="profile-canon-log">${eventsHTML}</div>`;
             
         } catch (error) {
             console.error('Error loading events:', error);
-            eventsContent.innerHTML = '<div class="activity-empty">Unable to load events</div>';
+            eventsContent.innerHTML = '<div class=\"activity-empty\">Unable to load events</div>';
         }
     }
 
@@ -1039,7 +810,7 @@ class Profile {
             : '<span style="opacity: 0.5; font-style: italic;">Little is said. Less is known.</span>';
         
         // Get recently read books
-        let recentlyReadHTML = '<div class="identity-no-content">no books yet</div>';
+        let recentlyReadHTML = '<div class="profile-empty">no books yet</div>';
         if (dreamer.recently_read && dreamer.recently_read.length > 0) {
             const books = dreamer.recently_read.slice(0, 3);
             recentlyReadHTML = books.map(book => `
@@ -1105,7 +876,7 @@ class Profile {
                 </div>
                 <div class="identity-middle-section">
                     <div class="identity-books-box">
-                        <div class="identity-books-label">Recently Read</div>
+                        <div class="identity-kindred-label">Recently Read</div>
                         <div class="identity-books-list">${recentlyReadHTML}</div>
                     </div>
                     <div class="identity-kindred-box">
@@ -1993,68 +1764,6 @@ class Profile {
         return div.innerHTML;
     }
 
-    async updateCanonCard(dreamer) {
-        const canonContent = this.container.querySelector('.profile-canon-content');
-        if (!canonContent) return;
-        
-        // Render canon entries
-        const canonHTML = await this.renderCanon(dreamer);
-        
-        if (canonHTML === '<div class="profile-canon-empty">No canon events yet</div>' || 
-            canonHTML === '<div class="profile-canon-empty">Error loading canon</div>') {
-            canonContent.style.display = 'none';
-        } else {
-            canonContent.style.display = 'block';
-            canonContent.innerHTML = `
-                <div class="profile-canon-log">
-                    ${canonHTML}
-                </div>
-            `;
-        }
-    }
-
-    async renderCanon(dreamer) {
-        try {
-            const response = await fetch('/api/canon');
-            if (!response.ok) throw new Error('Failed to load canon');
-            
-            const canon = await response.json();
-            const dreamerEvents = canon.filter(entry => 
-                entry.did?.toLowerCase() === dreamer.did.toLowerCase()
-            );
-            
-            dreamerEvents.sort((a, b) => b.epoch - a.epoch);
-            const recentEvents = dreamerEvents.slice(0, 5);
-            
-            if (recentEvents.length === 0) {
-                return '<div class="profile-canon-empty">No canon events yet</div>';
-            }
-            
-            return recentEvents.map(ev => {
-                const eventDate = new Date(ev.epoch * 1000);
-                const timeAgo = this.getTimeAgo(ev.epoch * 1000);
-                
-                let eventText = ev.event;
-                if (ev.url?.trim()) {
-                    eventText = `<a href="${ev.url}" target="_blank" rel="noopener">${ev.event}</a>`;
-                } else if (ev.uri?.trim()?.startsWith('/')) {
-                    eventText = `<a href="${ev.uri}">${ev.event}</a>`;
-                }
-                
-                return `
-                    <div class="canon-entry">
-                        <span class="canon-text">${eventText}</span>
-                        <span class="canon-time">${timeAgo}</span>
-                    </div>
-                `;
-            }).join('');
-            
-        } catch (error) {
-            console.error('Error loading canon:', error);
-            return '<div class="profile-canon-empty">Error loading canon</div>';
-        }
-    }
-
     getTimeAgo(timestamp) {
         const seconds = Math.floor((Date.now() - timestamp) / 1000);
         
@@ -2077,181 +1786,6 @@ class Profile {
         }
         const years = Math.floor(seconds / 31536000);
         return `${years} year${years === 1 ? '' : 's'} ago`;
-    }
-
-    async updateKindredCard() {
-        const kindredContent = this.container.querySelector('.profile-kindred-content');
-        if (!kindredContent) return;
-
-        if (!this.dreamer?.kindred || this.dreamer.kindred.length === 0) {
-            kindredContent.innerHTML = '<div class="profile-empty">no kindred yet</div>';
-            return;
-        }
-
-        try {
-            // Fetch all dreamers to get full info
-            const response = await fetch('/api/dreamers');
-            const allDreamers = await response.json();
-            
-            // Get kindred dreamers with full info
-            const kindredDreamers = this.dreamer.kindred
-                .map(k => {
-                    const did = typeof k === 'string' ? k : k.did;
-                    return allDreamers.find(d => d.did === did);
-                })
-                .filter(Boolean);
-            
-            // Shuffle and select up to 4 kindred (2x2 grid)
-            const shuffled = kindredDreamers.sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, 4);
-            
-            if (selected.length === 0) {
-                kindredContent.innerHTML = '<div class="profile-empty">no kindred yet</div>';
-                return;
-            }
-            
-            // Use simpler profile-kindred-list style
-            const kindredHTML = `
-                <div class="profile-kindred-list">
-                    ${selected.map(k => `
-                        <div class="profile-kindred-card" data-dreamer-did="${k.did}" data-dreamer-handle="${k.handle}">
-                            <a href="/dreamer.html?did=${k.did}" 
-                               class="profile-kindred-link"
-                               data-dreamer-did="${k.did}"
-                               data-dreamer-handle="${k.handle}">
-                                <img src="${k.avatar?.url || k.avatar || '/assets/icon_face.png'}" 
-                                     alt="${k.name || k.handle}"
-                                     class="profile-kindred-avatar"
-                                     onerror="this.src='/assets/icon_face.png'">
-                                <span class="profile-kindred-name">${k.name || k.handle}</span>
-                            </a>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            
-            kindredContent.innerHTML = kindredHTML;
-        } catch (error) {
-            console.error('Error loading kindred:', error);
-            kindredContent.innerHTML = '<div class="profile-empty">no kindred yet</div>';
-        }
-    }
-
-    async updateRecentlyReadCard(dreamer) {
-        const recentlyReadContent = this.container.querySelector('.profile-recently-read-content');
-        if (!recentlyReadContent) return;
-
-        try {
-            // Fetch books from biblio.bond via the dreamer's DID
-            const did = dreamer.did;
-            if (!did) {
-                recentlyReadContent.innerHTML = '<div class="profile-empty">no books yet</div>';
-                return;
-            }
-
-            // Call biblio.bond API
-            const response = await fetch(`https://biblio.bond/api/books/${encodeURIComponent(did)}`);
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch books');
-            }
-
-            const books = await response.json();
-            
-            if (!books || books.length === 0) {
-                recentlyReadContent.innerHTML = '<div class="profile-empty">no books yet</div>';
-                return;
-            }
-
-            // Sort by created_at descending, get the most recent
-            const mostRecent = books
-                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-            
-            // Display the book with natural styling using page colors
-            const bookHTML = `
-                <div class="profile-book-display">
-                    <div class="profile-book-title" style="font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; line-height: 1.3; color: var(--reverie-core-color);">
-                        ${this.escapeHtml(mostRecent.title || 'Untitled')}
-                    </div>
-                    <div class="profile-book-author" style="font-size: 0.8rem; color: var(--reverie-core-color); opacity: 0.7; font-style: italic;">
-                        ${this.escapeHtml(mostRecent.author || 'Unknown')}
-                    </div>
-                </div>
-            `;
-            
-            recentlyReadContent.innerHTML = bookHTML;
-            
-        } catch (error) {
-            console.error('Error loading recently read:', error);
-            recentlyReadContent.innerHTML = '<div class="profile-empty">no books yet</div>';
-        }
-    }
-
-    async updateMessagesCard(dreamer) {
-        const messagesContent = this.container.querySelector('.profile-messages-content');
-        if (!messagesContent) return;
-
-        try {
-            // Fetch recent messages for this dreamer
-            const response = await fetch(`/api/messages?did=${encodeURIComponent(dreamer.did)}&limit=3`);
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch messages');
-            }
-
-            const messages = await response.json();
-            
-            if (!messages || messages.length === 0) {
-                // Show just the info text
-                messagesContent.innerHTML = `
-                    <div style="padding: 10px;">
-                        <div style="font-size: 0.75rem; opacity: 0.6; line-height: 1.3; color: var(--reverie-core-color); text-align: center;">
-                            send ${this.escapeHtml(dreamer.name || dreamer.handle)} a kindly pulse
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            // Display the messages
-            const messagesHTML = `
-                <div style="padding: 0px 10px;">
-                    <div class="profile-message-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
-                        ${messages.map(msg => {
-                            const timeAgo = this.getTimeAgo(msg.epoch * 1000);
-                            let messageText = msg.message || '';
-                            
-                            // Truncate if too long
-                            if (messageText.length > 60) {
-                                messageText = messageText.substring(0, 57) + '...';
-                            }
-                            
-                            return `
-                                <div class="profile-message-item" style="font-size: 0.85rem; line-height: 1.4;">
-                                    <div class="profile-message-text" style="margin-bottom: 2px; color: var(--reverie-core-color);">${this.escapeHtml(messageText)}</div>
-                                    <div class="profile-message-time" style="font-size: 0.75rem; opacity: 0.6; color: var(--reverie-core-color);">${timeAgo}</div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    <div style="font-size: 0.75rem; opacity: 0.6; line-height: 1.3; color: var(--reverie-core-color); text-align: center; margin-top: 8px;">
-                        send ${this.escapeHtml(dreamer.name || dreamer.handle)} a kindly pulse
-                    </div>
-                </div>
-            `;
-            
-            messagesContent.innerHTML = messagesHTML;
-            
-        } catch (error) {
-            console.error('Error loading messages:', error);
-            messagesContent.innerHTML = `
-                <div style="padding: 10px;">
-                    <div style="font-size: 0.75rem; opacity: 0.6; line-height: 1.3; color: var(--reverie-core-color); text-align: center;">
-                        send ${this.escapeHtml(dreamer.name || dreamer.handle)} a kindly pulse
-                    </div>
-                </div>
-            `;
-        }
     }
 
     rotateLovePhrase() {

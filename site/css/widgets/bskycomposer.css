@@ -1,0 +1,328 @@
+/* ShareStory Widget Styles */
+
+.bskycomposer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.bskycomposer-overlay.visible {
+    opacity: 1;
+}
+
+.bskycomposer-box {
+    background: var(--primary-color, #1a1a1a);
+    border: 1px solid var(--reverie-core-color, #734ba1);
+    max-width: 600px;
+    width: 90%;
+    animation: bskycomposerSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes bskycomposerSlideUp {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Header */
+.bskycomposer-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(115, 75, 161, 0.3);
+    background: linear-gradient(135deg, rgba(115, 75, 161, 0.15) 0%, rgba(115, 75, 161, 0.05) 100%);
+}
+
+.bskycomposer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid rgba(115, 75, 161, 0.5);
+    flex-shrink: 0;
+}
+
+.bskycomposer-user {
+    flex: 1;
+}
+
+.bskycomposer-name {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 2px;
+}
+
+.bskycomposer-handle {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.bskycomposer-close {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(115, 75, 161, 0.4);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.bskycomposer-close:hover {
+    border-color: var(--reverie-core-color, #734ba1);
+    color: white;
+    background: rgba(115, 75, 161, 0.2);
+}
+
+.bskycomposer-close:active {
+    background: rgba(115, 75, 161, 0.3);
+}
+
+/* Content */
+.bskycomposer-content {
+    padding: 24px;
+}
+
+.bskycomposer-instructions {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 16px;
+    font-style: italic;
+}
+
+.bskycomposer-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(115, 75, 161, 0.3);
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.bskycomposer-textarea:focus {
+    border-color: var(--reverie-core-color, #734ba1);
+    background: rgba(115, 75, 161, 0.05);
+    box-shadow: 0 0 0 3px rgba(115, 75, 161, 0.1);
+}
+
+.bskycomposer-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.bskycomposer-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.bskycomposer-charcount {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.bskycomposer-count {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+}
+
+.bskycomposer-posting {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
+/* Actions */
+.bskycomposer-actions {
+    display: flex;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(115, 75, 161, 0.3);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.bskycomposer-btn {
+    flex: 1;
+    padding: 12px 20px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.bskycomposer-btn-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.bskycomposer-btn.primary {
+    background: var(--reverie-core-color, #734ba1);
+    border-color: var(--reverie-core-color, #734ba1);
+    color: white;
+}
+
+.bskycomposer-btn.primary:hover:not(:disabled) {
+    background: #8a5cbd;
+    border-color: #8a5cbd;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.3);
+}
+
+.bskycomposer-btn.primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.bskycomposer-btn.primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.bskycomposer-btn.secondary {
+    background: transparent;
+    border-color: rgba(115, 75, 161, 0.4);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.bskycomposer-btn.secondary:hover:not(:disabled) {
+    border-color: var(--reverie-core-color, #734ba1);
+    color: white;
+    background: rgba(115, 75, 161, 0.1);
+}
+
+.bskycomposer-btn.secondary:active:not(:disabled) {
+    background: rgba(115, 75, 161, 0.15);
+}
+
+.bskycomposer-btn.secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Error */
+.bskycomposer-error {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 107, 107, 0.15);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    color: #ff6b6b;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    animation: bskycomposerShake 0.4s ease;
+}
+
+@keyframes bskycomposerShake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+/* Spinner */
+.bskycomposer-spinner {
+    animation: bskycomposerSpin 1s linear infinite;
+}
+
+@keyframes bskycomposerSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .bskycomposer-box {
+        width: 95%;
+    }
+    
+    .bskycomposer-header {
+        padding: 16px 20px;
+    }
+    
+    .bskycomposer-avatar {
+        width: 42px;
+        height: 42px;
+    }
+    
+    .bskycomposer-name {
+        font-size: 15px;
+    }
+    
+    .bskycomposer-handle {
+        font-size: 12px;
+    }
+    
+    .bskycomposer-close {
+        width: 32px;
+        height: 32px;
+        font-size: 26px;
+    }
+    
+    .bskycomposer-content {
+        padding: 20px;
+    }
+    
+    .bskycomposer-textarea {
+        min-height: 160px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .bskycomposer-actions {
+        flex-direction: column-reverse;
+        padding: 16px 20px;
+    }
+    
+    .bskycomposer-btn {
+        width: 100%;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .bskycomposer-box {
+        animation: none;
+    }
+}

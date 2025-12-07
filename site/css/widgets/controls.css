@@ -1,0 +1,87 @@
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background: #f8f6ff;
+    border: 2px solid #d0c7f0;
+}
+.controls-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.controls-section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #734ba1;
+    font-weight: 700;
+    font-family: monospace;
+}
+.control-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.control-btn {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #5a4a7a;
+    background: white;
+    border: 1.5px solid #d0c7f0;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+.control-btn:hover {
+    background: #f0ebff;
+    border-color: #734ba1;
+    color: #372e42;
+}
+.control-btn.active {
+    background: #734ba1;
+    color: #ffffff;
+    border-color: #734ba1;
+}
+.perspective-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.perspective-btn {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #5a4a7a;
+    background: white;
+    border: 1.5px solid #d0c7f0;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+.perspective-btn:hover {
+    background: #f0ebff;
+    border-color: #734ba1;
+    color: #372e42;
+}
+.perspective-btn.active {
+    background: #734ba1;
+    color: #ffffff;
+    border-color: #734ba1;
+}
+@media (max-width: 768px) {
+    .controls {
+        gap: 12px;
+        padding: 12px;
+    }
+}

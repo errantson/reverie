@@ -1,0 +1,129 @@
+/**
+ * Dreamer Hover Card Widget Styles
+ * 
+ * Provides a floating card with dreamer information that appears on hover.
+ * Used by the DreamerHoverWidget JavaScript class.
+ * 
+ * These styles are copied exactly from story.css to maintain visual consistency.
+ */
+
+.dreamer-hover-card {
+    position: fixed;
+    background: rgba(250, 247, 252, 0.98);
+    border: 2px solid var(--reverie-core-color, #734ba1);
+    padding: 16px;
+    border-radius: 0;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    z-index: 10001;
+    min-width: 280px;
+    max-width: 320px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dreamer-hover-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.dreamer-hover-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.dreamer-hover-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--reverie-core-color, #734ba1);
+    object-fit: cover;
+}
+
+.dreamer-hover-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.dreamer-hover-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--reverie-core-color, #734ba1);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dreamer-hover-handle {
+    font-size: 13px;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dreamer-hover-description {
+    font-size: 13px;
+    color: #444;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    max-height: 60px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.dreamer-hover-stats {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    font-size: 12px;
+    color: #666;
+    padding-top: 8px;
+    border-top: 1px solid rgba(135, 64, 141, 0.2);
+}
+
+.dreamer-hover-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dreamer-hover-souvenirs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.dreamer-hover-souvenir-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.dreamer-hover-stat-value {
+    font-weight: 700;
+    color: var(--reverie-core-color, #734ba1);
+}
+
+.dreamer-hover-stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+/* Make sure dreamer links have a pointer cursor */
+.dreamer-link {
+    cursor: pointer;
+    position: relative;
+}
+

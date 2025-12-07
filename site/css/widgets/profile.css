@@ -213,6 +213,7 @@
 
 .profile-activity-header {
     margin-bottom: 8px;
+    margin-top: -36px;
     display: flex;
     justify-content: flex-end;
 }
@@ -262,9 +263,8 @@
 
 .profile-events-content,
 .profile-contribution-face {
-    min-height: 336px;
-    max-height: 336px;
-    overflow-y: auto;
+    min-height: 200px;
+    overflow-y: visible;
 }
 
 /* Identity Compact Layout */
@@ -321,7 +321,7 @@
     padding: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
-    height: 90px;
+    max-height: 200px;
     overflow-y: auto;
 }
 
@@ -347,15 +347,6 @@
     flex-direction: column;
     gap: 4px;
     margin-bottom: 12px;
-}
-
-.identity-kindred-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    margin-top: 8px;
 }
 
 .identity-kindred-list {
@@ -567,7 +558,6 @@
 /* Souvenirs Physics Container */
 .souvenirs-physics-container {
     width: 100%;
-    height: 336px;
     min-height: 336px;
     background: #fdfcfe;
     border: 2px solid #e8e6f5;
@@ -661,7 +651,6 @@
 /* Spectrum Face Container */
 .spectrum-face-container {
     width: 100%;
-    height: 336px;
     min-height: 336px;
     background: #fdfcfe;
     border: 2px solid #e8e6f5;
@@ -2137,14 +2126,14 @@
 
 .activity-text-content {
     padding: 12px 14px;
+    padding-bottom: 40px;
     border: 2px solid var(--user-color, var(--reverie-core-color, #734ba1));
-    border-bottom: none;
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     position: relative;
-    min-height: 80px;
+    min-height: 240px;
 }
 
 .activity-text {
@@ -2182,14 +2171,16 @@
 .activity-info-overlay {
     position: absolute;
     bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 100%);
-    padding: 9px 10px;
+    left: -2px;
+    right: -2px;
+    background: var(--user-color, var(--reverie-core-color, #734ba1));
+    padding: 8px 12px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     pointer-events: none;
     z-index: 2;
+    border: 2px solid var(--user-color, var(--reverie-core-color, #734ba1));
 }
 
 .activity-overlay-content {
@@ -2200,46 +2191,47 @@
 
 .activity-badge-overlay {
     font-size: 0.65rem;
-    padding: 2px 5px;
+    padding: 3px 6px;
     border-radius: 3px;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     line-height: 1;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
 }
 
 .badge-canon {
-    background: rgba(116, 75, 161, 0.8);
+    background: rgba(255, 255, 255, 0.25);
     color: white;
 }
 
 .badge-lore {
-    background: rgba(45, 106, 79, 0.8);
+    background: rgba(255, 255, 255, 0.25);
     color: white;
 }
 
 .activity-time {
     font-size: 0.7rem;
     font-family: monospace;
-    color: rgba(240, 240, 240, 0.95) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
     text-decoration: none;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     transition: opacity 0.2s;
     line-height: 1;
 }
 
 .activity-time:hover {
     color: rgba(255, 255, 255, 1) !important;
+    opacity: 0.8;
 }
 
 .activity-time:visited {
-    color: rgba(240, 240, 240, 0.95) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .activity-stats {
     font-size: 0.7rem;
     font-family: monospace;
-    color: rgba(240, 240, 240, 0.9);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.85);
     line-height: 1;
 }
 
@@ -2911,4 +2903,77 @@
 
 .profile-container::-webkit-scrollbar-thumb:hover {
     background: var(--reverie-core-color, #734ba1);
+}
+
+/* Canon row styling from database.html - uses custom properties set inline per row */
+.row-entry.canon-row {
+    background: linear-gradient(
+        to right,
+        rgba(var(--canon-color-rgb), 0.25) 0%,
+        rgba(var(--canon-color-rgb), 0.15) 30%,
+        rgba(var(--canon-color-rgb), 0.08) 70%,
+        rgba(var(--canon-color-rgb), 0.03) 100%
+    ) !important;
+    border-left: 4px solid var(--canon-color) !important;
+    border-top: 1px solid rgba(var(--canon-color-rgb), 0.3) !important;
+    border-bottom: 1px solid rgba(var(--canon-color-rgb), 0.3) !important;
+    box-shadow: inset 0 0 8px rgba(var(--canon-color-rgb), 0.15), 
+                0 1px 3px rgba(var(--canon-color-rgb), 0.2);
+    color: var(--canon-color) !important;
+    padding: 8px 12px;
+    margin: 2px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-radius: 2px;
+}
+
+.row-entry.canon-row:hover {
+    background: linear-gradient(
+        to right,
+        rgba(var(--canon-color-rgb), 0.35) 0%,
+        rgba(var(--canon-color-rgb), 0.22) 30%,
+        rgba(var(--canon-color-rgb), 0.12) 70%,
+        rgba(var(--canon-color-rgb), 0.05) 100%
+    ) !important;
+    box-shadow: inset 0 0 12px rgba(var(--canon-color-rgb), 0.2),
+                0 2px 4px rgba(var(--canon-color-rgb), 0.3);
+}
+
+.row-entry.canon-row:nth-child(even) {
+    background: linear-gradient(
+        to right,
+        rgba(var(--canon-color-rgb), 0.28) 0%,
+        rgba(var(--canon-color-rgb), 0.18) 30%,
+        rgba(var(--canon-color-rgb), 0.10) 70%,
+        rgba(var(--canon-color-rgb), 0.04) 100%
+    ) !important;
+}
+
+.row-entry.canon-row:nth-child(even):hover {
+    background: linear-gradient(
+        to right,
+        rgba(var(--canon-color-rgb), 0.38) 0%,
+        rgba(var(--canon-color-rgb), 0.25) 30%,
+        rgba(var(--canon-color-rgb), 0.14) 70%,
+        rgba(var(--canon-color-rgb), 0.06) 100%
+    ) !important;
+}
+
+.canon-text {
+    flex: 1;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.canon-text a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.canon-time {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    white-space: nowrap;
 }

@@ -1,0 +1,593 @@
+/**
+ * Composer Widget Styles
+ * Reusable modal composer matching dashboard compose styling
+ */
+
+.composer-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+}
+
+.composer-modal-content {
+    background: white;
+    border-radius: 0;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.composer-modal-body {
+    padding: 0;
+}
+
+.composer-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-dim, #999);
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+    transition: all 0.2s;
+}
+
+.composer-modal-close:hover {
+    background: var(--hover-bg, #f5f5f5);
+    color: var(--text-primary, #1a1a1a);
+}
+
+/* Char counter in header */
+.compose-text-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.compose-text-count {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #666;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.compose-text-count.warning {
+    color: #f59e0b;
+}
+
+.compose-text-count.error {
+    color: #dc2626;
+}
+
+.composer-section {
+    margin-bottom: 1rem;
+}
+
+.composer-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 0.75rem;
+    border: 1px solid var(--card-border, #e5e7eb);
+    border-radius: 0;
+    font-size: 0.95rem;
+    font-family: Georgia, serif;
+    line-height: 1.5;
+    resize: vertical;
+    transition: all 0.2s;
+}
+
+.composer-textarea:focus {
+    outline: none;
+    border-color: var(--reverie-core-color, #734ba1);
+    box-shadow: 0 0 0 3px rgba(115, 75, 161, 0.1);
+}
+
+/* Image Section */
+.composer-image-section {
+    margin-bottom: 1rem;
+    border: 1px solid var(--card-border, #e5e7eb);
+    border-radius: 0;
+    padding: 0.75rem;
+    background: var(--hover-bg, #f9f9f9);
+}
+
+.composer-image-carousel {
+    position: relative;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.composer-image-preview-container {
+    overflow: hidden;
+    border-radius: 0;
+    background: #000;
+    aspect-ratio: 16/9;
+}
+
+.composer-image-preview-inner {
+    display: flex;
+    transition: transform 0.3s ease;
+    height: 100%;
+}
+
+.composer-image-preview {
+    min-width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.composer-image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.composer-image-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.composer-image-remove:hover {
+    background: rgba(220, 38, 38, 0.9);
+}
+
+.composer-image-alt {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+}
+
+.composer-alt-input {
+    width: 100%;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid var(--card-border, #e5e7eb);
+    border-radius: 0;
+    font-size: 0.8rem;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.composer-alt-input:focus {
+    outline: none;
+    border-color: var(--reverie-core-color, #734ba1);
+}
+
+.composer-carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.composer-carousel-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.composer-carousel-prev {
+    left: 8px;
+}
+
+.composer-carousel-next {
+    right: 8px;
+}
+
+.composer-image-counter {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary, #666);
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+/* Schedule Display */
+.composer-schedule-display {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--card-border, #e5e7eb);
+    border-radius: 0;
+    background: var(--hover-bg, #f9f9f9);
+    font-size: 0.85rem;
+    color: var(--text-secondary, #666);
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.composer-schedule-display:hover {
+    border-color: var(--reverie-core-color, #734ba1);
+}
+
+.composer-schedule-display.has-schedule {
+    color: var(--reverie-core-color, #734ba1);
+    border-color: var(--reverie-core-color, #734ba1);
+}
+
+.composer-schedule-display svg {
+    flex-shrink: 0;
+}
+
+/* Footer */
+.composer-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--card-border, #e5e7eb);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.composer-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.composer-action-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid var(--card-border, #e5e7eb);
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary, #666);
+}
+
+.composer-action-btn:hover {
+    border-color: var(--reverie-core-color, #734ba1);
+    color: var(--reverie-core-color, #734ba1);
+}
+
+.composer-lore-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    height: 36px;
+    background: white;
+    border: 1px solid var(--card-border, #e5e7eb);
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary, #666);
+    transition: all 0.2s;
+}
+
+.composer-lore-toggle:hover {
+    border-color: var(--reverie-core-color, #734ba1);
+    color: var(--reverie-core-color, #734ba1);
+}
+
+.composer-lore-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.composer-footer-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.composer-btn {
+    padding: 0.6rem 1.5rem;
+    border-radius: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.composer-btn-secondary {
+    background: white;
+    border-color: var(--card-border, #e5e7eb);
+    color: var(--text-secondary, #666);
+}
+
+.composer-btn-secondary:hover {
+    background: var(--hover-bg, #f5f5f5);
+    border-color: var(--text-secondary, #666);
+}
+
+.composer-btn-primary {
+    background: var(--reverie-core-color, #734ba1);
+    border-color: var(--reverie-core-color, #734ba1);
+    color: white;
+}
+
+.composer-btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.composer-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Lore toggle - label contains checkbox */
+.compose-lore-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 8px;
+    border-radius: 0;
+    transition: background 0.2s;
+}
+
+.compose-lore-toggle-container:hover {
+    background: rgba(115, 75, 161, 0.05);
+}
+
+.compose-lore-toggle-container input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--reverie-core-color, #734ba1);
+    margin: 0;
+}
+
+.compose-lore-slider {
+    display: none; /* Not using slider, using native checkbox */
+}
+
+.compose-lore-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #666;
+    text-transform: uppercase;
+    font-family: 'SF Mono', Monaco, monospace;
+    cursor: pointer;
+}
+
+.compose-lore-toggle-container:has(input:checked) .compose-lore-label {
+    color: var(--reverie-core-color, #734ba1);
+}
+
+/* Image grid and items - smaller sizing */
+.compose-images-grid-large {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    max-height: 400px;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.compose-image-item-large {
+    background: white;
+    border: 2px solid #d0c7f0;
+    border-radius: 0;
+    overflow: hidden;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.compose-image-item-large:hover {
+    border-color: var(--reverie-core-color, #734ba1);
+    box-shadow: 0 2px 8px rgba(115, 75, 161, 0.15);
+}
+
+.compose-image-preview-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 28%; /* 12% less than 40% */
+    overflow: hidden;
+    background: #f5f5f5;
+}
+
+.compose-image-preview-wrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Image action buttons */
+.compose-image-actions {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+}
+
+.compose-image-action-btn {
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 0;
+    color: white;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.compose-image-action-btn:hover {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.compose-image-action-btn.active {
+    background: var(--reverie-core-color, #734ba1);
+}
+
+.compose-image-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(220, 38, 38, 0.95);
+    border: none;
+    border-radius: 0;
+    color: white;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.compose-image-delete-btn:hover {
+    background: rgba(220, 38, 38, 1);
+    transform: scale(1.05);
+}
+
+/* Alt text editing - full overlay with header */
+.compose-image-alt-editor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    z-index: 5;
+    box-sizing: border-box;
+}
+
+.compose-image-alt-header {
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 8px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'SF Mono', Monaco, monospace;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.compose-image-alt-textarea {
+    flex: 1;
+    width: 100%;
+    border: none;
+    border-top: 1px solid #d0c7f0;
+    padding: 8px;
+    font-size: 0.65rem;
+    font-family: 'SF Mono', Monaco, monospace;
+    resize: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    background: white;
+}
+
+.compose-image-alt-textarea:focus {
+    outline: none;
+    border-top-color: var(--reverie-core-color, #734ba1);
+}
+
+.compose-image-alt-indicator {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    background: rgba(115, 75, 161, 0.9);
+    color: white;
+    padding: 2px 6px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 0;
+    font-family: 'SF Mono', Monaco, monospace;
+    z-index: 3;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .composer-modal-content {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    
+    .composer-modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .composer-footer-actions {
+        justify-content: center;
+    }
+    
+    .composer-footer-buttons {
+        justify-content: stretch;
+    }
+    
+    .composer-btn {
+        flex: 1;
+    }
+}

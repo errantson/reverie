@@ -1,0 +1,689 @@
+/* Order Page Specific Styles - Mobile Optimized */
+
+/* Base Logo Container Styles */
+.logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+}
+
+.logo-container img {
+    height: 80px;
+    width: auto;
+    margin-bottom: 4px;
+}
+
+.logo-label {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #87408d;
+    letter-spacing: 0.08em;
+}
+
+/* Invite Section */
+.invite-section {
+    background: white;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.library-description {
+    font-size: 0.75em;
+    color: #444;
+    line-height: 1.8;
+    max-width: 480px;
+}
+
+.library-description a {
+    color: #87408d;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.library-description a:hover {
+    color: #5a3a7a;
+    text-decoration: underline;
+}
+
+/* Order Form Container */
+.order-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+}
+
+.order-left {
+    display: flex;
+    flex-direction: column;
+}
+
+.book-stack {
+    max-width: 340px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.order-right {
+    background-color: #f9f9f9;
+    border: 2px solid #d0d0d0;
+    padding: 40px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Canon Preview Container */
+#canon-preview-container {
+    margin: 16px 0;
+    padding: 16px;
+    background: #faf9fb;
+    border: 1px solid #d4c5e0;
+    border-radius: 4px;
+}
+
+#canon-preview-container > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#canon-preview-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #87408d;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+#canon-preview-handle {
+    font-size: 0.75rem;
+    color: #999;
+    margin-bottom: 2px;
+}
+
+#canon-preview-container > div:first-child > div {
+    flex: 1;
+}
+
+#canon-preview-container > div:first-child > div > div:nth-child(2) {
+    font-style: italic;
+    color: #555;
+    font-size: 0.88rem;
+}
+
+#canon-preview-name {
+    font-weight: 500;
+}
+
+#canon-public-notice {
+    font-size: 0.82rem;
+    color: #555;
+    padding: 8px 10px;
+    background: #fff;
+    border-radius: 3px;
+    margin-bottom: 10px;
+}
+
+#canon-preview-container label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 6px 0;
+}
+
+#canon-preview-container label input {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+#canon-preview-container label span {
+    color: #666;
+}
+
+/* Quantity Slider Container */
+.quantity-slider-container {
+    margin: 25px 0;
+}
+
+.quantity-slider-container label {
+    margin-top: -21px;
+    font-size: 0.85rem;
+}
+
+/* Book Title and Synopsis */
+.book-title {
+    margin-top: -25px;
+    font-size: 2.25rem;
+}
+
+.synopsisbox {
+    padding: 12px 14px;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+/* Showcase Cover */
+.showcase-cover {
+    width: 100%;
+    max-width: 340px;
+    display: block;
+    margin: 0 auto 0 auto;
+    border: none;
+    box-shadow: none;
+    transition: transform 0.3s ease;
+}
+
+/* Mobile First Print Label */
+.mobile-first-print-label {
+    display: none;
+    grid-column: 1/-1;
+    text-align: center;
+    font-weight: bold;
+    color: #000;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+    margin-top: 3px;
+}
+
+/* Book Stats Grid */
+.book-stats-grid div b {
+    font-weight: 600;
+}
+
+.book-stats-grid div span {
+    font-size: 0.88rem;
+    word-break: break-all;
+}
+
+/* Action Buttons Container */
+.action-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* Action Buttons - Styled like order button but with colored borders */
+.action-buttons-container button {
+    width: 100%;
+    padding: 17px 32px;
+    background: #000000;
+    color: white;
+    border: 3px solid;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1.18rem;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.action-buttons-container button::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.action-buttons-container button::after {
+    content: '→';
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.4rem;
+    opacity: 0;
+    transition: all 0.4s ease;
+}
+
+.action-buttons-container button:hover {
+    transform: translateY(-3px) scale(1.02);
+    letter-spacing: 3.5px;
+    padding-right: 50px;
+}
+
+.action-buttons-container button:hover::before {
+    opacity: 1;
+}
+
+.action-buttons-container button:hover::after {
+    opacity: 1;
+    right: 20px;
+}
+
+.action-buttons-container button:active {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 
+        0 6px 20px rgba(0, 0, 0, 0.5),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Individual button colors */
+.read-online-btn {
+    border-color: #00cc88;
+}
+
+.read-online-btn:hover {
+    border-color: #00ffaa;
+    box-shadow: 
+        0 12px 36px rgba(0, 204, 136, 0.4),
+        0 4px 16px rgba(0, 204, 136, 0.3),
+        0 0 20px rgba(0, 204, 136, 0.2);
+}
+
+.download-epub-btn {
+    border-color: #0088ff;
+}
+
+.download-epub-btn:hover {
+    border-color: #44aaff;
+    box-shadow: 
+        0 12px 36px rgba(0, 136, 255, 0.4),
+        0 4px 16px rgba(0, 136, 255, 0.3),
+        0 0 20px rgba(0, 136, 255, 0.2);
+}
+
+.kindle-button {
+    border-color: #ff9900;
+}
+
+.kindle-button:hover {
+    border-color: #ffbb44;
+    box-shadow: 
+        0 12px 36px rgba(255, 153, 0, 0.4),
+        0 4px 16px rgba(255, 153, 0, 0.3),
+        0 0 20px rgba(255, 153, 0, 0.2);
+}
+
+/* MOBILE STYLES */
+@media (max-width: 768px) {
+    .invite-section {
+        flex-direction: column !important;
+        gap: 4px !important;
+        padding: 12px 16px !important;
+        align-items: center !important;
+        background: linear-gradient(135deg, #fdfbff 0%, #f9f5fc 100%) !important;
+    }
+    
+    .library-description {
+        max-width: 100% !important;
+        text-align: center !important;
+        font-size: 0.85rem !important;
+        color: #555 !important;
+        line-height: 1.4 !important;
+        padding: 0 8px !important;
+    }
+    
+    /* Mobile: Make order-content a single column stack */
+    .order-content {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0 !important;
+    }
+    
+    /* Order-right goes first and contains realizes box + slider */
+    .order-right {
+        order: 1 !important;
+        width: 100% !important;
+        padding: 16px 10px !important;
+        background: #ffffff !important;
+        border: 1px solid #d8d8d8 !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+        border-radius: 8px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .order-form {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Order within order-right: realizes box with cover art inside, then slider, then price/shipping/button */
+    #canon-preview-container {
+        order: 1 !important;
+        margin: 0 0 12px 0 !important;
+        padding: 13px 15px !important;
+        background: #fdfcfe !important;
+        border: 1px solid #e0d5e8 !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Move cover art inside canon preview on mobile */
+    #canon-preview-container::after {
+        content: '' !important;
+        order: 10 !important;
+    }
+    
+    .order-right .showcase-cover {
+        display: block !important;
+        order: 2 !important;
+        max-width: 200px !important;
+        margin: 12px auto 0 auto !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+        border-radius: 4px !important;
+    }
+    
+    .quantity-slider-container {
+        order: 3 !important;
+        margin: 0 0 12px 0 !important;
+    }
+    
+    .quantity-slider-container label {
+        font-size: 1.08rem !important;
+        margin-top: -18px !important;
+    }
+    
+    /* Price display - back in order-right */
+    .order-right .price-display {
+        display: block !important;
+        order: 4 !important;
+        margin: 8px 0 !important;
+        padding: 14px 12px !important;
+        background: #fafafa !important;
+        border: 1px solid #e8e8e8 !important;
+        border-radius: 6px !important;
+    }
+    
+    .order-right .free-shipping-banner {
+        display: block !important;
+        order: 5 !important;
+        margin: 0 0 10px 0 !important;
+        font-size: 0.96rem !important;
+        text-align: center !important;
+    }
+    
+    .order-right .order-now-btn {
+        display: block !important;
+        order: 6 !important;
+        padding: 15px 20px !important;
+        font-size: 1.05rem !important;
+        letter-spacing: 1.5px !important;
+        margin: 0 0 12px 0 !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 12px rgba(107, 79, 155, 0.3) !important;
+        width: 100% !important;
+    }
+    
+    /* Order-left goes second and contains cover, stats, action buttons */
+    .order-left {
+        order: 2 !important;
+        width: 100% !important;
+        padding: 0 4px !important;
+    }
+    
+    .book-stack {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Cover art - hide from order-left on mobile, shown in canon preview */
+    .order-left .showcase-cover {
+        display: none !important;
+    }
+    
+    /* Book stats */
+    .book-stats-grid {
+        order: 2 !important;
+        grid-template-columns: 1fr 1fr !important;
+        margin: 0 auto 14px auto !important;
+        max-width: 260px !important;
+        gap: 4px 10px !important;
+        font-size: 0.84rem !important;
+        background: #fafafa !important;
+        padding: 10px 12px !important;
+        border-radius: 6px !important;
+        border: 1px solid #e8e8e8 !important;
+    }
+    
+    /* Hide price/shipping/button from order-left, they're in order-right now */
+    .order-left .price-display {
+        display: none !important;
+    }
+    
+    .order-left .free-shipping-banner {
+        display: none !important;
+    }
+    
+    .order-left .order-now-btn {
+        display: none !important;
+    }
+    
+    /* Action buttons */
+    .action-buttons-container {
+        order: 3 !important;
+        gap: 8px !important;
+        margin: 0 !important;
+    }
+    
+    .action-buttons-container button {
+        padding: 15px 20px !important;
+        font-size: 1.05rem !important;
+        letter-spacing: 1.5px !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        width: 100% !important;
+    }
+    
+    .action-buttons-container button:hover {
+        letter-spacing: 2px !important;
+        transform: translateY(-2px) scale(1.01) !important;
+    }
+    
+    .action-buttons-container button::after {
+        right: 20px !important;
+    }
+    
+    .action-buttons-container button:hover::after {
+        right: 16px !important;
+    }
+    
+    /* Hide desktop-only elements */
+    .first-print-label,
+    .book-title,
+    .book-synopsis,
+    .synopsisbox,
+    .order-description,
+    .cc0-notice,
+    .order-press-section,
+    .order-note {
+        display: none !important;
+    }
+    
+    /* Slider adjustments */
+    .quantity-slider {
+        height: 11px !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        border-radius: 6px !important;
+    }
+    
+    .quantity-slider::-webkit-slider-thumb {
+        width: 46px !important;
+        height: 46px !important;
+    }
+    
+    .quantity-slider::-moz-range-thumb {
+        width: 46px !important;
+        height: 46px !important;
+    }
+    
+    .slider-notches {
+        height: 11px !important;
+    }
+    
+    .slider-notch {
+        height: 18px !important;
+        width: 3px !important;
+    }
+    
+    /* Price adjustments */
+    .price-row {
+        padding: 7px 0 !important;
+        font-size: 0.94rem !important;
+    }
+    
+    .total-row .price-label {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+    }
+    
+    .total-row .price-value {
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Stats grid text alignment */
+    .book-stats-grid > div {
+        text-align: left !important;
+    }
+    
+    /* Canon preview adjustments */
+    #canon-preview-container > div:first-child {
+        gap: 11px !important;
+        margin-bottom: 11px !important;
+    }
+    
+    #canon-preview-avatar {
+        width: 36px !important;
+        height: 36px !important;
+        border-width: 2px !important;
+    }
+    
+    #canon-preview-handle {
+        font-size: 0.74rem !important;
+        margin-bottom: 2px !important;
+    }
+    
+    #canon-preview-container > div:first-child > div > div:nth-child(2) {
+        font-size: 0.88rem !important;
+    }
+    
+    #canon-public-notice {
+        font-size: 0.82rem !important;
+        padding: 8px 10px !important;
+        margin-bottom: 10px !important;
+        background: #fff !important;
+        border-radius: 4px !important;
+        border: 1px solid #f0f0f0 !important;
+    }
+    
+    #anonymize-order + span {
+        font-size: 0.86rem !important;
+    }
+    
+    /* Button adjustments */
+    .kindle-button,
+    .read-online-btn,
+    .download-epub-btn {
+        padding: 11px 16px !important;
+        font-size: 0.88rem !important;
+    }
+}
+
+/* Smaller mobile screens */
+@media (max-width: 480px) {
+    .order-content {
+        gap: 0 !important;
+    }
+    
+    .order-right {
+        padding: 12px 8px !important;
+    }
+    
+    .order-form {
+        padding: 0 !important;
+    }
+    
+    #canon-preview-container {
+        margin: 0 0 10px 0 !important;
+        padding: 11px 12px !important;
+    }
+    
+    .showcase-cover {
+        max-width: 220px !important;
+        margin: 0 auto 8px auto !important;
+    }
+    
+    .quantity-slider-container {
+        margin: 0 0 4px 0 !important;
+    }
+    
+    .price-display {
+        padding: 12px 10px !important;
+        margin: 6px 0 !important;
+    }
+    
+    .order-now-btn {
+        padding: 13px 18px !important;
+        font-size: 0.98rem !important;
+        letter-spacing: 1.2px !important;
+    }
+    
+    .book-stats-grid {
+        max-width: 240px !important;
+        padding: 8px 10px !important;
+        font-size: 0.8rem !important;
+        gap: 3px 8px !important;
+    }
+    
+    .action-buttons-container button {
+        padding: 13px 18px !important;
+        font-size: 0.98rem !important;
+        letter-spacing: 1.2px !important;
+    }
+}
+
+/* DESKTOP STYLES */
+@media (min-width: 1025px) {
+    /* Vertical centering for tall screens */
+    body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .main-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 0; /* 10px downward shift */
+    }
+    
+    /* Hide statbox and cc0 notice on desktop */
+    .book-stats-bottom,
+    .book-stats,
+    .cc0-notice-order {
+        display: none !important;
+    }
+}

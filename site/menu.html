@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/">
+    <title>Reverie House — Daily Menu</title>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/widgets/daily-menu.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    
+    <!-- Core utilities -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/widgets/background.js"></script>
+    
+    <!-- Menu widget -->
+    <script src="/js/widgets/daily-menu.js"></script>
+    
+    <!-- Header and drawer widgets -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    <script src="/js/widgets/wink.js" defer></script>
+    
+    <style>
+        .page-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header img.logo {
+            width: 150px;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+
+        .page-header h1 {
+            font-family: "Courier New", monospace;
+            color: #5d4a37;
+            margin: 0.5rem 0;
+        }
+
+        .page-header .subtitle {
+            color: #666;
+            font-style: italic;
+            margin: 0.5rem 0 0 0;
+        }
+
+        .info-box {
+            background: #fff9e6;
+            border-left: 4px solid #ffcc00;
+            padding: 1rem;
+            margin: 2rem auto;
+            max-width: 600px;
+            font-family: "Courier New", monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .info-box a {
+            color: #8b7355;
+            text-decoration: underline;
+        }
+
+        .menu-history-link {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .menu-history-link a {
+            color: #8b7355;
+            text-decoration: none;
+            font-family: "Courier New", monospace;
+        }
+
+        .menu-history-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="header-container"></div>
+
+    <!-- Full-Screen Background Scene -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera Kitchen" class="scene-layer background-layer">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="page-container">
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <img src="/assets/logo.png" alt="Reverie House Logo" class="logo">
+            <h1>🍽️ Daily Menu</h1>
+            <p class="subtitle">Nourishment suggestions from our Head Chef</p>
+        </div>
+
+        <!-- Info Box -->
+        <div class="info-box">
+            <p>
+                <strong>What is this?</strong><br>
+                Our Head Chef curates daily food inspirations to help those who struggle 
+                with choosing what to eat. Each day brings a simple, healthy suggestion 
+                that anyone in the house can follow.
+            </p>
+            <p style="margin-top: 1rem;">
+                This creates opportunities for communal eating experiences—when we all 
+                follow the day's suggestion, we share a meal together in spirit, even 
+                across distances.
+            </p>
+            <p style="margin-top: 1rem; margin-bottom: 0;">
+                Interested in becoming Head Chef? Visit the <a href="/work.html">Work</a> page.
+            </p>
+        </div>
+
+    </div>
+
+</body>
+</html>

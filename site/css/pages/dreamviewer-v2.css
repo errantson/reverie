@@ -1,0 +1,578 @@
+/* Dream Viewer V2 - Simplified & Elegant Styles */
+
+/* ===== BUBBLES ===== */
+
+.dream-bubble {
+    /* CSS custom properties (set by JS) */
+    --size: 80px;
+    --y-position: 50%;
+    --drift-speed: 30s;
+    --vertical-drift: 0px;
+    
+    /* Positioning */
+    position: absolute;
+    left: -100px;
+    top: var(--y-position);
+    width: var(--size);
+    height: var(--size);
+    
+    /* Visual style - unified glassy bubble */
+    border-radius: 50%;
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(255, 255, 255, 0.85),
+        rgba(200, 220, 255, 0.5)
+    );
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.15),
+        inset -3px -3px 15px rgba(0, 0, 0, 0.08),
+        inset 3px 3px 12px rgba(255, 255, 255, 0.5);
+    
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Interaction */
+    cursor: pointer;
+    pointer-events: auto;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    
+    /* Animation */
+    animation: drift-across var(--drift-speed) linear forwards;
+}
+
+/* Drift animation */
+@keyframes drift-across {
+    from {
+        left: -100px;
+        transform: translateY(0);
+    }
+    to {
+        left: calc(100vw + 100px);
+        transform: translateY(var(--vertical-drift));
+    }
+}
+
+/* Hover effect */
+.dream-bubble:hover {
+    transform: scale(1.2) !important;
+    z-index: 100;
+    box-shadow: 
+        0 6px 30px rgba(0, 0, 0, 0.25),
+        inset -4px -4px 20px rgba(0, 0, 0, 0.12),
+        inset 4px 4px 18px rgba(255, 255, 255, 0.6);
+}
+
+/* Preview active (when shown in panel) */
+.dream-bubble.preview-active {
+    box-shadow: 
+        0 0 25px rgba(147, 112, 219, 0.6),
+        0 0 45px rgba(147, 112, 219, 0.4),
+        inset -4px -4px 20px rgba(147, 112, 219, 0.15),
+        inset 4px 4px 18px rgba(255, 255, 255, 0.6);
+    z-index: 50;
+}
+
+/* ===== SENTIMENT STYLING ===== */
+
+/* Positive dreams - golden glow, float high */
+.dream-bubble[data-sentiment="positive"] {
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(255, 250, 220, 0.9),
+        rgba(255, 230, 150, 0.5),
+        rgba(240, 220, 180, 0.4)
+    );
+    border-color: rgba(255, 215, 100, 0.7);
+    box-shadow: 
+        0 0 15px rgba(255, 215, 100, 0.3),
+        0 4px 20px rgba(0, 0, 0, 0.15),
+        inset -3px -3px 15px rgba(255, 200, 100, 0.15),
+        inset 3px 3px 12px rgba(255, 255, 255, 0.6);
+}
+
+.dream-bubble[data-sentiment="positive"]:hover {
+    box-shadow: 
+        0 0 30px rgba(255, 215, 100, 0.5),
+        0 6px 30px rgba(0, 0, 0, 0.25),
+        inset -4px -4px 20px rgba(255, 200, 100, 0.2),
+        inset 4px 4px 18px rgba(255, 255, 255, 0.7);
+}
+
+/* Negative dreams - reddish glow, sink low */
+.dream-bubble[data-sentiment="negative"] {
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(255, 230, 230, 0.9),
+        rgba(255, 150, 150, 0.5),
+        rgba(230, 180, 180, 0.4)
+    );
+    border-color: rgba(255, 100, 100, 0.7);
+    box-shadow: 
+        0 0 15px rgba(255, 100, 100, 0.3),
+        0 4px 20px rgba(0, 0, 0, 0.2),
+        inset -3px -3px 15px rgba(255, 100, 100, 0.15),
+        inset 3px 3px 12px rgba(255, 200, 200, 0.5);
+}
+
+.dream-bubble[data-sentiment="negative"]:hover {
+    box-shadow: 
+        0 0 30px rgba(255, 100, 100, 0.5),
+        0 6px 30px rgba(0, 0, 0, 0.3),
+        inset -4px -4px 20px rgba(255, 100, 100, 0.2),
+        inset 4px 4px 18px rgba(255, 200, 200, 0.6);
+}
+
+/* Neutral dreams - lavender */
+.dream-bubble[data-sentiment="neutral"] {
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(245, 240, 255, 0.85),
+        rgba(220, 200, 255, 0.5),
+        rgba(230, 220, 250, 0.4)
+    );
+    border-color: rgba(200, 180, 255, 0.6);
+    box-shadow: 
+        0 0 12px rgba(200, 180, 255, 0.25),
+        0 4px 20px rgba(0, 0, 0, 0.15),
+        inset -3px -3px 15px rgba(200, 180, 255, 0.12),
+        inset 3px 3px 12px rgba(255, 255, 255, 0.5);
+}
+
+/* Souvenirs - neutral decorative bubbles */
+.dream-bubble[data-sentiment="souvenir"] {
+    cursor: pointer;
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(255, 255, 255, 0.8),
+        rgba(200, 220, 255, 0.4)
+    );
+}
+
+.dream-bubble[data-sentiment="souvenir"]:hover {
+    transform: scale(1.1) !important;
+}
+
+/* ===== RELEVANCE HIGHLIGHTING ===== */
+
+/* High relevance bubbles (0.7-1.0) get shimmer */
+.dream-bubble[data-relevance^="0.7"],
+.dream-bubble[data-relevance^="0.8"],
+.dream-bubble[data-relevance^="0.9"],
+.dream-bubble[data-relevance="1.00"] {
+    animation: 
+        drift-across var(--drift-speed) linear forwards,
+        shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.15);
+    }
+}
+
+/* ===== ENGAGEMENT OPPORTUNITIES ===== */
+
+/* First voice (no replies) - golden pulse */
+.dream-bubble.first-voice {
+    border: 3px solid rgba(255, 200, 100, 0.8);
+    animation: 
+        drift-across var(--drift-speed) linear forwards,
+        pulse-first-voice 2s ease-in-out infinite;
+}
+
+@keyframes pulse-first-voice {
+    0%, 100% {
+        border-color: rgba(255, 200, 100, 0.8);
+        box-shadow: 0 0 15px rgba(255, 200, 100, 0.3);
+    }
+    50% {
+        border-color: rgba(255, 200, 100, 1);
+        box-shadow: 0 0 25px rgba(255, 200, 100, 0.5);
+    }
+}
+
+/* Quiet account - soft blue */
+.dream-bubble.quiet-account {
+    border-color: rgba(150, 180, 255, 0.8);
+}
+
+/* Low engagement - teal */
+.dream-bubble.low-engagement {
+    border-color: rgba(100, 200, 200, 0.7);
+}
+
+/* ===== BUBBLE CONTENT ===== */
+
+.bubble-avatar {
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bubble-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+.bubble-icon {
+    opacity: 0.85;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+    pointer-events: none;
+}
+
+/* Tooltip */
+.bubble-tooltip {
+    position: absolute;
+    bottom: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 200;
+}
+
+.dream-bubble:hover .bubble-tooltip {
+    opacity: 1;
+}
+
+/* ===== LAYOUT ===== */
+
+.dreamviewer-page {
+    background: transparent;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.dreamviewer-container {
+    position: relative;
+    z-index: 10;
+    max-width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.dream-bubble-area {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* ===== STATUS ===== */
+
+.center-status-overlay {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10500;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.center-status-overlay.hidden {
+    opacity: 0;
+}
+
+.status-message {
+    font-size: 1rem;
+    color: white;
+    text-shadow: 
+        0 0 10px rgba(0, 0, 0, 0.8),
+        0 2px 8px rgba(0, 0, 0, 0.6);
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    animation: gentle-pulse 2s ease-in-out infinite;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    backdrop-filter: blur(8px);
+}
+
+@keyframes gentle-pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* ===== PREVIEW PANEL ===== */
+
+.hover-preview-panel {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    width: 380px;
+    max-height: 600px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 2px solid rgba(147, 112, 219, 0.3);
+    border-radius: 0;
+    padding: 1rem;
+    z-index: 9000;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(26, 26, 46, 0.2);
+    overflow-y: auto;
+}
+
+.hover-preview-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(147, 112, 219, 0.2);
+}
+
+.hover-preview-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(147, 112, 219, 0.3);
+    flex-shrink: 0;
+}
+
+.hover-preview-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.hover-preview-handle {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    margin-bottom: 0.4rem;
+}
+
+.hover-preview-context {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    font-size: 0.65rem;
+}
+
+.context-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    background: rgba(147, 112, 219, 0.1);
+    border: 1px solid rgba(147, 112, 219, 0.25);
+    border-radius: 10px;
+    color: var(--primary-color);
+}
+
+.context-badge-icon {
+    font-size: 0.75rem;
+}
+
+.context-badge.dream-positive {
+    background: rgba(255, 215, 100, 0.1);
+    border-color: rgba(255, 215, 100, 0.3);
+}
+
+.context-badge.dream-negative {
+    background: rgba(255, 100, 100, 0.1);
+    border-color: rgba(255, 100, 100, 0.3);
+}
+
+.context-badge.dream-neutral {
+    background: rgba(200, 180, 255, 0.1);
+    border-color: rgba(200, 180, 255, 0.3);
+}
+
+.hover-preview-text {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-color);
+    margin-bottom: 0.75rem;
+}
+
+.hover-preview-images {
+    margin-bottom: 0.75rem;
+}
+
+.hover-preview-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(147, 112, 219, 0.2);
+    font-size: 0.75rem;
+}
+
+.hover-preview-time {
+    color: var(--text-color);
+    opacity: 0.7;
+}
+
+.hover-preview-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.hover-preview-link:hover {
+    opacity: 0.7;
+}
+
+/* ===== CONTROLS ===== */
+
+.dream-controls {
+    position: fixed;
+    left: 15px;
+    top: 70px;
+    z-index: 100;
+}
+
+.controls-panel {
+    width: 240px;
+    max-height: calc(100vh - 100px);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(26, 26, 46, 0.12);
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.controls-panel h3 {
+    margin: 0 0 0.85rem 0;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(26, 26, 46, 0.08);
+    padding-bottom: 0.6rem;
+}
+
+.control-section {
+    margin-bottom: 0.85rem;
+}
+
+.control-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+}
+
+.control-slider {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(26, 26, 46, 0.15);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.control-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+}
+
+.control-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.stats-compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.65rem;
+    background: rgba(26, 26, 46, 0.04);
+    border-radius: 2px;
+    margin-bottom: 0.85rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-item span:first-child {
+    opacity: 0.5;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+}
+
+.stat-item span:last-child {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.control-button {
+    padding: 0.55rem;
+    font-size: 0.8rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.control-button:hover {
+    opacity: 0.85;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+    .hover-preview-panel {
+        width: 90%;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+    
+    .dream-controls {
+        left: 10px;
+        top: 60px;
+    }
+    
+    .controls-panel {
+        width: 200px;
+    }
+}
