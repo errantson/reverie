@@ -1,0 +1,28 @@
+[Unit]
+Description=Reverie House Feed Generator
+After=network.target
+
+[Service]
+Type=simple
+User=errantson
+Group=errantson
+WorkingDirectory=/srv
+ExecStart=/usr/bin/python3 /srv/core/feedgen_server.py
+Restart=always
+RestartSec=10
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits
+MemoryMax=256M
+TasksMax=64
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=feedgen
+
+[Install]
+WantedBy=multi-user.target
