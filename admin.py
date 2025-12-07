@@ -1116,7 +1116,8 @@ def get_canon():
         
         # Get all canon entries with dreamer names and avatars, sorted by epoch descending
         cursor = db.execute("""
-            SELECT c.id, c.epoch, c.did, c.event, c.url, c.uri, c.type, c.key, c.created_at, d.name, d.avatar
+            SELECT c.id, c.epoch, c.did, c.event, c.url, c.uri, c.type, c.key, c.created_at, 
+                   d.name, d.avatar, d.color_hex
             FROM events c
             LEFT JOIN dreamers d ON c.did = d.did
             ORDER BY c.epoch DESC
@@ -1132,6 +1133,7 @@ def get_canon():
                 'did': entry['did'],
                 'name': entry['name'] or 'unknown',
                 'avatar': entry['avatar'] or '',
+                'color_hex': entry['color_hex'] or '#8b7355',
                 'event': entry['event'],
                 'url': entry['url'] or '',
                 'uri': entry['uri'] or '',
@@ -1153,6 +1155,43 @@ def get_canon():
         }), 500
 
 
+@app.route('/api/work/active-roles')
+def get_active_roles():
+    """Get all active worker roles (public endpoint for sidebar)"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from core.database import DatabaseManager
+        
+        db = DatabaseManager()
+        
+        # Get all active roles
+        cursor = db.execute("""
+            SELECT did, role, status
+            FROM user_roles
+            WHERE status = 'active'
+            ORDER BY activated_at DESC
+        """)
+        roles = cursor.fetchall()
+        
+        # Convert to list of dicts
+        result = []
+        for role in roles:
+            result.append({
+                'did': role['did'],
+                'role': role['role'],
+                'status': role['status']
+            })
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in /api/work/active-roles: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify([]), 500
+
+
 @app.route('/api/admin/canon', methods=['POST'])
 @require_auth()
 def admin_add_canon():
@@ -1171,25 +1210,32 @@ def admin_add_canon():
         uri = data.get('uri')
         url = data.get('url')
         epoch = data.get('epoch', int(time.time()))
+        quantities = data.get('quantities')  # Expect JSON object like {"books": 5}
         
         if not all([did, event, type_val, key]):
             return jsonify({'error': 'Missing required fields: did, event, type, key'}), 400
         
         db = DatabaseManager()
         
+        # Convert quantities to JSON string if provided
+        quantities_json = None
+        if quantities:
+            import json
+            quantities_json = json.dumps(quantities) if isinstance(quantities, dict) else quantities
+        
         if entry_id:
             # Update existing entry
             db.execute("""
                 UPDATE events
-                SET did = %s, event = %s, type = %s, key = %s, uri = %s, url = %s, epoch = %s
+                SET did = %s, event = %s, type = %s, key = %s, uri = %s, url = %s, epoch = %s, quantities = %s::jsonb
                 WHERE id = %s
-            """, (did, event, type_val, key, uri, url, epoch, entry_id))
+            """, (did, event, type_val, key, uri, url, epoch, quantities_json, entry_id))
         else:
             # Insert new entry
             db.execute("""
-                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (did, event, type_val, key, uri, url, epoch, int(time.time())))
+                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, quantities)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            """, (did, event, type_val, key, uri, url, epoch, int(time.time()), quantities_json))
         
         return jsonify({'success': True})
         

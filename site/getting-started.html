@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started - Reverie House</title>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/pages/getting-started.css">
+    <link rel="stylesheet" href="css/widgets/login.css">
+    <link rel="stylesheet" href="css/widgets/dialogue.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    
+    <!-- Core utilities -->
+    <script src="js/core/world-config-cache.js"></script>
+    <script src="js/core/color-manager.js"></script>
+    <script src="js/utils/shadowbox.js"></script>
+    <script src="js/widgets/background.js"></script>
+    
+    <!-- Scripts -->
+    <script src="js/widgets/header.js" defer></script>
+    <script type="module" src="js/widgets/oauth-manager.js"></script>
+    <script src="js/widgets/login.js" defer></script>
+    <script src="js/widgets/drawer.js" defer></script>
+    <script src="js/widgets/dialogue.js" defer></script>
+    <script src="js/widgets/getting-started.js" defer></script>
+</head>
+<body class="getting-started-page">
+    <div id="header-container"></div>
+    
+    <!-- Dynamic background -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera Residence" class="scene-layer background-layer">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="getting-started-container">
+            
+            <!-- Header -->
+            <div class="guide-header">
+                <div class="guide-avatar">
+                    <img src="/souvenirs/dream/strange/icon.png" alt="errantson">
+                </div>
+                <div class="guide-intro">
+                    <h1>Welcome to Reverie House</h1>
+                    <p class="guide-byline">A guided tour by <strong>errantson</strong></p>
+                </div>
+            </div>
+
+            <!-- Step 1: What is this place? -->
+            <div class="guide-step" id="step-what">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h2>What is Reverie House?</h2>
+                    <p>
+                        Reverie House is a <strong>shared creative mindscape</strong> built on the ATProtocol network (also known as Bluesky).
+                    </p>
+                    <p>
+                        Think of it as a collaborative storytelling world where:
+                    </p>
+                    <ul>
+                        <li>🌌 <strong>Dreamers</strong> (that's you!) position themselves on a personality spectrum</li>
+                        <li>📜 <strong>Stories</strong> become part of our shared canon through lore.farm</li>
+                        <li>🎨 <strong>Souvenirs</strong> are collected as you explore and contribute</li>
+                        <li>🤝 <strong>Community</strong> is built through shared creativity and connection</li>
+                    </ul>
+                    <div class="step-action">
+                        <button class="guide-btn" onclick="scrollToStep('step-atprotocol')">
+                            Tell me about ATProtocol →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: What is ATProtocol? -->
+            <div class="guide-step" id="step-atprotocol">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h2>What is ATProtocol?</h2>
+                    <p>
+                        <strong>ATProtocol</strong> (Authenticated Transfer Protocol) is the decentralized social network that powers Bluesky.
+                    </p>
+                    <p>
+                        Unlike traditional social media, ATProtocol lets you:
+                    </p>
+                    <ul>
+                        <li>🏠 Own your identity (like <code>@yourname.reverie.house</code>)</li>
+                        <li>🔓 Take your data anywhere</li>
+                        <li>🌐 Connect across different servers and apps</li>
+                        <li>🛠️ Use custom labelers (like our lore.farm) to organize content</li>
+                    </ul>
+                    <div class="info-box">
+                        <strong>💡 Good to know:</strong> You don't need a Bluesky account to explore Reverie House, but you'll need one to become a resident and fully participate.
+                    </div>
+                    <div class="step-action">
+                        <button class="guide-btn" onclick="scrollToStep('step-spectrum')">
+                            What's the personality spectrum? →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: The Spectrum -->
+            <div class="guide-step" id="step-spectrum">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h2>The Personality Spectrum</h2>
+                    <p>
+                        At Reverie House, every dreamer positions themselves on <strong>three axes</strong>:
+                    </p>
+                    <div class="axis-grid">
+                        <div class="axis-card">
+                            <div class="axis-label">Order ⟷ Chaos</div>
+                            <p>Do you prefer structure or spontaneity?</p>
+                        </div>
+                        <div class="axis-card">
+                            <div class="axis-label">Unity ⟷ Autonomy</div>
+                            <p>Do you seek collective harmony or individual freedom?</p>
+                        </div>
+                        <div class="axis-card">
+                            <div class="axis-label">Hedonism ⟷ Asceticism</div>
+                            <p>Do you embrace pleasure or practice restraint?</p>
+                        </div>
+                    </div>
+                    <p>
+                        These three dimensions create <strong>eight octants</strong>—archetypal personalities like "architect," "wanderer," "seeker," or "hermit."
+                    </p>
+                    <div class="step-action">
+                        <a href="/spectrum" class="guide-btn">
+                            View the spectrum →
+                        </a>
+                        <button class="guide-btn secondary" onclick="scrollToStep('step-canon')">
+                            What about the stories? →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Canon & lore.farm -->
+            <div class="guide-step" id="step-canon">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h2>Canon & lore.farm</h2>
+                    <p>
+                        Our stories live on <strong>lore.farm</strong>—a decentralized proof-of-lore system.
+                    </p>
+                    <p>
+                        Here's how it works:
+                    </p>
+                    <ol>
+                        <li>📝 <strong>Dreamers post stories</strong> about Reverie House on Bluesky</li>
+                        <li>🏷️ <strong>Stories are tagged as "lore"</strong> using our labeler</li>
+                        <li>⭐ <strong>Canon Keepers</strong> (trusted community members) review and canonize the best stories</li>
+                        <li>📚 <strong>Canon stories</strong> become the official shared history of Reverie House</li>
+                    </ol>
+                    <div class="info-box">
+                        <strong>💡 What's a labeler?</strong> It's an ATProtocol feature that lets communities tag and organize content. Our lore.farm labeler helps us track which stories are part of our canon.
+                    </div>
+                    <div class="step-action">
+                        <a href="/story" class="guide-btn">
+                            Read the canon →
+                        </a>
+                        <button class="guide-btn secondary" onclick="scrollToStep('step-souvenirs')">
+                            What are souvenirs? →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Souvenirs -->
+            <div class="guide-step" id="step-souvenirs">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h2>Souvenirs & Phanera</h2>
+                    <p>
+                        As you explore and contribute to Reverie House, you'll collect <strong>souvenirs</strong>—digital mementos of your journey.
+                    </p>
+                    <p>
+                        Each souvenir has a <strong>phanera</strong> (visual representation) that you can set as your background on the site.
+                    </p>
+                    <div class="souvenir-examples">
+                        <div class="souvenir-card">
+                            <div class="souvenir-icon">🏠</div>
+                            <strong>Residence</strong>
+                            <p>For becoming a resident</p>
+                        </div>
+                        <div class="souvenir-card">
+                            <div class="souvenir-icon">📜</div>
+                            <strong>Dream</strong>
+                            <p>For sharing your first story</p>
+                        </div>
+                        <div class="souvenir-card">
+                            <div class="souvenir-icon">🔔</div>
+                            <strong>Bell</strong>
+                            <p>For special contributions</p>
+                        </div>
+                    </div>
+                    <div class="step-action">
+                        <a href="/souvenirs" class="guide-btn">
+                            View all souvenirs →
+                        </a>
+                        <button class="guide-btn secondary" onclick="scrollToStep('step-join')">
+                            How do I join? →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: How to Join -->
+            <div class="guide-step" id="step-join">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <h2>Becoming a Resident</h2>
+                    <p>
+                        To fully participate in Reverie House, you'll need to <strong>create an account</strong> on our ATProtocol server.
+                    </p>
+                    <p>
+                        This gives you:
+                    </p>
+                    <ul>
+                        <li>🏠 A unique handle like <code>@yourname.reverie.house</code></li>
+                        <li>🎨 The ability to set your spectrum position</li>
+                        <li>📜 The ability to share stories and contribute to canon</li>
+                        <li>🎁 The ability to collect souvenirs</li>
+                        <li>🤝 Full participation in our community</li>
+                    </ul>
+                    <div class="info-box warning">
+                        <strong>⚠️ Currently invite-only:</strong> Reverie House is still in beta. You'll need an invite code to create an account.
+                    </div>
+                    <div class="step-action">
+                        <button class="guide-btn" id="createAccountBtn">
+                            Create Account
+                        </button>
+                        <button class="guide-btn secondary" onclick="scrollToStep('step-explore')">
+                            I'll explore first →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 7: Start Exploring -->
+            <div class="guide-step" id="step-explore">
+                <div class="step-number">7</div>
+                <div class="step-content">
+                    <h2>Ready to Explore?</h2>
+                    <p>
+                        You're all set! Here are some suggested starting points:
+                    </p>
+                    <div class="explore-grid">
+                        <a href="/dreamers" class="explore-card">
+                            <span class="explore-icon">🧙‍♂️</span>
+                            <strong>Meet the Dreamers</strong>
+                            <p>See who's already here</p>
+                        </a>
+                        <a href="/story" class="explore-card">
+                            <span class="explore-icon">📜</span>
+                            <strong>Read the Canon</strong>
+                            <p>Explore our shared stories</p>
+                        </a>
+                        <a href="/spectrum" class="explore-card">
+                            <span class="explore-icon">🌌</span>
+                            <strong>View the Spectrum</strong>
+                            <p>See the personality map</p>
+                        </a>
+                        <a href="/books" class="explore-card">
+                            <span class="explore-icon">📚</span>
+                            <strong>Visit the Library</strong>
+                            <p>Read Seeker's Reverie</p>
+                        </a>
+                    </div>
+                    <div class="final-note">
+                        <img src="/souvenirs/dream/strange/icon.png" alt="errantson" class="guide-avatar-small">
+                        <p>
+                            <strong>Remember:</strong> You can always find me in the header if you need help. Just click the icon next to the logo.
+                        </p>
+                    </div>
+                    <div class="step-action">
+                        <a href="/" class="guide-btn">
+                            ← Back to Reverie House
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Smooth scroll helper
+        function scrollToStep(stepId) {
+            const element = document.getElementById(stepId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Create account button handler
+        document.addEventListener('DOMContentLoaded', () => {
+            const createBtn = document.getElementById('createAccountBtn');
+            if (createBtn) {
+                createBtn.addEventListener('click', () => {
+                    // Open create account modal
+                    if (window.loginWidget) {
+                        window.loginWidget.showCreateAccount();
+                    } else {
+                        // Fallback: open drawer
+                        const drawerBtn = document.getElementById('drawerAvatarBtn');
+                        if (drawerBtn) {
+                            drawerBtn.click();
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

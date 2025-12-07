@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly Contribution Score Update Timer
+Requires=contributions.service
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -626,7 +626,7 @@
                         const url = row.url || '';
                         
                         // Name links to dreamer page (stop propagation to prevent row click)
-                        const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
+                        const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
                         
                         // Event text is non-clickable (row click will open URL)
                         const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;

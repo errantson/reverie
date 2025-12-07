@@ -103,6 +103,7 @@ def get_dreamers():
                 d.followers_count, d.follows_count, d.posts_count,
                 d.created_at, d.arrival, d.heading, d.color_hex, d.phanera,
                 d.status, d.alts,
+                d.canon_score, d.lore_score, d.patron_score, d.contribution_score,
                 s.oblivion, s.authority, s.skeptic, s.receptive, 
                 s.liberty, s.entropy, s.octant
             FROM dreamers d
@@ -136,32 +137,6 @@ def get_dreamers():
         for row in kindred_data:
             kindred_by_did[row['did']].append(row['kindred_did'])
         
-        # OPTIMIZED: Calculate book patronage for all dreamers (book price = $14.99 = 1499 cents)
-        cursor = db.execute("""
-            SELECT did, event FROM events WHERE type = 'order'
-        """)
-        order_data = cursor.fetchall()
-        
-        # Parse book counts from "realizes X book(s)" events
-        patronage_by_did = defaultdict(int)
-        POINTS_PER_BOOK = 150  # Flat contribution points per book
-        for row in order_data:
-            event = row['event']
-            # Extract number from "realizes one book", "realizes five books", etc.
-            if 'realizes' in event and 'book' in event:
-                words = event.split()
-                number_words = {
-                    'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-                    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-                    'fifteen': 15, 'twenty': 20, 'twenty five': 25,
-                    'fifty': 50, 'seventy five': 75, 'one hundred': 100
-                }
-                # Try to find number word in event text
-                for word, num in number_words.items():
-                    if word in event.lower():
-                        patronage_by_did[row['did']] += num * POINTS_PER_BOOK
-                        break
-        
         # OPTIMIZED: Format dreamers data using list comprehension
         dreamers_list = [
             {
@@ -178,7 +153,11 @@ def get_dreamers():
                 'followers_count': dreamer['followers_count'] or 0,
                 'follows_count': dreamer['follows_count'] or 0,
                 'posts_count': dreamer['posts_count'] or 0,
-                'patronage': patronage_by_did.get(dreamer['did'], 0),
+                'patronage': dreamer['patron_score'] or 0,  # Legacy field name
+                'patron_score': dreamer['patron_score'] or 0,  # New field name (used by profile.js/sidebar.js)
+                'canon_score': dreamer['canon_score'] or 0,
+                'lore_score': dreamer['lore_score'] or 0,
+                'contribution_score': dreamer['contribution_score'] or 0,
                 'created_at': dreamer['created_at'] or '',
                 'arrival': dreamer['arrival'] or 0,
                 'color_hex': dreamer['color_hex'],
