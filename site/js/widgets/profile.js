@@ -25,6 +25,14 @@ class Profile {
             document.head.appendChild(octantsLink);
         }
         
+        // Load roles CSS for role color variables
+        if (!document.querySelector('link[href*="css/roles.css"]')) {
+            const rolesLink = document.createElement('link');
+            rolesLink.rel = 'stylesheet';
+            rolesLink.href = '/css/roles.css';
+            document.head.appendChild(rolesLink);
+        }
+        
         // Load octant showcase widget (unified octant display)
         if (!document.querySelector('script[src*="js/widgets/octantshowcase.js"]')) {
             const script = document.createElement('script');
@@ -170,9 +178,17 @@ class Profile {
             
             const allFaces = [activityContent, eventsContent, contributionFace, souvenirsFace, spectrumFace];
             
+            // Restore last selected tab from localStorage
+            const lastSelectedFace = localStorage.getItem('profile-selected-face') || 'lore';
+            console.log('Restoring profile tab:', lastSelectedFace);
+            
             faceBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const face = btn.getAttribute('data-face');
+                    console.log('Profile tab clicked:', face);
+                    
+                    // Save selection to localStorage
+                    localStorage.setItem('profile-selected-face', face);
                     
                     // Update button states
                     faceBtns.forEach(b => b.classList.remove('active'));
@@ -214,6 +230,13 @@ class Profile {
                     }, 200);
                 });
             });
+            
+            // Trigger the saved tab on load
+            const btnToActivate = Array.from(faceBtns).find(b => b.getAttribute('data-face') === lastSelectedFace);
+            if (btnToActivate && lastSelectedFace !== 'lore') {
+                console.log('Auto-activating saved profile tab:', lastSelectedFace);
+                setTimeout(() => btnToActivate.click(), 100);
+            }
             
             // Fetch user status once upfront (centralized check)
             let userStatus = null;
@@ -653,22 +676,68 @@ class Profile {
             const repostCount = activityData.repostCount || 0;
             const replyCount = activityData.replyCount || 0;
             
-            // Build interaction stats display - always show all counts
-            const interactionButtons = `
-                <span class="activity-stats">
-                    <a href="${postUrl}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; cursor: pointer;">${likeCount} like${likeCount === 1 ? '' : 's'}</a> · 
-                    <a href="${postUrl}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; cursor: pointer;">${repostCount} repost${repostCount === 1 ? '' : 's'}</a> · 
-                    <a href="${postUrl}" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; cursor: pointer;">${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}</a>
-                </span>
-            `;
+            // Check if user is logged in
+            const session = window.oauthManager ? window.oauthManager.getSession() : null;
+            const isLoggedIn = !!session;
             
-            // Build info overlay (badge, timestamp, and interactions all on left as a unit)
+            // Check viewer state
+            const isLiked = activityData.viewer?.like || false;
+            const isReposted = activityData.viewer?.repost || false;
+            
+            // Build interaction stats - styled exactly like timestamp
+            let interactionStats = '';
+            if (isLoggedIn && activityData.uri && activityData.cid) {
+                const escapedDisplayName = this.escapeHtml(dreamer.name || dreamer.handle);
+                const truncatedText = activityData.text.substring(0, 30) + (activityData.text.length > 30 ? '...' : '');
+                const escapedPostText = this.escapeHtml(truncatedText);
+                
+                interactionStats = `
+                    <button class="activity-time" 
+                            data-uri="${activityData.uri}"
+                            data-cid="${activityData.cid}"
+                            data-liked="${isLiked}"
+                            onclick="window.profileWidget.handleLike(this)"
+                            style="border: none; background: none; padding: 0; margin: 0; cursor: pointer;"
+                            title="${isLiked ? 'Unlike' : 'Like'} this post">
+                        ${likeCount > 0 ? likeCount : '♡'}
+                    </button>
+                    <button class="activity-time" 
+                            data-uri="${activityData.uri}"
+                            data-cid="${activityData.cid}"
+                            data-reposted="${isReposted}"
+                            onclick="window.profileWidget.handleRepost(this)"
+                            style="border: none; background: none; padding: 0; margin: 0; cursor: pointer;"
+                            title="${isReposted ? 'Undo repost' : 'Repost'} to your timeline">
+                        ${repostCount > 0 ? repostCount : '↻'}
+                    </button>
+                    <button class="activity-time" 
+                            data-uri="${activityData.uri}"
+                            data-cid="${activityData.cid}"
+                            data-handle="${dreamer.handle}"
+                            data-displayname="${escapedDisplayName}"
+                            data-text="${escapedPostText}"
+                            onclick="window.profileWidget.handleReply(this)"
+                            style="border: none; background: none; padding: 0; margin: 0; cursor: pointer;"
+                            title="Reply to this post">
+                        ${replyCount > 0 ? replyCount : '↵'}
+                    </button>
+                `;
+            } else {
+                // Not logged in - show stats as links with activity-time class
+                interactionStats = `
+                    <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${likeCount} like${likeCount === 1 ? '' : 's'}</a>
+                    <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${repostCount} repost${repostCount === 1 ? '' : 's'}</a>
+                    <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}</a>
+                `;
+            }
+            
+            // Build info overlay
             const infoOverlay = `
                 <div class="activity-info-overlay">
                     <div class="activity-overlay-content">
                         ${badgeOverlay}
                         <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${timeAgo}</a>
-                        ${interactionButtons}
+                        ${interactionStats}
                     </div>
                 </div>
             `;
@@ -711,41 +780,70 @@ class Profile {
                 entry.did?.toLowerCase() === dreamer.did.toLowerCase()
             );
             
-            // Find reactionary events - events by others that reference this dreamer's URIs or roles
-            const dreamerURIs = new Set(dreamerEvents.map(e => e.uri).filter(Boolean));
-            const dreamerRoles = new Set(dreamerEvents.filter(e => e.key === 'greeter' || e.key === 'mapper').map(e => e.key));
-            const reactionaryEvents = allCanon.filter(event => {
-                // Skip the dreamer's own events
-                if (event.did?.toLowerCase() === dreamer.did.toLowerCase()) return false;
-                
-                // Check if this is a response to the greeter ("spoke their name")
-                if (dreamerRoles.has('greeter') && event.key === 'name') {
-                    return true;
-                }
-                
-                // Check if this is a response to the mapper (mapped their spectrum)
-                if (dreamerRoles.has('mapper') && event.key === 'spectrum') {
-                    return true;
-                }
-                
-                // Check if this event's URI is a reply to any of the dreamer's posts
-                if (event.uri && event.uri.includes('at://')) {
-                    for (const dreamerURI of dreamerURIs) {
-                        if (dreamerURI && event.uri.includes(dreamerURI.split('/').pop())) {
-                            return true;
+            // Sort by epoch descending (newest first)
+            dreamerEvents.sort((a, b) => b.epoch - a.epoch);
+            
+            // For greeter events that welcomed someone, find the 'name' event that triggered it
+            // The 'name' event happens BEFORE the greeter welcomes them
+            dreamerEvents.forEach(event => {
+                if (event.key === 'greeter' && event.event.includes('welcomed')) {
+                    // Extract the person's name from "welcomed [name]"
+                    const match = event.event.match(/welcomed (.+)/);
+                    if (match) {
+                        const welcomedName = match[1];
+                        // Find the most recent 'name' event by someone with that name, before this greeter event
+                        const nameEvent = allCanon.find(e => 
+                            e.key === 'name' && 
+                            e.name.toLowerCase() === welcomedName.toLowerCase() &&
+                            e.epoch < event.epoch &&
+                            e.did !== event.did
+                        );
+                        if (nameEvent) {
+                            event.reactionOrigin = nameEvent;
+                            event.isReactionary = true;
                         }
                     }
                 }
                 
-                return false;
+                // For mapper events, find spectrum events that responded to them
+                if (event.key === 'mapper' && event.event.includes('mapped')) {
+                    const match = event.event.match(/mapped (.+)/);
+                    if (match) {
+                        const mappedName = match[1];
+                        const spectrumEvent = allCanon.find(e =>
+                            e.key === 'spectrum' &&
+                            e.name.toLowerCase() === mappedName.toLowerCase() &&
+                            e.epoch < event.epoch &&
+                            e.did !== event.did
+                        );
+                        if (spectrumEvent) {
+                            event.reactionOrigin = spectrumEvent;
+                            event.isReactionary = true;
+                        }
+                    }
+                }
             });
             
-            // Combine and sort by epoch descending
-            const allRelevantEvents = [...dreamerEvents, ...reactionaryEvents];
-            allRelevantEvents.sort((a, b) => b.epoch - a.epoch);
+            // Build the display list: when an event has an origin, show origin THEN the event
+            const allRelevantEvents = [];
+            const addedOriginIds = new Set();
             
-            // Take most recent 12 events
-            const recentEvents = allRelevantEvents.slice(0, 12);
+            dreamerEvents.forEach(event => {
+                if (event.reactionOrigin && !addedOriginIds.has(event.reactionOrigin.id)) {
+                    // Add origin first (not indented)
+                    allRelevantEvents.push(event.reactionOrigin);
+                    addedOriginIds.add(event.reactionOrigin.id);
+                    // Then add the dreamer's reaction (indented)
+                    allRelevantEvents.push(event);
+                } else if (!event.reactionOrigin) {
+                    // Events without origins are added normally
+                    allRelevantEvents.push(event);
+                }
+                // Skip events that have origins but whose origin was already added
+            });
+            
+            // Take most recent 20 events
+            const recentEvents = allRelevantEvents.slice(0, 20);
             
             if (recentEvents.length === 0) {
                 eventsContent.innerHTML = '<div class=\"activity-empty\">No events recorded</div>';
@@ -1765,7 +1863,17 @@ class Profile {
     }
 
     getTimeAgo(timestamp) {
+        // Validate timestamp
+        if (!timestamp || isNaN(timestamp) || timestamp <= 0) {
+            return 'unknown';
+        }
+        
         const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        
+        // Handle future timestamps or invalid calculations
+        if (seconds < 0 || isNaN(seconds)) {
+            return 'unknown';
+        }
         
         if (seconds < 60) return 'just now';
         if (seconds < 3600) {
@@ -1991,6 +2099,375 @@ class Profile {
         } catch (error) {
             console.error('Error navigating to dreamer:', error);
             window.location.href = `/dreamer.html?name=${encodeURIComponent(name)}`;
+        }
+    }
+
+    async handleLike(button) {
+        const uri = button.dataset.uri;
+        const cid = button.dataset.cid;
+        const isCurrentlyLiked = button.dataset.liked === 'true';
+        
+        const session = window.oauthManager ? window.oauthManager.getSession() : null;
+        if (!session) {
+            alert('Please log in to like posts');
+            return;
+        }
+        
+        try {
+            button.disabled = true;
+            
+            if (isCurrentlyLiked) {
+                await this.unlikePost(uri, session);
+                button.title = 'Like this post';
+                
+                // Update button text
+                const currentText = button.textContent.trim();
+                const currentCount = parseInt(currentText) || 1;
+                button.textContent = currentCount > 1 ? currentCount - 1 : '♡';
+            } else {
+                await this.likePost(uri, cid, session);
+                button.title = 'Unlike this post';
+                
+                // Update button text
+                const currentText = button.textContent.trim();
+                const currentCount = currentText === '♡' ? 0 : parseInt(currentText) || 0;
+                button.textContent = currentCount + 1;
+            }
+            
+            button.setAttribute('data-liked', (!isCurrentlyLiked).toString());
+        } catch (error) {
+            console.error('Error handling like:', error);
+            alert('Failed to like post. Please try again.');
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    async handleRepost(button) {
+        const uri = button.dataset.uri;
+        const cid = button.dataset.cid;
+        const isCurrentlyReposted = button.dataset.reposted === 'true';
+        
+        const session = window.oauthManager ? window.oauthManager.getSession() : null;
+        if (!session) {
+            alert('Please log in to repost');
+            return;
+        }
+        
+        try {
+            button.disabled = true;
+            
+            if (isCurrentlyReposted) {
+                await this.unrepostPost(uri, session);
+                button.title = 'Repost to your timeline';
+                
+                // Update button text
+                const currentText = button.textContent.trim();
+                const currentCount = parseInt(currentText) || 1;
+                button.textContent = currentCount > 1 ? currentCount - 1 : '↻';
+            } else {
+                await this.repostPost(uri, cid, session);
+                button.title = 'Undo repost';
+                
+                // Update button text
+                const currentText = button.textContent.trim();
+                const currentCount = currentText === '↻' ? 0 : parseInt(currentText) || 0;
+                button.textContent = currentCount + 1;
+            }
+            
+            button.setAttribute('data-reposted', (!isCurrentlyReposted).toString());
+        } catch (error) {
+            console.error('Error handling repost:', error);
+            alert('Failed to repost. Please try again.');
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    async handleReply(button) {
+        const uri = button.dataset.uri;
+        const cid = button.dataset.cid;
+        const handle = button.dataset.handle;
+        const displayName = button.dataset.displayname;
+        const text = button.dataset.text;
+        
+        // Use the composer widget if available
+        if (window.bskyComposer) {
+            window.bskyComposer.show({
+                replyTo: {
+                    uri: uri,
+                    cid: cid,
+                    author: {
+                        handle: handle,
+                        displayName: displayName
+                    },
+                    text: text
+                }
+            });
+        } else {
+            alert('Composer not available. Please use the Bluesky app to reply.');
+        }
+    }
+
+    async likePost(uri, cid, session) {
+        try {
+            // For PDS sessions, use direct API call with accessJwt
+            if (session.accessJwt) {
+                const pdsEndpoint = session.handle?.endsWith('.reverie.house') ? 'https://reverie.house' : 'https://bsky.social';
+                const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.createRecord`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.accessJwt}`
+                    },
+                    body: JSON.stringify({
+                        repo: session.did,
+                        collection: 'app.bsky.feed.like',
+                        record: {
+                            subject: { uri: uri, cid: cid },
+                            createdAt: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to like post: ${response.status}`);
+                }
+                return await response.json();
+            }
+            
+            // For OAuth sessions, use the OAuth client's session.fetchHandler
+            await window.oauthManager.ensureInitialized();
+            const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
+            const response = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    repo: session.sub || session.did,
+                    collection: 'app.bsky.feed.like',
+                    record: {
+                        subject: { uri: uri, cid: cid },
+                        createdAt: new Date().toISOString()
+                    }
+                })
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to like post: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async unlikePost(uri, session) {
+        try {
+            // For PDS sessions, use direct API call with accessJwt
+            if (session.accessJwt) {
+                const pdsEndpoint = session.handle?.endsWith('.reverie.house') ? 'https://reverie.house' : 'https://bsky.social';
+                
+                // Find the like record
+                const listResponse = await fetch(
+                    `${pdsEndpoint}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=app.bsky.feed.like&limit=100`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${session.accessJwt}`
+                        }
+                    }
+                );
+                
+                if (!listResponse.ok) {
+                    throw new Error('Failed to fetch likes');
+                }
+                
+                const data = await listResponse.json();
+                const likeRecord = data.records.find(r => r.value.subject.uri === uri);
+                
+                if (!likeRecord) return;
+                
+                const rkey = likeRecord.uri.split('/').pop();
+                
+                // Delete the like record
+                const deleteResponse = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.accessJwt}`
+                    },
+                    body: JSON.stringify({
+                        repo: session.did,
+                        collection: 'app.bsky.feed.like',
+                        rkey: rkey
+                    })
+                });
+                
+                if (!deleteResponse.ok) {
+                    throw new Error('Failed to unlike post');
+                }
+                return;
+            }
+            
+            // For OAuth sessions
+            await window.oauthManager.ensureInitialized();
+            const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
+            
+            const listResponse = await oauthSession.fetchHandler(
+                `/xrpc/com.atproto.repo.listRecords?repo=${session.sub || session.did}&collection=app.bsky.feed.like&limit=100`,
+                { method: 'GET' }
+            );
+            
+            if (!listResponse.ok) throw new Error('Failed to fetch likes');
+            
+            const data = await listResponse.json();
+            const likeRecord = data.records.find(r => r.value.subject.uri === uri);
+            
+            if (!likeRecord) return;
+            
+            const rkey = likeRecord.uri.split('/').pop();
+            
+            const deleteResponse = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    repo: session.sub || session.did,
+                    collection: 'app.bsky.feed.like',
+                    rkey: rkey
+                })
+            });
+            
+            if (!deleteResponse.ok) throw new Error('Failed to unlike post');
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async repostPost(uri, cid, session) {
+        try {
+            // For PDS sessions
+            if (session.accessJwt) {
+                const pdsEndpoint = session.handle?.endsWith('.reverie.house') ? 'https://reverie.house' : 'https://bsky.social';
+                const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.createRecord`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.accessJwt}`
+                    },
+                    body: JSON.stringify({
+                        repo: session.did,
+                        collection: 'app.bsky.feed.repost',
+                        record: {
+                            subject: { uri: uri, cid: cid },
+                            createdAt: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to repost: ${response.status}`);
+                }
+                return await response.json();
+            }
+            
+            // For OAuth sessions
+            await window.oauthManager.ensureInitialized();
+            const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
+            const response = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    repo: session.sub || session.did,
+                    collection: 'app.bsky.feed.repost',
+                    record: {
+                        subject: { uri: uri, cid: cid },
+                        createdAt: new Date().toISOString()
+                    }
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to repost: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async unrepostPost(uri, session) {
+        try {
+            // For PDS sessions
+            if (session.accessJwt) {
+                const pdsEndpoint = session.handle?.endsWith('.reverie.house') ? 'https://reverie.house' : 'https://bsky.social';
+                
+                const listResponse = await fetch(
+                    `${pdsEndpoint}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=app.bsky.feed.repost&limit=100`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${session.accessJwt}`
+                        }
+                    }
+                );
+                
+                if (!listResponse.ok) throw new Error('Failed to fetch reposts');
+                
+                const data = await listResponse.json();
+                const repostRecord = data.records.find(r => r.value.subject.uri === uri);
+                
+                if (!repostRecord) return;
+                
+                const rkey = repostRecord.uri.split('/').pop();
+                
+                const deleteResponse = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.accessJwt}`
+                    },
+                    body: JSON.stringify({
+                        repo: session.did,
+                        collection: 'app.bsky.feed.repost',
+                        rkey: rkey
+                    })
+                });
+                
+                if (!deleteResponse.ok) throw new Error('Failed to unrepost');
+                return;
+            }
+            
+            // For OAuth sessions
+            await window.oauthManager.ensureInitialized();
+            const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
+            
+            const listResponse = await oauthSession.fetchHandler(
+                `/xrpc/com.atproto.repo.listRecords?repo=${session.sub || session.did}&collection=app.bsky.feed.repost&limit=100`,
+                { method: 'GET' }
+            );
+            
+            if (!listResponse.ok) throw new Error('Failed to fetch reposts');
+            
+            const data = await listResponse.json();
+            const repostRecord = data.records.find(r => r.value.subject.uri === uri);
+            
+            if (!repostRecord) return;
+            
+            const rkey = repostRecord.uri.split('/').pop();
+            
+            const deleteResponse = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    repo: session.sub || session.did,
+                    collection: 'app.bsky.feed.repost',
+                    rkey: rkey
+                })
+            });
+            
+            if (!deleteResponse.ok) throw new Error('Failed to unrepost');
+        } catch (error) {
+            throw error;
         }
     }
 

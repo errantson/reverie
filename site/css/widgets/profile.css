@@ -37,6 +37,7 @@
     background: white;
     border: 2px solid var(--user-color, #d0c7f0);
     box-sizing: border-box;
+    z-index: 10;
 }
 
 /* Desktop: Reorder info card to appear above row-2 */
@@ -2013,17 +2014,17 @@
 .activity-box {
     border: 3px solid var(--user-color, var(--reverie-core-color, #734ba1));
     background: white;
-    overflow: hidden;
+    overflow: visible;
     min-height: 200px;
     display: flex;
     flex-direction: column;
-    position: relative;
 }
 
 .activity-image-container {
     position: relative;
     width: 100%;
     cursor: pointer;
+    z-index: 1;
 }
 
 .activity-image {
@@ -2177,9 +2178,8 @@
     padding: 8px 12px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     pointer-events: none;
-    z-index: 2;
+    z-index: 1;
     border: 2px solid var(--user-color, var(--reverie-core-color, #734ba1));
 }
 
@@ -2187,6 +2187,10 @@
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.activity-overlay-content > * {
+    pointer-events: auto;
 }
 
 .activity-badge-overlay {
@@ -2906,6 +2910,17 @@
 }
 
 /* Canon row styling from database.html - uses custom properties set inline per row */
+.row-entry {
+    border-left: 4px solid transparent;
+    padding: 6px 10px;
+    margin: 2px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-radius: 2px;
+}
+
 .row-entry.canon-row {
     background: linear-gradient(
         to right,
@@ -2920,13 +2935,6 @@
     box-shadow: inset 0 0 8px rgba(var(--canon-color-rgb), 0.15), 
                 0 1px 3px rgba(var(--canon-color-rgb), 0.2);
     color: var(--canon-color) !important;
-    padding: 8px 12px;
-    margin: 2px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    border-radius: 2px;
 }
 
 .row-entry.canon-row:hover {
@@ -2976,4 +2984,85 @@
     font-size: 0.7rem;
     opacity: 0.7;
     white-space: nowrap;
+}
+
+/* Role-specific row colors for greeter, mapper, cogitarian */
+.row-entry.row-greeter {
+    background: var(--role-greeter-light) !important;
+}
+
+.row-entry.row-greeter:nth-child(even) {
+    background: var(--role-greeter-medium) !important;
+}
+
+.row-entry.row-greeter .cell.key {
+    color: var(--role-greeter) !important;
+    font-weight: 700;
+}
+
+.row-entry.row-mapper {
+    background: var(--role-mapper-light) !important;
+}
+
+.row-entry.row-mapper:nth-child(even) {
+    background: var(--role-mapper-medium) !important;
+}
+
+.row-entry.row-mapper .cell.key {
+    color: var(--role-mapper) !important;
+    font-weight: 700;
+}
+
+.row-entry.row-cogitarian {
+    background: var(--role-cogitarian-light) !important;
+}
+
+.row-entry.row-cogitarian:nth-child(even) {
+    background: var(--role-cogitarian-medium) !important;
+}
+
+.row-entry.row-cogitarian .cell.key {
+    color: var(--role-cogitarian) !important;
+    font-weight: 700;
+}
+
+.row-entry.row-name {
+    background: rgba(60, 120, 200, 0.08) !important;
+}
+
+.row-entry.row-name:nth-child(even) {
+    background: rgba(60, 120, 200, 0.12) !important;
+}
+
+.row-entry.row-name .cell.key {
+    color: rgb(60, 120, 200) !important;
+    font-weight: 700;
+}
+
+.row-entry.row-spectrum {
+    background: rgba(45, 140, 100, 0.08) !important;
+}
+
+.row-entry.row-spectrum:nth-child(even) {
+    background: rgba(45, 140, 100, 0.12) !important;
+}
+
+.row-entry.row-spectrum .cell.key {
+    color: rgb(45, 140, 100) !important;
+    font-weight: 700;
+}
+
+/* Reactionary row styling - subtle background for reactions */
+.row-entry.reaction-row {
+    background: rgba(var(--primary-rgb, 107, 79, 161), 0.03) !important;
+    opacity: 0.95;
+}
+
+.row-entry.reaction-row:hover {
+    background: var(--bg-light, #f5f5f5) !important;
+    opacity: 1;
+}
+
+.row-entry.reaction-row:nth-child(even) {
+    background: rgba(var(--primary-rgb, 107, 79, 161), 0.05) !important;
 }

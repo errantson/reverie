@@ -35,16 +35,36 @@ export function renderEventRow(event, options = {}) {
     const g = parseInt(eventColor.substr(3, 2), 16);
     const b = parseInt(eventColor.substr(5, 2), 16);
     
-    // Determine if this is a canon row
+    // Determine if this is a canon row or reactionary row
     const isCanonRow = event.key === 'canon';
-    const rowClass = isCanonRow ? 'row-entry canon-row' : 'row-entry';
+    const isReactionary = event.isReactionary || false;
     
-    // Build style attribute with canon colors if applicable
-    let rowStyles = [];
+    // Build class list for the row
+    let rowClasses = ['row-entry'];
     if (isCanonRow) {
-        rowStyles.push(`--canon-color: ${eventColor}`);
-        rowStyles.push(`--canon-color-rgb: ${r}, ${g}, ${b}`);
+        rowClasses.push('canon-row');
     }
+    if (isReactionary) {
+        rowClasses.push('reaction-row');
+    }
+    // Add role-specific class for role events (greeter, mapper, cogitarian, etc.)
+    if (event.key === 'greeter') {
+        rowClasses.push('row-greeter');
+    } else if (event.key === 'mapper') {
+        rowClasses.push('row-mapper');
+    } else if (event.key === 'cogitarian') {
+        rowClasses.push('row-cogitarian');
+    } else if (event.key === 'name') {
+        rowClasses.push('row-name');
+    } else if (event.key === 'spectrum') {
+        rowClasses.push('row-spectrum');
+    }
+    const rowClass = rowClasses.join(' ');
+    
+    // Build style attribute - always set border color (transparent for non-canon)
+    let rowStyles = [];
+    rowStyles.push(`--canon-color: ${eventColor}`);
+    rowStyles.push(`--canon-color-rgb: ${r}, ${g}, ${b}`);
     
     // Add click handler for URL
     const rowOnClick = event.url ? `onclick="window.open('${event.url}', '_blank')"` : '';
@@ -78,7 +98,21 @@ export function renderEventRow(event, options = {}) {
     
     // Key column (optional)
     if (showKey) {
-        const keyValue = event.key || '<span style="color: var(--text-dim);">—</span>';
+        let keyValue = event.key || '<span style="color: var(--text-dim);">—</span>';
+        
+        // Color role keys with their role colors
+        if (event.key === 'greeter') {
+            keyValue = `<span style="color: var(--role-greeter); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
+        } else if (event.key === 'mapper') {
+            keyValue = `<span style="color: var(--role-mapper); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
+        } else if (event.key === 'cogitarian') {
+            keyValue = `<span style="color: var(--role-cogitarian); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
+        } else if (event.key === 'canon' && eventColor) {
+            keyValue = `<span style="color: ${eventColor}; font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
+        } else if (event.key) {
+            keyValue = `<span style="font-size: 0.95em;">${event.key}</span>`;
+        }
+        
         html += `<div class="cell key">${keyValue}</div>`;
     }
     
@@ -119,6 +153,7 @@ function formatEpochForEvents(epoch) {
 function renderAvatar(event, allDreamers) {
     const did = event.did || '';
     const dreamerLink = did ? `/dreamer?did=${encodeURIComponent(did)}` : '#';
+    const isReactionary = event.isReactionary || false;
     
     // Find dreamer in allDreamers to get avatar
     let avatarUrl = '/assets/icon_face.png';
@@ -138,10 +173,13 @@ function renderAvatar(event, allDreamers) {
         avatarUrl = event.avatar;
     }
     
+    // Add arrow prefix for reactionary entries
+    const arrow = isReactionary ? `<span style="color: var(--primary); font-size: 1em; margin-right: 8px;">↳</span>` : '';
+    
     if (did) {
-        return `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()"><img src="${avatarUrl}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>`;
+        return `${arrow}<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()"><img src="${avatarUrl}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>`;
     } else {
-        return `<img src="${avatarUrl}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
+        return `${arrow}<img src="${avatarUrl}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
     }
 }
 
@@ -156,23 +194,23 @@ function renderCanonColumn(event, allDreamers, currentDid) {
     const name = event.name || 'unknown';
     const eventText = event.event || 'an event occurred';
     const did = event.did || '';
-    
-    // Check if this is the current dreamer's event
-    const isCurrentDreamer = currentDid && did.toLowerCase() === currentDid.toLowerCase();
-    const displayName = isCurrentDreamer ? 'you' : name;
+    const isReactionary = event.isReactionary || false;
     
     // Name links to dreamer page (stop propagation to prevent row click)
     let nameLink;
     if (did) {
-        nameLink = `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${displayName}</a>`;
+        nameLink = `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>`;
     } else {
-        nameLink = `<span style="font-weight: 500;">${displayName}</span>`;
+        nameLink = `<span style="font-weight: 500;">${name}</span>`;
     }
     
     // Event text is non-clickable (row click will open URL)
     const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
     
-    return `<span style="white-space: normal;">${nameLink} ${eventSpan}</span>`;
+    // Add slight indent for reactionary entries (arrow is in avatar column)
+    const indent = isReactionary ? 'padding-left: 4px;' : '';
+    
+    return `<span style="white-space: normal; ${indent}">${nameLink} ${eventSpan}</span>`;
 }
 
 /**
