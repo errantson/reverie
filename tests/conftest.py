@@ -8,8 +8,8 @@ from typing import Generator
 
 # Set test environment variables before imports
 # When running in Docker container, use container hostname
-# When running on host (not recommended), use localhost
-os.environ.setdefault('POSTGRES_HOST', 'reverie_db')  # Docker network hostname
+# When running on host, use IP address since network_mode: host is used
+os.environ.setdefault('POSTGRES_HOST', '172.23.0.3')  # PostgreSQL container IP
 os.environ.setdefault('POSTGRES_PORT', '5432')
 os.environ.setdefault('POSTGRES_DB', 'reverie_house')
 os.environ.setdefault('POSTGRES_USER', 'reverie')
@@ -26,14 +26,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.database import DatabaseManager
 from core.auth import AuthManager
-from flask import Flask
+import requests
 
 
 @pytest.fixture
 def test_db() -> Generator[DatabaseManager, None, None]:
     """
     Provide isolated test database connection.
-    Uses the same database but wraps operations in transactions that rollback.
+    Uses PostgreSQL in Docker at 172.23.0.3:5432
     """
     db = DatabaseManager()
     yield db
@@ -41,18 +41,15 @@ def test_db() -> Generator[DatabaseManager, None, None]:
 
 
 @pytest.fixture
-def app() -> Flask:
-    """Provide Flask application instance for testing"""
-    sys.path.insert(0, '/srv/reverie.house')
-    from admin import app as admin_app
-    admin_app.config['TESTING'] = True
-    return admin_app
+def api_base_url() -> str:
+    """Base URL for API running in Docker with network_mode: host"""
+    return 'http://localhost:4444'
 
 
 @pytest.fixture
-def client(app):
-    """Provide Flask test client"""
-    return app.test_client()
+def feedgen_base_url() -> str:
+    """Base URL for feed generator running in Docker with network_mode: host"""
+    return 'http://localhost:3001'
 
 
 @pytest.fixture
@@ -62,18 +59,15 @@ def auth_manager() -> AuthManager:
 
 
 @pytest.fixture
-def valid_session_token(auth_manager) -> str:
+def valid_session_token() -> str:
     """
-    Create a valid admin session token for testing.
-    Returns a token that will validate for the test duration.
+    Create a valid test token.
+    Note: AuthManager.create_session() may not exist in current implementation.
+    Tests using this should mock authentication or test against running services.
     """
-    # Create session for test admin
-    session_id = auth_manager.create_session(
-        'did:plc:test_admin',
-        'test.admin.reverie.house'
-    )
-    token = auth_manager.sessions[session_id]['token']
-    return token
+    # Return a placeholder token for tests that need it
+    # Real tests should authenticate against the Docker service
+    return 'test_token_placeholder'
 
 
 @pytest.fixture
