@@ -229,3 +229,8 @@ local.*
 # Core dumps
 core
 core.*
+GITIGNORED_FILES.md
+TESTING.md
+TEST_SUITE_REVIEW.md
+*_REVIEW.md
+*_AUDIT.md
