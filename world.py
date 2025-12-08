@@ -203,16 +203,17 @@ def show_world_state():
         display_world_data(canon_count, dreamers_count, souvenirs_count)
         
         # Save spectrum snapshot when displaying world state
-        try:
-            snapshot_id = db.save_spectrum_snapshot(
-                operation='world_state_display',
-                notes='Snapshot from world.py execution'
-            )
-            print()
-            print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
-        except Exception as e:
-            print()
-            print(f"⚠️ Failed to save spectrum snapshot: {e}")
+        # DISABLED: Spectrum snapshots no longer saved (2025-12-08)
+        # try:
+        #     snapshot_id = db.save_spectrum_snapshot(
+        #         operation='world_state_display',
+        #         notes='Snapshot from world.py execution'
+        #     )
+        #     print()
+        #     print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
+        # except Exception as e:
+        #     print()
+        #     print(f"⚠️ Failed to save spectrum snapshot: {e}")
         
     except Exception as e:
         print(f"Error loading world data: {e}")
@@ -255,18 +256,19 @@ def cmd_tick(args):
                         print(f"🌌 Zones: {zone_stats['zones_processed']} processed, {zone_stats['effects_applied']} effects applied")
                 
                 # Save spectrum snapshot after each tick
-                try:
-                    from core.database import DatabaseManager
-                    db = DatabaseManager()
-                    snapshot_id = db.save_spectrum_snapshot(
-                        operation='world_tick_loop',
-                        notes=f'Automated tick from loop (interval: {parsed.loop}s)'
-                    )
-                    if not parsed.quiet:
-                        print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
-                except Exception as e:
-                    if not parsed.quiet:
-                        print(f"⚠️ Failed to save spectrum snapshot: {e}")
+                # DISABLED: Spectrum snapshots no longer saved (2025-12-08)
+                # try:
+                #     from core.database import DatabaseManager
+                #     db = DatabaseManager()
+                #     snapshot_id = db.save_spectrum_snapshot(
+                #         operation='world_tick_loop',
+                #         notes=f'Automated tick from loop (interval: {parsed.loop}s)'
+                #     )
+                #     if not parsed.quiet:
+                #         print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
+                # except Exception as e:
+                #     if not parsed.quiet:
+                #         print(f"⚠️ Failed to save spectrum snapshot: {e}")
                 
                 print()
                 time.sleep(parsed.loop)
@@ -284,16 +286,17 @@ def cmd_tick(args):
             print(f"🌌 Zones: {zone_stats['zones_processed']} processed, {zone_stats['effects_applied']} effects applied")
         
         # Save spectrum snapshot after tick
-        try:
-            from core.database import DatabaseManager
-            db = DatabaseManager()
-            snapshot_id = db.save_spectrum_snapshot(
-                operation='world_tick',
-                notes='Single world tick execution'
-            )
-            print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
-        except Exception as e:
-            print(f"⚠️ Failed to save spectrum snapshot: {e}")
+        # DISABLED: Spectrum snapshots no longer saved (2025-12-08)
+        # try:
+        #     from core.database import DatabaseManager
+        #     db = DatabaseManager()
+        #     snapshot_id = db.save_spectrum_snapshot(
+        #         operation='world_tick',
+        #         notes='Single world tick execution'
+        #     )
+        #     print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
+        # except Exception as e:
+        #     print(f"⚠️ Failed to save spectrum snapshot: {e}")
         
         sys.exit(0 if stats['failed'] == 0 else 1)
 

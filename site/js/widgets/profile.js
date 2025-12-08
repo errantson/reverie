@@ -1064,17 +1064,18 @@ class Profile {
             return;
         }
         
-        console.log('[Spectrum] Container found, setting innerHTML');
+        console.log('[Spectrum] Container found, setting innerHTML with loading state');
         spectrumFace.innerHTML = `
             <div class="spectrum-face-container">
-                <canvas id="spectrum-face-canvas"></canvas>
+                <div class="spectrum-loading" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-style: italic; font-size: 16px;">Loading spectrum...</div>
+                <canvas id="spectrum-face-canvas" style="display: none;"></canvas>
                 <div class="spectrum-face-octant-overlay"></div>
                 <div class="spectrum-octant-overlay" style="display: none;"></div>
             </div>
         `;
         
         // Don't initialize yet - it will happen when face becomes visible
-        console.log('[Spectrum] HTML set, waiting for face to be shown');
+        console.log('[Spectrum] HTML set with loading indicator, waiting for face to be shown');
     }
 
     initSouvenirsPhysics(dreamer) {
@@ -1150,9 +1151,7 @@ class Profile {
             }
         };
         
-        canvas.addEventListener('mousemove', handleMouseMove);
-        canvas.addEventListener('click', handleClick);
-        canvas.style.cursor = 'pointer';
+        // Note: Click interactions removed - souvenirs are auto-selected, no manual clicking needed
         
         // Initialize physics bubbles - need to fetch souvenirs data first
         this.initSouvenirsBubbles(dreamer, canvas);
@@ -1188,7 +1187,7 @@ class Profile {
                 ctx.fillStyle = '#fdfcfe';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#999';
-                ctx.font = '12px sans-serif';
+                ctx.font = 'italic 18px serif';
                 ctx.textAlign = 'center';
                 ctx.fillText('no souvenirs yet', canvas.width / 2, canvas.height / 2);
                 return;
@@ -1494,9 +1493,11 @@ class Profile {
 
     async initSpectrumVisualization(dreamer) {
         console.log('[Spectrum] Starting initSpectrumVisualization', dreamer.name);
+        const loadingDiv = document.querySelector('.spectrum-loading');
         const canvas = document.getElementById('spectrum-face-canvas');
         if (!canvas) {
             console.warn('[Spectrum] ERROR: Canvas not found');
+            if (loadingDiv) loadingDiv.textContent = 'Error loading spectrum';
             return;
         }
         
@@ -1563,6 +1564,12 @@ class Profile {
                 // Re-run resize with new logic
                 this.spectrumVisualizerInstance.resize();
                 console.log('[Spectrum] Instance created and resized');
+                
+                // Hide loading indicator and show canvas
+                if (loadingDiv) {
+                    loadingDiv.style.display = 'none';
+                }
+                canvas.style.display = 'block';
                 
                 // Add octant overlay
                 const octantOverlay = document.querySelector('.spectrum-face-octant-overlay');

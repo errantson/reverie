@@ -338,18 +338,37 @@ class DatabaseManager:
         row = cursor.fetchone()
         return row['exists'] if row else False
     
-    def get_table_stats(self) -> Dict[str, int]:
-        """Get row counts for all tables"""
+    def get_table_stats(self, public_only: bool = True) -> Dict[str, int]:
+        """
+        Get row counts for tables
+        
+        Args:
+            public_only: If True, only return counts for public game data tables (default).
+                        If False, return all tables (admin use only).
+        """
         stats = {}
         
-        # PostgreSQL: Query all tables from information_schema
-        query = """
-            SELECT tablename 
-            FROM pg_tables 
-            WHERE schemaname = 'public'
-        """
-        cursor = self.execute(query)
-        tables = [row['tablename'] for row in cursor.fetchall()]
+        # Define public game data tables (safe to expose)
+        public_tables = [
+            'dreamers', 'spectrum', 'kindred', 'awards',
+            'events', 'souvenirs', 'books', 'chapters',
+            'world', 'spectrum_snapshots', 'quests',
+            'dialogues', 'actions', 'work', 'messages',
+            'courier', 'deliveries'
+        ]
+        
+        if public_only:
+            # Only count public game data tables
+            tables = public_tables
+        else:
+            # Get all tables (admin only)
+            query = """
+                SELECT tablename 
+                FROM pg_tables 
+                WHERE schemaname = 'public'
+            """
+            cursor = self.execute(query)
+            tables = [row['tablename'] for row in cursor.fetchall()]
         
         for table in tables:
             try:
