@@ -1128,7 +1128,6 @@ def get_canon():
         result = []
         for entry in canon_entries:
             canon_dict = {
-                'id': entry['id'],
                 'epoch': entry['epoch'],
                 'did': entry['did'],
                 'name': entry['name'] or 'unknown',
@@ -1138,8 +1137,7 @@ def get_canon():
                 'url': entry['url'] or '',
                 'uri': entry['uri'] or '',
                 'type': entry['type'] or 'souvenir',
-                'key': entry['key'] or '',
-                'created_at': entry['created_at'] or 0
+                'key': entry['key'] or ''
             }
             result.append(canon_dict)
         

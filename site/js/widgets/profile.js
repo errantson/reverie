@@ -68,6 +68,13 @@ class Profile {
             document.head.appendChild(script);
         }
         
+        // Load AT Protocol interactions utility
+        if (!document.querySelector('script[src*="js/utils/atproto-interactions.js"]')) {
+            const script = document.createElement('script');
+            script.src = '/js/utils/atproto-interactions.js';
+            document.head.appendChild(script);
+        }
+        
         // Load status explainer widget
         if (!document.querySelector('script[src*="js/widgets/statusexplainer.js"]')) {
             const script = document.createElement('script');
@@ -2107,7 +2114,13 @@ class Profile {
         const cid = button.dataset.cid;
         const isCurrentlyLiked = button.dataset.liked === 'true';
         
-        const session = window.oauthManager ? window.oauthManager.getSession() : null;
+        if (!window.atprotoInteractions) {
+            console.error('AT Protocol interactions utility not loaded');
+            alert('Unable to like post. Please refresh the page.');
+            return;
+        }
+        
+        const session = window.atprotoInteractions.getSession();
         if (!session) {
             alert('Please log in to like posts');
             return;
@@ -2117,7 +2130,7 @@ class Profile {
             button.disabled = true;
             
             if (isCurrentlyLiked) {
-                await this.unlikePost(uri, session);
+                await window.atprotoInteractions.unlikePost(uri);
                 button.title = 'Like this post';
                 
                 // Update button text
@@ -2125,7 +2138,7 @@ class Profile {
                 const currentCount = parseInt(currentText) || 1;
                 button.textContent = currentCount > 1 ? currentCount - 1 : '♡';
             } else {
-                await this.likePost(uri, cid, session);
+                await window.atprotoInteractions.likePost(uri, cid);
                 button.title = 'Unlike this post';
                 
                 // Update button text
@@ -2148,7 +2161,13 @@ class Profile {
         const cid = button.dataset.cid;
         const isCurrentlyReposted = button.dataset.reposted === 'true';
         
-        const session = window.oauthManager ? window.oauthManager.getSession() : null;
+        if (!window.atprotoInteractions) {
+            console.error('AT Protocol interactions utility not loaded');
+            alert('Unable to repost. Please refresh the page.');
+            return;
+        }
+        
+        const session = window.atprotoInteractions.getSession();
         if (!session) {
             alert('Please log in to repost');
             return;
@@ -2158,7 +2177,7 @@ class Profile {
             button.disabled = true;
             
             if (isCurrentlyReposted) {
-                await this.unrepostPost(uri, session);
+                await window.atprotoInteractions.unrepostPost(uri);
                 button.title = 'Repost to your timeline';
                 
                 // Update button text
@@ -2166,7 +2185,7 @@ class Profile {
                 const currentCount = parseInt(currentText) || 1;
                 button.textContent = currentCount > 1 ? currentCount - 1 : '↻';
             } else {
-                await this.repostPost(uri, cid, session);
+                await window.atprotoInteractions.repostPost(uri, cid);
                 button.title = 'Undo repost';
                 
                 // Update button text
@@ -2191,285 +2210,28 @@ class Profile {
         const displayName = button.dataset.displayname;
         const text = button.dataset.text;
         
-        // Use the composer widget if available
-        if (window.bskyComposer) {
-            window.bskyComposer.show({
-                replyTo: {
-                    uri: uri,
-                    cid: cid,
-                    author: {
-                        handle: handle,
-                        displayName: displayName
-                    },
-                    text: text
-                }
-            });
-        } else {
-            alert('Composer not available. Please use the Bluesky app to reply.');
+        if (!window.atprotoInteractions) {
+            console.error('AT Protocol interactions utility not loaded');
+            alert('Unable to reply. Please refresh the page.');
+            return;
         }
+        
+        window.atprotoInteractions.openReplyComposer({
+            uri,
+            cid,
+            handle,
+            displayName,
+            text
+        });
     }
 
-    async likePost(uri, cid, session) {
-        try {
-            // For PDS sessions, use direct API call with accessJwt
-            if (session.accessJwt) {
-                const pdsEndpoint = session.handle?.endsWith('.reverie.house') ? 'https://reverie.house' : 'https://bsky.social';
-                const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.createRecord`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.accessJwt}`
-                    },
-                    body: JSON.stringify({
-                        repo: session.did,
-                        collection: 'app.bsky.feed.like',
-                        record: {
-                            subject: { uri: uri, cid: cid },
-                            createdAt: new Date().toISOString()
-                        }
-                    })
-                });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Failed to like post: ${response.status}`);
-                }
-                return await response.json();
-            }
-            
-            // For OAuth sessions, use the OAuth client's session.fetchHandler
-            await window.oauthManager.ensureInitialized();
-            const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
-            const response = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    repo: session.sub || session.did,
-                    collection: 'app.bsky.feed.like',
-                    record: {
-                        subject: { uri: uri, cid: cid },
-                        createdAt: new Date().toISOString()
-                    }
-                })
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to like post: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async unlikePost(uri, session) {
-        try {
-            // For PDS sessions, use direct API call with accessJwt
-            if (session.accessJwt) {
-                const pdsEndpoint = session.handle?.endsWith('.reverie.house') ? 'https://reverie.house' : 'https://bsky.social';
-                
-                // Find the like record
-                const listResponse = await fetch(
-                    `${pdsEndpoint}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=app.bsky.feed.like&limit=100`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${session.accessJwt}`
-                        }
-                    }
-                );
-                
-                if (!listResponse.ok) {
-                    throw new Error('Failed to fetch likes');
-                }
-                
-                const data = await listResponse.json();
-                const likeRecord = data.records.find(r => r.value.subject.uri === uri);
-                
-                if (!likeRecord) return;
-                
-                const rkey = likeRecord.uri.split('/').pop();
-                
-                // Delete the like record
-                const deleteResponse = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.accessJwt}`
-                    },
-                    body: JSON.stringify({
-                        repo: session.did,
-                        collection: 'app.bsky.feed.like',
-                        rkey: rkey
-                    })
-                });
-                
-                if (!deleteResponse.ok) {
-                    throw new Error('Failed to unlike post');
-                }
-                return;
-            }
-            
-            // For OAuth sessions
-            await window.oauthManager.ensureInitialized();
-            const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
-            
-            const listResponse = await oauthSession.fetchHandler(
-                `/xrpc/com.atproto.repo.listRecords?repo=${session.sub || session.did}&collection=app.bsky.feed.like&limit=100`,
-                { method: 'GET' }
-            );
-            
-            if (!listResponse.ok) throw new Error('Failed to fetch likes');
-            
-            const data = await listResponse.json();
-            const likeRecord = data.records.find(r => r.value.subject.uri === uri);
-            
-            if (!likeRecord) return;
-            
-            const rkey = likeRecord.uri.split('/').pop();
-            
-            const deleteResponse = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    repo: session.sub || session.did,
-                    collection: 'app.bsky.feed.like',
-                    rkey: rkey
-                })
-            });
-            
-            if (!deleteResponse.ok) throw new Error('Failed to unlike post');
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async repostPost(uri, cid, session) {
-        try {
-            // For PDS sessions
-            if (session.accessJwt) {
-                const pdsEndpoint = session.handle?.endsWith('.reverie.house') ? 'https://reverie.house' : 'https://bsky.social';
-                const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.createRecord`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.accessJwt}`
-                    },
-                    body: JSON.stringify({
-                        repo: session.did,
-                        collection: 'app.bsky.feed.repost',
-                        record: {
-                            subject: { uri: uri, cid: cid },
-                            createdAt: new Date().toISOString()
-                        }
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to repost: ${response.status}`);
-                }
-                return await response.json();
-            }
-            
-            // For OAuth sessions
-            await window.oauthManager.ensureInitialized();
-            const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
-            const response = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    repo: session.sub || session.did,
-                    collection: 'app.bsky.feed.repost',
-                    record: {
-                        subject: { uri: uri, cid: cid },
-                        createdAt: new Date().toISOString()
-                    }
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Failed to repost: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async unrepostPost(uri, session) {
-        try {
-            // For PDS sessions
-            if (session.accessJwt) {
-                const pdsEndpoint = session.handle?.endsWith('.reverie.house') ? 'https://reverie.house' : 'https://bsky.social';
-                
-                const listResponse = await fetch(
-                    `${pdsEndpoint}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=app.bsky.feed.repost&limit=100`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${session.accessJwt}`
-                        }
-                    }
-                );
-                
-                if (!listResponse.ok) throw new Error('Failed to fetch reposts');
-                
-                const data = await listResponse.json();
-                const repostRecord = data.records.find(r => r.value.subject.uri === uri);
-                
-                if (!repostRecord) return;
-                
-                const rkey = repostRecord.uri.split('/').pop();
-                
-                const deleteResponse = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.accessJwt}`
-                    },
-                    body: JSON.stringify({
-                        repo: session.did,
-                        collection: 'app.bsky.feed.repost',
-                        rkey: rkey
-                    })
-                });
-                
-                if (!deleteResponse.ok) throw new Error('Failed to unrepost');
-                return;
-            }
-            
-            // For OAuth sessions
-            await window.oauthManager.ensureInitialized();
-            const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
-            
-            const listResponse = await oauthSession.fetchHandler(
-                `/xrpc/com.atproto.repo.listRecords?repo=${session.sub || session.did}&collection=app.bsky.feed.repost&limit=100`,
-                { method: 'GET' }
-            );
-            
-            if (!listResponse.ok) throw new Error('Failed to fetch reposts');
-            
-            const data = await listResponse.json();
-            const repostRecord = data.records.find(r => r.value.subject.uri === uri);
-            
-            if (!repostRecord) return;
-            
-            const rkey = repostRecord.uri.split('/').pop();
-            
-            const deleteResponse = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    repo: session.sub || session.did,
-                    collection: 'app.bsky.feed.repost',
-                    rkey: rkey
-                })
-            });
-            
-            if (!deleteResponse.ok) throw new Error('Failed to unrepost');
-        } catch (error) {
-            throw error;
-        }
-    }
+
+
+
+
 
     async refresh() {
         console.log('🔄 [Profile] refresh() called');

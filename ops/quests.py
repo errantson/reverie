@@ -129,7 +129,7 @@ class QuestManager:
             title,
             uri,
             json.dumps(commands),
-            1 if enabled else 0,
+            enabled,  # PostgreSQL BOOLEAN column - use bool directly
             description,
             canon_event,
             json.dumps(canon_keys) if canon_keys else None,
@@ -211,8 +211,7 @@ class QuestManager:
             
             if field in ('commands', 'canon_keys', 'conditions', 'trigger_config') and isinstance(value, (list, dict)):
                 value = json.dumps(value)
-            elif field == 'enabled' and isinstance(value, bool):
-                value = 1 if value else 0
+            # Note: enabled is already a bool, no conversion needed for PostgreSQL BOOLEAN
             
             updates.append(f"{field} = %s")
             values.append(value)

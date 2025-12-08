@@ -137,11 +137,11 @@ class QuestDiagnostics:
         print("🌊 FIREHOSE INTEGRATION STATUS")
         print("=" * 80)
         
-        # Check if firehose container is running
+        # Check if questhose container is running
         try:
             import subprocess
             result = subprocess.run(
-                ['docker', 'ps', '--filter', 'name=firehose', '--format', '{{.Status}}'],
+                ['docker', 'ps', '--filter', 'name=questhose', '--format', '{{.Status}}'],
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -149,12 +149,12 @@ class QuestDiagnostics:
             
             if result.returncode == 0 and result.stdout.strip():
                 status = result.stdout.strip()
-                print(f"✅ Firehose Container: {status}")
+                print(f"✅ Questhose Container: {status}")
             else:
-                print("❌ Firehose Container: Not running")
-                print("   Start with: docker compose up -d firehose")
+                print("❌ Questhose Container: Not running")
+                print("   Start with: cd /srv && docker compose up -d questhose")
         except Exception as e:
-            print(f"⚠️  Could not check firehose status: {e}")
+            print(f"⚠️  Could not check questhose status: {e}")
         
         # Check quest URIs
         print("\n📜 Quest URIs being monitored:")
@@ -291,8 +291,8 @@ class QuestDiagnostics:
         
         if self.manager.enable_quest(title):
             print(f"✅ Enabled quest: {title}")
-            print("\n⚠️  Restart firehose to apply changes:")
-            print("   docker compose restart firehose")
+            print("\n⚠️  Restart questhose to apply changes:")
+            print("   cd /srv && docker compose restart questhose")
         else:
             print(f"❌ Failed to enable quest: {title}")
     
@@ -309,8 +309,8 @@ class QuestDiagnostics:
         
         if self.manager.disable_quest(title):
             print(f"✅ Disabled quest: {title}")
-            print("\n⚠️  Restart firehose to apply changes:")
-            print("   docker compose restart firehose")
+            print("\n⚠️  Restart questhose to apply changes:")
+            print("   cd /srv && docker compose restart questhose")
         else:
             print(f"❌ Failed to disable quest: {title}")
     

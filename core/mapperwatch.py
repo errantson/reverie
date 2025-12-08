@@ -74,6 +74,7 @@ class MapperhoseMonitor:
         
         # Mapper client for posting retry requests
         self.mapper_client = None
+        self.mapper_unavailable_logged = False
         self._init_mapper_client()
     
     def _load_origin_quest(self):
@@ -135,7 +136,7 @@ class MapperhoseMonitor:
             # Create retry_requests table if it doesn't exist
             db.execute("""
                 CREATE TABLE IF NOT EXISTS quest_retry_requests (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id SERIAL PRIMARY KEY,
                     user_did TEXT NOT NULL,
                     quest_title TEXT NOT NULL,
                     retry_post_uri TEXT NOT NULL,
@@ -170,17 +171,36 @@ class MapperhoseMonitor:
             
             db = DatabaseManager()
             
+            # Get the current mapper from the work table
+            cursor = db.execute("""
+                SELECT workers FROM work WHERE role = 'mapper'
+            """)
+            work_result = cursor.fetchone()
+            
+            if not work_result or not work_result['workers']:
+                print(f"ℹ️  No mapper assigned - retry messages disabled")
+                print(f"   To assign a mapper, have someone with credentials apply for the 'mapper' role")
+                return
+            
+            import json
+            workers = json.loads(work_result['workers'])
+            if not workers:
+                print(f"ℹ️  No mapper assigned - retry messages disabled")
+                return
+            
+            mapper_did = workers[0].get('did')  # Get first worker
+            
             # Get mapper DID and encrypted password
             cursor = db.execute("""
                 SELECT d.did, d.handle, c.app_password_hash
                 FROM dreamers d
-                JOIN credentials c ON d.did = c.did
-                WHERE d.handle = 'mappy.reverie.house'
-            """)
+                JOIN user_credentials c ON d.did = c.did
+                WHERE d.did = %s
+            """, (mapper_did,))
             result = cursor.fetchone()
             
             if not result or not result['app_password_hash']:
-                print(f"⚠️  No credentials found for mappy.reverie.house - retry messages disabled")
+                print(f"⚠️  No credentials found for mapper {result['handle'] if result else mapper_did} - retry messages disabled")
                 return
             
             # Decrypt the password
@@ -331,7 +351,9 @@ class MapperhoseMonitor:
     def _send_retry_request(self, reply_uri: str, user_did: str, user_handle: str, skip_reason: str):
         """Send a retry request reply asking the user to clarify."""
         if not self.mapper_client:
-            print(f"   ⚠️  Cannot send retry request - mapper client not available")
+            if not self.mapper_unavailable_logged:
+                print(f"   ℹ️  Skipping retry requests - no mapper assigned")
+                self.mapper_unavailable_logged = True
             return
         
         try:

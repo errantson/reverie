@@ -198,7 +198,7 @@ class DreamerhoseMonitor:
                 SET handle = %s
                 WHERE did = %s
             """, (new_handle, did))
-            db.commit()
+            # Note: db.execute() auto-commits
             
             print(f"   ✅ Database updated: @{old_handle} → @{new_handle}")
             self.stats['saves_completed'] += 1
@@ -263,7 +263,7 @@ class DreamerhoseMonitor:
             
             sql = f"UPDATE dreamers SET {', '.join(set_parts)} WHERE did = %s"
             db.execute(sql, tuple(values))
-            db.commit()
+            # Note: db.execute() auto-commits, no need for db.commit()
             
             # Update cache
             if did in self.dreamer_by_did:

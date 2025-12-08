@@ -86,7 +86,6 @@
     "core/feedgen_server.py",
     "core/feedgen_updater.py",
     "core/firehose.py",
-    "core/foodhose.py",
     "core/greeterwatch.py",
     "core/mapperwatch.py",
     "core/pollhose.py",

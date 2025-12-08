@@ -1,6 +1,6 @@
 [Unit]
-Description=Reverie House Feed Generator
-After=network.target
+Description=Reverie House Feed Generator Updater
+After=network.target postgresql.service
 
 [Service]
 Type=simple
@@ -13,9 +13,9 @@ Environment="POSTGRES_DB=reverie_house"
 Environment="POSTGRES_USER=reverie"
 Environment="POSTGRES_PASSWORD_FILE=/srv/secrets/reverie_db_password.txt"
 EnvironmentFile=/srv/reverie.house/.env
-ExecStart=/usr/bin/python3 /srv/reverie.house/core/feedgen_server.py
+ExecStart=/usr/bin/python3 /srv/reverie.house/core/feedgen_updater.py --verbose
 Restart=always
-RestartSec=10
+RestartSec=30
 
 # Security
 NoNewPrivileges=true
@@ -28,7 +28,7 @@ TasksMax=64
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=feedgen
+SyslogIdentifier=feedgen_updater
 
 [Install]
 WantedBy=multi-user.target

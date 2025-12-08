@@ -25,7 +25,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from ops.quests import QuestManager
 from ops.quest_hooks import process_quest_reply
 from ops.conditions import evaluate_conditions
-from ops.commands import execute_commands
 from ops.triggers import get_trigger_handler, BibliohoseTrigger
 
 

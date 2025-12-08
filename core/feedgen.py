@@ -203,10 +203,16 @@ class FeedDatabase:
         
         return posts, next_cursor
     
-    def cleanup_old_posts(self, days: int = 7):
-        """Remove posts older than N days to save space"""
+    def cleanup_old_posts(self, days: int = 30):
+        """Remove posts that haven't been re-indexed in N days.
+        
+        Uses indexed_at (when we last saw the post) rather than created_at
+        (when it was originally posted) so we keep recently active content
+        regardless of original post date.
+        """
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-        self.db.execute('DELETE FROM feed_posts WHERE created_at < %s', (cutoff,))
+        result = self.db.execute('DELETE FROM feed_posts WHERE indexed_at < %s', (cutoff,))
+        return result.rowcount if hasattr(result, 'rowcount') else 0
 
 
 class FeedGenerator:
