@@ -24,12 +24,6 @@ from datetime import datetime
 # ============================================================================
 
 @pytest.fixture
-def unique_test_id():
-    """Generate unique ID for this test run"""
-    return int(time.time() * 1000)
-
-
-@pytest.fixture
 def test_user_data(unique_test_id):
     """Generate test user data"""
     timestamp = unique_test_id

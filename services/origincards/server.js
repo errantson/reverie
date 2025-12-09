@@ -201,14 +201,15 @@ app.post('/generate', async (req, res) => {
             }
         }
         
-        // Get octant name and info
-        const octantName = spectrum.octant || 'equilibrium';
+        // Get octant name and info - USE ORIGIN OCTANT for origin cards!
+        const octantName = spectrum.origin_octant || spectrum.octant || 'equilibrium';
         const octantInfo = getOctantInfo(octantName);
         const octantColor = OCTANT_COLORS[octantName] || OCTANT_COLORS['equilibrium'];
         
         // Get coordinate string - EXACT format from spectrumpreview.js
+        // Use ORIGIN coordinates for origin cards
         const pad = (num) => String(Math.round(num)).padStart(2, '0');
-        const coordinateText = `O${pad(spectrum.oblivion || 0)} A${pad(spectrum.authority || 0)} S${pad(spectrum.skeptic || 0)} R${pad(spectrum.receptive || 0)} L${pad(spectrum.liberty || 0)} E${pad(spectrum.entropy || 0)}`;
+        const coordinateText = `O${pad(spectrum.origin_oblivion || spectrum.oblivion || 0)} A${pad(spectrum.origin_authority || spectrum.authority || 0)} S${pad(spectrum.origin_skeptic || spectrum.skeptic || 0)} R${pad(spectrum.origin_receptive || spectrum.receptive || 0)} L${pad(spectrum.origin_liberty || spectrum.liberty || 0)} E${pad(spectrum.origin_entropy || spectrum.entropy || 0)}`;
         
         // OCTANT DISPLAY BOX - Wide format for landscape canvas
         const boxWidth = 880;

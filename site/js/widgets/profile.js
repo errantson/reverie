@@ -9,84 +9,88 @@ class Profile {
     }
 
     loadStyles() {
-        // Load profile CSS if it exists
-        if (!document.querySelector('link[href*="css/widgets/profile.css"]')) {
+        // Track loaded dependencies
+        this.dependenciesLoaded = this.dependenciesLoaded || new Set();
+        this.dependencyPromises = this.dependencyPromises || [];
+        
+        // Helper to load script with promise
+        const loadScript = (src, checkGlobal) => {
+            // Check if already loaded by this instance
+            if (this.dependenciesLoaded.has(src)) {
+                return Promise.resolve();
+            }
+            
+            // Check if script tag exists OR global is already defined
+            const scriptExists = document.querySelector(`script[src*="${src}"]`);
+            const globalExists = checkGlobal && typeof window[checkGlobal] !== 'undefined';
+            
+            if (scriptExists || globalExists) {
+                this.dependenciesLoaded.add(src);
+                if (globalExists) {
+                    console.log(`[Profile] Already loaded (global exists): ${checkGlobal}`);
+                }
+                return Promise.resolve();
+            }
+            
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    this.dependenciesLoaded.add(src);
+                    console.log(`[Profile] Loaded: ${src}`);
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.warn(`[Profile] Failed to load: ${src}`);
+                    reject(new Error(`Failed to load ${src}`));
+                };
+                document.head.appendChild(script);
+            });
+        };
+        
+        // Helper to load stylesheet
+        const loadStylesheet = (href) => {
+            if (document.querySelector(`link[href*="${href}"]`)) {
+                return;
+            }
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/css/widgets/profile.css?v=4';
+            link.href = href;
             document.head.appendChild(link);
-        }
+        };
         
-        // Load octants CSS for standardized octant colors
-        if (!document.querySelector('link[href*="css/octants.css"]')) {
-            const octantsLink = document.createElement('link');
-            octantsLink.rel = 'stylesheet';
-            octantsLink.href = '/css/octants.css';
-            document.head.appendChild(octantsLink);
-        }
+        // Load CSS (synchronous, no need to wait)
+        loadStylesheet('/css/widgets/profile.css?v=4');
+        loadStylesheet('/css/octants.css');
+        loadStylesheet('/css/roles.css');
         
-        // Load roles CSS for role color variables
-        if (!document.querySelector('link[href*="css/roles.css"]')) {
-            const rolesLink = document.createElement('link');
-            rolesLink.rel = 'stylesheet';
-            rolesLink.href = '/css/roles.css';
-            document.head.appendChild(rolesLink);
-        }
+        // Load JavaScript dependencies in order with promises
+        // Core utilities first
+        this.dependencyPromises.push(
+            loadScript('/js/utils/num_nom.js'),
+            loadScript('/js/utils/user-status.js', 'UserStatus'),
+            loadScript('/js/utils/atproto-interactions.js')
+        );
         
-        // Load octant showcase widget (unified octant display)
-        if (!document.querySelector('script[src*="js/widgets/octantshowcase.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/js/widgets/octantshowcase.js';
-            document.head.appendChild(script);
-        }
-        
-        // Load axis explainer widget
-        if (!document.querySelector('script[src*="js/widgets/axisexplainer.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/js/widgets/axisexplainer.js';
-            document.head.appendChild(script);
-        }
-        
-        // Load num_nom for time formatting
-        if (!document.querySelector('script[src*="js/utils/num_nom.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/js/utils/num_nom.js';
-            document.head.appendChild(script);
-        }
-        
-        // Load dreamer-hover widget
-        if (!document.querySelector('script[src*="js/widgets/dreamer-hover.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/js/widgets/dreamer-hover.js';
-            document.head.appendChild(script);
-        }
-        
-        // Load user status utility
-        if (!document.querySelector('script[src*="js/utils/user-status.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/js/utils/user-status.js';
-            document.head.appendChild(script);
-        }
-        
-        // Load AT Protocol interactions utility
-        if (!document.querySelector('script[src*="js/utils/atproto-interactions.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/js/utils/atproto-interactions.js';
-            document.head.appendChild(script);
-        }
-        
-        // Load status explainer widget
-        if (!document.querySelector('script[src*="js/widgets/statusexplainer.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/js/widgets/statusexplainer.js';
-            document.head.appendChild(script);
-        }
-        
-        // Load octant display widget
-        if (!document.querySelector('script[src*="js/widgets/octantdisplay.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/js/widgets/octantdisplay.js';
-            document.head.appendChild(script);
+        // Then widgets that may depend on core utilities
+        this.dependencyPromises.push(
+            loadScript('/js/widgets/axisexplainer.js', 'axisExplainerWidget'),
+            loadScript('/js/widgets/statusexplainer.js'),
+            loadScript('/js/widgets/dreamer-hover.js', 'DreamerHoverWidget'),
+            loadScript('/js/widgets/octantshowcase.js', 'OctantShowcase'),
+            loadScript('/js/widgets/octantdisplay.js', 'OctantDisplay'),
+            loadScript('/js/widgets/spectrum.js', 'SpectrumVisualizer')
+        );
+    }
+    
+    async waitForDependencies() {
+        if (this.dependencyPromises && this.dependencyPromises.length > 0) {
+            try {
+                await Promise.allSettled(this.dependencyPromises);
+                console.log('[Profile] All dependencies loaded');
+            } catch (error) {
+                console.warn('[Profile] Some dependencies failed to load:', error);
+            }
         }
     }
 
@@ -148,6 +152,9 @@ class Profile {
     }
     async displayProfile(dreamer) {
         try {
+            // Wait for all dependencies to load before proceeding
+            await this.waitForDependencies();
+            
             this.dreamer = dreamer;
             document.title = `Reverie Spectrum — ${dreamer.name || dreamer.handle}`;
             
@@ -185,7 +192,7 @@ class Profile {
             
             const allFaces = [activityContent, eventsContent, contributionFace, souvenirsFace, spectrumFace];
             
-            // Restore last selected tab from localStorage
+            // Restore last selected tab from localStorage (used for auto-activation after content loads)
             const lastSelectedFace = localStorage.getItem('profile-selected-face') || 'lore';
             console.log('Restoring profile tab:', lastSelectedFace);
             
@@ -238,12 +245,8 @@ class Profile {
                 });
             });
             
-            // Trigger the saved tab on load
+            // Find button for auto-activation after content is ready (lastSelectedFace declared earlier)
             const btnToActivate = Array.from(faceBtns).find(b => b.getAttribute('data-face') === lastSelectedFace);
-            if (btnToActivate && lastSelectedFace !== 'lore') {
-                console.log('Auto-activating saved profile tab:', lastSelectedFace);
-                setTimeout(() => btnToActivate.click(), 100);
-            }
             
             // Fetch user status once upfront (centralized check)
             let userStatus = null;
@@ -266,14 +269,26 @@ class Profile {
             await this.updateSouvenirsFace(dreamer);
             await this.updateSpectrumFace(dreamer);
             
-            setTimeout(() => this.initializeExplainer(), 200);
+            await this.initializeExplainer();
+            
+            // Auto-activate saved tab AFTER all content is ready
+            if (btnToActivate && lastSelectedFace !== 'lore') {
+                console.log('Auto-activating saved profile tab:', lastSelectedFace);
+                // Small delay to ensure DOM is fully rendered
+                setTimeout(() => btnToActivate.click(), 50);
+            }
         } catch (error) {
             console.error('Error displaying profile:', error);
             this.renderError(error);
         }
     }
 
-    initializeExplainer() {
+    async initializeExplainer() {
+        // Wait for dependencies if not already loaded
+        if (!window.axisExplainerWidget) {
+            await this.waitForDependencies();
+        }
+        
         // Explainer initialization is now handled by the OctantDisplay widget
         // This method is kept for any other explainer needs in the profile
         if (window.axisExplainerWidget) {
@@ -284,10 +299,8 @@ class Profile {
                     window.axisExplainerWidget.attach(el, term);
                 }
             });
-        }
-        
-        if (!window.axisExplainerWidget) {
-            setTimeout(() => this.initializeExplainer(), 500);
+        } else {
+            console.warn('[Profile] axisExplainerWidget still not available after waiting');
         }
     }
     async updateAvatar(dreamer) {
@@ -1067,7 +1080,7 @@ class Profile {
         console.log('[Spectrum] Container found, setting innerHTML with loading state');
         spectrumFace.innerHTML = `
             <div class="spectrum-face-container">
-                <div class="spectrum-loading" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-style: italic; font-size: 16px;">Loading spectrum...</div>
+                <div class="spectrum-loading" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999; font-style: italic; font-size: 16px; background: #fdfcfe;">Loading spectrum...</div>
                 <canvas id="spectrum-face-canvas" style="display: none;"></canvas>
                 <div class="spectrum-face-octant-overlay"></div>
                 <div class="spectrum-octant-overlay" style="display: none;"></div>
@@ -1108,11 +1121,27 @@ class Profile {
         this.souvenirsMouseY = 0;
         this.selectedSouvenir = null;
         this.phaneraBgImage = null;
+        this.phaneraBgAlpha = 1; // For fade transitions
         
         const handleMouseMove = (e) => {
             const rect = canvas.getBoundingClientRect();
             this.souvenirsMouseX = e.clientX - rect.left;
             this.souvenirsMouseY = e.clientY - rect.top;
+            
+            // Check if hovering over any bubble and update cursor
+            let hovering = false;
+            if (this.souvenirsBubbles) {
+                for (const bubble of this.souvenirsBubbles) {
+                    const dx = this.souvenirsMouseX - bubble.x;
+                    const dy = this.souvenirsMouseY - bubble.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < bubble.size / 2) {
+                        hovering = true;
+                        break;
+                    }
+                }
+            }
+            canvas.style.cursor = hovering ? 'pointer' : 'default';
         };
         
         const handleClick = async (e) => {
@@ -1129,29 +1158,101 @@ class Profile {
                 if (distance < bubble.size / 2) {
                     console.log('[Souvenirs] Bubble clicked:', bubble.key, bubble.souvenirData);
                     
-                    // Load phanera image
+                    // Add click animation - pulse effect
+                    const originalSize = bubble.size;
+                    bubble.targetSize = originalSize * 1.2;
+                    
+                    // Animate pulse
+                    const pulseAnimation = () => {
+                        if (bubble.size < bubble.targetSize) {
+                            bubble.size += (bubble.targetSize - bubble.size) * 0.3;
+                            if (Math.abs(bubble.size - bubble.targetSize) < 0.5) {
+                                bubble.size = bubble.targetSize;
+                                // Start shrinking back
+                                bubble.targetSize = originalSize;
+                            }
+                        } else if (bubble.size > originalSize) {
+                            bubble.size -= (bubble.size - originalSize) * 0.3;
+                            if (Math.abs(bubble.size - originalSize) < 0.5) {
+                                bubble.size = originalSize;
+                                bubble.targetSize = null;
+                            }
+                        }
+                    };
+                    
+                    // Run animation for a few frames
+                    let frameCount = 0;
+                    const animateInterval = setInterval(() => {
+                        pulseAnimation();
+                        frameCount++;
+                        if (frameCount > 15 || !bubble.targetSize) {
+                            clearInterval(animateInterval);
+                            bubble.size = originalSize;
+                        }
+                    }, 16);
+                    
+                    // Load phanera image with crossfade transition
                     if (bubble.phanera) {
                         console.log('[Souvenirs] Loading phanera:', bubble.phanera);
-                        this.phaneraBgImage = new Image();
-                        this.phaneraBgImage.src = bubble.phanera;
-                        this.phaneraBgImage.onload = () => {
+                        const newImage = new Image();
+                        newImage.src = bubble.phanera;
+                        newImage.onload = () => {
                             console.log('[Souvenirs] Phanera loaded');
+                            // Crossfade: fade out old, then swap and fade in new
+                            const fadeOut = setInterval(() => {
+                                this.phaneraBgAlpha = Math.max(0, this.phaneraBgAlpha - 0.05);
+                                if (this.phaneraBgAlpha <= 0) {
+                                    clearInterval(fadeOut);
+                                    // Swap to new image
+                                    this.phaneraBgImage = newImage;
+                                    // Fade in new image
+                                    const fadeIn = setInterval(() => {
+                                        this.phaneraBgAlpha = Math.min(1, this.phaneraBgAlpha + 0.05);
+                                        if (this.phaneraBgAlpha >= 1) clearInterval(fadeIn);
+                                    }, 16);
+                                }
+                            }, 16);
                         };
-                        this.phaneraBgImage.onerror = () => {
+                        newImage.onerror = () => {
                             console.warn('[Souvenirs] Phanera failed to load:', bubble.phanera);
                         };
                     } else {
                         console.warn('[Souvenirs] No phanera for this souvenir');
                     }
                     
-                    // Update mini widget
-                    this.updateSouvenirsWidget(bubble.key, bubble.name, bubble.icon, bubble.phanera);
+                    // Update mini widget with slide-down/slide-up animation
+                    const widget = document.querySelector('.souvenirs-mini-widget');
+                    if (widget) {
+                        const canvas = document.getElementById('souvenirs-physics-canvas');
+                        const canvasRect = canvas.getBoundingClientRect();
+                        const widgetRect = widget.getBoundingClientRect();
+                        
+                        // Calculate distance to slide (just past bottom of canvas)
+                        const slideDistance = canvasRect.bottom - widgetRect.top + 20;
+                        
+                        widget.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+                        widget.style.transform = `translateY(${slideDistance}px)`;
+                        
+                        setTimeout(() => {
+                            // Update content while off-screen
+                            this.updateSouvenirsWidget(bubble.key, bubble.name, bubble.icon, bubble.phanera);
+                            
+                            // Slide back up
+                            setTimeout(() => {
+                                widget.style.transform = 'translateY(0)';
+                            }, 50);
+                        }, 300);
+                    } else {
+                        this.updateSouvenirsWidget(bubble.key, bubble.name, bubble.icon, bubble.phanera);
+                    }
                     return;
                 }
             }
         };
         
-        // Note: Click interactions removed - souvenirs are auto-selected, no manual clicking needed
+        // Attach event listeners for interactivity
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('click', handleClick);
         
         // Initialize physics bubbles - need to fetch souvenirs data first
         this.initSouvenirsBubbles(dreamer, canvas);
@@ -1186,10 +1287,18 @@ class Profile {
                 const ctx = canvas.getContext('2d');
                 ctx.fillStyle = '#fdfcfe';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Add explanatory text to canvas (higher up to avoid widget box)
                 ctx.fillStyle = '#999';
-                ctx.font = 'italic 18px serif';
+                ctx.font = 'italic 14px serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('no souvenirs yet', canvas.width / 2, canvas.height / 2);
+                const text1 = 'Souvenirs are memories of your journey through our wild mindscape.';
+                const text2 = 'Continue exploring with a curious mind, and you will make some.';
+                ctx.fillText(text1, canvas.width / 2, canvas.height / 2 - 60);
+                ctx.fillText(text2, canvas.width / 2, canvas.height / 2 - 40);
+                
+                // Show empty state widget
+                this.updateSouvenirsWidgetEmpty();
                 return;
             }
             
@@ -1244,17 +1353,78 @@ class Profile {
             }
             
             // Create bubble for each souvenir
+            // First, get widget dimensions to avoid spawning bubbles there
+            const widgetWidth = 280; // max-width from CSS
+            const widgetHeight = 150; // approximate height
+            const widgetMargin = 12; // bottom and left margin
+            
             userSouvenirs.forEach((s, index) => {
-                const size = 60 + Math.random() * 30; // 60-90px
+                // Constrain bubble size with min/max
+                const minSize = 55;
+                const maxSize = 85;
+                const size = minSize + Math.random() * (maxSize - minSize);
+                
+                // Find valid position that doesn't overlap with widget area
+                let x, y;
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                do {
+                    // Random position with margin for bubble radius
+                    x = size / 2 + Math.random() * (canvas.width - size);
+                    y = size / 2 + Math.random() * (canvas.height - size);
+                    
+                    // Check if position overlaps with widget area (bottom left)
+                    const widgetLeft = widgetMargin;
+                    const widgetRight = widgetMargin + widgetWidth;
+                    const widgetTop = canvas.height - widgetMargin - widgetHeight;
+                    const widgetBottom = canvas.height - widgetMargin;
+                    
+                    // Check if bubble center is outside widget area (with padding)
+                    const padding = size / 2 + 20; // Extra padding for safety
+                    const isOutsideWidget = x > widgetRight + padding || 
+                                           x < widgetLeft - padding ||
+                                           y < widgetTop - padding ||
+                                           y > widgetBottom + padding;
+                    
+                    if (isOutsideWidget) break;
+                    
+                    attempts++;
+                } while (attempts < maxAttempts);
+                
+                // If we couldn't find a good spot, place in upper right quadrant
+                if (attempts >= maxAttempts) {
+                    x = canvas.width * 0.6 + Math.random() * (canvas.width * 0.3);
+                    y = canvas.height * 0.2 + Math.random() * (canvas.height * 0.3);
+                }
+                
+                // Constrain velocity with min/max to prevent deadstates
+                const minVelocity = 1.5;
+                const maxVelocity = 4;
+                let vx = (Math.random() - 0.5) * maxVelocity * 2;
+                let vy = (Math.random() - 0.5) * maxVelocity * 2;
+                
+                // Ensure minimum velocity (prevent near-stationary bubbles)
+                const speed = Math.sqrt(vx * vx + vy * vy);
+                if (speed < minVelocity) {
+                    const angle = Math.random() * Math.PI * 2;
+                    vx = Math.cos(angle) * minVelocity;
+                    vy = Math.sin(angle) * minVelocity;
+                } else if (speed > maxVelocity) {
+                    // Cap maximum velocity (prevent crazy states)
+                    vx = (vx / speed) * maxVelocity;
+                    vy = (vy / speed) * maxVelocity;
+                }
+                
                 const bubble = {
                     key: s.formKey,
                     name: s.form.name,
                     icon: s.form.icon,
                     phanera: s.form.phanera,
-                    x: 50 + Math.random() * (canvas.width - 100),
-                    y: 50 + Math.random() * (canvas.height - 100),
-                    vx: (Math.random() - 0.5) * 4,
-                    vy: (Math.random() - 0.5) * 4,
+                    x: x,
+                    y: y,
+                    vx: vx,
+                    vy: vy,
                     size: size,
                     rotation: Math.random() * Math.PI * 2,
                     rotationSpeed: (Math.random() - 0.5) * 0.02,
@@ -1314,7 +1484,7 @@ class Profile {
             // Draw phanera background if selected
             if (this.phaneraBgImage && this.phaneraBgImage.complete && this.phaneraBgImage.naturalWidth > 0) {
                 ctx.save();
-                ctx.globalAlpha = 0.15;
+                ctx.globalAlpha = 0.15 * (this.phaneraBgAlpha || 1);
                 
                 // Draw phanera centered and scaled to fill
                 const imgAspect = this.phaneraBgImage.naturalWidth / this.phaneraBgImage.naturalHeight;
@@ -1349,6 +1519,20 @@ class Profile {
                 // Update rotation
                 bubble.rotation += bubble.rotationSpeed;
                 
+                // Constrain velocity to prevent crazy states during animation
+                const minVelocity = 0.8;
+                const maxVelocity = 5;
+                const speed = Math.sqrt(bubble.vx * bubble.vx + bubble.vy * bubble.vy);
+                
+                if (speed > maxVelocity) {
+                    bubble.vx = (bubble.vx / speed) * maxVelocity;
+                    bubble.vy = (bubble.vy / speed) * maxVelocity;
+                } else if (speed < minVelocity && speed > 0) {
+                    // Add a tiny bit of energy to prevent deadstates
+                    bubble.vx = (bubble.vx / speed) * minVelocity;
+                    bubble.vy = (bubble.vy / speed) * minVelocity;
+                }
+                
                 // Check hover state
                 const dx = this.souvenirsMouseX - bubble.x;
                 const dy = this.souvenirsMouseY - bubble.y;
@@ -1371,6 +1555,50 @@ class Profile {
                 if (bubble.y + bubble.size / 2 > canvas.height) {
                     bubble.y = canvas.height - bubble.size / 2;
                     bubble.vy = -Math.abs(bubble.vy);
+                }
+                
+                // Collision with widget box in bottom left
+                const widget = document.querySelector('.souvenirs-mini-widget');
+                if (widget) {
+                    const rect = widget.getBoundingClientRect();
+                    const canvasRect = canvas.getBoundingClientRect();
+                    
+                    // Convert widget position to canvas coordinates
+                    const widgetLeft = rect.left - canvasRect.left;
+                    const widgetTop = rect.top - canvasRect.top;
+                    const widgetRight = widgetLeft + rect.width;
+                    const widgetBottom = widgetTop + rect.height;
+                    
+                    const bubbleRadius = bubble.size / 2;
+                    
+                    // Check if bubble is colliding with widget box
+                    const closestX = Math.max(widgetLeft, Math.min(bubble.x, widgetRight));
+                    const closestY = Math.max(widgetTop, Math.min(bubble.y, widgetBottom));
+                    
+                    const distX = bubble.x - closestX;
+                    const distY = bubble.y - closestY;
+                    const distance = Math.sqrt(distX * distX + distY * distY);
+                    
+                    if (distance < bubbleRadius) {
+                        // Collision! Push bubble away from widget
+                        if (distance > 0) {
+                            const pushX = (distX / distance) * (bubbleRadius - distance);
+                            const pushY = (distY / distance) * (bubbleRadius - distance);
+                            bubble.x += pushX;
+                            bubble.y += pushY;
+                            
+                            // Reflect velocity based on collision normal
+                            const normalX = distX / distance;
+                            const normalY = distY / distance;
+                            const dotProduct = bubble.vx * normalX + bubble.vy * normalY;
+                            bubble.vx -= 2 * dotProduct * normalX;
+                            bubble.vy -= 2 * dotProduct * normalY;
+                            
+                            // Add some energy damping
+                            bubble.vx *= 0.9;
+                            bubble.vy *= 0.9;
+                        }
+                    }
                 }
                 
                 // Bubble-to-bubble collisions
@@ -1470,34 +1698,235 @@ class Profile {
         animate();
     }
 
-    updateSouvenirsWidget(key, name, icon, phanera) {
+    async updateSouvenirsWidget(key, name, icon, phanera) {
         const widget = document.querySelector('.souvenirs-mini-widget');
         if (!widget) return;
         
         console.log('[Souvenirs] Updating widget:', { key, name, icon, phanera });
         
-        // Build mini widget HTML
+        // Fetch full souvenir data to get description, category, keepers
+        try {
+            const response = await fetch('/api/souvenirs');
+            const allSouvenirs = await response.json();
+            const souvenirData = allSouvenirs[key];
+            
+            if (!souvenirData) {
+                console.warn('[Souvenirs] No data found for key:', key);
+                this.updateSouvenirsWidgetBasic(key, name, icon, phanera);
+                return;
+            }
+            
+            const keeperCount = souvenirData.keepers ? souvenirData.keepers.length : 0;
+            const category = souvenirData.category || 'souvenir';
+            const description = souvenirData.description || '';
+            
+            // Get earned timestamp from dreamer data
+            const earnedEpoch = this.dreamer.souvenirs[key];
+            const earnedTime = earnedEpoch ? this.formatTimeAgo(earnedEpoch) : '';
+            
+            // Build luxurious mini widget HTML with robust info
+            const keeperText = keeperCount === 0 ? 'unclaimed' : 
+                              keeperCount === 1 ? '1 keeper' : 
+                              `${keeperCount} keepers`;
+            
+            // Get user's color for button and key badge
+            const userColor = this.dreamer.color_hex || '#734ba1';
+            
+            widget.innerHTML = `
+                <div class="souvenir-widget-inner" style="border-color: ${userColor};">
+                    <div class="souvenir-widget-close" onclick="document.querySelector('.souvenirs-mini-widget').innerHTML = ''">&times;</div>
+                    <div class="souvenir-widget-content">
+                        <div class="souvenir-widget-photo">
+                            <img src="${icon}" alt="${name}" class="souvenir-widget-icon souvenir-icon-wave">
+                        </div>
+                        <div class="souvenir-widget-info">
+                            <h3 class="souvenir-widget-title">${name}</h3>
+                            ${description ? `<p class="souvenir-widget-description">${description}</p>` : ''}
+                            <div class="souvenir-widget-meta">
+                                <span class="souvenir-widget-category" style="background: ${userColor}15; color: ${userColor};">${key}</span>
+                                <span class="souvenir-widget-separator">•</span>
+                                <span class="souvenir-widget-keepers">${keeperText}</span>
+                            </div>
+                            ${earnedTime ? `<div class="souvenir-widget-earned">earned ${earnedTime}</div>` : ''}
+                        </div>
+                    </div>
+                    <a href="/souvenirs.html?key=${key}" class="souvenir-widget-explore" target="_blank" style="background-color: ${userColor}; color: white;">
+                        <span>Explore Souvenir</span>
+                        <span class="souvenir-widget-arrow">→</span>
+                    </a>
+                </div>
+            `;
+            
+            // Apply wave animation to icon
+            this.applySouvenirIconEffects();
+        } catch (error) {
+            console.error('[Souvenirs] Error fetching souvenir data:', error);
+            this.updateSouvenirsWidgetBasic(key, name, icon, phanera);
+        }
+    }
+    
+    updateSouvenirsWidgetBasic(key, name, icon, phanera) {
+        const widget = document.querySelector('.souvenirs-mini-widget');
+        if (!widget) return;
+        
+        const userColor = this.dreamer.color_hex || '#734ba1';
+        
+        // Fallback to basic widget if API fails
         widget.innerHTML = `
-            <div class="souvenir-widget-inner">
-                <div class="souvenir-widget-header">
-                    <img src="${icon}" alt="${name}" class="souvenir-widget-icon">
-                    <div class="souvenir-widget-title">${name}</div>
+            <div class="souvenir-widget-inner" style="border-color: ${userColor};">
+                <div class="souvenir-widget-close" onclick="document.querySelector('.souvenirs-mini-widget').innerHTML = ''">&times;</div>
+                <div class="souvenir-widget-content">
+                    <div class="souvenir-widget-photo">
+                        <img src="${icon}" alt="${name}" class="souvenir-widget-icon souvenir-icon-wave">
+                    </div>
+                    <div class="souvenir-widget-info">
+                        <h3 class="souvenir-widget-title">${name}</h3>
+                    </div>
                 </div>
-                <div class="souvenir-widget-close" onclick="document.querySelector('.souvenirs-mini-widget').innerHTML = ''">×</div>
-                <div class="souvenir-widget-link">
-                    <a href="/souvenirs.html?key=${key}" target="_blank">View Details →</a>
-                </div>
+                <a href="/souvenirs.html?key=${key}" class="souvenir-widget-explore" target="_blank" style="background-color: ${userColor}; color: white;">
+                    <span>Explore Souvenir</span>
+                    <span class="souvenir-widget-arrow">→</span>
+                </a>
             </div>
         `;
+        
+        this.applySouvenirIconEffects();
+    }
+    
+    applySouvenirIconEffects() {
+        // Apply gentle wave animation (micro version from souvenirs.html)
+        const icon = document.querySelector('.souvenir-widget-icon');
+        if (!icon) return;
+        
+        // Gentle wave animation
+        let wavePhase = 0;
+        const waveInterval = setInterval(() => {
+            if (!document.querySelector('.souvenir-widget-icon')) {
+                clearInterval(waveInterval);
+                return;
+            }
+            wavePhase += 0.02;
+            const rotation = Math.sin(wavePhase) * 0.5;
+            const yOffset = Math.sin(wavePhase * 1.5) * 2;
+            icon.style.transform = `rotate(${rotation}deg) translateY(${yOffset}px)`;
+        }, 50);
+    }
+    
+    async updateSouvenirsWidgetEmpty() {
+        const widget = document.querySelector('.souvenirs-mini-widget');
+        if (!widget) return;
+        
+        const userColor = this.dreamer.color_hex || '#734ba1';
+        
+        // Count dreamers with no souvenirs
+        let keepersWithNone = 0;
+        try {
+            const response = await fetch('/api/dreamers');
+            const dreamers = await response.json();
+            keepersWithNone = dreamers.filter(d => !d.souvenirs || Object.keys(d.souvenirs).length === 0).length;
+        } catch (error) {
+            console.warn('[Souvenirs] Could not fetch keeper count:', error);
+        }
+        
+        const keeperText = keepersWithNone === 0 ? 'no other keepers' :
+                          keepersWithNone === 1 ? '1 other keeper' :
+                          `${keepersWithNone} other keepers`;
+        
+        widget.innerHTML = `
+            <div class="souvenir-widget-inner" style="border-color: ${userColor};">
+                <div class="souvenir-widget-content">
+                    <div class="souvenir-widget-photo souvenir-widget-photo-empty">
+                        <div class="souvenir-widget-photo-placeholder">?</div>
+                    </div>
+                    <div class="souvenir-widget-info">
+                        <h3 class="souvenir-widget-title">No Souvenirs</h3>
+                        <p class="souvenir-widget-description">Still exploring our wild mindscape</p>
+                        <div class="souvenir-widget-meta">
+                            <span class="souvenir-widget-category" style="background: ${userColor}15; color: ${userColor};">none</span>
+                            <span class="souvenir-widget-separator">•</span>
+                            <span class="souvenir-widget-keepers">${keeperText}</span>
+                        </div>
+                        <div class="souvenir-widget-earned">not yet earned</div>
+                    </div>
+                </div>
+                <a href="/souvenirs.html" class="souvenir-widget-explore" target="_blank" style="background-color: ${userColor}; color: white;">
+                    <span>Explore Souvenirs</span>
+                    <span class="souvenir-widget-arrow">→</span>
+                </a>
+            </div>
+        `;
+    }
+    
+    formatTimeAgo(epoch) {
+        const now = Date.now() / 1000;
+        const diff = now - epoch;
+        const seconds = Math.floor(diff);
+        const days = Math.floor(diff / (24 * 60 * 60));
+        
+        if (seconds < 0) return 'in the future';
+        if (seconds < 60) return 'just now';
+        if (seconds < 300) return 'now';
+        if (seconds < 1800) return 'recent';
+        if (seconds < 3600) return 'the hour';
+        if (seconds < 86400) {
+            const hours = Math.floor(seconds / 3600);
+            if (hours === 1) return 'an hour ago';
+            if (hours < 6) return `${hours} hours ago`;
+            if (hours < 12) return 'this morning';
+            return 'earlier today';
+        }
+        if (days === 1) return 'yesterday';
+        if (days === 2) return 'two days ago';
+        if (days === 3) return 'three days ago';
+        if (days <= 6) return 'a few days ago';
+        if (days === 7) return 'one week ago';
+        if (days <= 10) return 'more than a week ago';
+        if (days === 14) return 'two weeks ago';
+        if (days <= 17) return 'more than two weeks ago';
+        if (days <= 28) return 'a few weeks ago';
+        if (days <= 45) return 'about a month ago';
+        if (days <= 60) return 'two months ago';
+        if (days <= 90) return 'some months ago';
+        if (days <= 150) return 'several months ago';
+        if (days <= 270) return 'many months ago';
+        if (days <= 365) return 'about a year ago';
+        if (days <= 547) return 'beyond the year';
+        if (days <= 730) return 'two years ago';
+        if (days <= 1095) return 'some years ago';
+        if (days <= 1825) return 'several years ago';
+        return 'long ago';
     }
 
     async initSpectrumVisualization(dreamer) {
         console.log('[Spectrum] Starting initSpectrumVisualization', dreamer.name);
-        const loadingDiv = document.querySelector('.spectrum-loading');
-        const canvas = document.getElementById('spectrum-face-canvas');
+        
+        // Ensure dependencies are loaded
+        if (typeof SpectrumVisualizer === 'undefined') {
+            console.warn('[Spectrum] SpectrumVisualizer not loaded yet, waiting...');
+            await this.waitForDependencies();
+            
+            // Double-check after waiting
+            if (typeof SpectrumVisualizer === 'undefined') {
+                console.error('[Spectrum] SpectrumVisualizer still not available after waiting');
+                const loadingDiv = document.querySelector('.spectrum-loading');
+                if (loadingDiv) {
+                    loadingDiv.textContent = 'Spectrum visualizer failed to load';
+                    loadingDiv.style.color = '#c44';
+                }
+                return;
+            }
+        }
+        
+        // Query canvas from the profile container (works even when parent is hidden)
+        const canvas = this.container.querySelector('#spectrum-face-canvas');
+        const loadingDiv = this.container.querySelector('.spectrum-loading');
+        
         if (!canvas) {
-            console.warn('[Spectrum] ERROR: Canvas not found');
-            if (loadingDiv) loadingDiv.textContent = 'Error loading spectrum';
+            console.warn('[Spectrum] ERROR: Canvas not found in container');
+            if (loadingDiv) {
+                loadingDiv.textContent = 'Error loading spectrum';
+                loadingDiv.style.color = '#c44';
+            }
             return;
         }
         
@@ -1530,6 +1959,10 @@ class Profile {
             // Initialize SpectrumVisualizer with filtered dreamers
             if (typeof SpectrumVisualizer !== 'undefined') {
                 console.log('[Spectrum] Creating SpectrumVisualizer instance...');
+                
+                // Show canvas first (it will render as it loads)
+                canvas.style.display = 'block';
+                
                 this.spectrumVisualizerInstance = new SpectrumVisualizer(canvas, {
                     showLabels: true,
                     showAllNames: true,
@@ -1565,14 +1998,17 @@ class Profile {
                 this.spectrumVisualizerInstance.resize();
                 console.log('[Spectrum] Instance created and resized');
                 
-                // Hide loading indicator and show canvas
-                if (loadingDiv) {
-                    loadingDiv.style.display = 'none';
-                }
-                canvas.style.display = 'block';
+                // Hide loading indicator after a brief moment to let first frame render
+                setTimeout(() => {
+                    const loadingElement = this.container.querySelector('.spectrum-loading');
+                    if (loadingElement) {
+                        loadingElement.style.display = 'none';
+                        console.log('[Spectrum] Loading indicator hidden');
+                    }
+                }, 100);
                 
                 // Add octant overlay
-                const octantOverlay = document.querySelector('.spectrum-face-octant-overlay');
+                const octantOverlay = this.container.querySelector('.spectrum-face-octant-overlay');
                 console.log('[Spectrum] Octant overlay element:', octantOverlay);
                 console.log('[Spectrum] OctantDisplay available?', typeof OctantDisplay !== 'undefined');
                 
@@ -1591,9 +2027,18 @@ class Profile {
                 }
             } else {
                 console.warn('[Spectrum] SpectrumVisualizer class not available');
+                if (loadingDiv) {
+                    loadingDiv.textContent = 'Spectrum visualizer not loaded';
+                    loadingDiv.style.color = '#c44';
+                }
             }
         } catch (error) {
             console.error('[Spectrum] Failed to initialize spectrum visualization:', error);
+            const errorLoadingDiv = document.querySelector('.spectrum-loading');
+            if (errorLoadingDiv) {
+                errorLoadingDiv.textContent = 'Error loading spectrum';
+                errorLoadingDiv.style.color = '#c44';
+            }
         }
     }
 

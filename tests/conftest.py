@@ -40,6 +40,87 @@ def test_db() -> Generator[DatabaseManager, None, None]:
     # Cleanup happens automatically via connection pool
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_all_test_data():
+    """
+    Clean up ALL test data before AND after the entire test session.
+    Ensures clean state for tests and no pollution afterward.
+    """
+    # Cleanup BEFORE tests (in case previous run didn't clean up)
+    try:
+        _cleanup_test_users()
+    except Exception as e:
+        print(f"\n⚠️  Pre-test cleanup warning: {e}")
+    
+    yield  # Run all tests
+    
+    # Cleanup AFTER tests
+    try:
+        _cleanup_test_users()
+    except Exception as e:
+        print(f"\n⚠️  Post-test cleanup warning: {e}")
+
+
+def _cleanup_test_users():
+    """Helper function to clean up test data."""
+    db = DatabaseManager()
+    
+    print("\n🧹 Cleaning up test data...")
+    
+    # Delete test users by pattern matching
+    test_patterns = [
+        'rate%.bsky.social',           # Rate limiting tests
+        'test.bsky.social',            # Generic test user
+        '%test%.bsky.social',          # Any test in handle
+        'aaaaaaa%.bsky.social',        # Long handle tests
+        "'; DROP TABLE%",              # SQL injection tests
+    ]
+    
+    # Also delete by test DIDs
+    test_did_patterns = [
+        'did:plc:test%',               # Test DIDs
+        'did:plc:rate%',               # Rate test DIDs
+        'not-a-valid-did',             # Invalid DID test
+    ]
+    
+    total_deleted = 0
+    
+    for pattern in test_patterns:
+        db.execute(
+            "DELETE FROM spectrum WHERE did IN (SELECT did FROM dreamers WHERE handle LIKE %s)",
+            (pattern,)
+        )
+        db.execute(
+            "DELETE FROM events WHERE did IN (SELECT did FROM dreamers WHERE handle LIKE %s)",
+            (pattern,)
+        )
+        result = db.execute("DELETE FROM dreamers WHERE handle LIKE %s RETURNING handle", (pattern,))
+        deleted = result.fetchall()
+        total_deleted += len(deleted)
+    
+    for pattern in test_did_patterns:
+        db.execute("DELETE FROM spectrum WHERE did LIKE %s", (pattern,))
+        db.execute("DELETE FROM events WHERE did LIKE %s", (pattern,))
+        result = db.execute("DELETE FROM dreamers WHERE did LIKE %s RETURNING handle", (pattern,))
+        deleted = result.fetchall()
+        total_deleted += len(deleted)
+    
+    if total_deleted > 0:
+        print(f"✅ Cleaned up {total_deleted} test users")
+    else:
+        print("✅ No test data to clean up")
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """
+    Track test results for potential cleanup decisions.
+    """
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, f"rep_{rep.when}", rep)
+
+
 @pytest.fixture
 def api_base_url() -> str:
     """Base URL for API running in Docker with network_mode: host"""
@@ -80,6 +161,16 @@ def test_did() -> str:
 def test_handle() -> str:
     """Standard test handle for consistency"""
     return 'testuser.reverie.house'
+
+
+@pytest.fixture
+def unique_test_id() -> str:
+    """
+    Generate unique test ID for each test run.
+    Used to prevent test collisions when running in parallel.
+    """
+    import time
+    return str(int(time.time()))
 
 
 @pytest.fixture(scope="session")

@@ -105,7 +105,9 @@ def get_dreamers():
                 d.status, d.alts,
                 d.canon_score, d.lore_score, d.patron_score, d.contribution_score,
                 s.oblivion, s.authority, s.skeptic, s.receptive, 
-                s.liberty, s.entropy, s.octant
+                s.liberty, s.entropy, s.octant,
+                s.origin_oblivion, s.origin_authority, s.origin_skeptic,
+                s.origin_receptive, s.origin_liberty, s.origin_entropy, s.origin_octant
             FROM dreamers d
             LEFT JOIN spectrum s ON d.did = s.did
             ORDER BY d.arrival DESC
@@ -171,7 +173,14 @@ def get_dreamers():
                     'authority': dreamer['authority'] or 0,
                     'receptive': dreamer['receptive'] or 0,
                     'skeptic': dreamer['skeptic'] or 0,
-                    'octant': dreamer['octant']
+                    'octant': dreamer['octant'],
+                    'origin_entropy': dreamer['origin_entropy'] or 0,
+                    'origin_oblivion': dreamer['origin_oblivion'] or 0,
+                    'origin_liberty': dreamer['origin_liberty'] or 0,
+                    'origin_authority': dreamer['origin_authority'] or 0,
+                    'origin_receptive': dreamer['origin_receptive'] or 0,
+                    'origin_skeptic': dreamer['origin_skeptic'] or 0,
+                    'origin_octant': dreamer['origin_octant']
                 },
                 'heading': dreamer['heading']
             }
@@ -367,7 +376,9 @@ def get_dreamer_by_did(did):
                 d.server, d.avatar, d.banner,
                 d.followers_count, d.follows_count, d.posts_count,
                 d.created_at, d.arrival, d.heading, d.color_hex, d.phanera,
-                s.oblivion, s.authority, s.skeptic, s.receptive, s.liberty, s.entropy, s.octant
+                s.oblivion, s.authority, s.skeptic, s.receptive, s.liberty, s.entropy, s.octant,
+                s.origin_oblivion, s.origin_authority, s.origin_skeptic,
+                s.origin_receptive, s.origin_liberty, s.origin_entropy, s.origin_octant
             FROM dreamers d
             LEFT JOIN spectrum s ON d.did = s.did
             WHERE d.did = %s
@@ -388,7 +399,14 @@ def get_dreamer_by_did(did):
                 'receptive': dreamer['receptive'],
                 'liberty': dreamer['liberty'],
                 'entropy': dreamer['entropy'],
-                'octant': dreamer['octant']
+                'octant': dreamer['octant'],
+                'origin_oblivion': dreamer['origin_oblivion'],
+                'origin_authority': dreamer['origin_authority'],
+                'origin_skeptic': dreamer['origin_skeptic'],
+                'origin_receptive': dreamer['origin_receptive'],
+                'origin_liberty': dreamer['origin_liberty'],
+                'origin_entropy': dreamer['origin_entropy'],
+                'origin_octant': dreamer['origin_octant']
             }
         
         # Return dreamer data

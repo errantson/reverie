@@ -101,31 +101,67 @@ class SpectrumManager:
         
         return dreamers
     
-    def save_spectrum_to_db(self, did: str, spectrum: Dict[str, int]):
+    def save_spectrum_to_db(self, did: str, spectrum: Dict[str, int], is_origin: bool = True):
         """
         Save spectrum values to database with octant calculation.
         Automatically calculates and stores the nominal octant name.
+        
+        Args:
+            did: Dreamer's DID
+            spectrum: Spectrum values dict
+            is_origin: If True, also sets origin_* columns and origin_octant (for initial generation)
+                      If False, only updates current position and octant (for movement)
         """
         from utils.octant import calculate_octant_code
         
         # Calculate octant nominal name from spectrum
         octant = calculate_octant_code(spectrum)
         
-        self.db.execute("""
-            INSERT OR REPLACE INTO spectrum (
-                did, entropy, oblivion, liberty, authority, receptive, skeptic, octant, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            did,
-            spectrum.get('entropy', 0),
-            spectrum.get('oblivion', 0),
-            spectrum.get('liberty', 0),
-            spectrum.get('authority', 0),
-            spectrum.get('receptive', 0),
-            spectrum.get('skeptic', 0),
-            octant,  # Store nominal octant name
-            int(__import__('time').time())
-        ))
+        if is_origin:
+            # Initial generation - set both origin and current
+            self.db.execute("""
+                INSERT OR REPLACE INTO spectrum (
+                    did, entropy, oblivion, liberty, authority, receptive, skeptic, octant,
+                    origin_entropy, origin_oblivion, origin_liberty, origin_authority, origin_receptive, origin_skeptic, origin_octant,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                did,
+                spectrum.get('entropy', 0),
+                spectrum.get('oblivion', 0),
+                spectrum.get('liberty', 0),
+                spectrum.get('authority', 0),
+                spectrum.get('receptive', 0),
+                spectrum.get('skeptic', 0),
+                octant,
+                # Origin columns (same as current initially)
+                spectrum.get('entropy', 0),
+                spectrum.get('oblivion', 0),
+                spectrum.get('liberty', 0),
+                spectrum.get('authority', 0),
+                spectrum.get('receptive', 0),
+                spectrum.get('skeptic', 0),
+                octant,  # origin_octant same as octant initially
+                int(__import__('time').time())
+            ))
+        else:
+            # Movement update - only update current position
+            self.db.execute("""
+                UPDATE spectrum
+                SET entropy = ?, oblivion = ?, liberty = ?, authority = ?, receptive = ?, skeptic = ?,
+                    octant = ?, updated_at = ?
+                WHERE did = ?
+            """, (
+                spectrum.get('entropy', 0),
+                spectrum.get('oblivion', 0),
+                spectrum.get('liberty', 0),
+                spectrum.get('authority', 0),
+                spectrum.get('receptive', 0),
+                spectrum.get('skeptic', 0),
+                octant,
+                int(__import__('time').time()),
+                did
+            ))
         self.db.commit()
     
     def hash_did_to_seed(self, did: str) -> int:
@@ -454,10 +490,13 @@ class SpectrumManager:
         # Calculate octant from spectrum values
         octant = calculate_octant_code(spectrum)
         
+        # For initial spectrum generation, set both origin and current
         self.db.execute("""
             INSERT OR REPLACE INTO spectrum 
-            (did, entropy, oblivion, liberty, authority, receptive, skeptic, octant, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (did, entropy, oblivion, liberty, authority, receptive, skeptic, octant,
+             origin_entropy, origin_oblivion, origin_liberty, origin_authority, origin_receptive, origin_skeptic, origin_octant,
+             updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             did,
             spectrum['entropy'],
@@ -467,6 +506,14 @@ class SpectrumManager:
             spectrum['receptive'],
             spectrum['skeptic'],
             octant,
+            # Origin values (same as current initially)
+            spectrum['entropy'],
+            spectrum['oblivion'],
+            spectrum['liberty'],
+            spectrum['authority'],
+            spectrum['receptive'],
+            spectrum['skeptic'],
+            octant,  # origin_octant
             timestamp
         ))
         self.db.commit()
