@@ -263,14 +263,14 @@ class LoginWidget {
             <div class="login-content">
                 <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
                 <div class="login-form">
-                    <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #888; text-align: center;">enter your handle or dreamer id</p>
+                    <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #888; text-align: center;">enter your name or handle</p>
                     <div class="login-handle-input-group" style="margin-bottom: 0.5rem;">
                         <span class="login-handle-prefix">@</span>
                         <input 
                             type="text" 
                             id="loginHandleQuick" 
                             class="login-handle-input" 
-                            placeholder="name.bsky.social"
+                            placeholder="loading..."
                             autocomplete="off"
                             autocapitalize="off"
                             spellcheck="false"
@@ -281,11 +281,7 @@ class LoginWidget {
                         <span>Visit Reverie House</span>
                     </button>
                     <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #888; text-align: center;">residents and dreamweavers only</p>
-                    <button id="loginDreamweaver" class="login-method-btn login-reverie-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <img src="/assets/icon.png" alt="" style="width: 20px; height: 20px;">
-                        <span>Dreamweaver Login</span>
-                    </button>
-                    <button id="loginInviteKey" class="login-method-btn login-reverie-btn" style="margin-top: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <button id="loginInviteKey" class="login-method-btn login-reverie-btn" style="margin-top: 0rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
                         <img src="/assets/icon.png" alt="" style="width: 20px; height: 20px;">
                         <span>Become a Resident</span>
                     </button>
@@ -300,6 +296,72 @@ class LoginWidget {
             loginBox.classList.add('visible');
         }, 10);
         const quickHandleInput = document.getElementById('loginHandleQuick');
+        
+        // Fetch dreamer names and rotate them in the placeholder
+        (async () => {
+            try {
+                const dbResponse = await fetch('/api/database/all');
+                if (dbResponse.ok) {
+                    const dbData = await dbResponse.json();
+                    const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
+                    const names = dreamers
+                        .map(d => d.name)
+                        .filter(name => name && name.trim().length > 0);
+                    
+                    if (names.length > 0) {
+                        let currentIndex = 0;
+                        
+                        // Set initial placeholder
+                        quickHandleInput.placeholder = `${names[0]} or name.bsky.social`;
+                        
+                        // Rotate names every 3 seconds with fade effect
+                        const rotatePlaceholder = () => {
+                            // Don't rotate if user is typing
+                            if (document.activeElement === quickHandleInput && quickHandleInput.value.length > 0) {
+                                return;
+                            }
+                            
+                            // Fade out
+                            quickHandleInput.style.transition = 'opacity 0.3s ease';
+                            quickHandleInput.style.opacity = '0.5';
+                            
+                            setTimeout(() => {
+                                // Change placeholder
+                                currentIndex = (currentIndex + 1) % names.length;
+                                quickHandleInput.placeholder = `${names[currentIndex]} or name.bsky.social`;
+                                
+                                // Fade in
+                                quickHandleInput.style.opacity = '1';
+                            }, 300);
+                        };
+                        
+                        // Start rotation
+                        const rotationInterval = setInterval(rotatePlaceholder, 3000);
+                        
+                        // Stop rotation when input gets focus with value
+                        quickHandleInput.addEventListener('input', () => {
+                            if (quickHandleInput.value.length > 0) {
+                                clearInterval(rotationInterval);
+                                quickHandleInput.style.opacity = '1';
+                            }
+                        });
+                        
+                        // Clean up on overlay removal
+                        overlay.addEventListener('remove', () => {
+                            clearInterval(rotationInterval);
+                        });
+                    } else {
+                        quickHandleInput.placeholder = 'name or name.bsky.social';
+                    }
+                } else {
+                    quickHandleInput.placeholder = 'name or name.bsky.social';
+                }
+            } catch (error) {
+                console.error('Failed to load dreamer names:', error);
+                quickHandleInput.placeholder = 'name or name.bsky.social';
+            }
+        })();
+        
         document.getElementById('loginBluesky').addEventListener('click', async () => {
             let handle = quickHandleInput.value.trim();
             if (!handle) {
@@ -315,9 +377,47 @@ class LoginWidget {
                     handle = didMatch[1];
                 }
             }
+            
+            // If no dot and not a DID, check database for name match first
             if (!handle.includes('.') && !handle.startsWith('did:')) {
-                handle = `${handle}.bsky.social`;
+                console.log(`🔍 No dot in handle "${handle}", checking database for name match...`);
+                try {
+                    const dbResponse = await fetch('/api/database/all');
+                    if (dbResponse.ok) {
+                        const dbData = await dbResponse.json();
+                        const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
+                        const dreamerByName = dreamers.find(d => d.name && d.name.toLowerCase() === handle.toLowerCase());
+                        
+                        if (dreamerByName) {
+                            console.log(`   ✅ Found dreamer by name: ${dreamerByName.name} -> ${dreamerByName.handle}`);
+                            handle = dreamerByName.handle;
+                            
+                            // If it's a reverie.house handle, route to dreamweaver login
+                            if (handle.includes('reverie.house')) {
+                                console.log(`   🏠 Routing to dreamweaver login for ${handle}`);
+                                overlay.classList.remove('visible');
+                                loginBox.classList.remove('visible');
+                                setTimeout(() => {
+                                    overlay.remove();
+                                    this.showDreamweaverLoginForm(handle);
+                                }, 300);
+                                return;
+                            }
+                        } else {
+                            console.log(`   ❌ No dreamer found with name "${handle}", assuming bsky.social`);
+                            handle = `${handle}.bsky.social`;
+                        }
+                    } else {
+                        // Database check failed, assume bsky.social
+                        handle = `${handle}.bsky.social`;
+                    }
+                } catch (error) {
+                    console.error('   ❌ Database check error:', error);
+                    // On error, assume bsky.social
+                    handle = `${handle}.bsky.social`;
+                }
             }
+            
             overlay.classList.remove('visible');
             loginBox.classList.remove('visible');
             setTimeout(() => overlay.remove(), 300);
@@ -337,14 +437,6 @@ class LoginWidget {
             if (e.key === 'Enter') {
                 document.getElementById('loginBluesky').click();
             }
-        });
-        document.getElementById('loginDreamweaver').addEventListener('click', () => {
-            overlay.classList.remove('visible');
-            loginBox.classList.remove('visible');
-            setTimeout(() => {
-                overlay.remove();
-                this.showDreamweaverLoginForm();
-            }, 300);
         });
         document.getElementById('loginInviteKey').addEventListener('click', () => {
             overlay.classList.remove('visible');
@@ -626,7 +718,7 @@ class LoginWidget {
         }, true);
 
         const checkHandle = async (handleInput) => {
-            const handle = handleInput.replace(/^@/, '').trim();
+            let handle = handleInput.replace(/^@/, '').trim();
             
             console.log('🚀 === DREAMWEAVER LOGIN CHECK START ===');
             console.log(`   Handle input: "${handleInput}"`);
@@ -637,7 +729,7 @@ class LoginWidget {
             statusMessage.style.justifyContent = 'center';
             statusMessage.style.gap = '8px';
             statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
-            statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
+            statusMessage.style.border = 'rgba(135, 64, 141, 0.2)';
             statusMessage.style.color = '#555';
             statusMessage.innerHTML = `
                 <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px; animation: spin 2s linear infinite;">
@@ -656,6 +748,8 @@ class LoginWidget {
             }
             try {
                 let dreamerInDb = null;
+                let wasNameLookup = false;
+                
                 try {
                     console.log(`🔍 STEP 1: Checking database for handle: "${handle}"`);
                     const dbResponse = await fetch('/api/database/all');
@@ -671,15 +765,34 @@ class LoginWidget {
                             console.log(`   🔍 Searching for handle="${handle}" in dreamers...`);
                             console.log(`   First few dreamers:`, dreamers.slice(0, 3).map(d => ({name: d.name, handle: d.handle})));
                         }
-                        // Search by handle, not by name
-                        dreamerInDb = dreamers.find(d => d.handle === handle);
-                        if (dreamerInDb) {
-                            console.log(`   🎯 FOUND in database!`);
-                            console.log(`      Name: ${dreamerInDb.name}`);
-                            console.log(`      Handle: ${dreamerInDb.handle}`);
-                            console.log(`      DID: ${dreamerInDb.did}`);
+                        
+                        // If no dot in handle, assume it's a name and look up by name
+                        if (!handle.includes('.')) {
+                            console.log(`   💡 No dot in input, treating as name lookup...`);
+                            dreamerInDb = dreamers.find(d => d.name && d.name.toLowerCase() === handle.toLowerCase());
+                            if (dreamerInDb) {
+                                console.log(`   🎯 FOUND by name!`);
+                                console.log(`      Name: ${dreamerInDb.name}`);
+                                console.log(`      Handle: ${dreamerInDb.handle}`);
+                                console.log(`      DID: ${dreamerInDb.did}`);
+                                // Replace the handle input with the actual handle
+                                handle = dreamerInDb.handle;
+                                handleInput.value = handle;
+                                wasNameLookup = true;
+                            } else {
+                                console.log(`   ❌ NOT found in database by name`);
+                            }
                         } else {
-                            console.log(`   ❌ NOT found in database by handle`);
+                            // Search by handle
+                            dreamerInDb = dreamers.find(d => d.handle === handle);
+                            if (dreamerInDb) {
+                                console.log(`   🎯 FOUND in database!`);
+                                console.log(`      Name: ${dreamerInDb.name}`);
+                                console.log(`      Handle: ${dreamerInDb.handle}`);
+                                console.log(`      DID: ${dreamerInDb.did}`);
+                            } else {
+                                console.log(`   ❌ NOT found in database by handle`);
+                            }
                         }
                     }
                 } catch (dbError) {
@@ -1029,30 +1142,51 @@ class LoginWidget {
         logoutBox.className = 'logout-box';
         const avatarSrc = session.avatar || '/assets/icon_face.png';
         const displayName = session.displayName || session.handle;
+        
+        // Get user color from color manager
+        const userColor = window.colorManager?.getColor() || 
+                         getComputedStyle(document.documentElement)
+                             .getPropertyValue('--reverie-core-color').trim() || '#87408d';
+        
         logoutBox.innerHTML = `
             <div class="logout-content">
-                <img src="${avatarSrc}" alt="${displayName}" class="logout-avatar" onerror="this.src='/assets/icon_face.png'">
-                <h2 class="logout-message">${displayName}</h2>
+                <img src="${avatarSrc}" alt="${displayName}" class="logout-avatar" style="border-color: ${userColor};" onerror="this.src='/assets/icon_face.png'">
+                <h2 class="logout-message" style="color: ${userColor};">${displayName}</h2>
                 <p class="logout-handle">@${session.handle}</p>
                 <div class="logout-buttons">
-                    <button id="logoutConfirm">Logout</button>
-                    <button id="logoutCancel">Close</button>
+                    <button id="logoutConfirm" style="background: ${userColor};">Logout</button>
+                    <button id="logoutCancel" style="color: ${userColor}; border-color: ${userColor};">Close</button>
                 </div>
             </div>
         `;
+        
+        // Apply user color to box border and shadow
+        logoutBox.style.borderColor = userColor;
+        logoutBox.style.boxShadow = `0 8px 32px ${userColor}40`;
+        
         overlay.appendChild(logoutBox);
         document.body.appendChild(overlay);
         setTimeout(() => {
             overlay.classList.add('visible');
             logoutBox.classList.add('visible');
         }, 10);
+        
+        // Add hover effect for cancel button with user color
+        const cancelBtn = document.getElementById('logoutCancel');
+        cancelBtn.addEventListener('mouseenter', () => {
+            cancelBtn.style.background = `${userColor}1a`; // 10% opacity
+        });
+        cancelBtn.addEventListener('mouseleave', () => {
+            cancelBtn.style.background = 'transparent';
+        });
+        
         document.getElementById('logoutConfirm').addEventListener('click', () => {
             this.oauthManager.logout();
             overlay.classList.remove('visible');
             logoutBox.classList.remove('visible');
             setTimeout(() => overlay.remove(), 300);
         });
-        document.getElementById('logoutCancel').addEventListener('click', () => {
+        cancelBtn.addEventListener('click', () => {
             overlay.classList.remove('visible');
             logoutBox.classList.remove('visible');
             setTimeout(() => overlay.remove(), 300);
