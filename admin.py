@@ -7392,7 +7392,7 @@ def get_credentials_status():
         # Check credential
         db_manager = DatabaseManager()
         cred = db_manager.fetch_one("""
-            SELECT verified, valid, pds, created_at
+            SELECT verified, valid, is_valid, pds, pds_url, created_at, app_password_hash
             FROM user_credentials
             WHERE did = %s
         """, (user_did,))
@@ -7403,13 +7403,22 @@ def get_credentials_status():
                 'roles_available': ['greeter']
             })
         
+        # Check if credentials are valid and password exists
+        # Both valid columns should be TRUE and app_password_hash should exist and be non-empty
+        has_valid_credentials = (
+            cred.get('app_password_hash') is not None and
+            bool(cred.get('app_password_hash')) and  # Not empty string
+            cred.get('is_valid', False) and 
+            cred.get('valid', False)
+        )
+        
         return jsonify({
-            'connected': True,
+            'connected': has_valid_credentials,
             'verified': cred['verified'],
-            'valid': bool(cred['valid']),
-            'pds': cred['pds'],
+            'valid': has_valid_credentials,
+            'pds': cred.get('pds_url') or cred.get('pds'),
             'created_at': cred['created_at'],
-            'roles_available': ['greeter']  # Future: check permissions
+            'roles_available': ['greeter'] if has_valid_credentials else []
         })
         
     except Exception as e:

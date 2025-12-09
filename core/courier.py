@@ -148,14 +148,68 @@ def send_post(post):
             record['facets'] = facets
             print(f"   Facets: {len(facets)} detected")
         
-        # Add images if present
+        # Handle images if present
         if post['post_images']:
             try:
-                images = json.loads(post['post_images'])
-                # TODO: Handle image uploads
-                # For now, just post text
-            except:
-                pass
+                images_data = json.loads(post['post_images'])
+                if images_data and len(images_data) > 0:
+                    print(f"   📷 Uploading {len(images_data)} image(s)...")
+                    
+                    uploaded_images = []
+                    for idx, img_data in enumerate(images_data):
+                        try:
+                            # Image data should be base64 encoded in dataUrl format
+                            data_url = img_data.get('dataUrl', '')
+                            if not data_url.startswith('data:'):
+                                print(f"   ⚠️  Image {idx+1}: Invalid data URL format, skipping")
+                                continue
+                            
+                            # Extract mime type and base64 data
+                            header, base64_data = data_url.split(',', 1)
+                            mime_type = img_data.get('mimeType', 'image/jpeg')
+                            
+                            # Decode base64 to bytes
+                            import base64
+                            image_bytes = base64.b64decode(base64_data)
+                            
+                            # Upload to PDS
+                            upload_response = requests.post(
+                                f'{pds_url}/xrpc/com.atproto.repo.uploadBlob',
+                                headers={
+                                    'Authorization': f'Bearer {access_jwt}',
+                                    'Content-Type': mime_type
+                                },
+                                data=image_bytes,
+                                timeout=30
+                            )
+                            
+                            if upload_response.status_code == 200:
+                                blob_data = upload_response.json()
+                                uploaded_images.append({
+                                    'alt': img_data.get('alt', ''),
+                                    'image': blob_data.get('blob')
+                                })
+                                print(f"   ✅ Image {idx+1} uploaded successfully")
+                            else:
+                                print(f"   ⚠️  Image {idx+1} upload failed: {upload_response.status_code}")
+                        
+                        except Exception as img_error:
+                            print(f"   ⚠️  Image {idx+1} upload error: {img_error}")
+                            # Continue with other images
+                    
+                    # Add images to post record if any were uploaded
+                    if uploaded_images:
+                        record['embed'] = {
+                            '$type': 'app.bsky.embed.images',
+                            'images': uploaded_images
+                        }
+                        print(f"   ✅ Added {len(uploaded_images)} image(s) to post")
+                    else:
+                        print(f"   ⚠️  No images could be uploaded, posting text only")
+                        
+            except Exception as e:
+                print(f"   ⚠️  Error processing images: {e}, posting text only")
+                # Continue without images rather than failing the whole post
         
         # Send post to PDS
         post_response = requests.post(

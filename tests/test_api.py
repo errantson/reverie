@@ -21,7 +21,8 @@ import time
 # WORLD ENDPOINT TESTS
 # ============================================================================
 
-@pytest.mark.api
+@pytest.mark.integration
+@pytest.mark.network
 class TestWorldEndpoint:
     """Test /api/world endpoint (basic + security)"""
     
@@ -209,7 +210,11 @@ class TestDreamerDetailEndpoint:
             f'{api_base_url}/api/dreamer/\'; DROP TABLE dreamers; --',
             timeout=10
         )
-        assert response.status_code in [404, 400]  # Not 500
+        # Must return client error, never server error
+        assert 400 <= response.status_code < 500, \
+            f"SQL injection attempt returned {response.status_code}, should be 4xx"
+        # Verify no SQL error messages leaked
+        assert 'sql' not in response.text.lower(), "SQL error message leaked in response"
     
     def test_dreamer_detail_xss_escaped(self, api_base_url):
         """Test XSS attempts are handled"""

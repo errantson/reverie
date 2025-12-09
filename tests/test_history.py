@@ -451,8 +451,11 @@ class TestHistoryReporting:
         
         print("="*80)
         
-        # This test always passes - it's just for reporting
-        assert True
+        # Verify we got meaningful data
+        assert len(dreamers) > 0, "No dreamers found for coverage report"
+        # Verify at least some dreamers have events
+        dreamers_with_events = [d for d in dreamers if d['total_events'] > 0]
+        assert len(dreamers_with_events) > 0, "No dreamers with any events found"
 
 
 # ============================================================================

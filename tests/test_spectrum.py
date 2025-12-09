@@ -638,8 +638,11 @@ class TestSpectrumReporting:
         
         print("="*80)
         
-        # Test always passes - it's for reporting
-        assert True
+        # Verify we got data and octants are valid
+        assert len(octants) > 0, "No octants found - spectrum table may be empty"
+        for octant in octants:
+            assert octant['count'] > 0, f"Octant {octant['octant']} has zero count"
+            assert octant['octant'] is not None, "Octant name should not be None"
 
 
 if __name__ == '__main__':

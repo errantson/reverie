@@ -103,7 +103,7 @@ class TestHandleComposition:
         ).fetchone()
         
         if not dreamer:
-            pytest.skip("No dreamers with alternate names found")
+            pytest.skip("No dreamers with alternate names found - expected in production")
         
         with open(caddyfile_path, 'r') as f:
             content = f.read()

@@ -13,9 +13,19 @@ from api.rate_limit import rate_limit
 # Create blueprint
 bp = Blueprint('courier', __name__, url_prefix='/api/courier')
 
+# Configuration constants
+COURIER_CONFIG = {
+    'MAX_SCHEDULED_POSTS': 1000,  # Max posts per user
+    'DEFAULT_PAGE_SIZE': 50,
+    'MAX_PAGE_SIZE': 100,
+    'SCHEDULE_RATE_LIMIT': 20,  # Posts per hour
+    'EDIT_RATE_LIMIT': 60,  # Edits per hour
+    'DELETE_RATE_LIMIT': 60,  # Deletes per hour
+}
+
 
 @bp.route('/schedule', methods=['POST'])
-@rate_limit(20)  # Low limit for scheduled posts
+@rate_limit(COURIER_CONFIG['SCHEDULE_RATE_LIMIT'])  # Configurable rate limit
 def schedule_post():
     """Schedule a Bluesky post for later delivery"""
     try:
@@ -156,9 +166,11 @@ def get_scheduled_posts():
         
         status_filter = request.args.get('status', 'pending')  # 'pending', 'sent', 'failed', 'all'
         limit = int(request.args.get('limit', 50))
+        page = int(request.args.get('page', 1))
+        offset = (page - 1) * limit
         
         print(f"📋 [COURIER] Status filter: {status_filter}")
-        print(f"📋 [COURIER] Limit: {limit}")
+        print(f"📋 [COURIER] Limit: {limit}, Page: {page}, Offset: {offset}")
         
         db = DatabaseManager()
         
@@ -177,8 +189,18 @@ def get_scheduled_posts():
             query += ' AND status = %s'
             params.append(status_filter)
         
-        query += ' ORDER BY scheduled_for DESC LIMIT %s'
-        params.append(limit)
+        query += ' ORDER BY scheduled_for DESC LIMIT %s OFFSET %s'
+        params.extend([limit, offset])
+        
+        # Also get total count for pagination
+        count_query = 'SELECT COUNT(*) as total FROM courier WHERE did = %s'
+        count_params = [user_did]
+        if status_filter != 'all':
+            count_query += ' AND status = %s'
+            count_params.append(status_filter)
+        
+        total_result = db.fetch_one(count_query, tuple(count_params))
+        total_count = total_result['total'] if total_result else 0
         
         print(f"📋 [COURIER] Query: {query}")
         print(f"📋 [COURIER] Params: {params}")
@@ -193,12 +215,12 @@ def get_scheduled_posts():
             # Decrypt post text for preview
             try:
                 post_text = decrypt_password(row['post_text_encrypted'])
-            except:
+            except Exception:
                 post_text = '[encrypted]'
-            
+
             # Truncate for list view
             post_preview = post_text[:100] + '...' if len(post_text) > 100 else post_text
-            
+
             posts.append({
                 'id': row['id'],
                 'post_preview': post_preview,
@@ -206,23 +228,27 @@ def get_scheduled_posts():
                 'post_images': json.loads(row['post_images']) if row['post_images'] else [],
                 'scheduled_for': row['scheduled_for'],
                 'created_at': row['created_at'],
-                'sent_at': row['sent_at'],
-                'is_lore': bool(row['is_lore']),
-                'lore_type': row['lore_type'],
-                'canon_id': row['canon_id'],
-                'status': row['status'],
-                'error_message': row['error_message'],
-                'post_uri': row['post_uri'],
-                'post_cid': row['post_cid']
+                'sent_at': row.get('sent_at'),
+                'is_lore': row.get('is_lore'),
+                'lore_type': row.get('lore_type'),
+                'canon_id': row.get('canon_id'),
+                'status': row.get('status'),
+                'error_message': row.get('error_message'),
+                'post_uri': row.get('post_uri'),
+                'post_cid': row.get('post_cid')
             })
-        
-        print(f"✅ [COURIER] Returning {len(posts)} posts")
+
+        print(f"✅ [COURIER] Returning {len(posts)} posts (page {page} of {(total_count + limit - 1) // limit})")
         print(f"{'='*80}\n")
-        
+
         return jsonify({
             'status': 'success',
             'posts': posts,
-            'count': len(posts)
+            'count': len(posts),
+            'total': total_count,
+            'page': page,
+            'per_page': limit,
+            'total_pages': (total_count + limit - 1) // limit
         })
         
     except Exception as e:
@@ -234,6 +260,7 @@ def get_scheduled_posts():
 
 
 @bp.route('/<int:courier_id>', methods=['DELETE'])
+@rate_limit(COURIER_CONFIG['DELETE_RATE_LIMIT'])  # Configurable rate limit
 def cancel_post(courier_id):
     """Cancel a scheduled post"""
     try:
@@ -269,6 +296,7 @@ def cancel_post(courier_id):
 
 
 @bp.route('/<int:courier_id>', methods=['PUT'])
+@rate_limit(COURIER_CONFIG['EDIT_RATE_LIMIT'])  # Configurable rate limit
 def update_post(courier_id):
     """Update a scheduled post (only if still pending)"""
     try:
@@ -401,3 +429,95 @@ def retry_auth_failed_posts():
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
+
+@bp.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for monitoring
+    Returns service status, queue depth, and recent delivery stats
+    """
+    try:
+        db = DatabaseManager()
+        now = int(time.time())
+        
+        # Get queue statistics
+        stats = {}
+        
+        # Pending posts ready to send
+        ready_count = db.fetch_one('''
+            SELECT COUNT(*) as count FROM courier
+            WHERE status = 'pending' AND scheduled_for <= %s
+        ''', (now,))
+        stats['ready_to_send'] = ready_count['count'] if ready_count else 0
+        
+        # Total pending (including future scheduled)
+        pending_count = db.fetch_one('''
+            SELECT COUNT(*) as count FROM courier WHERE status = 'pending'
+        ''')
+        stats['total_pending'] = pending_count['count'] if pending_count else 0
+        
+        # Recently sent (last hour)
+        hour_ago = now - 3600
+        sent_count = db.fetch_one('''
+            SELECT COUNT(*) as count FROM courier
+            WHERE status = 'sent' AND sent_at >= %s
+        ''', (hour_ago,))
+        stats['sent_last_hour'] = sent_count['count'] if sent_count else 0
+        
+        # Failed posts
+        failed_count = db.fetch_one('''
+            SELECT COUNT(*) as count FROM courier WHERE status = 'failed'
+        ''')
+        stats['failed'] = failed_count['count'] if failed_count else 0
+        
+        # Auth failed posts
+        auth_failed_count = db.fetch_one('''
+            SELECT COUNT(*) as count FROM courier WHERE status = 'auth_failed'
+        ''')
+        stats['auth_failed'] = auth_failed_count['count'] if auth_failed_count else 0
+        
+        # Last successful delivery time
+        last_sent = db.fetch_one('''
+            SELECT MAX(sent_at) as last_sent FROM courier WHERE status = 'sent'
+        ''')
+        stats['last_delivery'] = last_sent['last_sent'] if last_sent and last_sent['last_sent'] else None
+        
+        # Health status
+        health_status = 'healthy'
+        warnings = []
+        
+        if stats['ready_to_send'] > 100:
+            warnings.append('Large queue backlog detected')
+            health_status = 'degraded'
+        
+        if stats['failed'] > 50:
+            warnings.append('High failure rate')
+            health_status = 'degraded'
+        
+        if stats['last_delivery']:
+            time_since_last = now - stats['last_delivery']
+            if time_since_last > 3600 and stats['ready_to_send'] > 0:
+                warnings.append('No deliveries in over 1 hour despite pending posts')
+                health_status = 'unhealthy'
+        
+        return jsonify({
+            'status': 'success',
+            'health': health_status,
+            'warnings': warnings,
+            'stats': stats,
+            'timestamp': now,
+            'config': {
+                'max_scheduled_posts': COURIER_CONFIG['MAX_SCHEDULED_POSTS'],
+                'default_page_size': COURIER_CONFIG['DEFAULT_PAGE_SIZE']
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ [COURIER] Health check error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'health': 'unhealthy',
+            'error': str(e)
+        }), 500

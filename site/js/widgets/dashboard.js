@@ -3506,17 +3506,22 @@ class Dashboard {
         }
         
         try {
-            const token = await this.getOAuthToken();
-            const response = await fetch('/api/user/credentials/disconnect', {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+            const userDid = this.data?.did;
+            if (!userDid) {
+                throw new Error('User DID not available');
+            }
+            
+            const response = await fetch(`/api/credentials/disconnect?user_did=${encodeURIComponent(userDid)}`, {
+                method: 'POST'
             });
             
             const data = await response.json();
             
-            if (!response.ok || !data.success) {
+            if (!response.ok || data.status !== 'success') {
                 throw new Error(data.error || 'Failed to disconnect');
             }
+            
+            alert('App password disconnected successfully');
             
             // Refresh the section
             await this.renderRolesCharacterSection();
@@ -5032,13 +5037,18 @@ class Dashboard {
         status.innerHTML = '<span style="color: #666;">Connecting...</span>';
         
         try {
-            const response = await fetch('/api/user/app-password', {
+            const userDid = this.data?.did;
+            if (!userDid) {
+                status.innerHTML = '<span style="color: #dc2626;">Error: User not authenticated</span>';
+                return;
+            }
+            
+            const response = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ app_password: password }),
-                credentials: 'include'
+                body: JSON.stringify({ app_password: password })
             });
             
             const data = await response.json();
@@ -5106,29 +5116,14 @@ class Dashboard {
         const encoder = new TextEncoder();
         const bytes = encoder.encode(text);
         
-        // Detect @mentions (simplified - doesn't validate DIDs)
-        const mentionRegex = /@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?/g;
-        let match;
-        
-        while ((match = mentionRegex.exec(text)) !== null) {
-            const handle = match[0].slice(1); // Remove @ prefix
-            const start = this.getByteOffset(text, match.index);
-            const end = this.getByteOffset(text, match.index + match[0].length);
-            
-            facets.push({
-                index: {
-                    byteStart: start,
-                    byteEnd: end
-                },
-                features: [{
-                    $type: 'app.bsky.richtext.facet#mention',
-                    did: `at://${handle}` // Placeholder - real implementation would resolve to DID
-                }]
-            });
-        }
+        // NOTE: Mentions (@handle) are not included because they require async DID resolution
+        // The backend courier system handles mention resolution properly for scheduled posts
+        // For immediate posts, users should use the full @handle.domain format which will be
+        // visible as plain text (Bluesky clients will auto-link them)
         
         // Detect URLs
         const urlRegex = /(https?:\/\/[^\s]+)/g;
+        let match;
         
         while ((match = urlRegex.exec(text)) !== null) {
             const url = match[0];
@@ -5254,10 +5249,10 @@ class Dashboard {
             
             // Check credentials
             try {
-                const credsCheck = await fetch(`/api/auth-status?did=${encodeURIComponent(userDid)}`);
+                const credsCheck = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
                 const credsData = await credsCheck.json();
                 
-                if (!credsData.has_valid_credentials) {
+                if (!credsData.has_credentials) {
                     console.log('⚠️ [Courier] No valid credentials, showing app password modal');
                     
                     // Show app password request modal
@@ -5929,78 +5924,86 @@ class Dashboard {
             
             if (isScheduling) {
                 // SCHEDULING PATH - requires app password
-                // Check if user has valid credentials before proceeding
-                try {
-                    const credsCheck = await fetch(`/api/auth-status?did=${encodeURIComponent(userDid)}`);
-                    const credsData = await credsCheck.json();
-                    
-                    if (!credsData.has_valid_credentials) {
-                        console.log('⚠️ [Compose] No valid credentials for scheduling, showing app password modal');
-                        console.log('⚠️ [Compose] window.appPasswordRequest exists:', !!window.appPasswordRequest);
-                        console.log('⚠️ [Compose] window.appPasswordRequest type:', typeof window.appPasswordRequest);
-                        console.log('⚠️ [Compose] AppPasswordRequest class exists:', !!window.AppPasswordRequest);
+                // Check if user has valid credentials before proceeding (unless just saved)
+                if (this._credentialsJustSaved) {
+                    console.log('✅ [Compose] Credentials just saved, skipping check');
+                    delete this._credentialsJustSaved;
+                } else {
+                    try {
+                        const credsCheck = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
+                        const credsData = await credsCheck.json();
                         
-                        // Show app password request modal
-                        if (window.appPasswordRequest) {
-                            console.log('✅ [Compose] Calling window.appPasswordRequest.show()');
-                            console.log('✅ [Compose] appPasswordRequest.show method exists:', !!window.appPasswordRequest.show);
-                            console.log('✅ [Compose] appPasswordRequest.show type:', typeof window.appPasswordRequest.show);
+                        if (!credsData.has_credentials) {
+                            console.log('⚠️ [Compose] No valid credentials for scheduling, showing app password modal');
+                            console.log('⚠️ [Compose] window.appPasswordRequest exists:', !!window.appPasswordRequest);
+                            console.log('⚠️ [Compose] window.appPasswordRequest type:', typeof window.appPasswordRequest);
+                            console.log('⚠️ [Compose] AppPasswordRequest class exists:', !!window.AppPasswordRequest);
                             
-                            try {
-                                window.appPasswordRequest.show({
-                                    title: 'Connect Your Account',
-                                    description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
-                                    featureName: 'courier scheduling'
-                                }, async (appPassword) => {
-                                    console.log('📝 [Compose] App password provided, saving...');
-                                    
-                                    // Save the app password
-                                    try {
-                                        const saveResponse = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ app_password: appPassword })
-                                        });
+                            // Show app password request modal
+                            if (window.appPasswordRequest) {
+                                console.log('✅ [Compose] Calling window.appPasswordRequest.show()');
+                                console.log('✅ [Compose] appPasswordRequest.show method exists:', !!window.appPasswordRequest.show);
+                                console.log('✅ [Compose] appPasswordRequest.show type:', typeof window.appPasswordRequest.show);
+                                
+                                try {
+                                    window.appPasswordRequest.show({
+                                        title: 'Connect Your Account',
+                                        description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
+                                        featureName: 'courier scheduling'
+                                    }, async (appPassword) => {
+                                        console.log('📝 [Compose] App password provided, saving...');
                                         
-                                        if (!saveResponse.ok) {
-                                            const errorData = await saveResponse.json();
-                                            throw new Error(errorData.error || 'Failed to save credentials');
+                                        // Save the app password
+                                        try {
+                                            const saveResponse = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ app_password: appPassword })
+                                            });
+                                            
+                                            if (!saveResponse.ok) {
+                                                const errorData = await saveResponse.json();
+                                                throw new Error(errorData.error || 'Failed to save credentials');
+                                            }
+                                            
+                                            console.log('✅ [Compose] Credentials saved, retrying schedule...');
+                                            window.appPasswordRequest.close();
+                                            
+                                            // Mark that credentials were just saved to skip check
+                                            this._credentialsJustSaved = true;
+                                            
+                                            // Retry the submit
+                                            this.submitCompose();
+                                        } catch (error) {
+                                            console.error('❌ [Compose] Failed to save credentials:', error);
+                                            alert(`Failed to save credentials: ${error.message}`);
+                                            submitBtn.disabled = false;
+                                            submitBtn.textContent = 'Schedule';
                                         }
-                                        
-                                        console.log('✅ [Compose] Credentials saved, retrying schedule...');
-                                        window.appPasswordRequest.close();
-                                        
-                                        // Retry the submit
-                                        this.submitCompose();
-                                    } catch (error) {
-                                        console.error('❌ [Compose] Failed to save credentials:', error);
-                                        alert(`Failed to save credentials: ${error.message}`);
-                                        submitBtn.disabled = false;
-                                        submitBtn.textContent = 'Schedule';
-                                    }
-                                });
-                                console.log('✅ [Compose] Modal show() called successfully');
-                            } catch (error) {
-                                console.error('❌ [Compose] Error calling modal.show():', error);
-                                console.error('❌ [Compose] Error stack:', error.stack);
-                                // Fallback to old dialog
+                                    });
+                                    console.log('✅ [Compose] Modal show() called successfully');
+                                } catch (error) {
+                                    console.error('❌ [Compose] Error calling modal.show():', error);
+                                    console.error('❌ [Compose] Error stack:', error.stack);
+                                    // Fallback to old dialog
+                                    this.showCredentialsRequiredDialog('schedule');
+                                    submitBtn.disabled = false;
+                                    submitBtn.textContent = 'Schedule';
+                                    return;
+                                }
+                            } else {
+                                // Fallback to old dialog if app password modal not loaded
                                 this.showCredentialsRequiredDialog('schedule');
-                                submitBtn.disabled = false;
-                                submitBtn.textContent = 'Schedule';
-                                return;
                             }
-                        } else {
-                            // Fallback to old dialog if app password modal not loaded
-                            this.showCredentialsRequiredDialog('schedule');
+                            
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Schedule';
+                            return;
                         }
-                        
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'Schedule';
-                        return;
+                    } catch (error) {
+                        console.error('❌ [Compose] Error checking credentials:', error);
+                        // Continue anyway - server will handle missing credentials
                     }
-                } catch (error) {
-                    console.error('❌ [Compose] Error checking credentials:', error);
-                    // Continue anyway - server will handle missing credentials
                 }
                 
                 // Note: Scheduling uses backend because it needs to store for later execution
@@ -6055,15 +6058,29 @@ class Dashboard {
                     return;
                 }
                 
+                // Prepare image data for scheduling
+                let imageData = null;
+                if (this.selectedImages && this.selectedImages.length > 0) {
+                    console.log('📷 [Compose] Preparing', this.selectedImages.length, 'images for scheduling');
+                    imageData = this.selectedImages.map(img => ({
+                        dataUrl: img.dataUrl,
+                        alt: img.alt || '',
+                        fileName: img.file?.name || 'image.jpg',
+                        mimeType: img.file?.type || 'image/jpeg'
+                    }));
+                }
+                
                 const payload = {
                     post_text: postText,
                     scheduled_for: scheduledFor,
-                    is_lore: isLore?.checked || false
+                    is_lore: isLore?.checked || false,
+                    post_images: imageData
                 };
                 
                 console.log('📬 [Compose] === SCHEDULING POST ===');
                 console.log('📬 [Compose] User DID:', userDid);
                 console.log('📬 [Compose] Has Token:', !!token);
+                console.log('📬 [Compose] Has Images:', !!imageData, imageData?.length || 0);
                 console.log('📬 [Compose] Payload:', payload);
                 console.log('📬 [Compose] URL:', `/api/courier/schedule?user_did=${encodeURIComponent(userDid)}`);
                 
@@ -6488,12 +6505,12 @@ class Dashboard {
         if (userDid) {
             console.log('📅 [Compose] Checking credentials for user:', userDid);
             try {
-                const credsCheck = await fetch(`/api/auth-status?did=${encodeURIComponent(userDid)}`);
+                const credsCheck = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
                 console.log('📅 [Compose] Credentials check response status:', credsCheck.status);
                 const credsData = await credsCheck.json();
                 console.log('📅 [Compose] Credentials data:', credsData);
                 
-                if (!credsData.has_valid_credentials) {
+                if (!credsData.has_credentials) {
                     console.log('⚠️ [Compose] No valid credentials, showing app password modal');
                     
                     // Show app password request modal
@@ -6894,12 +6911,13 @@ class Dashboard {
             const userDid = window.oauthManager?.currentSession?.did;
             if (!userDid) return;
             
-            const response = await fetch(`/api/auth-status?did=${encodeURIComponent(userDid)}`);
+            const response = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
             if (!response.ok) return;
             
             const data = await response.json();
             
-            if (data.has_invalid_credentials && data.failed_posts_count > 0) {
+            // Check if credentials are invalid (not present or explicitly invalid)
+            if (!data.has_credentials && data.failed_posts_count > 0) {
                 // Show blocking modal immediately
                 this.showAuthFailureModal(data);
             }

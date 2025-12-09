@@ -1,17 +1,25 @@
 """
 Shared pytest fixtures for Reverie House test suite
+
+CRITICAL SAFETY NOTE:
+- These tests currently connect to PRODUCTION database
+- Use mocked fixtures for unit tests to avoid data corruption
+- Only run integration tests in isolated test environment
 """
 import pytest
 import os
 import sys
 from typing import Generator
+from unittest.mock import Mock, MagicMock
 
-# Set test environment variables before imports
-# When running in Docker container, use container hostname
-# When running on host, use IP address since network_mode: host is used
+# SAFETY: Mark that we're in test mode
+os.environ['PYTEST_RUNNING'] = '1'
+
+# SAFE: Use test database by default
+# Override with POSTGRES_DB=reverie_house for integration tests only
 os.environ.setdefault('POSTGRES_HOST', '172.23.0.3')  # PostgreSQL container IP
 os.environ.setdefault('POSTGRES_PORT', '5432')
-os.environ.setdefault('POSTGRES_DB', 'reverie_house')
+os.environ.setdefault('POSTGRES_DB', 'reverie_test')  # TEST DATABASE
 os.environ.setdefault('POSTGRES_USER', 'reverie')
 
 # Read password from secrets file
@@ -148,6 +156,62 @@ def valid_session_token() -> str:
     """
     # Return a placeholder token for tests that need it
     # Real tests should authenticate against the Docker service
+
+
+@pytest.fixture
+def mock_db():
+    """
+    Provide a mocked database for UNIT tests.
+    Use this fixture to avoid touching production database.
+    
+    Usage:
+        def test_something(mock_db):
+            mock_db.fetch_one.return_value = {'id': 1, 'name': 'test'}
+            # Your test code here
+    """
+    mock = MagicMock()
+    
+    # Set up common mock return values
+    mock.fetch_one.return_value = None
+    mock.fetch_all.return_value = []
+    mock.execute.return_value = Mock(rowcount=0)
+    
+    # Mock connection context manager
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_cursor.fetchall.return_value = []
+    mock_conn.cursor.return_value = mock_cursor
+    mock.get_connection.return_value.__enter__.return_value = mock_conn
+    mock.get_connection.return_value.__exit__.return_value = None
+    
+    return mock
+
+
+@pytest.fixture
+def mock_pds_client():
+    """
+    Provide a mocked AT Protocol PDS client.
+    Use for tests that would otherwise make real network calls.
+    """
+    mock = MagicMock()
+    
+    # Common PDS responses
+    mock.com.atproto.repo.uploadBlob.return_value = {
+        'blob': {
+            '$type': 'blob',
+            'ref': {'$link': 'bafytest123'},
+            'mimeType': 'image/jpeg',
+            'size': 12345
+        }
+    }
+    
+    mock.com.atproto.repo.createRecord.return_value = {
+        'uri': 'at://did:plc:test/app.bsky.feed.post/test123',
+        'cid': 'bafytest456'
+    }
+    
+    return mock
     return 'test_token_placeholder'
 
 
