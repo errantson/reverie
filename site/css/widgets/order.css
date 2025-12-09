@@ -2,7 +2,7 @@
 :root {
     --order-header-offset: var(--header-height, 60px);
     --order-vertical-padding: clamp(20px, 3vh, 40px);
-    --order-container-max-width: 800px;
+    --order-container-max-width: 760px;
     --order-container-gap: clamp(8px, 1.5vh, 12px);
 }
 
@@ -78,7 +78,7 @@
     margin-bottom: 0;
 }
 .order-row-flex .price-breakdown {
-    flex: 0 0 280px;
+    flex: 0 0 270px;
     margin-bottom: 0;
 }
 
@@ -163,8 +163,8 @@
 /* Row 1: Hero Cover + Title/Synopsis */
 .order-row-1 {
     display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 20px;
+    grid-template-columns: 280px 1fr;
+    gap: 18px;
     align-items: stretch;
 }
 
@@ -248,9 +248,10 @@
 .book-info-grid {
     display: grid;
     grid-template-columns: auto 1fr auto 1fr;
-    gap: 8px 16px;
-    margin-bottom: 12px;
-    font-size: 0.85rem;
+    gap: 2px 8px;
+    margin-bottom: 0;
+    font-size: 0.65rem;
+    line-height: 1.2;
 }
 
 .info-label {
@@ -263,10 +264,160 @@
     color: #333;
 }
 
+/* Book Info Carousel */
+.book-info-carousel-container {
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.book-info-carousel {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    min-height: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel-rotate-btn {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    background: rgba(115, 75, 161, 0.9);
+    color: white;
+    border: none;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    z-index: 20;
+}
+
+.carousel-rotate-btn:hover {
+    background: rgba(115, 75, 161, 1);
+    transform: scale(1.1);
+}
+
+.carousel-rotate-btn:active {
+    transform: scale(0.95);
+}
+
+.carousel-slide {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+}
+
+.carousel-slide.active {
+    opacity: 1;
+    visibility: visible;
+    position: relative;
+}
+
+.carousel-slide .book-info-grid {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.patronage-message {
+    text-align: center;
+    color: #1a1a2e;
+    max-width: 600px;
+    padding: 0 8px;
+}
+
+.patronage-message p {
+    margin: 0 0 4px 0;
+    font-size: 0.65rem;
+    line-height: 1.25;
+}
+
+.patronage-message p:last-child {
+    margin-bottom: 0;
+}
+
+.patronage-message a {
+    color: #734ba1;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.patronage-message a:hover {
+    text-decoration: underline;
+}
+
+
+
+.carousel-indicators {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 20;
+}
+
+.carousel-indicators .indicator {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    border: 2px solid rgba(115, 75, 161, 0.5);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.carousel-indicators .indicator.active {
+    background: rgba(115, 75, 161, 1);
+    border-color: rgba(115, 75, 161, 1);
+}
+
+.carousel-indicators .indicator:hover {
+    border-color: rgba(115, 75, 161, 1);
+}
+
+@media (max-width: 768px) {
+    .book-info-carousel {
+        min-height: 110px;
+        height: 110px;
+    }
+    
+    .carousel-slide {
+        padding: 6px;
+    }
+    
+    .carousel-rotate-btn {
+        width: 18px;
+        height: 18px;
+        font-size: 13px;
+    }
+    
+    .patronage-message p {
+        font-size: 0.6rem;
+    }
+}
+
 .kindle-btn {
     width: 100%;
-    padding: 14px 20px;
-    font-size: 0.95rem;
+    padding: 14px 16px;
+    font-size: 0.9rem;
     font-weight: 600;
     background: #232f3e;
     color: white;
@@ -318,7 +469,7 @@
 /* Event row styles from database.html/profile.css */
 .row-entry {
     border-left: 4px solid transparent;
-    padding: 10px;
+    padding: 6px;
     margin: 0;
     display: flex;
     justify-content: flex-start;
@@ -395,7 +546,7 @@
     text-align: center;
     justify-content: center;
     opacity: 0.7;
-    color: inherit;
+    color: #888;
 }
 
 .cell.avatar {
@@ -423,18 +574,41 @@
 
 .dreamer-name {
     font-weight: 600;
-    color: inherit;
+    color: #888 !important;
     text-decoration: none;
 }
 
 .dreamer-name:hover {
     text-decoration: underline;
+    color: #666 !important;
 }
 
 .event-text {
     font-style: italic;
-    color: inherit;
+    color: #888;
     opacity: 0.9;
+}
+
+/* Pending row (user entry) - use user color */
+#user-entry .cell.epoch {
+    color: var(--canon-color) !important;
+    opacity: 1;
+    font-weight: 600;
+}
+
+#user-entry .dreamer-name {
+    color: var(--canon-color) !important;
+    font-weight: 700;
+}
+
+#user-entry .dreamer-name:hover {
+    color: var(--canon-color) !important;
+    opacity: 0.8;
+}
+
+#user-entry .event-text {
+    color: var(--canon-color) !important;
+    opacity: 0.85;
 }
 
 /* ============================================
@@ -915,10 +1089,10 @@
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0) translateY(-2px) rotate(0deg); }
-    25% { transform: translateX(-2px) translateY(-3px) rotate(-0.8deg); }
-    50% { transform: translateX(0) translateY(-2.5px) rotate(0deg); }
-    75% { transform: translateX(2px) translateY(-3px) rotate(0.8deg); }
+    0%, 100% { transform: translateX(0) translateY(-1px) rotate(0deg); }
+    25% { transform: translateX(-1px) translateY(-1.5px) rotate(-0.3deg); }
+    50% { transform: translateX(0) translateY(-1px) rotate(0deg); }
+    75% { transform: translateX(1px) translateY(-1.5px) rotate(0.3deg); }
 }
 
 @keyframes colorFlow {
@@ -1006,8 +1180,8 @@
 }
 
 .quantity-slider {
-    width: calc(100% - 20px);
-    margin: 0 10px;
+    width: calc(100% - 16px);
+    margin: 0 8px;
     height: 12px;
     -webkit-appearance: none;
     appearance: none;

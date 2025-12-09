@@ -4,7 +4,22 @@
  */
 
 class OrderWidget {
-    constructor() {
+    constructor(bookData = null) {
+        // Constants for magic numbers
+        this.ANIMATION_DURATION = 300;
+        this.CONFETTI_PARTICLE_COUNT = 40;
+        this.CONFETTI_VELOCITY = 150;
+        this.CONFETTI_ROTATION = 720;
+        this.SLIDER_TILT_MAX = 15;
+        this.GRAVITY = 0.25;
+        this.OPACITY_DECAY = 0.018;
+        this.ANIMATION_EASE_MULTIPLIER = {
+            high: 0.08,
+            medium: 0.18,
+            low: 0.25,
+            veryLow: 0.22
+        };
+        
         this.unitPrice = 14.99;
         this.quantity = 1;
         this.quantityOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 50, 75, 100];
@@ -16,12 +31,18 @@ class OrderWidget {
         this.lastSliderValue = 0;
         this.sliderVelocity = 0;
         
-        this.bookData = {
+        // Cache for RGB values to avoid recalculation
+        this.userColorCache = new Map();
+        
+        // Live clock interval
+        this.clockInterval = null;
+        
+        this.bookData = bookData || {
             title: "Seeker's Reverie",
             author: "errantson",
             authorDid: "errantson",
             coverImage: "/books/seeker/seekers_reverie.png",
-            synopsis: "After falling from his nightmare into the place between dreams, a dreamer finds our wild mindscape and Reverie House.<br><br>When an unending nightmare threatens to consume this strange new home, Seeker must quickly master the art of dreamweaving before everything is lost to oblivion.",
+            synopsis: "After falling from his nightmare into the place between dreams, our lost dreamer finds our wild mindscape and Reverie House.<br><br>When an unending nightmare threatens to consume this strange new home, Seeker must quickly master the art of dreamweaving before everything is lost to oblivion.",
             stats: {
                 genre: "Fantasy",
                 length: "155 pages",
@@ -34,6 +55,8 @@ class OrderWidget {
             readOnlineUrl: "/books/seeker/00",
             epubUrl: "/books/seeker/seekers_reverie.epub"
         };
+        
+        this.isProcessingOrder = false;
     }
 
     init() {
@@ -42,9 +65,9 @@ class OrderWidget {
         this.handleUrlParams();
         
         // Listen for OAuth events
-        window.addEventListener('oauth:login', () => this.updateCanonPreview());
-        window.addEventListener('oauth:logout', () => this.updateCanonPreview());
-        window.addEventListener('oauth:profile-loaded', () => this.updateCanonPreview());
+        window.addEventListener('oauth:login', () => this.updateOrderHistory());
+        window.addEventListener('oauth:logout', () => this.updateOrderHistory());
+        window.addEventListener('oauth:profile-loaded', () => this.updateOrderHistory());
     }
 
     handleUrlParams() {
@@ -61,100 +84,86 @@ class OrderWidget {
         if (!container) return;
 
         container.innerHTML = `
-            <!-- Order Section (desktop: book widget left, order form right) -->
             <div class="order-section">
-                <div class="order-content">
-                    <!-- Content Row: left book widget + right order form -->
-                    <div class="order-content-row">
-                        <div class="order-left">
-                            ${this.renderBookWidget()}
-                        </div>
-                        <div class="order-right">
-                            ${this.renderOrderForm()}
-                        </div>
+                <div class="order-container">
+                    <div class="order-row-1">
+                        ${this.renderHeroCover()}
+                        ${this.renderTitleSynopsis()}
                     </div>
+                    
+                    ${this.renderInteractiveSection()}
                 </div>
             </div>
         `;
 
         this.renderSliderNotches();
-        this.updateCanonPreview();
-        this.handleMobileSynopsis();
-    }
-
-    handleMobileSynopsis() {
-        const synopsisEl = document.querySelector('.order-synopsis');
-        if (!synopsisEl) return;
-
-        const updateSynopsis = () => {
-            const fullText = synopsisEl.getAttribute('data-full-text');
-            if (window.innerWidth <= 768) {
-                // Show only first paragraph on mobile
-                const firstPara = fullText.split('<br><br>')[0];
-                synopsisEl.innerHTML = firstPara;
-            } else {
-                // Show full text on desktop
-                synopsisEl.innerHTML = fullText;
-            }
-        };
-
-        updateSynopsis();
-        window.addEventListener('resize', updateSynopsis);
-    }
-
-    renderBookWidget() {
-        const { title, coverImage, stats } = this.bookData;
+        this.updateOrderHistory();
+        this.loadRecentOrders();
         
+        // Enable the order button on initial render
+        this.updatePriceDisplay();
+    }
+
+    renderHeroCover() {
+        const { title, coverImage } = this.bookData;
         return `
-            <div class="book-widget">
-                <!-- Cover Art -->
-                <div class="book-cover-container">
-                    <img src="${coverImage}" 
-                         alt="${title}" 
-                         class="book-cover">
-                </div>
-                
-                <!-- Book Stats -->
-                <div class="book-stats">
-                    <div class="stat-item"><b>Genre:</b> ${stats.genre}</div>
-                    <div class="stat-item"><b>Length:</b> ${stats.length}</div>
-                    <div class="stat-item"><b>Author:</b> <a href="/dreamer?did=${this.bookData.authorDid}" onclick="event.stopPropagation()">${this.bookData.author}</a></div>
-                    <div class="stat-item"><b>Ages:</b> ${stats.ages}</div>
-                    <div class="stat-item"><b>Binding:</b> ${stats.binding}</div>
-                    <div class="stat-item"><b>Published:</b> ${stats.published}</div>
-                    <div class="stat-item"><b>ASIN:</b> <span class="small-text">${stats.asin}</span></div>
-                    <div class="stat-item"><b>ISBN:</b> <span class="small-text">${stats.isbn}</span></div>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="action-buttons-container">
-                    <button class="read-online-btn" onclick="event.stopPropagation(); orderWidget.handleReadOnline()">Read Online Now</button>
-                    <button class="download-epub-btn" onclick="event.stopPropagation(); orderWidget.handleDownloadEpub()">Download ePub</button>
-                    <button class="kindle-button" onclick="event.stopPropagation(); orderWidget.handleKindleClick()">Read on Kindle</button>
-                </div>
+            <div class="hero-cover">
+                <img src="${coverImage}" 
+                     alt="${title}" 
+                     class="hero-cover-img">
+                <button class="kindle-btn" onclick="orderWidget.handleKindleClick()">Read on Kindle</button>
             </div>
         `;
     }
-
-    renderOrderForm() {
+    
+    renderTitleSynopsis() {
+        const { title, author, synopsis, authorDid, stats } = this.bookData;
+        const formattedSynopsis = synopsis.replace(/\n\n/g, '</p><p>');
         return `
-            <div class="order-form">
-                <!-- Compact Cover (left) + Synopsis (right) inside a boxed container -->
-                <div class="compact-box">
-                    <div class="cover-description-row compact">
-                        <div class="cover-art-small">
-                            <img src="${this.bookData.coverImage}" 
-                                 alt="${this.bookData.title}" 
-                                 class="order-cover-small">
+            <div class="title-synopsis">
+                <div class="order-main-synopsis">
+                    <h1 class="order-main-title">${title}</h1>
+                    <div class="order-author">by <a href="/dreamer?did=${authorDid}">${author}</a></div>
+                    <div class="synopsis-text"><p>${formattedSynopsis}</p></div>
+                </div>
+                
+                <div class="book-info-carousel-container">
+                    <div class="book-info-carousel">
+                        <div class="carousel-slide active" data-slide="0">
+                            <div class="book-info-grid">
+                                <span class="info-label">Author:</span><span>${author}</span>
+                                <span class="info-label">Genre:</span><span>${stats.genre}</span>
+                                <span class="info-label">Binding:</span><span>${stats.binding}</span>
+                                <span class="info-label">Length:</span><span>${stats.length}</span>
+                                <span class="info-label">Published:</span><span>${stats.published}</span>
+                                <span class="info-label">Ages:</span><span>${stats.ages}</span>
+                                <span class="info-label">ISBN:</span><span>${stats.isbn}</span>
+                                <span class="info-label">ASIN:</span><span>${stats.asin}</span>
+                            </div>
                         </div>
-                        <div class="description-column">
-                            <h2 class="order-title">${this.bookData.title}</h2>
-                            <div class="order-synopsis" data-full-text="${this.bookData.synopsis.replace(/"/g, '&quot;')}">${this.bookData.synopsis}</div>
+                        
+                        <div class="carousel-slide" data-slide="1">
+                            <div class="patronage-message">
+                                <p>Readers, scholars, and vendors support Reverie House by ordering books for their favourite shops, clubs, and people directly from our press.</p>
+                                <p>We recognize and appreciate the value of your patronage.</p>
+                                <p>Please contact <a href="mailto:books@reverie.house">books@reverie.house</a> for any special requests.</p>
+                            </div>
+                        </div>
+                        
+                        <button class="carousel-rotate-btn" onclick="orderWidget.nextSlide()" aria-label="Next slide">›</button>
+                        
+                        <div class="carousel-indicators">
+                            <button class="indicator active" onclick="orderWidget.goToSlide(0)" aria-label="Slide 1"></button>
+                            <button class="indicator" onclick="orderWidget.goToSlide(1)" aria-label="Slide 2"></button>
                         </div>
                     </div>
                 </div>
-                <!-- Quantity Slider -->
+                
                 <div class="quantity-section">
+                    <div class="shipping-notice-header">
+                        <div class="edition-text">First Print Edition</div>
+                        <div class="shipping-text">FREE WORLDWIDE SHIPPING</div>
+                    </div>
                     <label for="quantity-slider" class="quantity-label">
                         <span id="quantity-display">1</span> 
                         <span id="copies-label">Copy</span>
@@ -166,31 +175,26 @@ class OrderWidget {
                                min="0" 
                                max="${this.quantityOptions.length - 1}" 
                                value="0" 
-                               step="1">
+                               step="1"
+                               aria-label="Select quantity of books to order"
+                               aria-valuemin="1"
+                               aria-valuemax="${this.quantityOptions[this.quantityOptions.length - 1]}"
+                               aria-valuenow="1"
+                               role="slider">
                         <div class="slider-notches" id="slider-notches"></div>
                     </div>
                 </div>
-                <!-- Realizes & Price Row -->
+            </div>
+        `;
+    }
+
+    renderInteractiveSection() {
+        return `
+            <div class="order-row-2">
                 <div class="order-row-flex">
-                    <div class="canon-preview" id="canon-preview">
-                        <div class="canon-header">
-                            <img id="canon-avatar" src="" alt="" class="canon-avatar">
-                            <div class="canon-info">
-                                <div id="canon-handle" class="canon-handle">@username</div>
-                                <div class="canon-text">
-                                    <span id="canon-name" class="canon-name">Name</span> realizes 
-                                    <span id="canon-quantity">1</span> 
-                                    <span id="canon-copies">book</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="canon-notice" class="canon-notice">
-                            Your support will be noted in the public canon.
-                        </div>
-                        <label class="canon-checkbox">
-                            <input type="checkbox" id="anonymize-order">
-                            <span id="anonymize-label">Make my order anonymous</span>
-                        </label>
+                    <div class="order-history-preview" id="order-history-preview">
+                        <div class="order-history-user-entry" id="user-entry"></div>
+                        <div class="order-history-recent" id="recent-history"></div>
                     </div>
                     <div class="price-breakdown">
                         <div class="price-row">
@@ -205,62 +209,81 @@ class OrderWidget {
                             <span class="price-label">Total:</span>
                             <span class="price-value" id="total-price">$${this.unitPrice.toFixed(2)} USD</span>
                         </div>
+                        <div class="price-row price-row-actions">
+                            <label class="canon-checkbox">
+                                <input type="checkbox" id="anonymize-order">
+                                <span id="anonymize-label">Make me anonymous</span>
+                            </label>
+                            <button id="order-btn" class="order-btn-integrated" aria-label="Order books">
+                                <span class="order-btn-text">Order Books</span>
+                                <span class="order-btn-loading" style="display: none;">Processing...</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <!-- Shipping Notice -->
-                <div class="shipping-notice">FREE WORLDWIDE SHIPPING</div>
-                <!-- Order Button -->
-                <button id="order-btn" class="order-btn">ORDER BOOKS</button>
-                <!-- CC0 Notice -->
-                <div class="cc0-notice-order">
-                    All prior editions of texts by ${this.bookData.author} are dedicated to you through 
-                    <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0 1.0</a> 
-                    universal license. You may freely adapt or utilize these texts for commercial and/or 
-                    non-commercial purposes. Authorial attribution to 
-                    <a href="https://reverie.house">reverie.house</a> is appreciated.
                 </div>
             </div>
         `;
     }
-
-    renderPrincesSection() {
-        return `
-            <div class="princes-section">
-                <div class="princes-container">
-                    <div class="princes-content">
-                        <img src="/books/princes/princes_reverie.png" 
-                             alt="Prince's Reverie" 
-                             class="princes-cover"
-                             onclick="orderWidget.handlePrincesCoverClick()">
-                        
-                        <div class="princes-info">
-                            <h3 class="princes-title">Prince's Reverie</h3>
-                            <div class="princes-synopsis">
-                                An enchanting prince with absolute power over his own reality discovers 
-                                a way into our wild mindscape.<br><br>
-                                What dreams and dreamweavers survive must contend.
-                            </div>
-                        </div>
-                        
-                        <div class="princes-request">
-                            <p class="request-label">Advanced Readers</p>
-                            <div class="request-form">
-                                <input type="text" 
-                                       id="request-name" 
-                                       placeholder="Your name"
-                                       class="request-input">
-                                <input type="email" 
-                                       id="request-email" 
-                                       placeholder="your@email.com"
-                                       class="request-input">
-                                <button id="request-btn" class="request-btn">Request Copy</button>
-                            </div>
-                            <div id="request-message" class="request-message"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+    
+    async loadRecentOrders() {
+        const container = document.getElementById('recent-history');
+        const fullContainer = document.getElementById('recent-orders');
+        
+        try {
+            const response = await fetch('/api/canon');
+            if (!response.ok) throw new Error('Failed to load canon');
+            
+            const canon = await response.json();
+            
+            // Filter for all seeker (book order) events - max 4 recent (user entry will make 5 total)
+            const bookOrders = canon.filter(e => 
+                e.key === 'seeker'
+            ).slice(0, 4);
+            
+            // Get user color or default
+            const session = window.oauthManager?.getSession();
+            const userColor = session?.color || '#734ba1';
+            
+            // Import and use event renderer for both containers
+            const { renderEventRows } = await import('/js/utils/event-renderer.js');
+            
+            // Render in history preview (left side, compact)
+            if (container && bookOrders.length > 0) {
+                const eventsHTML = renderEventRows(bookOrders, {
+                    colorHex: userColor,
+                    showAvatar: true,
+                    showKey: false,
+                    showUri: false,
+                    showType: false
+                });
+                container.innerHTML = eventsHTML;
+            }
+            
+            // Render in full list (bottom right)
+            if (fullContainer) {
+                if (bookOrders.length === 0) {
+                    fullContainer.innerHTML = '<div class=\"recent-orders-empty\">No orders yet. Be the first!</div>';
+                } else {
+                    const eventsHTML = renderEventRows(bookOrders, {
+                        colorHex: userColor,
+                        showAvatar: true,
+                        showKey: false,
+                        showUri: false,
+                        showType: false
+                    });
+                    
+                    fullContainer.innerHTML = `
+                        <h3 class=\"recent-orders-title\">📚 Recent Support</h3>
+                        <div class=\"recent-orders-list\">${eventsHTML}</div>
+                    `;
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error loading recent orders:', error);
+            if (container) container.innerHTML = '';
+            if (fullContainer) fullContainer.innerHTML = '<div class=\"recent-orders-error\">Unable to load recent orders</div>';
+        }
     }
 
     renderSliderNotches() {
@@ -286,28 +309,19 @@ class OrderWidget {
         // Order button
         const orderBtn = document.getElementById('order-btn');
         if (orderBtn) {
-            orderBtn.addEventListener('click', () => this.handleOrderClick());
+            orderBtn.addEventListener('click', (e) => {
+                if (this.isProcessingOrder) return;
+                this.setOrderLoading(true);
+                this.triggerConfetti(orderBtn);
+                setTimeout(() => this.handleOrderClick(), this.ANIMATION_DURATION);
+            });
             orderBtn.addEventListener('mouseenter', () => this.snapToFinalPrice());
         }
 
         // Anonymize checkbox
         const checkbox = document.getElementById('anonymize-order');
         if (checkbox) {
-            checkbox.addEventListener('change', () => this.updateCanonPreview());
-        }
-
-        // Request copy button
-        const requestBtn = document.getElementById('request-btn');
-        if (requestBtn) {
-            requestBtn.addEventListener('click', () => this.handleRequestCopy());
-        }
-
-        // Enter key on email input
-        const emailInput = document.getElementById('request-email');
-        if (emailInput) {
-            emailInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.handleRequestCopy();
-            });
+            checkbox.addEventListener('change', () => this.updateOrderHistory());
         }
     }
 
@@ -315,22 +329,25 @@ class OrderWidget {
         this.currentSliderIndex = parseInt(e.target.value);
         this.quantity = this.quantityOptions[this.currentSliderIndex];
         
+        // Update ARIA attributes for accessibility
+        e.target.setAttribute('aria-valuenow', this.quantity);
+        
         // Calculate tilt for knob animation
         this.sliderVelocity = this.currentSliderIndex - this.lastSliderValue;
         this.lastSliderValue = this.currentSliderIndex;
-        const tilt = Math.max(-15, Math.min(15, this.sliderVelocity * 8));
+        const tilt = Math.max(-this.SLIDER_TILT_MAX, Math.min(this.SLIDER_TILT_MAX, this.sliderVelocity * 8));
         e.target.style.setProperty('--slider-tilt', `${tilt}deg`);
         
         // Reset tilt
         setTimeout(() => {
             this.sliderVelocity *= 0.5;
-            const settleTilt = Math.max(-15, Math.min(15, this.sliderVelocity * 8));
+            const settleTilt = Math.max(-this.SLIDER_TILT_MAX, Math.min(this.SLIDER_TILT_MAX, this.sliderVelocity * 8));
             e.target.style.setProperty('--slider-tilt', `${settleTilt}deg`);
             setTimeout(() => e.target.style.setProperty('--slider-tilt', '0deg'), 100);
         }, 50);
 
         this.updatePriceDisplay();
-        this.updateCanonPreview();
+        this.updateOrderHistory();
     }
 
     updatePriceDisplay() {
@@ -338,29 +355,36 @@ class OrderWidget {
         const copiesLabel = document.getElementById('copies-label');
         const quantityValue = document.getElementById('quantity-value');
         const totalPrice = document.getElementById('total-price');
-
-        if (quantityDisplay) {
-            quantityDisplay.textContent = this.quantity;
-            quantityDisplay.classList.remove('quantity-bump');
-            void quantityDisplay.offsetWidth;
-            quantityDisplay.classList.add('quantity-bump');
-        }
-
-        if (copiesLabel) {
-            copiesLabel.textContent = this.quantity === 1 ? 'Copy' : 'Copies';
-            copiesLabel.classList.remove('quantity-bump');
-            void copiesLabel.offsetWidth;
-            copiesLabel.classList.add('quantity-bump');
-        }
-
-        if (quantityValue) {
-            quantityValue.textContent = this.quantity;
-        }
-
+        const orderBtn = document.getElementById('order-btn');
+        
+        if (quantityDisplay) quantityDisplay.textContent = this.quantity;
+        if (copiesLabel) copiesLabel.textContent = this.quantity === 1 ? 'Copy' : 'Copies';
+        if (quantityValue) quantityValue.textContent = this.quantity;
+        
+        // Animate total price
+        this.targetTotal = this.quantity * this.unitPrice;
         if (totalPrice) {
-            this.targetTotal = this.quantity * this.unitPrice;
             this.animatePrice(totalPrice);
         }
+        
+        // Enable order button
+        if (orderBtn) {
+            orderBtn.disabled = false;
+        }
+    }
+
+    setOrderLoading(loading) {
+        this.isProcessingOrder = loading;
+        const orderBtn = document.getElementById('order-btn');
+        const btnText = orderBtn?.querySelector('.order-btn-text');
+        const loadingText = orderBtn?.querySelector('.order-btn-loading');
+        
+        if (orderBtn) {
+            orderBtn.disabled = loading;
+            orderBtn.setAttribute('aria-disabled', loading.toString());
+        }
+        if (btnText) btnText.style.display = loading ? 'none' : 'inline';
+        if (loadingText) loadingText.style.display = loading ? 'inline' : 'none';
     }
 
     animatePrice(element) {
@@ -375,13 +399,12 @@ class OrderWidget {
             const diff = this.targetTotal - this.animatedTotal;
             const distance = Math.abs(diff);
             
-            let easeMultiplier = distance > 100 ? 0.08 :
-                               distance > 50 ? 0.18 :
-                               distance > 20 ? 0.25 :
-                               distance > 10 ? 0.22 :
-                               distance > 5 ? 0.18 :
-                               distance > 2 ? 0.14 :
-                               distance > 0.25 ? 0.10 : 0.05;
+            let easeMultiplier = distance > 100 ? this.ANIMATION_EASE_MULTIPLIER.high :
+                               distance > 50 ? this.ANIMATION_EASE_MULTIPLIER.medium :
+                               distance > 20 ? this.ANIMATION_EASE_MULTIPLIER.low :
+                               distance > 10 ? this.ANIMATION_EASE_MULTIPLIER.veryLow :
+                               distance > 5 ? this.ANIMATION_EASE_MULTIPLIER.veryLow :
+                               distance > 2 ? 0.14 : 0.05;
 
             if (Math.abs(diff) < 0.01) {
                 this.animatedTotal = this.targetTotal;
@@ -412,90 +435,112 @@ class OrderWidget {
         }
     }
 
-    updateCanonPreview() {
+    updateOrderHistory() {
+        const userEntryContainer = document.getElementById('user-entry');
+        if (!userEntryContainer) return;
+
         const session = window.oauthManager?.getSession();
         const checkbox = document.getElementById('anonymize-order');
         const isAnonymous = !session || checkbox?.checked;
 
-        // Update avatar
-        const avatar = document.getElementById('canon-avatar');
-        if (avatar) {
-            avatar.src = isAnonymous ? '/assets/icon_face.png' : (session?.avatar || '/assets/icon_face.png');
-            avatar.alt = isAnonymous ? 'Anonymous' : (session?.displayName || 'Dreamer');
-        }
+        // When anonymous, show as dreamer.reverie.house
+        const dreamerDid = 'did:plc:zdxbourfcbv66iq2xfpb233q';
+        const dreamerAvatar = 'https://cdn.bsky.app/img/avatar/plain/did:plc:zdxbourfcbv66iq2xfpb233q/bafkreihoe46uedehpa2ngkmvku72giztmsqac4fblx5bklxwngfczdzrzm@jpeg';
+        const dreamerColor = '#BE8F8F';
 
-        // Update handle
-        const handle = document.getElementById('canon-handle');
-        if (handle) {
-            handle.textContent = '@' + (isAnonymous ? 'reverie.house' : (session?.handle || 'dreamer'));
+        // Get user details - use dreamer.reverie.house when anonymous
+        const userColor = isAnonymous ? dreamerColor : (session?.color || '#734ba1');
+        const avatar = isAnonymous ? dreamerAvatar : (session?.avatar || '/assets/icon_face.png');
+        const name = isAnonymous ? 'dreamer' : (session?.name || session?.handle || 'Dreamer');
+        const did = isAnonymous ? dreamerDid : (session?.did || '');
+        
+        // Format quantity text
+        const numberWords = {
+            1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
+            15: 'fifteen', 20: 'twenty', 25: 'twenty five',
+            50: 'fifty', 75: 'seventy five', 100: 'one hundred'
+        };
+        const quantityText = numberWords[this.quantity] || this.quantity;
+        const copiesText = this.quantity === 1 ? 'book' : 'books';
+        
+        // Cache RGB calculation
+        let rgbValues = this.userColorCache.get(userColor);
+        if (!rgbValues) {
+            const r = parseInt(userColor.substr(1, 2), 16);
+            const g = parseInt(userColor.substr(3, 2), 16);
+            const b = parseInt(userColor.substr(5, 2), 16);
+            rgbValues = { r, g, b };
+            this.userColorCache.set(userColor, rgbValues);
         }
-
-        // Update name
-        const name = document.getElementById('canon-name');
-        if (name) {
-            name.textContent = isAnonymous ? 'a dreamer' : (session?.displayName || session?.handle || 'Dreamer');
-        }
-
-        // Update quantity text
-        const quantitySpan = document.getElementById('canon-quantity');
-        const copiesSpan = document.getElementById('canon-copies');
-        if (quantitySpan && copiesSpan) {
-            const numberWords = {
-                1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
-                6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
-                15: 'fifteen', 20: 'twenty', 25: 'twenty five',
-                50: 'fifty', 75: 'seventy five', 100: 'one hundred'
-            };
-            quantitySpan.textContent = numberWords[this.quantity] || this.quantity;
-            copiesSpan.textContent = this.quantity === 1 ? 'book' : 'books';
-        }
-
-        // Update notice
-        const notice = document.getElementById('canon-notice');
-        if (notice) {
-            notice.textContent = isAnonymous 
-                ? 'Anonymous support will be noted in the public canon.'
-                : 'Your support will be noted in the public canon.';
-            notice.style.color = isAnonymous ? '#777' : '#555';
-        }
-
-        // Update checkbox label
-        const label = document.getElementById('anonymize-label');
-        if (label && !session) {
-            label.textContent = 'Anonymous';
-        }
-
-        // Show login link if not logged in
+        const { r, g, b } = rgbValues;
+        
+        // Format current time and date to match epoch format (DD/MM/YY HH:MM)
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = String(now.getFullYear()).slice(-2);
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const formattedTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+        
+        // Create the user's theoretical entry
+        const userEntry = `
+            <div class="row-entry canon-row" style="--canon-color: ${userColor}; --canon-color-rgb: ${r}, ${g}, ${b};">
+                <div class="cell epoch" id="live-epoch">${formattedTime}</div>
+                <div class="cell avatar">
+                    <img src="${avatar}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">
+                </div>
+                <div class="cell canon">
+                    ${did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-name">${name}</a>` : `<span class="dreamer-name">${name}</span>`}
+                    <span class="event-text">realizes ${quantityText} ${copiesText}</span>
+                </div>
+            </div>
+        `;
+        
+        userEntryContainer.innerHTML = userEntry;
+        
+        // Start live clock update
+        this.startLiveClock();
+        
+        // Update checkbox state
         if (!session && checkbox) {
             checkbox.checked = true;
             checkbox.disabled = true;
             checkbox.style.opacity = '0.5';
-            
-            const checkboxLabel = checkbox.closest('.canon-checkbox');
-            if (checkboxLabel && !checkboxLabel.querySelector('.login-link')) {
-                const loginLink = document.createElement('a');
-                loginLink.className = 'login-link';
-                loginLink.href = '#';
-                loginLink.textContent = 'Login';
-                loginLink.onclick = (e) => {
-                    e.preventDefault();
-                    if (window.LoginWidget) new LoginWidget();
-                };
-                checkboxLabel.style.display = 'flex';
-                checkboxLabel.style.justifyContent = 'space-between';
-                checkboxLabel.appendChild(loginLink);
-            }
         } else if (checkbox) {
             checkbox.disabled = false;
             checkbox.style.opacity = '1';
         }
     }
 
+    startLiveClock() {
+        // Clear any existing interval
+        if (this.clockInterval) {
+            clearInterval(this.clockInterval);
+        }
+        
+        // Update clock every second to match epoch format (DD/MM/YY HH:MM)
+        this.clockInterval = setInterval(() => {
+            const epochEl = document.getElementById('live-epoch');
+            if (epochEl) {
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = String(now.getFullYear()).slice(-2);
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                epochEl.textContent = `${day}/${month}/${year} ${hours}:${minutes}`;
+            } else {
+                // Stop if element doesn't exist
+                clearInterval(this.clockInterval);
+            }
+        }, 1000);
+    }
+
     async handleOrderClick() {
         const orderBtn = document.getElementById('order-btn');
         if (!orderBtn) return;
-
-        this.triggerConfetti(orderBtn);
 
         try {
             const session = window.oauthManager?.getSession();
@@ -513,16 +558,21 @@ class OrderWidget {
                 })
             });
 
-            if (!response.ok) throw new Error('Failed to create checkout session');
+            if (!response.ok) {
+                throw new Error('Failed to create checkout session');
+            }
 
             const data = await response.json();
+            
             if (data.url) {
                 window.open(data.url, '_blank', 'noopener,noreferrer');
+                this.setOrderLoading(false);
             } else {
                 throw new Error('No checkout URL received');
             }
         } catch (error) {
-            console.error('Order error:', error);
+            console.error('[OrderWidget] Order error:', error);
+            this.setOrderLoading(false);
             alert(
                 `Unable to process your order at this time.\n\n` +
                 `Please contact books@reverie.house to order ${this.quantity} ${this.quantity === 1 ? 'copy' : 'copies'} directly.`
@@ -568,9 +618,9 @@ class OrderWidget {
                     const animate = () => {
                         x += vx;
                         y += vy;
-                        vy += 0.25; // gravity
+                        vy += this.GRAVITY;
                         rotation += 12;
-                        opacity -= 0.018;
+                        opacity -= this.OPACITY_DECAY;
                         
                         confetti.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
                         confetti.style.opacity = opacity;
@@ -586,19 +636,55 @@ class OrderWidget {
             }
         });
     }
-
-    handlePrincesCoverClick() {
-        if (window.booksWidget) {
-            window.booksWidget.showBookTOC('princes-reverie');
-        }
-    }
-
+    
     handleReadOnline() {
         window.location.href = this.bookData.readOnlineUrl;
     }
-
+    
     handleDownloadEpub() {
         window.location.href = this.bookData.epubUrl;
+    }
+    
+    // Carousel navigation methods
+    nextSlide() {
+        const slides = document.querySelectorAll('.carousel-slide');
+        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        const current = document.querySelector('.carousel-slide.active');
+        const currentIndex = parseInt(current.dataset.slide);
+        const nextIndex = (currentIndex + 1) % slides.length;
+        
+        current.classList.remove('active');
+        slides[nextIndex].classList.add('active');
+        
+        indicators.forEach((ind, i) => {
+            ind.classList.toggle('active', i === nextIndex);
+        });
+    }
+    
+    previousSlide() {
+        const slides = document.querySelectorAll('.carousel-slide');
+        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        const current = document.querySelector('.carousel-slide.active');
+        const currentIndex = parseInt(current.dataset.slide);
+        const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
+        
+        current.classList.remove('active');
+        slides[prevIndex].classList.add('active');
+        
+        indicators.forEach((ind, i) => {
+            ind.classList.toggle('active', i === prevIndex);
+        });
+    }
+    
+    goToSlide(index) {
+        const slides = document.querySelectorAll('.carousel-slide');
+        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        
+        slides.forEach(slide => slide.classList.remove('active'));
+        indicators.forEach(ind => ind.classList.remove('active'));
+        
+        slides[index].classList.add('active');
+        indicators[index].classList.add('active');
     }
 
     async handleKindleClick() {
@@ -606,59 +692,85 @@ class OrderWidget {
         window.open(link, '_blank');
     }
 
-    async handleRequestCopy() {
-        const nameInput = document.getElementById('request-name');
-        const emailInput = document.getElementById('request-email');
-        const messageDiv = document.getElementById('request-message');
-
-        if (!nameInput || !emailInput || !messageDiv) return;
-
-        const name = nameInput.value.trim();
-        const email = emailInput.value.trim();
-
-        if (!name) {
-            this.showRequestMessage('Please enter your name.', 'error');
-            return;
-        }
-
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            this.showRequestMessage('Please enter a valid email.', 'error');
-            return;
-        }
-
-        const subject = encodeURIComponent("Request for Prince's Reverie Advance Copy");
-        const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nI would like to request an advance copy of Prince's Reverie.`);
-        window.open(`mailto:books@reverie.house?subject=${subject}&body=${body}`, '_blank');
-
-        this.showRequestMessage('Opening email client...', 'success');
-        setTimeout(() => {
-            nameInput.value = '';
-            emailInput.value = '';
-            messageDiv.style.display = 'none';
-        }, 2000);
-    }
-
-    showRequestMessage(text, type) {
-        const messageDiv = document.getElementById('request-message');
-        if (!messageDiv) return;
-
-        messageDiv.textContent = text;
-        messageDiv.className = `request-message ${type}`;
-        messageDiv.style.display = 'block';
-
-        setTimeout(() => {
-            messageDiv.style.display = 'none';
-        }, 3000);
-    }
-
     async showSuccessMessage(sessionId) {
-        // Implementation for success popup (kept from original)
         console.log('Order success:', sessionId);
+        
+        const session = window.oauthManager?.getSession();
+        const checkbox = document.getElementById('anonymize-order');
+        const isAnonymous = !session || checkbox?.checked;
+        
+        const patronTint = session?.color || '#734ba1';
+        const patronFace = isAnonymous ? '/assets/icon_face.png' : (session?.avatar || '/assets/icon_face.png');
+        const patronName = isAnonymous ? 'a dreamer' : (session?.name || session?.handle || 'Dreamer');
+        const patronDid = isAnonymous ? '' : (session?.did || '');
+        
+        const numberWords = {
+            1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
+            15: 'fifteen', 20: 'twenty', 25: 'twenty five',
+            50: 'fifty', 75: 'seventy five', 100: 'one hundred'
+        };
+        const quantityWord = numberWords[this.quantity] || this.quantity;
+        const bookWord = this.quantity === 1 ? 'book' : 'books';
+        
+        const r = parseInt(patronTint.substr(1, 2), 16);
+        const g = parseInt(patronTint.substr(3, 2), 16);
+        const b = parseInt(patronTint.substr(5, 2), 16);
+        
+        const compactSuccess = `
+            <div class="gratitude-nucleus" style="--patron-tint: ${patronTint}; --patron-rgb: ${r}, ${g}, ${b};">
+                <div class="gratitude-headline">🎉 Order Complete!</div>
+                <img src="/assets/logo.png" alt="Reverie House" class="gratitude-sigil">
+                <div class="canon-inscription">
+                    <img src="${patronFace}" class="inscription-face" onerror="this.src='/assets/icon_face.png'">
+                    <div class="inscription-words">
+                        ${patronDid ? `<a href="/dreamer?did=${encodeURIComponent(patronDid)}" class="inscription-name">${patronName}</a>` : `<span class="inscription-name">${patronName}</span>`}
+                        <span class="inscription-deed">realizes ${quantityWord} ${bookWord}</span>
+                    </div>
+                </div>
+                <div class="fulfillment-pledge"><strong>Thank you for supporting Reverie House!</strong><br>Your ${this.quantity === 1 ? 'book' : 'books'} will be shipped as fast as humanly possible.</div>
+                <div class="contact-whisper">Questions or special requests? Email <a href="mailto:books@reverie.house">books@reverie.house</a></div>
+                <div class="success-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+                    <button onclick="window.location.reload()" style="padding: 0.75rem 1.5rem; background: #734ba1; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Continue Shopping</button>
+                    <button onclick="window.location.href='/books/seeker/00'" style="padding: 0.75rem 1.5rem; background: white; color: #734ba1; border: 2px solid #734ba1; border-radius: 4px; cursor: pointer; font-weight: 600;">Read Now</button>
+                </div>
+            </div>
+        `;
+        
+        // Immediately refresh the support list
+        this.loadRecentOrders();
+        
+        if (window.Popup) {
+            window.Popup.show(compactSuccess, {
+                title: '',
+                type: 'success',
+                duration: 15000
+            });
+        }
+        
+        // Clean up URL params after showing success
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
     }
 
     showCancelMessage() {
-        // Implementation for cancel popup (kept from original)
         console.log('Order canceled');
+        
+        // Show cancel popup
+        if (window.Popup) {
+            window.Popup.show(
+                `<p>Your order was canceled. No charges were made.</p>
+                <p>Feel free to try again whenever you're ready!</p>`,
+                {
+                    title: 'Order Canceled',
+                    type: 'info',
+                    duration: 5000,
+                    buttons: [
+                        { text: 'OK', onClick: () => {} }
+                    ]
+                }
+            );
+        }
     }
 }
 

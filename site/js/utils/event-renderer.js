@@ -199,13 +199,13 @@ function renderCanonColumn(event, allDreamers, currentDid) {
     // Name links to dreamer page (stop propagation to prevent row click)
     let nameLink;
     if (did) {
-        nameLink = `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>`;
+        nameLink = `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" class="dreamer-name">${name}</a>`;
     } else {
-        nameLink = `<span style="font-weight: 500;">${name}</span>`;
+        nameLink = `<span class="dreamer-name">${name}</span>`;
     }
     
     // Event text is non-clickable (row click will open URL)
-    const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
+    const eventSpan = `<span class="event-text">${eventText}</span>`;
     
     // Add slight indent for reactionary entries (arrow is in avatar column)
     const indent = isReactionary ? 'padding-left: 4px;' : '';

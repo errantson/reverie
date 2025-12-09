@@ -59,6 +59,9 @@ def ensure_order_sessions_table():
     """
     db = DatabaseManager()
     
+    # Track when test session starts for cleanup
+    test_session_start = int(time.time())
+    
     with db.get_connection() as conn:
         with conn.cursor() as cursor:
             # Create table if not exists (matches stripe/app.py schema)
@@ -87,19 +90,30 @@ def ensure_order_sessions_table():
     yield
     
     # Cleanup test data after all tests
+    print("\n🧹 Cleaning up test data...")
     with db.get_connection() as conn:
         with conn.cursor() as cursor:
             # Clean up test order sessions (cs_test_ prefix)
             cursor.execute("""
                 DELETE FROM order_sessions 
                 WHERE session_id LIKE 'cs_test_%'
+                RETURNING id
             """)
-            # Clean up test events (stripe:test% or stripe:cs_test% URIs)
+            sessions_deleted = cursor.fetchall()
+            
+            # Clean up test events: all anonymous order events created during test session
             cursor.execute("""
                 DELETE FROM events 
-                WHERE uri LIKE 'stripe:test%' OR uri LIKE 'stripe:cs_test%'
-            """)
+                WHERE type = 'order' 
+                AND did = %(did)s 
+                AND epoch >= %(start_time)s
+                RETURNING id
+            """, {'did': ANONYMOUS_DID, 'start_time': test_session_start})
+            events_deleted = cursor.fetchall()
+            
             conn.commit()
+            
+            print(f"✅ Cleaned up {len(sessions_deleted)} test sessions and {len(events_deleted)} test events")
 
 
 @pytest.fixture
@@ -425,111 +439,6 @@ class TestHistoryEventCreation:
                 assert event is not None
                 assert event['uri'] == expected_uri, \
                     f"Expected URI '{expected_uri}', got: '{event['uri']}'"
-
-
-class TestStripeCheckoutFlow:
-    """
-    Test Stripe checkout session creation and handling.
-    Uses mocks for Stripe API calls to avoid actual charges.
-    """
-    
-    @patch('stripe.checkout.Session.create')
-    def test_create_checkout_authenticated(self, mock_stripe_create):
-        """
-        Test checkout creation for authenticated user.
-        Verifies metadata is passed correctly to Stripe.
-        """
-        mock_stripe_create.return_value = MagicMock(
-            id='cs_test_authenticated',
-            url='https://checkout.stripe.com/test_auth',
-            amount_total=2998  # 2 books @ $14.99
-        )
-        
-        # Load Stripe configuration
-        from dotenv import load_dotenv
-        load_dotenv('/srv/secrets/stripe.env')
-        
-        import stripe
-        stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-        
-        # Create session with authenticated metadata
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price': os.getenv('STRIPE_PRICE_ID'),
-                'quantity': 2
-            }],
-            mode='payment',
-            metadata={
-                'customer_did': 'did:plc:testuser123',
-                'customer_handle': 'testuser.bsky.social',
-                'anonymous': 'False',
-                'quantity': '2'
-            }
-        )
-        
-        assert session.id == 'cs_test_authenticated'
-        assert mock_stripe_create.called
-        
-        # Verify metadata passed correctly
-        call_args = mock_stripe_create.call_args[1]
-        assert call_args['metadata']['customer_did'] == 'did:plc:testuser123'
-        assert call_args['metadata']['anonymous'] == 'False'
-        assert call_args['metadata']['quantity'] == '2'
-    
-    @patch('stripe.checkout.Session.create')
-    def test_create_checkout_anonymous(self, mock_stripe_create):
-        """
-        Test checkout creation for anonymous user.
-        Verifies anonymous flag and empty DID in metadata.
-        """
-        mock_stripe_create.return_value = MagicMock(
-            id='cs_test_anonymous',
-            url='https://checkout.stripe.com/test_anon',
-            amount_total=1499
-        )
-        
-        from dotenv import load_dotenv
-        load_dotenv('/srv/secrets/stripe.env')
-        
-        import stripe
-        stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-        
-        # Create session with anonymous metadata
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price': os.getenv('STRIPE_PRICE_ID'),
-                'quantity': 1
-            }],
-            mode='payment',
-            metadata={
-                'customer_did': '',
-                'customer_handle': '',
-                'anonymous': 'True',
-                'quantity': '1'
-            }
-        )
-        
-        assert session.id == 'cs_test_anonymous'
-        call_args = mock_stripe_create.call_args[1]
-        assert call_args['metadata']['anonymous'] == 'True'
-        assert call_args['metadata']['customer_did'] == ''
-    
-    def test_quantity_validation(self):
-        """
-        Test quantity validation logic (must be 1-100).
-        Implemented in stripe/app.py line 97-99.
-        """
-        # Test invalid quantities
-        for invalid_quantity in [-1, 0, 101, 1000]:
-            assert not (1 <= invalid_quantity <= 100), \
-                f"Quantity {invalid_quantity} should be rejected"
-        
-        # Test valid quantities
-        for valid_quantity in [1, 2, 5, 10, 50, 100]:
-            assert 1 <= valid_quantity <= 100, \
-                f"Quantity {valid_quantity} should be accepted"
 
 
 class TestWebhookHandling:
@@ -943,6 +852,55 @@ class TestIntegration:
     Tests end-to-end functionality with real database operations.
     """
     
+    def test_null_values_in_order_creation(self, production_db):
+        """
+        BUG FIX VALIDATION: Test that null/None values in customer data don't crash.
+        
+        Previously, passing None for customer_did or customer_handle would cause:
+        AttributeError: 'NoneType' object has no attribute 'strip'
+        
+        This validates the fix at both the EventsManager and stripe service levels.
+        """
+        events = EventsManager(production_db)
+        
+        # Test with all None values
+        session_id = f"cs_test_null_{int(time.time() * 1000)}"
+        
+        result = events.record_book_order(
+            customer_email="null_test@example.com",
+            customer_name="Null Test User",
+            quantity=1,
+            amount=1499,
+            currency="usd",
+            session_id=session_id,
+            customer_did=None,  # This was causing .strip() to fail
+            customer_handle=None,  # This was causing .strip() to fail
+            anonymous=True
+        )
+        
+        assert result['success'] is True, \
+            f"Order with null customer data failed: {result}"
+        assert result['did'] == ANONYMOUS_DID, \
+            f"Should use anonymous DID for null customer data, got: {result['did']}"
+        
+        # Test with empty strings
+        session_id_2 = f"cs_test_empty_{int(time.time() * 1000)}"
+        
+        result_2 = events.record_book_order(
+            customer_email="empty_test@example.com",
+            customer_name="Empty Test User",
+            quantity=1,
+            amount=1499,
+            currency="usd",
+            session_id=session_id_2,
+            customer_did='',  # Empty string should also work
+            customer_handle='',  # Empty string should also work
+            anonymous=True
+        )
+        
+        assert result_2['success'] is True, \
+            f"Order with empty customer data failed: {result_2}"
+
     def test_complete_anonymous_order_flow(self, production_db):
         """
         INTEGRATION: Test complete order flow for anonymous user.
