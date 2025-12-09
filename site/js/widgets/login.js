@@ -388,7 +388,7 @@ class LoginWidget {
                         const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
                         const dreamerByName = dreamers.find(d => d.name && d.name.toLowerCase() === handle.toLowerCase());
                         
-                        if (dreamerByName) {
+                        if (dreamerByName && dreamerByName.handle) {
                             console.log(`   ✅ Found dreamer by name: ${dreamerByName.name} -> ${dreamerByName.handle}`);
                             handle = dreamerByName.handle;
                             
@@ -403,17 +403,21 @@ class LoginWidget {
                                 }, 300);
                                 return;
                             }
+                            // Handle is now set from database, continue with OAuth login below
+                            console.log(`   📤 Using handle from database for OAuth: ${handle}`);
                         } else {
-                            console.log(`   ❌ No dreamer found with name "${handle}", assuming bsky.social`);
+                            console.log(`   ❌ No dreamer found with name "${handle}", using fallback: ${handle}.bsky.social`);
                             handle = `${handle}.bsky.social`;
                         }
                     } else {
-                        // Database check failed, assume bsky.social
+                        // Database check failed, use bsky.social fallback
+                        console.log(`   ⚠️ Database check failed, using fallback: ${handle}.bsky.social`);
                         handle = `${handle}.bsky.social`;
                     }
                 } catch (error) {
                     console.error('   ❌ Database check error:', error);
-                    // On error, assume bsky.social
+                    // On error, use bsky.social fallback
+                    console.log(`   ⚠️ Using fallback due to error: ${handle}.bsky.social`);
                     handle = `${handle}.bsky.social`;
                 }
             }
