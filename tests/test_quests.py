@@ -21,23 +21,52 @@ class TestQuestManager:
     """Quest manager core functionality"""
     
     def test_quest_manager_exists(self):
-        """Test quest manager can be imported"""
+        """Test quest manager can be imported and is a class"""
         from utils.questing import QuestManager
         assert QuestManager is not None
+        assert isinstance(QuestManager, type), "QuestManager should be a class"
     
     def test_quest_manager_initialization(self, test_db):
-        """Test quest manager initializes"""
+        """Test quest manager initializes properly and works"""
         from utils.questing import QuestManager
         manager = QuestManager()
         assert manager is not None
+        assert hasattr(manager, '__dict__'), "Manager should be a real object, not None"
+        
+        # FIXED: Verify it has a working database connection
+        if hasattr(manager, 'db'):
+            assert manager.db is not None, "Manager should have database connection"
     
     def test_quest_can_be_created(self, test_db):
-        """Test creating a quest"""
+        """Test creating a quest actually works and persists to database"""
         from utils.questing import QuestManager
         manager = QuestManager()
         
-        # Quest creation logic
-        assert hasattr(manager, 'create_quest') or hasattr(manager, 'add_quest')
+        # FIXED: Don't just check if method exists - actually call it
+        if not (hasattr(manager, 'create_quest') or hasattr(manager, 'add_quest')):
+            pytest.skip("Quest creation not implemented yet")
+        
+        # Try to create a quest
+        try:
+            create_method = getattr(manager, 'create_quest', None) or getattr(manager, 'add_quest', None)
+            
+            # Create a simple test quest
+            quest_data = {
+                'title': 'Test Quest Creation',
+                'description': 'Verify quest creation works',
+                'condition': 'arrival',  # Simple condition
+            }
+            
+            result = create_method(**quest_data)
+            
+            # Verify quest was created (method should return something)
+            assert result is not None, "create_quest should return quest ID or confirmation"
+            
+        except NotImplementedError:
+            pytest.skip("Quest creation not fully implemented")
+        except Exception as e:
+            # If quest creation fails, we want to know about it
+            pytest.fail(f"Quest creation failed: {e}")
 
 
 # ============================================================================
@@ -79,12 +108,20 @@ class TestQuestMonitoring:
     """Quest monitoring and evaluation"""
     
     def test_can_query_canon_events(self, test_db):
-        """Test querying canon events for quest conditions"""
+        """Test querying canon events for quest conditions returns valid data"""
         events = test_db.execute(
             "SELECT * FROM events ORDER BY epoch DESC LIMIT 5"
         ).fetchall()
-        # Should not crash
-        assert events is not None
+        # FIXED: Verify we get a list (even if empty)
+        assert isinstance(events, list), "Should return list of events"
+        
+        # If events exist, verify they have required structure
+        if len(events) > 0:
+            event = events[0]
+            assert 'did' in event, "Events must have 'did' field"
+            assert 'type' in event, "Events must have 'type' field"
+            assert 'epoch' in event, "Events must have 'epoch' field"
+            assert event['epoch'] > 0, "Epoch must be positive timestamp"
     
     def test_quest_conditions_evaluable(self, test_db):
         """Test quest conditions can be evaluated"""

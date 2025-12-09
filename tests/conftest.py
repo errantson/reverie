@@ -2,8 +2,9 @@
 Shared pytest fixtures for Reverie House test suite
 
 CRITICAL SAFETY NOTE:
-- These tests currently connect to PRODUCTION database
-- Use mocked fixtures for unit tests to avoid data corruption
+- By default, tests connect to TEST database (reverie_test)
+- Set POSTGRES_DB=reverie_house to run against production (DANGEROUS)
+- Use mocked fixtures for unit tests to avoid any database dependency
 - Only run integration tests in isolated test environment
 """
 import pytest
@@ -42,10 +43,34 @@ def test_db() -> Generator[DatabaseManager, None, None]:
     """
     Provide isolated test database connection.
     Uses PostgreSQL in Docker at 172.23.0.3:5432
+    
+    WARNING: Does NOT auto-rollback. Use test_db_transaction for isolation.
     """
     db = DatabaseManager()
     yield db
     # Cleanup happens automatically via connection pool
+
+
+@pytest.fixture
+def test_db_transaction(test_db) -> Generator[DatabaseManager, None, None]:
+    """
+    Provide test database with automatic transaction rollback.
+    Use this for tests that need database isolation.
+    
+    Example:
+        def test_something(test_db_transaction):
+            test_db_transaction.execute("INSERT INTO ...")
+            # Changes automatically rolled back after test
+    """
+    conn = test_db.get_connection()
+    try:
+        yield test_db
+        conn.rollback()  # Rollback all changes
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 @pytest.fixture(scope="session", autouse=True)

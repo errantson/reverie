@@ -67,9 +67,12 @@ class TestDocker:
                 text=True,
                 timeout=5
             )
-            assert 'Up' in result.stdout or result.returncode == 0
-        except Exception:
-            pytest.skip("Docker not available")
+            assert result.returncode == 0, f"Docker command failed with code {result.returncode}"
+            # Note: container may be stopped, that's different from Docker not being available
+        except FileNotFoundError:
+            pytest.skip("Docker not installed")
+        except subprocess.TimeoutExpired:
+            pytest.fail("Docker command timed out - daemon may be unresponsive")
     
     def test_caddy_container_running(self):
         """Test Caddy container is running"""
@@ -80,10 +83,11 @@ class TestDocker:
                 text=True,
                 timeout=5
             )
-            # May or may not be running
-            assert result.returncode == 0
-        except Exception:
-            pytest.skip("Docker not available")
+            assert result.returncode == 0, f"Docker command failed with code {result.returncode}"
+        except FileNotFoundError:
+            pytest.skip("Docker not installed")
+        except subprocess.TimeoutExpired:
+            pytest.fail("Docker command timed out")
 
 
 if __name__ == '__main__':

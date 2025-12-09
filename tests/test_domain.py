@@ -69,8 +69,9 @@ class TestZones:
         """Test zones can be queried"""
         # Basic zone query - won't fail if no zones table
         try:
-            zones = test_db.execute("SELECT * FROM zones LIMIT 1").fetchall()
-            assert zones is not None or zones == []
+            zones = test_db.execute("SELECT * FROM zones LIMIT 1").fetchone()
+            # zones can be None if table is empty, that's OK
+            assert zones is None or isinstance(zones, dict), "Zones query returned invalid type"
         except Exception:
             pytest.skip("Zones table not implemented")
 

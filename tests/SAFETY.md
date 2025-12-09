@@ -41,8 +41,14 @@ docker exec reverie_db psql -U reverie -d postgres -c "CREATE DATABASE reverie_t
 
 ### Populate Test Data
 ```bash
-# Insert minimal test data
-docker exec reverie_db psql -U reverie -d reverie_test -f /path/to/test_fixtures.sql
+# Use the automated seeding script
+POSTGRES_DB=reverie_test python3 /srv/scripts/seed_test_db.py
+
+# This creates:
+# - 3 test dreamers with DIDs, handles, names
+# - Required events (arrival, residence)
+# - Spectrum entries
+# - One dreamer with alternate names
 ```
 
 ## Test Markers
@@ -72,15 +78,27 @@ POSTGRES_DB=reverie_house pytest -m integration
 
 Always run:
 ```bash
-# 1. Unit tests (fast, safe)
+# 1. Unit tests (fast, safe) - REQUIRED
 pytest -m unit
 
-# 2. Database tests on test DB
+# 2. Check coverage
+pytest -m unit --cov=core --cov=api --cov=utils --cov-report=term-missing
+
+# 3. Database tests on test DB
 ./run_tests.sh -m database
 
-# 3. Check for skipped tests
+# 4. Check for skipped tests
 pytest --collect-only | grep SKIPPED
 ```
+
+## Pre-commit Hook (Recommended)
+
+Install the pre-commit hook to automatically run unit tests:
+```bash
+ln -s ../../scripts/pre-commit.sh .git/hooks/pre-commit
+```
+
+This will prevent commits that break unit tests.
 
 ## Test Database vs Production
 

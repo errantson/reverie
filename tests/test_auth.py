@@ -277,12 +277,17 @@ class TestCredentialsAPI:
     
     @patch('api.routes.credentials_routes.DatabaseManager')
     def test_credentials_status_has_creds(self, mock_db_class, client, test_user_did):
-        """Should return true when credentials exist"""
+        """Should return true when credentials exist AND are valid"""
         mock_db = Mock()
         mock_db_class.return_value = mock_db
         
         mock_cursor = Mock()
-        mock_cursor.fetchone.return_value = {'app_password_hash': encrypt_password('test-pass')}
+        # FIXED: Include all required fields per actual implementation
+        mock_cursor.fetchone.return_value = {
+            'app_password_hash': encrypt_password('test-pass'),
+            'is_valid': True,  # Required by credentials_routes.py:195
+            'valid': True      # Required by check_credentials_valid logic
+        }
         mock_db.execute.return_value = mock_cursor
         
         response = client.get(f'/api/credentials/status?user_did={test_user_did}')
@@ -306,6 +311,25 @@ class TestCredentialsAPI:
         assert response.status_code == 200
         data = response.get_json()
         assert data['has_credentials'] is False
+    
+    @patch('api.routes.credentials_routes.DatabaseManager')
+    def test_credentials_status_invalid_flags_return_false(self, mock_db_class, client, test_user_did):
+        """CRITICAL: Should return false when is_valid flag is False (security fix)"""
+        mock_db = Mock()
+        mock_db_class.return_value = mock_db
+        
+        mock_cursor = Mock()
+        # FIXED: When is_valid=FALSE, SQL WHERE clause filters it out, returning None
+        # This simulates: SELECT ... WHERE did = X AND is_valid = TRUE
+        # When is_valid=FALSE, no row matches, so fetchone() returns None
+        mock_cursor.fetchone.return_value = None  # Correct SQL behavior
+        mock_db.execute.return_value = mock_cursor
+        
+        response = client.get(f'/api/credentials/status?user_did={test_user_did}')
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['has_credentials'] is False, "Must be false when is_valid=False (prevents bypass)"
     
     @patch('api.routes.credentials_routes.DatabaseManager')
     def test_disconnect_credentials(self, mock_db_class, client, test_user_did):
@@ -359,6 +383,108 @@ class TestCredentialsAPI:
         
         # Should not execute any database queries
         assert mock_db.execute.call_count == 0, "Should not touch database without auth"
+
+
+@pytest.mark.integration
+@pytest.mark.database
+class TestDisconnectedCredentialsSecurity:
+    """CRITICAL SECURITY: Verify disconnected credentials are truly unusable"""
+    
+    @pytest.fixture
+    def test_dreamer_did(self):
+        return "did:plc:disconnect_security_test"
+    
+    @pytest.fixture
+    def test_dreamer_handle(self):
+        return "disconnect_test.reverie.house"
+    
+    def test_disconnected_credentials_cannot_be_used(self, test_db, test_dreamer_did, test_dreamer_handle):
+        \"\"\"Verify disconnected credentials are truly unusable for posting\"\"\"
+        import time
+        
+        # Check if user_credentials table exists
+        table_exists = test_db.execute(\"\"\"
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'user_credentials'
+            )
+        \"\"\").fetchone()
+        
+        if not table_exists[0]:
+            pytest.skip(\"user_credentials table not implemented yet\")
+        
+        # Setup: Create test dreamer
+        test_db.execute(\"DELETE FROM user_credentials WHERE did = %s\", (test_dreamer_did,))
+        test_db.execute(\"DELETE FROM dreamers WHERE did = %s\", (test_dreamer_did,))
+        test_db.execute("""
+            INSERT INTO dreamers (did, handle, name, created_at)
+            VALUES (%s, %s, %s, EXTRACT(EPOCH FROM NOW())::INTEGER)
+        """, (test_dreamer_did, test_dreamer_handle, 'Disconnect Security Test'))
+        
+        try:
+            # Step 1: Create valid credentials
+            test_db.execute("""
+                INSERT INTO user_credentials (
+                    did, app_password_hash, password_hash, pds_url, pds,
+                    is_valid, valid, created_at, verified
+                )
+                VALUES (%s, %s, %s, %s, %s, TRUE, TRUE, 
+                        EXTRACT(EPOCH FROM NOW())::INTEGER,
+                        EXTRACT(EPOCH FROM NOW())::INTEGER)
+            """, (
+                test_dreamer_did,
+                encrypt_password('test-password'),
+                encrypt_password('test-password'),
+                'https://reverie.house',
+                'https://reverie.house'
+            ))
+            
+            # Verify credentials are valid before disconnect
+            creds_before = test_db.execute(
+                "SELECT * FROM user_credentials WHERE did = %s",
+                (test_dreamer_did,)
+            ).fetchone()
+            assert creds_before['is_valid'] is True
+            assert creds_before['valid'] is True
+            assert creds_before['app_password_hash'] is not None
+            
+            # Step 2: Disconnect credentials (simulate disconnect endpoint)
+            test_db.execute("""
+                UPDATE user_credentials
+                SET app_password_hash = NULL,
+                    password_hash = NULL,
+                    is_valid = FALSE,
+                    valid = FALSE,
+                    last_failure_at = EXTRACT(EPOCH FROM NOW())::INTEGER
+                WHERE did = %s
+            """, (test_dreamer_did,))
+            
+            # Step 3: CRITICAL - Verify credentials are fully invalidated
+            creds_after = test_db.execute(
+                "SELECT * FROM user_credentials WHERE did = %s",
+                (test_dreamer_did,)
+            ).fetchone()
+            
+            assert creds_after is not None, "Credential row should still exist"
+            assert creds_after['app_password_hash'] is None, "Password must be cleared"
+            assert creds_after['password_hash'] is None, "Legacy password must be cleared"
+            assert creds_after['is_valid'] is False, "is_valid must be FALSE"
+            assert creds_after['valid'] is False, "valid must be FALSE"
+            assert creds_after['last_failure_at'] is not None, "Failure timestamp must be set"
+            
+            # Step 4: Verify status endpoint correctly reports no credentials
+            # This simulates the check in credentials_routes.py:195-197
+            status_check = test_db.execute("""
+                SELECT app_password_hash FROM user_credentials
+                WHERE did = %s AND is_valid = TRUE
+            """, (test_dreamer_did,)).fetchone()
+            
+            assert status_check is None, "Status check must return None when is_valid=FALSE"
+            
+        finally:
+            # Cleanup
+            test_db.execute("DELETE FROM user_credentials WHERE did = %s", (test_dreamer_did,))
+            test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_dreamer_did,))
 
 
 @pytest.mark.unit

@@ -102,8 +102,9 @@ class TestHandleComposition:
             "SELECT name, alts, did FROM dreamers WHERE alts IS NOT NULL AND alts != '' LIMIT 1"
         ).fetchone()
         
+        # This test requires dreamers with alt names - skip only if truly not applicable
         if not dreamer:
-            pytest.skip("No dreamers with alternate names found - expected in production")
+            pytest.skip("No dreamers with alternate names found - feature may not be used yet")
         
         with open(caddyfile_path, 'r') as f:
             content = f.read()

@@ -86,20 +86,79 @@ class TestRateLimiting:
         
         # First request should be allowed
         allowed = limiter.check('test-key')
-        assert allowed == True
+        assert allowed is True, "First request should be allowed"
+        assert isinstance(allowed, bool), "check() should return boolean"
     
-    def test_rate_limiter_blocks_excess(self):
-        """Test rate limiter blocks excess requests"""
+    def test_rate_limiter_blocks_excess(self, test_db):
+        """Test rate limiter blocks excess requests AND verifies database state"""
         from core.rate_limiter import PersistentRateLimiter
         limiter = PersistentRateLimiter(max_requests=2, window_seconds=60)
         
+        test_key = 'test-rate-limit-key'
+        
         # Make requests up to limit
-        limiter.check('test-key')
-        limiter.check('test-key')
+        first = limiter.check(test_key)
+        assert first is True, "First request should be allowed"
+        assert isinstance(first, bool), "check() should return boolean"
+        
+        # FIXED: Verify database state after first request
+        state1 = test_db.execute(
+            "SELECT request_count, window_start FROM rate_limits WHERE key = %s",
+            (test_key,)
+        ).fetchone()
+        assert state1 is not None, "State must be persisted in database"
+        assert state1['request_count'] == 1, "Count should be 1 after first request"
+        
+        second = limiter.check(test_key)
+        assert second is True, "Second request should be allowed"
+        
+        # FIXED: Verify count incremented
+        state2 = test_db.execute(
+            "SELECT request_count FROM rate_limits WHERE key = %s",
+            (test_key,)
+        ).fetchone()
+        assert state2['request_count'] == 2, "Count should be 2 after second request"
         
         # Third should be blocked
-        allowed = limiter.check('test-key')
-        assert allowed == False
+        third = limiter.check(test_key)
+        assert third is False, "Third request should be blocked (limit=2)"
+        
+        # FIXED: Verify count didn't increment when blocked
+        state3 = test_db.execute(
+            "SELECT request_count FROM rate_limits WHERE key = %s",
+            (test_key,)
+        ).fetchone()
+        assert state3['request_count'] == 2, "Count should stay at 2 (request was blocked)"
+        
+        # Cleanup
+        test_db.execute("DELETE FROM rate_limits WHERE key = %s", (test_key,))
+    
+    def test_rate_limiter_key_isolation(self, test_db):
+        """CRITICAL: Verify different keys don't interfere with each other"""
+        from core.rate_limiter import PersistentRateLimiter
+        limiter = PersistentRateLimiter(max_requests=1, window_seconds=60)
+        
+        # Use key1 to max
+        assert limiter.check('isolation_key1') is True
+        assert limiter.check('isolation_key1') is False, "Should be blocked at limit"
+        
+        # key2 should still work independently
+        assert limiter.check('isolation_key2') is True, "Different key must not be affected"
+        
+        # Verify database has both keys with correct counts
+        keys = test_db.execute("""
+            SELECT key, request_count FROM rate_limits 
+            WHERE key IN ('isolation_key1', 'isolation_key2')
+        """).fetchall()
+        
+        assert len(keys) == 2, "Both keys should be in database"
+        
+        key_counts = {k['key']: k['request_count'] for k in keys}
+        assert key_counts['isolation_key1'] == 1, "Key1 should have count 1"
+        assert key_counts['isolation_key2'] == 1, "Key2 should have count 1"
+        
+        # Cleanup
+        test_db.execute("DELETE FROM rate_limits WHERE key IN ('isolation_key1', 'isolation_key2')")
 
 
 # ============================================================================

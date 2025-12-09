@@ -93,9 +93,16 @@ class TestBasicRegistration:
             assert dreamer['name'] is not None
             
         finally:
-            test_db.execute("DELETE FROM events WHERE did = %s", (test_user_data['did'],))
-            test_db.execute("DELETE FROM awards WHERE did = %s", (test_user_data['did'],))
-            test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_user_data['did'],))
+            test_db.execute(\"DELETE FROM events WHERE did = %s\", (test_user_data['did'],))
+            test_db.execute(\"DELETE FROM awards WHERE did = %s\", (test_user_data['did'],))
+            test_db.execute(\"DELETE FROM dreamers WHERE did = %s\", (test_user_data['did'],))
+            
+            # FIXED: Verify cleanup actually worked
+            remaining = test_db.execute(
+                \"SELECT COUNT(*) as c FROM dreamers WHERE did = %s\",
+                (test_user_data['did'],)
+            ).fetchone()
+            assert remaining['c'] == 0, \"Cleanup must fully remove test data\"
     
     def test_duplicate_registration_handled(self, api_base_url, test_user_data, test_db):
         """Test that duplicate registration is handled gracefully"""
@@ -125,6 +132,13 @@ class TestBasicRegistration:
             test_db.execute("DELETE FROM events WHERE did = %s", (test_user_data['did'],))
             test_db.execute("DELETE FROM awards WHERE did = %s", (test_user_data['did'],))
             test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_user_data['did'],))
+            
+            # FIXED: Verify cleanup worked
+            remaining = test_db.execute(
+                "SELECT COUNT(*) as c FROM dreamers WHERE did = %s",
+                (test_user_data['did'],)
+            ).fetchone()
+            assert remaining['c'] == 0, \"Cleanup must remove all test data\"
     
     def test_name_assignment_on_registration(self, api_base_url, test_user_data, test_db):
         """Test that names are assigned during registration"""
@@ -150,6 +164,13 @@ class TestBasicRegistration:
             test_db.execute("DELETE FROM events WHERE did = %s", (test_user_data['did'],))
             test_db.execute("DELETE FROM awards WHERE did = %s", (test_user_data['did'],))
             test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_user_data['did'],))
+            
+            # FIXED: Verify cleanup worked
+            remaining = test_db.execute(
+                "SELECT COUNT(*) as c FROM dreamers WHERE did = %s",
+                (test_user_data['did'],)
+            ).fetchone()
+            assert remaining['c'] == 0, "Cleanup must remove test data"
 
 
 # ============================================================================
@@ -160,14 +181,24 @@ class TestBasicRegistration:
 class TestRegistrationEdgeCases:
     """Edge case testing for registration"""
     
-    def test_invalid_did_format_rejected(self, api_base_url):
-        """Test that invalid DID formats are rejected"""
+    def test_invalid_did_format_rejected(self, api_base_url, test_db):
+        """Test that invalid DID formats are rejected AND don't pollute database"""
+        invalid_did = 'not-a-valid-did'
+        
         response = requests.post(
             f'{api_base_url}/api/register',
-            json={'did': 'not-a-valid-did', 'profile': {'handle': 'test.bsky.social'}},
+            json={'did': invalid_did, 'profile': {'handle': 'test.bsky.social'}},
             timeout=10
         )
-        assert response.status_code in [400, 422]
+        # Should return 422 Unprocessable Entity for invalid DID format
+        assert response.status_code == 422, f"Expected 422 for invalid DID, got {response.status_code}"
+        
+        # FIXED: Verify invalid DID was NOT added to database
+        dreamer = test_db.execute(
+            "SELECT * FROM dreamers WHERE did = %s",
+            (invalid_did,)
+        ).fetchone()
+        assert dreamer is None, "Invalid DID must not be added to database"
     
     def test_empty_handle_rejected(self, api_base_url, unique_test_id):
         """Test that empty handles are rejected"""
@@ -176,7 +207,8 @@ class TestRegistrationEdgeCases:
             json={'did': f'did:plc:test{unique_test_id}', 'profile': {'handle': ''}},
             timeout=10
         )
-        assert response.status_code in [400, 422]
+        # Should return 422 for invalid/empty handle
+        assert response.status_code == 422, f"Expected 422 for empty handle, got {response.status_code}"
     
     def test_unicode_handle_handled(self, api_base_url, unique_test_id):
         """Test that Unicode in handles is handled properly"""

@@ -222,7 +222,10 @@ class TestDreamerDetailEndpoint:
             f'{api_base_url}/api/dreamer/<script>alert("xss")</script>',
             timeout=10
         )
-        assert response.status_code in [404, 400]
+        # Should return 400 or 404, never execute script
+        assert response.status_code in [400, 404], (
+            f"Expected 400 or 404 for XSS attempt, got {response.status_code}"
+        )
     
     def test_dreamer_detail_long_handle_handled(self, api_base_url):
         """Test very long handles don't cause crashes"""
@@ -231,7 +234,10 @@ class TestDreamerDetailEndpoint:
             f'{api_base_url}/api/dreamer/{long_handle}',
             timeout=10
         )
-        assert response.status_code in [404, 400]  # Not 500
+        # Should return 400 or 404, never 500
+        assert response.status_code in [400, 404], (
+            f"Expected 400 or 404 for long handle, got {response.status_code}"
+        )
     
     def test_dreamer_detail_unicode_handled(self, api_base_url):
         """Test Unicode in handles is handled"""
@@ -239,7 +245,10 @@ class TestDreamerDetailEndpoint:
             f'{api_base_url}/api/dreamer/tëst🌟',
             timeout=10
         )
-        assert response.status_code in [200, 404, 400]  # Not 500
+        # Should return 400 or 404 (invalid chars), never 500
+        assert response.status_code in [400, 404], (
+            f"Expected 400 or 404 for unicode chars, got {response.status_code}"
+        )
 
 
 # ============================================================================
@@ -300,7 +309,8 @@ class TestAuthenticatedEndpoints:
     def test_work_endpoint_requires_auth(self, api_base_url):
         """Test work endpoint requires authentication"""
         response = requests.get(f'{api_base_url}/api/work', timeout=10)
-        assert response.status_code in [401, 403]
+        # Should return 401 when not authenticated
+        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
     
     def test_work_with_invalid_token(self, api_base_url):
         """Test work endpoint rejects invalid tokens"""
@@ -309,12 +319,17 @@ class TestAuthenticatedEndpoints:
             headers={'Authorization': 'Bearer invalid-token-12345'},
             timeout=10
         )
-        assert response.status_code in [401, 403]
+        # Should return 401 for invalid token
+        assert response.status_code == 401, f"Expected 401 for invalid token, got {response.status_code}"
     
     def test_quests_endpoint_auth(self, api_base_url):
         """Test quests endpoint authentication"""
         response = requests.get(f'{api_base_url}/api/quests', timeout=10)
-        assert response.status_code in [200, 401, 403]  # May allow public or require auth
+        # If endpoint is public, expect 200; if protected, expect 401
+        # Test both cases separately or skip this generic test
+        assert response.status_code in [200, 401], (
+            f"Expected 200 (public) or 401 (protected), got {response.status_code}"
+        )
 
 
 # ============================================================================
@@ -373,7 +388,11 @@ class TestContentNegotiation:
             json={'handle': 'test.bsky.social'},
             timeout=10
         )
-        assert response.status_code in [200, 400, 404, 405]
+        # This endpoint may not support POST, expect 405 Method Not Allowed
+        # Or if it does support POST, expect 200
+        assert response.status_code in [200, 405], (
+            f"Expected 200 (if POST supported) or 405 (if GET only), got {response.status_code}"
+        )
 
 
 # ============================================================================
@@ -387,8 +406,12 @@ class TestCORS:
     def test_cors_headers_present(self, api_base_url):
         """Test CORS headers are present"""
         response = requests.options(f'{api_base_url}/api/world', timeout=10)
-        # CORS headers may or may not be present depending on config
-        assert response.status_code in [200, 204, 404, 405]
+        # OPTIONS should return 200 or 204 if CORS enabled
+        # If not implemented, may return 405
+        valid_codes = {200, 204, 405}
+        assert response.status_code in valid_codes, (
+            f"Expected {valid_codes} for OPTIONS request, got {response.status_code}"
+        )
 
 
 # ============================================================================
@@ -417,12 +440,17 @@ class TestRateLimiting:
             try:
                 r = requests.get(f'{api_base_url}/api/world', timeout=2)
                 responses.append(r.status_code)
-            except:
-                pass
+            except requests.exceptions.Timeout:
+                responses.append(408)  # Timeout
+            except requests.exceptions.RequestException as e:
+                # Log connection errors but don't treat as test failure
+                print(f"Request failed: {e}")
         
-        # Should either rate limit (429) or allow all (200)
-        # As long as server doesn't crash, test passes
-        assert all(code in [200, 429, 503] for code in responses)
+        # Should only get 200 (success) or 429 (rate limited)
+        # Never 503 or 500 (server errors)
+        valid_codes = {200, 429, 408}
+        invalid = [r for r in responses if r not in valid_codes]
+        assert len(invalid) == 0, f"Got invalid status codes: {invalid}"
 
 
 # ============================================================================
