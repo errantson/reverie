@@ -1,3 +1,11 @@
+/* Order Page Layout Variables */
+:root {
+    --order-header-offset: var(--header-height, 60px);
+    --order-vertical-padding: clamp(20px, 3vh, 40px);
+    --order-container-max-width: 800px;
+    --order-container-gap: clamp(8px, 1.5vh, 12px);
+}
+
 /* Fullscreen Background (matches dreamer.css and homepage) */
 .fullscreen-background {
     position: fixed;
@@ -50,6 +58,11 @@
 .main-content {
     position: relative;
     z-index: 10; /* Above background (1) but below header (1100) */
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: var(--order-vertical-padding) 0;
+    margin-top: -69px;
 }
 
 /* Realizes & Price Row Flex Layout */
@@ -60,12 +73,12 @@
     align-items: stretch;
     margin-bottom: 12px;
 }
-.order-row-flex .canon-preview {
-    flex: 1 1 50%;
+.order-row-flex .order-history-preview {
+    flex: 1 1 65%;
     margin-bottom: 0;
 }
 .order-row-flex .price-breakdown {
-    flex: 1 1 50%;
+    flex: 0 0 280px;
     margin-bottom: 0;
 }
 
@@ -74,32 +87,36 @@
         flex-direction: column;
         gap: 0;
     }
-    .order-row-flex .canon-preview,
+    .order-row-flex .order-history-preview,
     .order-row-flex .price-breakdown {
         margin-bottom: 14px;
     }
 }
-/* Order Widget Styles - Rebuilt & Optimized for Sales */
+/* Order Widget Styles - Modern Grid Layout */
 
 /* Order Section */
 .order-section {
-    background: transparent; /* Changed to transparent to show phanera background */
-    padding: 0 5px;
-    min-height: 100vh;
-    padding-top: 80px; /* Tighter to top */
+    background: transparent;
+    padding: 0 clamp(5px, 2vw, 20px);
+    width: 100%;
+    max-width: calc(var(--order-container-max-width) + 40px);
 }
 
-.order-content {
+.order-container {
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    max-width: 860px;
+    max-width: var(--order-container-max-width);
     width: 100%;
     background: white;
     border: 2px solid #d0d0d0;
     box-shadow: 0 6px 28px rgba(0, 0, 0, 0.15);
-    border-radius: 0;
-    min-height: calc(100vh - 120px); /* keep content at least full viewport minus header padding */
+    padding: clamp(12px, 2vh, 16px);
+    padding-bottom: clamp(7px, 1.5vh, 11px);
+    gap: var(--order-container-gap);
+    box-sizing: border-box;
+    max-height: calc(100vh - var(--order-header-offset) - (var(--order-vertical-padding) * 2));
+    overflow-y: auto;
 }
 
 /* Press Header - now inside the box */
@@ -143,13 +160,126 @@
     font-weight: 500;
 }
 
-/* Content Row - contains left and right sides */
-.order-content-row {
-    display: flex;
-    justify-content: center;
-    align-items: stretch; /* make left & right columns equal height */
+/* Row 1: Hero Cover + Title/Synopsis */
+.order-row-1 {
+    display: grid;
+    grid-template-columns: 300px 1fr;
     gap: 20px;
-    padding: 28px 24px;
+    align-items: stretch;
+}
+
+.hero-cover {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.hero-cover-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease;
+}
+
+.hero-cover-img:hover {
+    transform: translateY(-4px);
+}
+
+.title-synopsis {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
+.order-main-synopsis {
+    padding: 16px;
+    background: linear-gradient(135deg, #fdfcfe 0%, #f9f8fc 100%);
+    border: 2px solid #734ba1;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.15);
+    margin-bottom: 12px;
+}
+
+.order-main-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #734ba1;
+    margin: 0 0 6px 0;
+    line-height: 1.2;
+    text-shadow: 1px 1px 2px rgba(115, 75, 161, 0.1);
+    letter-spacing: -0.5px;
+}
+
+.order-author {
+    font-size: 1rem;
+    color: #666;
+    margin: 0 0 12px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(115, 75, 161, 0.2);
+}
+
+.order-author a {
+    color: #734ba1;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.order-author a:hover {
+    text-decoration: underline;
+}
+
+.synopsis-text {
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: #555;
+    font-style: italic;
+}
+
+.synopsis-text p {
+    margin: 0 0 12px 0;
+}
+
+.synopsis-text p:last-child {
+    margin-bottom: 0;
+}
+
+.book-info-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto 1fr;
+    gap: 8px 16px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #000;
+    text-align: right;
+}
+
+.book-info-grid span:not(.info-label) {
+    color: #333;
+}
+
+.kindle-btn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: #232f3e;
+    color: white;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 12px;
+}
+
+.kindle-btn:hover {
+    background: #131921;
+    border-color: #ff9900;
+    box-shadow: 0 0 12px rgba(255, 153, 0, 0.6);
 }
 
 @media (max-width: 768px) {
@@ -158,15 +288,153 @@
     }
 }
 
-/* Mobile adjustments */
-@media (max-width: 768px) {
-    .order-section {
-        padding-top: 60px; /* Tighter on mobile */
-    }
-    
-    .order-content {
-        padding: 18px 15px;
-    }
+/* Row 2: Interactive Section (Slider + Canon + Price) - Keep existing */
+.order-row-2 {
+    width: 100%;
+}
+
+/* Order History Preview - Replaces canon-preview */
+.order-history-preview {
+    flex: 1 1 50%;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: white;
+    border: 1px solid #e8e6f5;
+    padding: 0;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.order-history-user-entry {
+    border-bottom: 2px solid #d0c7f0;
+}
+
+.order-history-recent {
+    flex: 1;
+}
+
+/* Event row styles from database.html/profile.css */
+.row-entry {
+    border-left: 4px solid transparent;
+    padding: 10px;
+    margin: 0;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+    border-radius: 0;
+    transition: all 0.15s ease;
+    background: white;
+}
+
+.row-entry:nth-child(even) {
+    background: #f0f0f0;
+}
+
+.row-entry.canon-row {
+    background: linear-gradient(
+        to right,
+        rgba(var(--canon-color-rgb), 0.25) 0%,
+        rgba(var(--canon-color-rgb), 0.15) 30%,
+        rgba(var(--canon-color-rgb), 0.08) 70%,
+        rgba(var(--canon-color-rgb), 0.03) 100%
+    ) !important;
+    border-left: 4px solid var(--canon-color) !important;
+    border-top: 1px solid rgba(var(--canon-color-rgb), 0.3) !important;
+    border-bottom: 1px solid rgba(var(--canon-color-rgb), 0.3) !important;
+    box-shadow: inset 0 0 8px rgba(var(--canon-color-rgb), 0.15), 
+                0 1px 3px rgba(var(--canon-color-rgb), 0.2);
+    color: var(--canon-color) !important;
+}
+
+.row-entry.canon-row:hover {
+    background: linear-gradient(
+        to right,
+        rgba(var(--canon-color-rgb), 0.35) 0%,
+        rgba(var(--canon-color-rgb), 0.22) 30%,
+        rgba(var(--canon-color-rgb), 0.12) 70%,
+        rgba(var(--canon-color-rgb), 0.05) 100%
+    ) !important;
+    box-shadow: inset 0 0 12px rgba(var(--canon-color-rgb), 0.2),
+                0 2px 4px rgba(var(--canon-color-rgb), 0.3);
+}
+
+.row-entry.canon-row:nth-child(even) {
+    background: linear-gradient(
+        to right,
+        rgba(var(--canon-color-rgb), 0.28) 0%,
+        rgba(var(--canon-color-rgb), 0.18) 30%,
+        rgba(var(--canon-color-rgb), 0.10) 70%,
+        rgba(var(--canon-color-rgb), 0.04) 100%
+    ) !important;
+}
+
+.row-entry.canon-row:nth-child(even):hover {
+    background: linear-gradient(
+        to right,
+        rgba(var(--canon-color-rgb), 0.38) 0%,
+        rgba(var(--canon-color-rgb), 0.25) 30%,
+        rgba(var(--canon-color-rgb), 0.14) 70%,
+        rgba(var(--canon-color-rgb), 0.06) 100%
+    ) !important;
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.cell.epoch {
+    flex: 0 0 85px;
+    font-family: monospace;
+    font-size: 0.7rem;
+    text-align: center;
+    justify-content: center;
+    opacity: 0.7;
+    color: inherit;
+}
+
+.cell.avatar {
+    flex: 0 0 24px;
+    justify-content: center;
+}
+
+.cell.canon {
+    flex: 1;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.avatar-img {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.dreamer-name {
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+}
+
+.dreamer-name:hover {
+    text-decoration: underline;
+}
+
+.event-text {
+    font-style: italic;
+    color: inherit;
+    opacity: 0.9;
 }
 
 /* ============================================
@@ -592,17 +860,91 @@
     gap: 8px;
     cursor: pointer;
     font-size: 0.75rem;
+    padding: 0;
+    margin: 0;
 }
 
 .canon-checkbox input {
     width: 16px;
     height: 16px;
     cursor: pointer;
+    margin: 0;
 }
 
 .canon-checkbox span {
     color: #666;
     font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.price-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.order-btn-integrated {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: white;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(
+        135deg,
+        #734ba1 0%,
+        #8b5fc4 50%,
+        #734ba1 100%
+    );
+    background-size: 200% 100%;
+    background-position: 0% 0%;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.3);
+    animation: colorFlow 3s ease-in-out infinite;
+    white-space: nowrap;
+}
+
+.order-btn-integrated:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(115, 75, 161, 0.5);
+    animation: colorFlow 3s ease-in-out infinite, shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0) translateY(-2px) rotate(0deg); }
+    25% { transform: translateX(-2px) translateY(-3px) rotate(-0.8deg); }
+    50% { transform: translateX(0) translateY(-2.5px) rotate(0deg); }
+    75% { transform: translateX(2px) translateY(-3px) rotate(0.8deg); }
+}
+
+@keyframes colorFlow {
+    0%, 100% { background-position: 0% 0%; }
+    50% { background-position: 100% 0%; }
+}
+
+.confetti-particle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    animation: confettiBurst 1s ease-out forwards;
+}
+
+@keyframes confettiBurst {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) rotate(var(--rotation));
+        opacity: 0;
+    }
 }
 
 .login-link {
@@ -619,7 +961,29 @@
 
 /* Quantity Slider */
 .quantity-section {
-    margin: 0 0 10px 0;
+    margin: auto 0 0 0;
+}
+
+.shipping-notice-header {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.edition-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.shipping-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
 }
 
 .slider-wrapper {
@@ -745,11 +1109,11 @@
 
 .quantity-label {
     display: block;
-    font-weight: 600;
-    font-size: 1rem;
+    font-weight: 700;
+    font-size: 1.4rem;
     text-align: center;
     color: #2a2a2a;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 .quantity-label span {
@@ -834,40 +1198,30 @@
 .shipping-notice {
     text-align: center;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     letter-spacing: 0.03em;
-    color: #000;
-    margin: 0 0 8px 0;
-    background: none;
-    border: none;
-    padding: 0;
-    animation: shippingPulse 3s ease-in-out infinite;
-}
-
-@keyframes shippingPulse {
-    0%, 100% {
-        opacity: 0.85;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.02);
-    }
+    color: #2a2a2a;
+    margin: 12px 0;
+    padding: 10px;
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+    border: 2px solid #4caf50;
+    border-radius: 4px;
 }
 
 /* Order Button */
 .order-btn {
-    width: 100%;
-    padding: 17px 32px;
-    background: linear-gradient(135deg, #8c6bb1 0%, #a084ca 45%, #b491d4 100%);
+    width: 280px;
+    padding: 20px 32px;
+    background: linear-gradient(135deg, #8c6bb1 0%, #a084ca 100%);
     background-size: 200% 100%;
     background-position: 0% 0%;
     color: white;
     border: none;
     cursor: pointer;
     font-weight: 700;
-    font-size: 1.18rem;
-    letter-spacing: 2.5px;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 
         0 8px 24px rgba(140, 107, 177, 0.4),
@@ -895,7 +1249,7 @@
     box-shadow: 
         0 12px 36px rgba(108, 79, 140, 0.6),
         0 4px 16px rgba(140, 107, 177, 0.35);
-    transform: translateY(-3px) scale(1.02);
+    transform: translateY(-3px) scale(1.015);
 }
 
 .order-btn:hover::before {
@@ -909,6 +1263,40 @@
     box-shadow: 
         0 6px 20px rgba(135, 64, 141, 0.5),
         0 2px 8px rgba(140, 107, 177, 0.3);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .order-section {
+        padding-top: 60px;
+    }
+    
+    .order-container {
+        padding: 12px;
+    }
+    
+    .order-row-1 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .order-row-flex {
+        flex-direction: column;
+    }
+    
+    .order-row-flex .price-breakdown {
+        flex: 1 1 100%;
+    }
+    
+    .hero-cover-img {
+        max-width: 250px;
+        margin: 0 auto;
+    }
+    
+    .order-main-title {
+        font-size: 1.5rem;
+    }
+    
 }
 
 /* Order Footer */

@@ -1,45 +1,45 @@
 #!/usr/bin/env python3
 """
-🌜 REVERIE ESSENTIAL
-Canon management for Reverie House.
-Handles writing canon events directly to the database.
+Events Management for Reverie House
+Handles recording all events to the events table in PostgreSQL.
+
+This replaces the obsolete canon.py which was trying to write to a non-existent canon table.
+The canon view is read-only and filtered for name/origin events only.
+
+All events (arrivals, orders, souvenirs, reactions, etc.) go into the events table.
 """
 
-from typing import Dict, List, Optional
-import json
-import os
-import sys
 import time
 import logging
-
+from typing import Dict, Optional, Any
 from core.database import DatabaseManager
 from core.utils import number_to_words
 
 try:
     from config import Config
-    DATA_DIR = Config.DATA_DIR
     ANONYMOUS_DID = getattr(Config, 'ANONYMOUS_DID', 'did:plc:zdxbourfcbv66iq2xfpb233q')
 except ImportError:
-    DATA_DIR = "/srv/data"
     ANONYMOUS_DID = 'did:plc:zdxbourfcbv66iq2xfpb233q'
-
-PENDING_FILE = os.path.join(DATA_DIR, ".canon_pending.json")
 
 logger = logging.getLogger(__name__)
 
 
-class CanonManager:
-    """Manages canon entries - writes directly to PostgreSQL database."""
-
+class EventsManager:
+    """
+    Manages all events in the Reverie House events table.
+    
+    Events include:
+    - arrivals: When dreamers first join
+    - orders: Book purchases
+    - souvenirs: Collected items
+    - reactions: Interactions with other events
+    - name: Name changes
+    - origin: Origin story updates
+    """
+    
     def __init__(self, db: Optional[DatabaseManager] = None):
         self.db = db or DatabaseManager()
-        self.pending_entries = []
-        self.scribe_active = False
-        self._ensure_data_dir()
-        
-    def _ensure_data_dir(self):
-        """Ensure data directory exists."""
-        os.makedirs(DATA_DIR, exist_ok=True)
+    
     def _format_order_event(self, customer_name: Optional[str], quantity: int, anonymous: bool = False) -> str:
         """
         Format order event text.
@@ -124,10 +124,10 @@ class CanonManager:
                          quantity: int, amount: float, currency: str,
                          session_id: str, customer_did: Optional[str] = None,
                          customer_handle: Optional[str] = None,
-                         anonymous: bool = False) -> Dict[str, any]:
+                         anonymous: bool = False) -> Dict[str, Any]:
         """
-        Record a book order as a canon event with intelligent DID attribution.
-        Uses PostgreSQL with proper transaction handling.
+        Record a book order as an event with intelligent DID attribution.
+        Writes directly to the events table with proper transaction handling.
         
         Attribution hierarchy:
         1. Use customer_did if provided (from OAuth session metadata)
@@ -138,7 +138,7 @@ class CanonManager:
             customer_email: Customer's email from Stripe
             customer_name: Customer's name from Stripe
             quantity: Number of books ordered
-            amount: Total amount paid
+            amount: Total amount paid (in cents)
             currency: Currency code (e.g., 'usd')
             session_id: Stripe checkout session ID
             customer_did: DID if known (from OAuth session)
@@ -150,7 +150,7 @@ class CanonManager:
                 'success': bool,
                 'did': str or None,
                 'attribution_method': 'oauth' | 'email' | 'anonymous',
-                'canon_id': int or None
+                'event_id': int or None
             }
         """
         epoch = int(time.time())
@@ -172,67 +172,82 @@ class CanonManager:
             order_url = "/order"
             key = 'seeker'
             
-            # Write to database with transaction safety
+            # Prepare quantities JSONB
+            import json
+            quantities = {
+                'books': quantity,
+                'amount_cents': amount,
+                'currency': currency
+            }
+            quantities_json = json.dumps(quantities)
+            
+            # Write to events table with transaction safety
             with self.db.transaction() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
-                        INSERT INTO canon (did, event, epoch, uri, url, type, key, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, quantities)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
                         RETURNING id
                     """, (
                         did,
                         event_text,
-                        epoch,
-                        order_uri,
-                        order_url,
                         'order',
                         key,
-                        epoch
+                        order_uri,
+                        order_url,
+                        epoch,
+                        epoch,
+                        quantities_json
                     ))
                     
                     result = cursor.fetchone()
-                    canon_id = result['id'] if result else None
+                    event_id = result['id'] if result else None
             
             quantity_text = number_to_words(quantity)
             books_text = 'book' if quantity == 1 else 'books'
-            logger.info(f"📖 CANON: {quantity_text} {books_text} realized [order] [{key}]")
+            logger.info(f"📖 EVENT: {quantity_text} {books_text} realized [order] [{key}] (id: {event_id})")
             
             return {
                 'success': True,
                 'did': did,
                 'attribution_method': attribution_method,
-                'canon_id': canon_id
+                'event_id': event_id
             }
             
         except Exception as e:
-            logger.error(f"❌ CANON ORDER ERROR: {e}", exc_info=True)
+            logger.error(f"❌ EVENT ORDER ERROR: {e}", exc_info=True)
             return {
                 'success': False,
                 'did': None,
                 'attribution_method': 'error',
-                'canon_id': None
+                'event_id': None
             }
     
-    def record_canon_event(self, did: str, name: str, event: str, canon_type: str, 
-                          epoch: Optional[int] = None, uri: str = "", url: str = "", key: str = "") -> bool:
+    def record_event(self, did: str, event: str, event_type: str, 
+                    key: str = "", epoch: Optional[int] = None, 
+                    uri: str = "", url: str = "", 
+                    reaction_to: Optional[int] = None,
+                    quantities: Optional[Dict] = None) -> Optional[int]:
         """
-        Record a canon event directly to the PostgreSQL database.
+        Record a generic event to the events table.
         
         Args:
             did: Dreamer's DID
-            name: Dreamer's name (for legacy compatibility, not stored)
             event: Event description (e.g., "found our wild mindscape")
-            canon_type: Event type ('arrival', 'souvenir', 'name', etc.)
+            event_type: Event type ('arrival', 'souvenir', 'reaction', etc.)
+            key: Souvenir key or tag for categorization (e.g., 'residence', 'strange')
             epoch: Event timestamp (defaults to current time)
             uri: AT protocol URI
             url: Public URL
-            key: Souvenir key or tag for categorization (e.g., 'residence', 'strange')
+            reaction_to: ID of event being reacted to (for reactions)
+            quantities: Optional JSONB data (for orders, etc.)
             
         Returns:
-            bool: Success status
+            int: Event ID if successful, None otherwise
         """
-        if not did or not event or not canon_type:
-            return False
+        if not did or not event or not event_type:
+            logger.error("Missing required fields for event")
+            return None
             
         if epoch is None:
             epoch = int(time.time())
@@ -242,146 +257,71 @@ class CanonManager:
                 with conn.cursor() as cursor:
                     # Check for duplicates
                     cursor.execute('''
-                        SELECT id FROM canon 
+                        SELECT id FROM events 
                         WHERE did = %s AND event = %s AND epoch = %s
                     ''', (did, event, epoch))
                     
-                    if cursor.fetchone():
-                        logger.debug(f"Canon event already exists: {did} {event}")
-                        return True
+                    existing = cursor.fetchone()
+                    if existing:
+                        logger.debug(f"Event already exists: {did} {event}")
+                        return existing['id']
                     
-                    # Insert new canon entry
+                    # Insert new event
                     cursor.execute('''
-                        INSERT INTO canon (did, event, epoch, uri, url, type, key, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ''', (did, event, epoch, uri, url, canon_type, key or None, int(time.time())))
+                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, reaction_to, quantities)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                        RETURNING id
+                    ''', (did, event, event_type, key or '', uri, url, epoch, int(time.time()), reaction_to, quantities))
+                    
+                    result = cursor.fetchone()
+                    event_id = result['id'] if result else None
             
             key_str = f"[{key}]" if key else ""
-            logger.info(f"📖 CANON: {name} {event} [{canon_type}] {key_str}")
-            return True
+            logger.info(f"📖 EVENT: {event} [{event_type}] {key_str} (id: {event_id})")
+            return event_id
             
         except Exception as e:
-            logger.error(f"❌ CANON ERROR: {e}", exc_info=True)
-            return False
-
-
-    def scribe_begin(self):
-        """Begin batching canon entries (legacy compatibility)."""
-        self.pending_entries = []
-        self.scribe_active = True
-        try:
-            if os.path.exists(PENDING_FILE):
-                os.remove(PENDING_FILE)
-        except Exception:
-            pass
-        print(" ")
-        print("=== CANON ===")
-        print("✍  SCRIBE BEGIN")
-
-    def record_entry(self, name: str, event: str, **kwargs):
+            logger.error(f"❌ EVENT ERROR: {e}", exc_info=True)
+            return None
+    
+    def get_events(self, limit: int = 100, event_type: Optional[str] = None, 
+                   did: Optional[str] = None) -> list[Dict]:
         """
-        Record a new canon entry (legacy compatibility - redirects to database).
+        Fetch events from the database.
         
-        This method maintains backward compatibility with old batching system
-        but now writes directly to database.
+        Args:
+            limit: Maximum number of events to return
+            event_type: Filter by event type (optional)
+            did: Filter by dreamer DID (optional)
+            
+        Returns:
+            List of event dictionaries
         """
-        canon_type = kwargs.get("type", "souvenir")
-        key = kwargs.get("key", "")
-        
-        if "keys" in kwargs and not key:
-            keys = kwargs["keys"]
-            if isinstance(keys, list) and len(keys) > 0:
-                key = keys[0]
-        
-        success = self.record_canon_event(
-            did=kwargs.get("did", ""),
-            name=name,
-            event=event,
-            canon_type=canon_type,
-            epoch=kwargs.get("epoch", None),
-            uri=kwargs.get("uri", ""),
-            url=kwargs.get("url", ""),
-            key=key
-        )
-        
-        if success and self.scribe_active:
-            self.pending_entries.append({"name": name, "event": event, "type": canon_type, "key": key})
-        
-        return success
-
-    def scribe_commit(self) -> tuple[bool, int]:
-        """
-        Commit pending entries (legacy compatibility).
-        
-        Since we now write directly to database, this just reports what was written.
-        """
-        count = len(self.pending_entries)
-        
-        if count > 0:
-            print("")
-            print("=== CANON ===")
-            print(f"� CANON WRITTEN: {count} new entries")
-            for entry in self.pending_entries:
-                name = entry.get('name', '')
-                event = entry.get('event', '')
-                canon_type = entry.get('type', '')
-                print(f"-- \"{name} {event}\" [{canon_type}]")
-        
-        self.scribe_active = False
-        self.pending_entries = []
-        try:
-            if os.path.exists(PENDING_FILE):
-                os.remove(PENDING_FILE)
-        except Exception:
-            pass
-        
-        return True, count
-
-
-    def get_pending_count(self) -> int:
-        """Get count of pending entries."""
-        return len(self.pending_entries)
-
-    def get_pending_entries(self) -> List[str]:
-        """Get formatted list of pending entries for display."""
-        return [f"{entry.get('name', '')} {entry.get('event', '')}" 
-                for entry in self.pending_entries]
-
-    def load_canon(self) -> List[Dict]:
-        """Load canon entries from PostgreSQL database."""
         try:
             with self.db.get_connection() as conn:
                 with conn.cursor() as cursor:
-                    cursor.execute('''
-                        SELECT c.*, d.name 
-                        FROM canon c 
-                        LEFT JOIN dreamers d ON c.did = d.did 
-                        ORDER BY c.epoch DESC
-                    ''')
+                    query = '''
+                        SELECT e.*, d.name, d.handle
+                        FROM events e 
+                        LEFT JOIN dreamers d ON e.did = d.did 
+                        WHERE 1=1
+                    '''
+                    params = []
+                    
+                    if event_type:
+                        query += ' AND e.type = %s'
+                        params.append(event_type)
+                    
+                    if did:
+                        query += ' AND e.did = %s'
+                        params.append(did)
+                    
+                    query += ' ORDER BY e.epoch DESC LIMIT %s'
+                    params.append(limit)
+                    
+                    cursor.execute(query, params)
                     rows = cursor.fetchall()
                     return [dict(row) for row in rows]
         except Exception as e:
-            logger.error(f"❌ CANON LOAD ERROR: {e}", exc_info=True)
+            logger.error(f"❌ EVENT FETCH ERROR: {e}", exc_info=True)
             return []
-
-
-def create_canon_manager() -> CanonManager:
-    """Create a CanonManager instance for use in reverie cycle."""
-    return CanonManager()
-
-
-def main():
-    """CLI entry point for canon processing."""    
-    canon_mgr = CanonManager()
-    
-    try:
-        canon_entries = canon_mgr.load_canon()
-        print(f"📖 Loaded {len(canon_entries)} canon entries from database")
-        
-    except Exception as e:
-        print(f"❌ CANON ERROR: {e}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

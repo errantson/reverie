@@ -704,6 +704,97 @@ def origin_redirect(handle):
 
 
 # ============================================================================
+# STRIPE PAYMENT PROXY (with authentication and rate limiting)
+# ============================================================================
+
+@app.route('/api/stripe/<path:endpoint>', methods=['GET', 'POST'])
+@rate_limit(10)  # Limit to 10 requests per minute
+def stripe_proxy(endpoint):
+    """
+    Proxy Stripe API requests to containerized service.
+    
+    SECURITY:
+    - Rate limited to prevent abuse
+    - Logs all requests for audit
+    - Validates user session (optional for public checkout)
+    - Returns 503 if Stripe service unavailable
+    """
+    import requests
+    
+    # Get user context for logging (optional, don't block public checkout)
+    user_did = None
+    user_ip = get_client_ip()
+    
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    if token:
+        valid, did, handle = auth.validate_session(token)
+        if valid:
+            user_did = did
+    
+    try:
+        # Forward request to Stripe service container
+        stripe_url = f'http://127.0.0.1:5555/{endpoint}'
+        
+        # Log the request
+        audit.log(
+            event_type='stripe_api_call',
+            endpoint=endpoint,
+            method=request.method,
+            user_ip=user_ip,
+            user_did=user_did,
+            request_body=request.get_data(as_text=True)[:500] if request.method == 'POST' else None
+        )
+        
+        # Forward the request
+        proxied = requests.request(
+            method=request.method,
+            url=stripe_url,
+            headers={k: v for k, v in request.headers if k.lower() != 'host'},
+            data=request.get_data(),
+            params=request.args,
+            allow_redirects=False,
+            timeout=30
+        )
+        
+        # Return the response
+        response = app.make_response(proxied.content)
+        response.status_code = proxied.status_code
+        
+        # Copy response headers (excluding hop-by-hop headers)
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        for key, value in proxied.headers.items():
+            if key.lower() not in excluded_headers:
+                response.headers[key] = value
+        
+        return response
+        
+    except requests.exceptions.ConnectionError:
+        # Stripe service unavailable
+        audit.log(
+            event_type='stripe_service_unavailable',
+            endpoint=endpoint,
+            user_ip=user_ip,
+            response_status=503
+        )
+        return jsonify({
+            'error': 'Payment service temporarily unavailable',
+            'message': 'Please try again in a moment'
+        }), 503
+    except Exception as e:
+        # Other errors
+        audit.log(
+            event_type='stripe_proxy_error',
+            endpoint=endpoint,
+            user_ip=user_ip,
+            error_message=str(e),
+            response_status=500
+        )
+        return jsonify({
+            'error': 'Internal server error',
+            'message': 'Unable to process payment request'
+        }), 500
+
+# ============================================================================
 # LEGACY ROUTES (kept for compatibility - some served by blueprints)
 # ============================================================================
 

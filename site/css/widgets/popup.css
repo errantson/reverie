@@ -23,12 +23,12 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
-    max-width: 500px;
+    max-width: 540px;
     min-width: 320px;
-    background-color: white;
-    border: 1px solid var(--reverie-core-color, #734ba1);
-    border-radius: 0;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: #ffffff;
+    border: 2px solid var(--reverie-core-color, #734ba1);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 100001;
     opacity: 0;
     transition: all 0.2s ease;
@@ -46,8 +46,8 @@
 }
 
 .reverie-popup-content {
-    padding: 20px;
-    padding-right: 40px; /* Space for close button */
+    padding: 28px;
+    padding-right: 48px; /* Space for close button */
 }
 
 .reverie-popup-title {
@@ -122,22 +122,24 @@
 
 .reverie-popup-close {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 24px;
-    height: 24px;
+    top: 14px;
+    right: 14px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     background: transparent;
     border: none;
-    color: #999;
-    font-size: 20px;
+    color: #aaa;
+    font-size: 22px;
     line-height: 1;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: all 0.2s ease;
+    border-radius: 4px;
 }
 
 .reverie-popup-close:hover {
     color: #333;
+    background: rgba(0, 0, 0, 0.05);
 }
 
 /* Type-specific styling */
@@ -210,4 +212,165 @@
         padding: 16px;
         padding-right: 36px;
     }
+}
+
+/* Order success popup - Compact with all content */
+.gratitude-nucleus {
+    padding: 0;
+    margin: 0;
+}
+
+.gratitude-headline {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #999;
+    margin: 0 0 10px 0;
+    text-align: center;
+}
+
+.gratitude-sigil {
+    max-width: 140px;
+    height: auto;
+    display: block;
+    margin: 0 auto 10px auto;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.15));
+}
+
+.canon-inscription {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, rgba(var(--patron-rgb), 0.15), rgba(var(--patron-rgb), 0.05));
+    border: 2px solid var(--patron-tint);
+    border-radius: 0;
+}
+
+.inscription-face {
+    width: 32px;
+    height: 32px;
+    border-radius: 0;
+    object-fit: cover;
+    border: 2px solid var(--patron-tint);
+    flex-shrink: 0;
+}
+
+.inscription-words {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    text-align: left;
+    flex: 1;
+    line-height: 1.3;
+}
+
+.inscription-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--patron-tint);
+    text-decoration: none;
+}
+
+.inscription-name:hover {
+    text-decoration: underline;
+}
+
+.inscription-deed {
+    font-size: 0.9rem;
+    font-style: italic;
+    color: #555;
+}
+
+.fulfillment-pledge {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
+    margin: 0 0 8px 0;
+    text-align: center;
+}
+
+.contact-whisper {
+    font-size: 0.8rem;
+    color: #666;
+    text-align: center;
+}
+
+.contact-whisper a {
+    color: var(--patron-tint);
+    text-decoration: none;
+    border-bottom: 1px solid var(--patron-tint);
+}
+
+.contact-whisper a:hover {
+    opacity: 0.7;
+}
+
+/* Ensure canon row styles work inside popup */
+.reverie-popup .row-entry.canon-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75em;
+    align-items: center;
+    padding: 1em 1.2em;
+    background: linear-gradient(
+        135deg,
+        rgba(var(--canon-color-rgb, 115, 75, 161), 0.12),
+        rgba(var(--canon-color-rgb, 115, 75, 161), 0.04)
+    );
+    border-left: 4px solid var(--canon-color, #734ba1);
+    border-radius: 4px;
+    margin: 1.2em 0;
+    box-shadow: 0 2px 8px rgba(var(--canon-color-rgb, 115, 75, 161), 0.15);
+    transition: all 0.3s ease;
+}
+
+.reverie-popup .row-entry.canon-row:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--canon-color-rgb, 115, 75, 161), 0.2);
+}
+
+.reverie-popup .canon-row .cell.avatar {
+    width: 48px;
+    height: 48px;
+}
+
+.reverie-popup .canon-row .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2.5px solid var(--canon-color, #734ba1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.reverie-popup .canon-row .cell.canon {
+    display: flex;
+    flex-direction: row;
+    gap: 0.4em;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+
+.reverie-popup .canon-row .dreamer-name {
+    font-weight: 600;
+    color: var(--canon-color, #734ba1);
+    text-decoration: none;
+    font-size: 1.05em;
+    transition: all 0.2s ease;
+}
+
+.reverie-popup .canon-row .dreamer-name:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+.reverie-popup .canon-row .event-text {
+    color: #555;
+    font-size: 0.98em;
+    font-style: italic;
 }

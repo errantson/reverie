@@ -323,11 +323,16 @@ class HeadingManager:
                             self.db.execute("UPDATE world SET owner_did = %s, claimed_epoch = %s WHERE id = %s", (did, int(time.time()), item['id']))
                             self.db.commit()
 
-                            # Record canon event
+                            # Record event
                             try:
-                                from core.canon import CanonManager
-                                cm = CanonManager()
-                                cm.record_canon_event(did=did, name=closest.get('name') or closest.get('handle') or did[:12], event=f"found {item['key']}", canon_type='souvenir', key=item['key'])
+                                from core.events import EventsManager
+                                em = EventsManager(self.db)
+                                em.record_event(
+                                    did=did, 
+                                    event=f"found {item['key']}", 
+                                    event_type='souvenir', 
+                                    key=item['key']
+                                )
                             except Exception:
                                 # Non-fatal
                                 pass
