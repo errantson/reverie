@@ -359,12 +359,20 @@ class Dashboard {
             console.log('🔔 [Dashboard] Credentials connected - refreshing roles section');
             this.renderRolesCharacterSection();
             this.updateStatusDisplay();
+            // Update schedule input state to reflect credentials are now available
+            if (this.currentTab === 'compose') {
+                this.updateScheduleInputState();
+            }
         });
         
         window.WorkEvents.on(window.WorkEvents.EVENTS.CREDENTIALS_DISCONNECTED, () => {
             console.log('🔔 [Dashboard] Credentials disconnected - refreshing roles section');
             this.renderRolesCharacterSection();
             this.updateStatusDisplay();
+            // Update schedule input state to reflect credentials are no longer available
+            if (this.currentTab === 'compose') {
+                this.updateScheduleInputState();
+            }
         });
         
         console.log('✅ [Dashboard] Work event listeners set up');
@@ -4949,6 +4957,9 @@ class Dashboard {
         
         // Load scheduled posts
         await this.loadScheduledPosts();
+        
+        // Update schedule input state based on credentials
+        await this.updateScheduleInputState();
     }
     
     showAppPasswordModal() {
@@ -5055,9 +5066,15 @@ class Dashboard {
             
             if (response.ok && data.success) {
                 status.innerHTML = '<span style="color: #16a34a;">✓ Connected successfully!</span>';
+                
+                // Emit credentials connected event
+                if (window.WorkEvents) {
+                    window.WorkEvents.emit(window.WorkEvents.EVENTS.CREDENTIALS_CONNECTED);
+                }
+                
                 setTimeout(() => {
                     document.querySelector('.modal-overlay').remove();
-                    // Refresh the compose tab
+                    // Refresh the compose tab to update schedule input state
                     this.switchTab('compose');
                 }, 1000);
             } else {
@@ -6837,6 +6854,36 @@ class Dashboard {
         } catch (error) {
             console.warn('[Compose] Could not check credentials:', error);
             return false;
+        }
+    }
+    
+    async updateScheduleInputState() {
+        /**
+         * Update the schedule time input based on credential status
+         * Enables/disables the input and updates visual state
+         */
+        const scheduleTime = document.getElementById('composeScheduleTime');
+        if (!scheduleTime) return;
+        
+        try {
+            const hasPassword = await this.hasAppPassword();
+            
+            if (hasPassword) {
+                // Enable scheduling
+                scheduleTime.disabled = false;
+                scheduleTime.style.opacity = '1';
+                scheduleTime.style.cursor = 'pointer';
+                scheduleTime.title = 'Schedule this post for later';
+                console.log('✅ [Compose] Schedule input enabled - credentials connected');
+            } else {
+                // Keep enabled but show modal on click (handled by existing click listener)
+                scheduleTime.disabled = false;
+                scheduleTime.style.opacity = '0.7';
+                scheduleTime.title = 'Connect app password to schedule posts';
+                console.log('ℹ️ [Compose] Schedule input ready - will prompt for credentials on click');
+            }
+        } catch (error) {
+            console.error('❌ [Compose] Error updating schedule input state:', error);
         }
     }
     
