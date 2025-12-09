@@ -1,0 +1,213 @@
+/* Reverie Popup Widget Styles */
+
+/* Shadowbox backdrop */
+.reverie-popup-shadowbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 100000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: auto;
+}
+
+.reverie-popup-shadowbox-visible {
+    opacity: 1;
+}
+
+.reverie-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    max-width: 500px;
+    min-width: 320px;
+    background-color: white;
+    border: 1px solid var(--reverie-core-color, #734ba1);
+    border-radius: 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 100001;
+    opacity: 0;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+.reverie-popup-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.reverie-popup-hiding {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+}
+
+.reverie-popup-content {
+    padding: 20px;
+    padding-right: 40px; /* Space for close button */
+}
+
+.reverie-popup-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--reverie-core-color, #734ba1);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.reverie-popup-message {
+    font-size: 16px;
+    color: #333;
+    line-height: 1.6;
+    margin-bottom: 0;
+    white-space: pre-line;
+}
+
+.reverie-popup-message a {
+    color: var(--reverie-core-color, #734ba1);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.reverie-popup-message a:hover {
+    opacity: 0.7;
+    text-decoration: underline;
+}
+
+.reverie-popup-message strong {
+    font-weight: 700;
+    color: var(--reverie-core-color, #734ba1);
+}
+
+.reverie-popup-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.reverie-popup-btn {
+    background-color: var(--reverie-core-color, #734ba1);
+    color: white;
+    border: 2px solid var(--reverie-core-color, #734ba1);
+    padding: 10px 20px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 140px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.reverie-popup-btn:hover {
+    background-color: white;
+    color: var(--reverie-core-color, #734ba1);
+    border-color: var(--reverie-core-color, #734ba1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.reverie-popup-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.reverie-popup-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #999;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.reverie-popup-close:hover {
+    color: #333;
+}
+
+/* Type-specific styling */
+.reverie-popup-info {
+    border-color: var(--reverie-core-color, #734ba1);
+}
+
+.reverie-popup-info .reverie-popup-btn {
+    background-color: var(--reverie-core-color, #734ba1);
+    border-color: var(--reverie-core-color, #734ba1);
+}
+
+.reverie-popup-info .reverie-popup-btn:hover {
+    background-color: white;
+    color: var(--reverie-core-color, #734ba1);
+}
+
+.reverie-popup-success {
+    border-color: #28a745;
+}
+
+.reverie-popup-success .reverie-popup-btn {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.reverie-popup-success .reverie-popup-btn:hover {
+    background-color: white;
+    color: #28a745;
+}
+
+.reverie-popup-warning {
+    border-color: #ffc107;
+}
+
+.reverie-popup-warning .reverie-popup-btn {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #333;
+}
+
+.reverie-popup-warning .reverie-popup-btn:hover {
+    background-color: white;
+    color: #ffc107;
+    border-color: #ffc107;
+}
+
+.reverie-popup-error {
+    border-color: #dc3545;
+}
+
+.reverie-popup-error .reverie-popup-btn {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.reverie-popup-error .reverie-popup-btn:hover {
+    background-color: white;
+    color: #dc3545;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .reverie-popup {
+        max-width: 90%;
+        min-width: 280px;
+    }
+    
+    .reverie-popup-content {
+        padding: 16px;
+        padding-right: 36px;
+    }
+}

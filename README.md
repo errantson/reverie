@@ -18,7 +18,7 @@ Since its release, others have begun contributing to the structures of **[Reveri
 
 - **[@vagabond.quest](https://bsky.app/profile/vagabond.quest)** — privacy front and [sovereign host](http://76.10.130.3)
 
-- **[@donatella.food](https://bsky.app/profile/donatella.food)** — a generous soul of [charitable mind](https://flawed.center)
+- **[@donatella.food](https://bsky.app/profile/donatella.food)** — a generous soul of [charitable mind](https://donatella.food)
 
 - **[@mappy.reverie.house](https://bsky.app/profile/mappy.reverie.house)** — elf exploring the [dream spectrum](https://reverie.house/spectrum)
 

@@ -502,6 +502,12 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+.floating-action-btn.disabled,
+.floating-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .btn-icon {
     margin-right: 8px;
     flex-shrink: 0;
@@ -664,8 +670,14 @@ body {
     box-shadow: none;
 }
 
+.action-btn-bar.disabled,
+.action-btn-bar:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .action-btn-bar.action-btn-icon {
-    padding: 8px;
+    padding: 0;
     width: 32px;
     height: 32px;
     display: flex;
@@ -677,6 +689,7 @@ body {
 .action-btn-bar .btn-icon {
     display: block;
     flex-shrink: 0;
+    margin: 0;
 }
 
 /* Timeline Scrubber - hidden by default, only visible when timeline data loads */

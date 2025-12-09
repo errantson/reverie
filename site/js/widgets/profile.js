@@ -63,13 +63,15 @@ class Profile {
         loadStylesheet('/css/widgets/profile.css?v=4');
         loadStylesheet('/css/octants.css');
         loadStylesheet('/css/roles.css');
+        loadStylesheet('/css/widgets/popup.css');
         
         // Load JavaScript dependencies in order with promises
         // Core utilities first
         this.dependencyPromises.push(
             loadScript('/js/utils/num_nom.js'),
             loadScript('/js/utils/user-status.js', 'UserStatus'),
-            loadScript('/js/utils/atproto-interactions.js')
+            loadScript('/js/utils/atproto-interactions.js'),
+            loadScript('/js/widgets/popup.js', 'Popup')
         );
         
         // Then widgets that may depend on core utilities
@@ -1057,8 +1059,9 @@ class Profile {
         }
         
         console.log('[Souvenirs] Container found, setting innerHTML');
+        const userColor = dreamer.color_hex || '#734ba1';
         souvenirsFace.innerHTML = `
-            <div class="souvenirs-physics-container">
+            <div class="souvenirs-physics-container" style="border-color: ${userColor};">
                 <canvas id="souvenirs-physics-canvas"></canvas>
                 <div class="souvenirs-mini-widget"></div>
             </div>
@@ -1078,11 +1081,28 @@ class Profile {
         }
         
         console.log('[Spectrum] Container found, setting innerHTML with loading state');
+        const userColor = dreamer.color_hex || '#734ba1';
         spectrumFace.innerHTML = `
-            <div class="spectrum-face-container">
+            <div class="spectrum-face-container" style="border-color: ${userColor};">
                 <div class="spectrum-loading" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999; font-style: italic; font-size: 16px; background: #fdfcfe;">Loading spectrum...</div>
                 <canvas id="spectrum-face-canvas" style="display: none;"></canvas>
-                <div class="spectrum-face-octant-overlay"></div>
+                <div class="spectrum-face-octant-overlay" style="border-color: ${userColor};"></div>
+                <div class="spectrum-face-controls">
+                    <button class="spectrum-face-btn" id="spectrumExploreOctantsBtn" title="Explore the octants of the spectrum">
+                        <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </button>
+                    <button class="spectrum-face-btn" id="spectrumCalculateOriginsBtn" title="Open Spectrum Calculator">
+                        <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
                 <div class="spectrum-octant-overlay" style="display: none;"></div>
             </div>
         `;
@@ -2025,6 +2045,9 @@ class Profile {
                     if (!octantOverlay) console.warn('[Spectrum] Octant overlay element not found');
                     if (typeof OctantDisplay === 'undefined') console.warn('[Spectrum] OctantDisplay class not available');
                 }
+                
+                // Setup button event listeners
+                this.setupSpectrumButtons();
             } else {
                 console.warn('[Spectrum] SpectrumVisualizer class not available');
                 if (loadingDiv) {
@@ -2039,6 +2062,182 @@ class Profile {
                 errorLoadingDiv.textContent = 'Error loading spectrum';
                 errorLoadingDiv.style.color = '#c44';
             }
+        }
+    }
+    
+    setupSpectrumButtons() {
+        console.log('[Profile] setupSpectrumButtons called');
+        
+        // Explore Octants button
+        const exploreBtn = this.container.querySelector('#spectrumExploreOctantsBtn');
+        console.log('[Profile] Explore button found:', exploreBtn);
+        if (exploreBtn) {
+            exploreBtn.addEventListener('click', () => {
+                console.log('[Profile] Explore button clicked');
+                this.openOctantShowcase(exploreBtn);
+            });
+        }
+        
+        // Calculate Origins button
+        const calcBtn = this.container.querySelector('#spectrumCalculateOriginsBtn');
+        console.log('[Profile] Calculator button found:', calcBtn);
+        console.log('[Profile] Calculator button disabled:', calcBtn?.disabled);
+        console.log('[Profile] Calculator button has disabled class:', calcBtn?.classList.contains('disabled'));
+        
+        if (calcBtn) {
+            calcBtn.addEventListener('click', (e) => {
+                console.log('[Profile] Calculator button clicked');
+                console.log('[Profile] Button disabled state:', calcBtn.disabled);
+                console.log('[Profile] Button has disabled class:', calcBtn.classList.contains('disabled'));
+                
+                if (calcBtn.disabled || calcBtn.classList.contains('disabled')) {
+                    console.log('[Profile] Button is disabled, showing popup');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.showMapperOfflinePopup(calcBtn);
+                } else {
+                    console.log('[Profile] Button is enabled, opening calculator');
+                    this.openSpectrumCalculator();
+                }
+            });
+        }
+        
+        // Check mapper status to show/hide calculator button
+        this.checkMapperStatusForButton();
+    }
+    
+    openOctantShowcase(buttonElement) {
+        // Dynamically load octantshowcase.js if not already loaded
+        if (!document.querySelector('script[src*="octantshowcase.js"]')) {
+            console.log('[Profile] Loading octantshowcase.js...');
+            const script = document.createElement('script');
+            script.src = '/js/widgets/octantshowcase.js';
+            script.onload = () => {
+                console.log('[Profile] octantshowcase.js loaded');
+                this.showOctantShowcase(buttonElement);
+            };
+            script.onerror = () => {
+                console.error('[Profile] Failed to load octantshowcase.js');
+            };
+            document.head.appendChild(script);
+        } else {
+            this.showOctantShowcase(buttonElement);
+        }
+    }
+    
+    showOctantShowcase(buttonElement) {
+        const attemptShow = () => {
+            if (typeof OctantShowcase !== 'undefined') {
+                console.log('[Profile] Creating OctantShowcase instance');
+                if (!window.octantShowcaseWidget) {
+                    window.octantShowcaseWidget = new OctantShowcase();
+                }
+                console.log('[Profile] Calling showPopup');
+                window.octantShowcaseWidget.showPopup(buttonElement);
+            } else {
+                console.warn('[Profile] OctantShowcase not yet available, waiting...');
+                setTimeout(attemptShow, 100);
+            }
+        };
+        attemptShow();
+    }
+    
+    showMapperOfflinePopup(buttonElement) {
+        console.log('[Profile] showMapperOfflinePopup called', buttonElement);
+        
+        // Use the Popup widget if available
+        if (typeof Popup !== 'undefined') {
+            Popup.show("Unfortunately, the <strong>Origin Calculator</strong> is only functional while there is an active <a href='/spectrum.html'>Spectrum Mapper</a> working.\n\nSee the <a href='/work.html'>Open Workshop</a> for availability.", {
+                title: 'Origin Calculator Offline',
+                type: 'info',
+                duration: 0, // Don't auto-dismiss
+                buttons: [
+                    {
+                        text: 'Go to Open Workshop',
+                        onClick: () => {
+                            window.location.href = '/work.html';
+                        }
+                    },
+                    {
+                        text: 'Close',
+                        onClick: () => {} // Just dismiss
+                    }
+                ]
+            });
+        } else {
+            // Fallback to confirm if Popup not loaded
+            if (confirm('Unfortunately, the Origin Calculator is only functional while there is an active Spectrum Mapper working.\n\nSee the Open Workshop for availability.\n\nGo to Open Workshop?')) {
+                window.location.href = '/work.html';
+            }
+        }
+    }
+    
+    openSpectrumCalculator() {
+        // Dynamically load spectrumcalculator-modal.js if not already loaded
+        if (!document.querySelector('script[src*="spectrumcalculator-modal.js"]')) {
+            console.log('[Profile] Loading spectrumcalculator-modal.js...');
+            const script = document.createElement('script');
+            script.src = '/js/widgets/spectrumcalculator-modal.js';
+            script.onload = () => {
+                console.log('[Profile] spectrumcalculator-modal.js loaded');
+                this.showSpectrumCalculator();
+            };
+            script.onerror = () => {
+                console.error('[Profile] Failed to load spectrumcalculator-modal.js');
+            };
+            document.head.appendChild(script);
+        } else {
+            this.showSpectrumCalculator();
+        }
+    }
+    
+    showSpectrumCalculator() {
+        const attemptShow = () => {
+            if (typeof openSpectrumCalculatorModal !== 'undefined') {
+                console.log('[Profile] Opening spectrum calculator modal');
+                openSpectrumCalculatorModal();
+            } else {
+                console.warn('[Profile] openSpectrumCalculatorModal not yet available, waiting...');
+                setTimeout(attemptShow, 100);
+            }
+        };
+        attemptShow();
+    }
+    
+    async checkMapperStatusForButton() {
+        console.log('[Profile] checkMapperStatusForButton called');
+        try {
+            const response = await fetch('/api/work/mapper/info');
+            console.log('[Profile] Mapper info response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('[Profile] Mapper info data:', data);
+                
+                const workers = data.workers || [];
+                const hasActiveMapper = workers.length > 0 && data.status === 'active';
+                console.log('[Profile] Has active mapper:', hasActiveMapper);
+                
+                const calcBtn = this.container.querySelector('#spectrumCalculateOriginsBtn');
+                console.log('[Profile] Calculator button for status update:', calcBtn);
+                
+                if (calcBtn) {
+                    if (hasActiveMapper) {
+                        console.log('[Profile] Enabling calculator button');
+                        calcBtn.classList.remove('disabled');
+                        calcBtn.style.cursor = 'pointer';
+                        calcBtn.title = 'Open Spectrum Calculator';
+                    } else {
+                        console.log('[Profile] Setting calculator button as unavailable');
+                        calcBtn.classList.add('disabled');
+                        calcBtn.style.cursor = 'not-allowed';
+                        calcBtn.title = 'Spectrum Calculator (mapper offline)';
+                    }
+                    console.log('[Profile] Button state after update - class:', calcBtn.className);
+                }
+            }
+        } catch (error) {
+            console.warn('[Profile] Failed to check mapper status:', error);
         }
     }
 
