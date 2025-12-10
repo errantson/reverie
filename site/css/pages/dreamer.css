@@ -88,6 +88,7 @@ body.dreamer-page {
     max-width: 1000px;
     margin: 0 auto;
     padding: 20px;
+    align-items: stretch;
 }
 #profile-container {
     flex: 1;
@@ -97,6 +98,7 @@ body.dreamer-page {
     border: 2px solid #d0c7f0;
     padding: 20px;
     transition: opacity 0.3s ease;
+    align-self: stretch;
 }
 #profile-container.loading {
     opacity: 0.5;

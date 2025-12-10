@@ -969,8 +969,11 @@ class SpectrumVisualizer {
         };
         const handleDragMove = (clientX, clientY) => {
             const rect = this.canvas.getBoundingClientRect();
-            this.mouse.x = clientX - rect.left;
-            this.mouse.y = clientY - rect.top;
+            // Account for canvas scaling (displayed size vs internal resolution)
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            this.mouse.x = (clientX - rect.left) * scaleX;
+            this.mouse.y = (clientY - rect.top) * scaleY;
             if (this.mouse.down) {
                 const currentTime = Date.now();
                 const dt = Math.max(1, currentTime - this.mouse.lastTime);
@@ -1067,8 +1070,11 @@ class SpectrumVisualizer {
             }
             
             const rect = this.canvas.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+            // Account for canvas scaling (displayed size vs internal resolution)
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
             this.handleCanvasClick(clickX, clickY);
         });
     }

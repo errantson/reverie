@@ -1260,6 +1260,7 @@ def get_canon():
         result = []
         for entry in canon_entries:
             canon_dict = {
+                'id': entry['id'],
                 'epoch': entry['epoch'],
                 'did': entry['did'],
                 'name': entry['name'] or 'unknown',

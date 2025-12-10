@@ -274,6 +274,78 @@
         .btn-delete:hover {
             background: #b91c1c;
         }
+        
+        /* Bulk deletion styles */
+        .bulk-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: #fef3c7;
+            border: 1.5px solid #f59e0b;
+            margin-bottom: 1rem;
+            font-family: monospace;
+        }
+        
+        .bulk-actions.hidden {
+            display: none;
+        }
+        
+        .bulk-actions-text {
+            font-size: 0.9rem;
+            color: #92400e;
+            font-weight: 600;
+        }
+        
+        .btn-bulk-delete {
+            background: #dc2626;
+            color: white;
+            border: 1.5px solid #b91c1c;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-bulk-delete:hover {
+            background: #b91c1c;
+        }
+        
+        .btn-bulk-cancel {
+            background: transparent;
+            color: #92400e;
+            border: 1.5px solid #f59e0b;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            cursor: pointer;
+        }
+        
+        .btn-bulk-cancel:hover {
+            background: #fef3c7;
+        }
+        
+        .row-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .header-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .cell.checkbox-cell {
+            flex: 0 0 40px;
+            max-width: 40px;
+            min-width: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -284,6 +356,12 @@
         </div>
         <button class="btn btn-primary" onclick="showAddModal()">+ Add Record</button>
         <button class="btn btn-secondary" onclick="loadCanonEntries()">🔄 Refresh</button>
+    </div>
+    
+    <div class="bulk-actions hidden" id="bulkActions">
+        <span class="bulk-actions-text" id="bulkActionsText">0 selected</span>
+        <button class="btn-bulk-delete" onclick="bulkDelete()">Delete Selected</button>
+        <button class="btn-bulk-cancel" onclick="clearSelection()">Cancel</button>
     </div>
     
     <div class="table-header">
@@ -367,12 +445,12 @@
     <!-- Delete Confirmation Modal -->
     <div class="confirm-modal" id="deleteModal">
         <div class="confirm-modal-content">
-            <h2 class="confirm-modal-title">Delete Canon Entry?</h2>
+            <h2 class="confirm-modal-title" id="deleteModalTitle">Delete Canon Entry?</h2>
             <div class="confirm-modal-message" id="deleteMessage">
                 Are you sure you want to delete this canon entry? This action cannot be undone.
             </div>
             <div class="confirm-modal-actions">
-                <button type="button" class="btn btn-delete" onclick="confirmDelete()">Delete</button>
+                <button type="button" class="btn btn-delete" id="confirmDeleteBtn" onclick="confirmDelete()">Delete</button>
                 <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
             </div>
         </div>
@@ -396,51 +474,227 @@
         
         // Delete modal functions
         let deleteEntryId = null;
+        let deleteIsBulk = false;
+        let selectedIds = new Set();
         
         function showDeleteModal(id) {
+            if (!id || id === 'undefined') {
+                console.error('Invalid ID passed to showDeleteModal:', id);
+                showToast('Error: Invalid entry ID', 'error');
+                return;
+            }
+            
             const entry = canonData.find(e => e.id === id);
-            if (!entry) return;
+            if (!entry) {
+                console.error('Entry not found for ID:', id);
+                showToast('Error: Entry not found', 'error');
+                return;
+            }
             
             deleteEntryId = id;
+            deleteIsBulk = false;
             const name = entry.name || 'Unknown';
             const event = entry.event || 'unknown event';
             
+            console.log('Opening delete modal for entry:', id, entry);
+            
+            document.getElementById('deleteModalTitle').textContent = 'Delete Canon Entry?';
             document.getElementById('deleteMessage').innerHTML = `
                 Are you sure you want to delete this canon entry?<br><br>
                 <strong>${escapeHtml(name)}</strong> <em>${escapeHtml(event)}</em><br><br>
                 This action cannot be undone.
             `;
+            document.getElementById('confirmDeleteBtn').textContent = 'Delete';
             document.getElementById('deleteModal').classList.add('active');
         }
         
         function closeDeleteModal() {
             document.getElementById('deleteModal').classList.remove('active');
             deleteEntryId = null;
+            deleteIsBulk = false;
         }
         
         async function confirmDelete() {
-            if (!deleteEntryId) return;
-            
-            try {
-                const response = await fetch(`/api/admin/canon/${deleteEntryId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                
-                if (response.ok) {
+            if (deleteIsBulk) {
+                // Bulk delete
+                const idsToDelete = Array.from(selectedIds);
+                if (idsToDelete.length === 0) {
+                    console.warn('No IDs selected for bulk delete');
                     closeDeleteModal();
-                    await loadCanonEntries();
-                    showToast('Entry deleted successfully', 'success');
-                } else {
-                    const error = await response.json().catch(() => ({}));
-                    showToast(error.error || 'Failed to delete entry', 'error');
+                    return;
                 }
-            } catch (error) {
-                console.error('Delete error:', error);
-                showToast('Failed to delete entry: ' + error.message, 'error');
+                
+                try {
+                    let successCount = 0;
+                    let failCount = 0;
+                    
+                    for (const id of idsToDelete) {
+                        if (!id || id === 'undefined') {
+                            console.error('Invalid ID in bulk delete:', id);
+                            failCount++;
+                            continue;
+                        }
+                        
+                        try {
+                            const response = await fetch(`/api/admin/canon/${id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bearer ${adminToken}`
+                                }
+                            });
+                            
+                            if (response.ok) {
+                                successCount++;
+                            } else {
+                                failCount++;
+                            }
+                        } catch (error) {
+                            console.error(`Failed to delete entry ${id}:`, error);
+                            failCount++;
+                        }
+                    }
+                    
+                    closeDeleteModal();
+                    clearSelection();
+                    await loadCanonEntries();
+                    
+                    if (failCount === 0) {
+                        showToast(`${successCount} entries deleted successfully`, 'success');
+                    } else {
+                        showToast(`${successCount} deleted, ${failCount} failed`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Bulk delete error:', error);
+                    showToast('Failed to delete entries: ' + error.message, 'error');
+                }
+            } else {
+                // Single delete
+                if (!deleteEntryId || deleteEntryId === 'undefined') {
+                    console.error('Invalid deleteEntryId:', deleteEntryId);
+                    closeDeleteModal();
+                    showToast('Error: Invalid entry ID', 'error');
+                    return;
+                }
+                
+                try {
+                    console.log('Deleting entry:', deleteEntryId);
+                    const response = await fetch(`/api/admin/canon/${deleteEntryId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        closeDeleteModal();
+                        await loadCanonEntries();
+                        showToast('Entry deleted successfully', 'success');
+                    } else {
+                        const error = await response.json().catch(() => ({}));
+                        closeDeleteModal();
+                        showToast(error.error || 'Failed to delete entry', 'error');
+                    }
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    closeDeleteModal();
+                    showToast('Failed to delete entry: ' + error.message, 'error');
+                }
             }
+        }
+        
+        function bulkDelete() {
+            const count = selectedIds.size;
+            if (count === 0) return;
+            
+            deleteIsBulk = true;
+            document.getElementById('deleteModalTitle').textContent = 'Delete Multiple Entries?';
+            document.getElementById('deleteMessage').innerHTML = `
+                Are you sure you want to delete <strong>${count}</strong> canon ${count === 1 ? 'entry' : 'entries'}?<br><br>
+                This action cannot be undone.
+            `;
+            document.getElementById('confirmDeleteBtn').textContent = `Delete ${count} ${count === 1 ? 'Entry' : 'Entries'}`;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+        
+        function clearSelection() {
+            selectedIds.clear();
+            updateBulkActions();
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            const headerCb = document.getElementById('headerCheckbox');
+            if (headerCb) headerCb.checked = false;
+        }
+        
+        function updateBulkActions() {
+            const bulkActions = document.getElementById('bulkActions');
+            const bulkText = document.getElementById('bulkActionsText');
+            const count = selectedIds.size;
+            
+            if (count > 0) {
+                bulkActions.classList.remove('hidden');
+                bulkText.textContent = `${count} selected`;
+            } else {
+                bulkActions.classList.add('hidden');
+            }
+        }
+        
+        function toggleRowSelection(id, checked) {
+            console.log('toggleRowSelection called:', {id, checked, type: typeof id});
+            
+            // Validate ID
+            if (id === undefined || id === null || id === 'undefined' || id === 'null') {
+                console.error('Invalid ID in toggleRowSelection:', id);
+                return;
+            }
+            
+            // Ensure ID is a number
+            const numId = typeof id === 'number' ? id : parseInt(id, 10);
+            if (isNaN(numId)) {
+                console.error('ID is not a valid number:', id);
+                return;
+            }
+            
+            if (checked) {
+                selectedIds.add(numId);
+                console.log('Added to selection:', numId);
+            } else {
+                selectedIds.delete(numId);
+                console.log('Removed from selection:', numId);
+            }
+            
+            console.log('Current selectedIds:', Array.from(selectedIds));
+            updateBulkActions();
+        }
+        
+        function toggleAllRows(checked) {
+            console.log('toggleAllRows called:', checked);
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            console.log('Found checkboxes:', checkboxes.length);
+            
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+                const idStr = cb.dataset.id;
+                console.log('Processing checkbox with data-id:', idStr);
+                
+                if (!idStr || idStr === 'undefined' || idStr === 'null') {
+                    console.error('Invalid data-id on checkbox:', cb);
+                    return;
+                }
+                
+                const id = parseInt(idStr, 10);
+                if (isNaN(id)) {
+                    console.error('Could not parse ID as number:', idStr);
+                    return;
+                }
+                
+                if (checked) {
+                    selectedIds.add(id);
+                } else {
+                    selectedIds.delete(id);
+                }
+            });
+            
+            console.log('After toggleAll, selectedIds:', Array.from(selectedIds));
+            updateBulkActions();
         }
         
         function handleTypeChange() {
@@ -663,6 +917,15 @@
             try {
                 const response = await fetch('/api/canon');
                 canonData = await response.json();
+                console.log('Loaded canon data:', canonData.length, 'entries');
+                console.log('Sample entry:', canonData[0]);
+                
+                // Validate all entries have IDs
+                const missingIds = canonData.filter(e => !e.id && e.id !== 0);
+                if (missingIds.length > 0) {
+                    console.error('Entries without IDs:', missingIds);
+                }
+                
                 filteredData = canonData;
                 renderTable(filteredData);
                 updateCount();
@@ -791,6 +1054,9 @@
             
             container.innerHTML = `
                 <div class="row-header">
+                    <div class="cell checkbox-cell">
+                        <input type="checkbox" class="header-checkbox" id="headerCheckbox" onchange="toggleAllRows(this.checked)">
+                    </div>
                     <div class="cell avatar"></div>
                     <div class="cell canon">Canon Event</div>
                     <div class="cell type">Type</div>
@@ -801,6 +1067,12 @@
             `;
             
             data.forEach(entry => {
+                // Validate entry has an ID
+                if (!entry.id && entry.id !== 0) {
+                    console.error('Entry missing ID:', entry);
+                    return; // Skip this entry
+                }
+                
                 const row = document.createElement('div');
                 row.className = 'row-entry';
                 
@@ -814,7 +1086,12 @@
                 const event = entry.event || 'an event occurred';
                 const canonText = `<span style="white-space: normal;"><span style="font-weight: 500;">${escapeHtml(name)}</span> <span style="font-style: italic; color: var(--text-secondary);">${escapeHtml(event)}</span></span>`;
                 
+                const isChecked = selectedIds.has(entry.id) ? 'checked' : '';
+                
                 row.innerHTML = `
+                    <div class="cell checkbox-cell">
+                        <input type="checkbox" class="row-checkbox" data-id="${entry.id}" onchange="toggleRowSelection(${entry.id}, this.checked)" ${isChecked}>
+                    </div>
                     <div class="cell avatar">${avatarImg}</div>
                     <div class="cell canon">${canonText}</div>
                     <div class="cell type">${escapeHtml(entry.type)}</div>
@@ -1008,6 +1285,12 @@
         document.getElementById('canonModal').addEventListener('click', (e) => {
             if (e.target.id === 'canonModal') {
                 closeModal();
+            }
+        });
+        
+        document.getElementById('deleteModal').addEventListener('click', (e) => {
+            if (e.target.id === 'deleteModal') {
+                closeDeleteModal();
             }
         });
     </script>
