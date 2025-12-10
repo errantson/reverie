@@ -392,111 +392,34 @@
     text-shadow: 0 0 1px rgba(var(--dream-color-rgb), 0.3);
 }
 
-/* Dream-specific styles - flawed dreams with blur and focus ripple */
+/* Flawed dreams - simple blur with clarity on hover and timer */
 .profile-events-content .row-entry.dream-row.dream-flawed {
     --dream-color: #454545;
     --dream-color-rgb: 69, 69, 69;
-    position: relative;
-    background: linear-gradient(
-        to right,
-        rgba(var(--dream-color-rgb), 0.25) 0%,
-        rgba(var(--dream-color-rgb), 0.15) 30%,
-        rgba(var(--dream-color-rgb), 0.08) 70%,
-        rgba(var(--dream-color-rgb), 0.03) 100%
-    ) !important;
-    border-left: 4px solid var(--dream-color) !important;
-    border-top: 1px solid rgba(var(--dream-color-rgb), 0.3) !important;
-    border-bottom: 1px solid rgba(var(--dream-color-rgb), 0.3) !important;
-    box-shadow: inset 0 0 8px rgba(var(--dream-color-rgb), 0.15), 
-                0 1px 3px rgba(var(--dream-color-rgb), 0.2) !important;
-    color: var(--dream-color) !important;
-    overflow: hidden;
 }
 
-.profile-events-content .row-entry.dream-row.dream-flawed:nth-child(even) {
-    background: linear-gradient(
-        to right,
-        rgba(var(--dream-color-rgb), 0.28) 0%,
-        rgba(var(--dream-color-rgb), 0.18) 30%,
-        rgba(var(--dream-color-rgb), 0.10) 70%,
-        rgba(var(--dream-color-rgb), 0.04) 100%
-    ) !important;
-}
-
-/* Blur effect with breathing and ripple animations */
-.profile-events-content .row-entry.dream-row.dream-flawed .cell {
-    color: var(--dream-color) !important;
-    filter: blur(3px) brightness(0.95) !important;
-    animation: dreamBreath 8s ease-in-out infinite !important;
-    transition: filter 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    will-change: filter;
-    font-weight: 600;
-    text-shadow: 0 0 1px rgba(var(--dream-color-rgb), 0.3);
-}
-
+.profile-events-content .row-entry.dream-row.dream-flawed .cell,
 .profile-events-content .row-entry.dream-row.dream-flawed img {
-    filter: blur(3px) brightness(0.95) !important;
-    animation: dreamBreath 8s ease-in-out infinite !important;
-    transition: filter 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    will-change: filter;
+    filter: blur(2.5px) !important;
+    animation: clarityTimer 15s ease-in-out infinite !important;
+    transition: filter 0.4s ease-out !important;
 }
 
-/* Ripple clarity effect on hover - spreads from entry point */
-.profile-events-content .row-entry.dream-row.dream-flawed:hover {
-    background: linear-gradient(
-        to right,
-        rgba(var(--dream-color-rgb), 0.35) 0%,
-        rgba(var(--dream-color-rgb), 0.22) 30%,
-        rgba(var(--dream-color-rgb), 0.12) 70%,
-        rgba(var(--dream-color-rgb), 0.05) 100%
-    ) !important;
-    box-shadow: inset 0 0 12px rgba(var(--dream-color-rgb), 0.2),
-                0 2px 4px rgba(var(--dream-color-rgb), 0.3) !important;
-}
-
-.profile-events-content .row-entry.dream-row.dream-flawed:hover .cell {
-    filter: blur(0px) brightness(1) !important;
-    animation: clarityRipple 1.2s ease-out forwards !important;
-}
-
+.profile-events-content .row-entry.dream-row.dream-flawed:hover .cell,
 .profile-events-content .row-entry.dream-row.dream-flawed:hover img {
-    filter: blur(0px) brightness(1) !important;
-    animation: clarityRipple 1.2s ease-out forwards !important;
+    filter: blur(0px) !important;
+    animation: none !important;
 }
 
-/* Breathing animation - subtle blur pulsing */
-@keyframes dreamBreath {
-    0%, 100% {
-        filter: blur(3px) brightness(0.95);
+@keyframes clarityTimer {
+    0%, 90% {
+        filter: blur(2.5px);
     }
-    25% {
-        filter: blur(3.5px) brightness(0.92);
-    }
-    50% {
-        filter: blur(3px) brightness(0.95);
-    }
-    75% {
-        filter: blur(2.5px) brightness(0.98);
-    }
-}
-
-/* Ripple clarity animation */
-@keyframes clarityRipple {
-    0% {
-        filter: blur(3px) brightness(0.95);
-        transform: scale(0.98);
-    }
-    30% {
-        filter: blur(1.5px) brightness(0.97);
-        transform: scale(0.99);
-    }
-    60% {
-        filter: blur(0.5px) brightness(0.99);
-        transform: scale(1);
+    93%, 97% {
+        filter: blur(0px);
     }
     100% {
-        filter: blur(0px) brightness(1);
-        transform: scale(1);
+        filter: blur(2.5px);
     }
 }
 

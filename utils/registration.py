@@ -422,8 +422,8 @@ def register_dreamer(
                     INSERT INTO events (did, event, epoch, uri, url, type, key, created_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (did, 'stayed at Reverie House', residence_timestamp, 
-                      f"{did}/app.bsky.actor.profile/self", 
-                      f"https://bsky.app/profile/{did}",
+                      f"/souvenirs?key=residence", 
+                      f"https://reverie.house/souvenirs?key=residence",
                       'souvenir', 'residence', now))
                 
                 if verbose:

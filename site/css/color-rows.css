@@ -186,7 +186,9 @@
     color: color-mix(in srgb, var(--role-mapper) 80%, #333);
 }
 
-.row-entry.color-role.role-mapper.intensity-highlight {
+.row-entry.color-role.role-mapper.intensity-highlight,
+.row-entry.color-role.role-mapper.intensity-highlight:nth-child(even),
+.row-entry.color-role.role-mapper.intensity-highlight:hover {
     background: linear-gradient(
         to right,
         var(--role-mapper-light) 0%,
@@ -196,7 +198,9 @@
     color: color-mix(in srgb, var(--role-mapper) 95%, #000);
 }
 
-.row-entry.color-role.role-mapper.intensity-special {
+.row-entry.color-role.role-mapper.intensity-special,
+.row-entry.color-role.role-mapper.intensity-special:nth-child(even),
+.row-entry.color-role.role-mapper.intensity-special:hover {
     background: linear-gradient(
         to right,
         var(--role-mapper-medium) 0%,

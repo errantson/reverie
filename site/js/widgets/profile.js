@@ -786,6 +786,7 @@ class Profile {
                     <div class="activity-overlay-content">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${timeAgo}</a>
+                            <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
                             ${interactionStats}
                         </div>
                         ${badgeOverlay}
@@ -1130,8 +1131,32 @@ class Profile {
             
             // Make events rows clickable to URL (if exists)
             let rowOnClick = '';
+            let bskyPostUrl = null;
             if (row.url) {
-                rowOnClick = `window.open('${row.url}', '_blank')`;
+                if (row.url.includes('bsky.app')) {
+                    // Check if it's a profile URL (arrival events) or post URL
+                    if (row.url.includes('/profile/') && !row.url.includes('/post/')) {
+                        // Profile URL - navigate to internal dreamer page
+                        const didMatch = row.url.match(/profile\/(did:plc:[a-z0-9]+)/);
+                        if (didMatch && didMatch[1]) {
+                            // Don't make clickable if it's their own profile (arrival event)
+                            const isOwnProfile = didMatch[1] === currentDreamer.did;
+                            if (!isOwnProfile) {
+                                rowOnClick = `window.location.href='/dreamer?did=${encodeURIComponent(didMatch[1])}'`;
+                            }
+                        }
+                    } else {
+                        // Post URL - use showPost popup
+                        bskyPostUrl = row.url;
+                        rowOnClick = `window.showPost('${row.url.replace(/'/g, "\\'")}')`;
+                    }
+                } else if (row.url.startsWith('/')) {
+                    // Internal URL (like /order or /work#mapper) - navigate directly
+                    rowOnClick = `window.location.href='${row.url}'`;
+                } else {
+                    // External URL - open in new tab
+                    rowOnClick = `window.open('${row.url}', '_blank')`;
+                }
             }
             
             // Build style attribute combining cursor, canon colors, dream colors, and color system
@@ -1144,7 +1169,7 @@ class Profile {
             if (isDreamRow && row.key) {
                 // Define dream colors per type
                 const dreamColors = {
-                    'flawed': { hex: '#8b4789', rgb: '139, 71, 137' }
+                    'flawed': { hex: '#454545', rgb: '69, 69, 69' }
                 };
                 const dreamColor = dreamColors[row.key];
                 if (dreamColor) {
@@ -2169,7 +2194,7 @@ class Profile {
                             ${earnedTime ? `<div class="souvenir-widget-earned">earned ${earnedTime}</div>` : ''}
                         </div>
                     </div>
-                    <a href="/souvenirs.html?key=${key}" class="souvenir-widget-explore" target="_blank" style="background-color: ${userColor}; color: white;">
+                    <a href="/souvenirs?key=${key}" class="souvenir-widget-explore" target="_blank" style="background-color: ${userColor}; color: white;">
                         <span>Explore Souvenir</span>
                         <span class="souvenir-widget-arrow">→</span>
                     </a>

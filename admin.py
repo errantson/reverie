@@ -264,8 +264,8 @@ def add_first_time_work_canon(db_manager, did, role_name, canon_event, canon_key
         epoch = int(time.time())
         
         # Build URI and URL for this work role
-        uri = f'/work/{canon_key}'
-        url = f'https://reverie.house/work/{canon_key}'
+        uri = f'/work'
+        url = f'https://reverie.house/work'
         
         db_manager.execute("""
             INSERT INTO events (did, epoch, type, event, key, uri, url)
