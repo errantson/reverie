@@ -63,6 +63,9 @@ class Profile {
         loadStylesheet('/css/widgets/profile.css?v=4');
         loadStylesheet('/css/octants.css');
         loadStylesheet('/css/roles.css');
+        loadStylesheet('/css/color-rows.css');
+        loadStylesheet('/css/others.css');
+        loadStylesheet('/css/souvenirs.css');
         loadStylesheet('/css/widgets/popup.css');
         
         // Load JavaScript dependencies in order with promises

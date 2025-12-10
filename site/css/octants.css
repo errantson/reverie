@@ -73,6 +73,12 @@
     --octant-confused-darker: #5a594f;
     
     /* Singling - Balanced on two axes */
+    --octant-singling: rgb(200, 180, 180);
+    --octant-singling-light: rgb(220, 210, 210);
+    --octant-singling-dark: rgb(110, 90, 90);
+    --octant-singling-darker: rgb(80, 65, 65);
+    
+    /* Legacy uncertain alias (deprecated) */
     --octant-uncertain: #414141;
     --octant-uncertain-light: rgb(180, 180, 180);
     --octant-uncertain-dark: #414141;
@@ -90,7 +96,8 @@
 .octant-bg-guarded { background-color: var(--octant-guarded) !important; }
 .octant-bg-equilibrium { background-color: var(--octant-equilibrium) !important; }
 .octant-bg-confused { background-color: var(--octant-confused) !important; }
-.octant-bg-uncertain { background-color: var(--octant-uncertain) !important; }
+.octant-bg-singling { background-color: var(--octant-singling) !important; }
+.octant-bg-uncertain { background-color: var(--octant-uncertain) !important; } /* legacy */
 
 /* Octant-specific utility classes for text */
 .octant-text-adaptive { color: var(--octant-adaptive-dark) !important; }
@@ -103,7 +110,8 @@
 .octant-text-guarded { color: var(--octant-guarded-dark) !important; }
 .octant-text-equilibrium { color: var(--octant-equilibrium-dark) !important; }
 .octant-text-confused { color: var(--octant-confused-dark) !important; }
-.octant-text-uncertain { color: var(--octant-uncertain-dark) !important; }
+.octant-text-singling { color: var(--octant-singling-dark) !important; }
+.octant-text-uncertain { color: var(--octant-uncertain-dark) !important; } /* legacy */
 
 /* Octant-specific utility classes for borders */
 .octant-border-adaptive { border-color: var(--octant-adaptive-dark) !important; }
@@ -116,4 +124,5 @@
 .octant-border-guarded { border-color: var(--octant-guarded-dark) !important; }
 .octant-border-equilibrium { border-color: var(--octant-equilibrium-dark) !important; }
 .octant-border-confused { border-color: var(--octant-confused-dark) !important; }
-.octant-border-uncertain { border-color: var(--octant-uncertain-dark) !important; }
+.octant-border-singling { border-color: var(--octant-singling-dark) !important; }
+.octant-border-uncertain { border-color: var(--octant-uncertain-dark) !important; } /* legacy */

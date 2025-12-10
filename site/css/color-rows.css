@@ -1,0 +1,348 @@
+/**
+ * Reverie House Color System
+ * 
+ * Standardized color application system for events and UI elements.
+ * Combines color sources (user, role, octant) with intensity levels (none, highlight, special).
+ * 
+ * Color Sources:
+ * - user: Uses the dreamer's personal color (from color_hex field)
+ * - role: Uses role-specific colors (greeter=blue, mapper=green, cogitarian=orange)
+ * - octant: Uses octant-based colors (from octants.css)
+ * - none: No special coloring (default styling)
+ * 
+ * Intensity Levels:
+ * - none: Minimal coloring (e.g., just text or subtle border)
+ * - faded: Very subtle, 50% transparency tint
+ * - highlight: Noticeable background tint, suitable for rows
+ * - special: Strong emphasis, used for canon events and important items
+ */
+
+/* ============================================================================
+   FALLBACK / DEFAULT STYLES
+   ============================================================================ */
+
+/* Faded intensity with no color source - generic grey fade */
+.row-entry.intensity-faded:not(.color-user):not(.color-role):not(.color-octant):not(.color-souvenir) {
+    background: linear-gradient(
+        to right,
+        rgba(128, 128, 128, 0.05) 0%,
+        transparent 100%
+    ) !important;
+    border-left: 1px solid rgba(128, 128, 128, 0.3);
+    color: #999;
+    opacity: 0.7;
+    font-style: italic;
+}
+
+/* ============================================================================
+   USER COLOR SYSTEM (Dreamer-specific colors)
+   ============================================================================ */
+
+/* None intensity - minimal user color (just a subtle accent) */
+.color-user.intensity-none {
+    border-left: 2px solid var(--user-color, #8b7355);
+    color: color-mix(in srgb, var(--user-color, #8b7355) 60%, #333);
+}
+
+/* Faded intensity - very subtle, 50% transparency */
+.row-entry.color-user.intensity-faded {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--user-color, #8b7355) 4%, transparent) 0%,
+        transparent 100%
+    ) !important;
+    border-left: 1px solid color-mix(in srgb, var(--user-color, #8b7355) 50%, transparent);
+    color: color-mix(in srgb, var(--user-color, #8b7355) 40%, #666);
+    opacity: 0.7;
+}
+
+/* Highlight intensity - subtle background tint */
+.row-entry.color-user.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--user-color, #8b7355) 15%, transparent) 0%,
+        color-mix(in srgb, var(--user-color, #8b7355) 3%, transparent) 100%
+    ) !important;
+    border-left: 2px solid var(--user-color, #8b7355);
+    color: color-mix(in srgb, var(--user-color, #8b7355) 85%, #000);
+}
+
+/* Special intensity - canon/important highlighting */
+.row-entry.color-user.intensity-special {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--user-color, #8b7355) 30%, transparent) 0%,
+        color-mix(in srgb, var(--user-color, #8b7355) 8%, transparent) 100%
+    ) !important;
+    border-left: 4px solid var(--user-color, #8b7355);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 35%, transparent);
+    color: color-mix(in srgb, var(--user-color, #8b7355) 92%, #000);
+    font-weight: 600;
+}
+
+/* Fallback for browsers that don't support color-mix */
+@supports not (background: color-mix(in srgb, red, blue)) {
+    .color-user.intensity-faded {
+        background: rgba(139, 115, 85, 0.02);
+        border-left: 1px solid rgba(139, 115, 85, 0.3);
+        color: #8b7355;
+    }
+    
+    .color-user.intensity-highlight {
+        background: rgba(139, 115, 85, 0.1);
+        color: #6b5945;
+    }
+    
+    .color-user.intensity-special {
+        background: rgba(139, 115, 85, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(139, 115, 85, 0.25);
+        color: #5b4935;
+        font-weight: 500;
+    }
+}
+
+/* ============================================================================
+   DREAM EVENT - Extra pronounced, more than canon, with shimmer effect
+   ============================================================================ */
+
+.row-entry.event-key-dream.color-user.intensity-special {
+    background: 
+        linear-gradient(
+            to right,
+            color-mix(in srgb, var(--user-color, #8b7355) 35%, transparent) 0%,
+            color-mix(in srgb, var(--user-color, #8b7355) 10%, transparent) 100%
+        ) !important;
+    border-left: 4px solid var(--user-color, #8b7355);
+    box-shadow: 
+        inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 40%, transparent),
+        0 0 8px color-mix(in srgb, var(--user-color, #8b7355) 25%, transparent);
+    color: color-mix(in srgb, var(--user-color, #8b7355) 95%, #000);
+    font-weight: 600;
+    position: relative;
+    animation: dreamShimmer 3s ease-in-out infinite;
+}
+
+@keyframes dreamShimmer {
+    0%, 100% {
+        box-shadow: 
+            inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 40%, transparent),
+            0 0 8px color-mix(in srgb, var(--user-color, #8b7355) 25%, transparent);
+    }
+    50% {
+        box-shadow: 
+            inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 50%, transparent),
+            0 0 12px color-mix(in srgb, var(--user-color, #8b7355) 35%, transparent);
+    }
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (background: color-mix(in srgb, red, blue)) {
+    .event-key-dream.color-user.intensity-special {
+        background: rgba(139, 115, 85, 0.28);
+        border-left: 4px solid #8b7355;
+        box-shadow: 
+            inset 0 0 0 1px rgba(139, 115, 85, 0.35),
+            0 0 10px rgba(139, 115, 85, 0.3);
+        color: #4b3925;
+        font-weight: 600;
+    }
+}
+
+/* ============================================================================
+   ROLE COLOR SYSTEM (Worker roles: greeter, mapper, cogitarian)
+   ============================================================================ */
+
+/* Greeter - Blue tones */
+.row-entry.color-role.role-greeter.intensity-none {
+    border-left: 2px solid var(--role-greeter);
+    color: color-mix(in srgb, var(--role-greeter) 80%, #333);
+}
+
+.row-entry.color-role.role-greeter.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--role-greeter-light) 0%,
+        transparent 100%
+    ) !important;
+    border-left: 2px solid var(--role-greeter);
+    color: color-mix(in srgb, var(--role-greeter) 95%, #000);
+}
+
+.row-entry.color-role.role-greeter.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--role-greeter-medium) 0%,
+        var(--role-greeter-light) 100%
+    ) !important;
+    border-left: 3px solid var(--role-greeter);
+    box-shadow: inset 0 0 0 1px var(--role-greeter-light);
+    color: color-mix(in srgb, var(--role-greeter) 90%, #000);
+    font-weight: 500;
+}
+
+/* Mapper - Green tones */
+.row-entry.color-role.role-mapper.intensity-none {
+    border-left: 2px solid var(--role-mapper);
+    color: color-mix(in srgb, var(--role-mapper) 80%, #333);
+}
+
+.row-entry.color-role.role-mapper.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--role-mapper-light) 0%,
+        transparent 100%
+    ) !important;
+    border-left: 2px solid var(--role-mapper);
+    color: color-mix(in srgb, var(--role-mapper) 95%, #000);
+}
+
+.row-entry.color-role.role-mapper.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--role-mapper-medium) 0%,
+        var(--role-mapper-light) 100%
+    ) !important;
+    border-left: 3px solid var(--role-mapper);
+    box-shadow: inset 0 0 0 1px var(--role-mapper-light);
+    color: color-mix(in srgb, var(--role-mapper) 90%, #000);
+    font-weight: 500;
+}
+
+/* Cogitarian - Orange-red tones */
+.row-entry.color-role.role-cogitarian.intensity-none {
+    border-left: 2px solid var(--role-cogitarian);
+    color: color-mix(in srgb, var(--role-cogitarian) 80%, #333);
+}
+
+.row-entry.color-role.role-cogitarian.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--role-cogitarian-light) 0%,
+        transparent 100%
+    ) !important;
+    border-left: 2px solid var(--role-cogitarian);
+    color: color-mix(in srgb, var(--role-cogitarian) 95%, #000);
+}
+
+.row-entry.color-role.role-cogitarian.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--role-cogitarian-medium) 0%,
+        var(--role-cogitarian-light) 100%
+    ) !important;
+    border-left: 3px solid var(--role-cogitarian);
+    box-shadow: inset 0 0 0 1px var(--role-cogitarian-light);
+    color: color-mix(in srgb, var(--role-cogitarian) 90%, #000);
+    font-weight: 500;
+}
+
+/* ============================================================================
+   OCTANT COLOR SYSTEM (Spectrum-based coloring)
+   ============================================================================ */
+
+/* Octant coloring follows same intensity pattern as roles */
+
+/* None intensity - minimal octant color */
+.color-octant.intensity-none {
+    border-left: 2px solid var(--octant-color, #888);
+}
+
+/* Highlight intensity - noticeable octant background */
+.color-octant.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--octant-color, #888) 12%, transparent) 0%,
+        transparent 100%
+    );
+    border-left: 2px solid var(--octant-color, #888);
+    color: color-mix(in srgb, var(--octant-color, #888) 90%, #000);
+}
+
+/* Special intensity - strong octant emphasis */
+.color-octant.intensity-special {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--octant-color, #888) 20%, transparent) 0%,
+        color-mix(in srgb, var(--octant-color, #888) 5%, transparent) 100%
+    );
+    border-left: 3px solid var(--octant-color, #888);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--octant-color, #888) 25%, transparent);
+    color: color-mix(in srgb, var(--octant-color, #888) 95%, #000);
+    font-weight: 500;
+}
+
+/* Specific octant classes - these set the --octant-color variable */
+.octant-adaptive { --octant-color: var(--octant-adaptive-dark); }
+.octant-chaotic { --octant-color: var(--octant-chaotic-dark); }
+.octant-intended { --octant-color: var(--octant-intended-dark); }
+.octant-prepared { --octant-color: var(--octant-prepared-dark); }
+.octant-contented { --octant-color: var(--octant-contented-dark); }
+.octant-assertive { --octant-color: var(--octant-assertive-dark); }
+.octant-ordered { --octant-color: var(--octant-ordered-dark); }
+.octant-guarded { --octant-color: var(--octant-guarded-dark); }
+.octant-equilibrium { --octant-color: var(--octant-equilibrium-dark); }
+.octant-confused { --octant-color: var(--octant-confused-dark); }
+.octant-singling { --octant-color: var(--octant-singling-dark); }
+.octant-uncertain { --octant-color: var(--octant-uncertain-dark); } /* legacy alias */
+
+/* Fallback for browsers that don't support color-mix */
+@supports not (background: color-mix(in srgb, red, blue)) {
+    .color-octant.intensity-highlight {
+        background: rgba(100, 150, 100, 0.08);
+    }
+    
+    .color-octant.intensity-special {
+        background: rgba(100, 150, 100, 0.15);
+        box-shadow: inset 0 0 0 1px rgba(100, 150, 100, 0.2);
+        font-weight: 500;
+    }
+}
+
+/* ============================================================================
+   NONE COLOR SYSTEM (Default/neutral styling)
+   ============================================================================ */
+
+.color-none {
+    /* No special coloring, uses default table row styling */
+}
+
+/* Faded intensity for default color - very subtle gray tint */
+.intensity-faded {
+    background: rgba(128, 128, 128, 0.03);
+    opacity: 0.6;
+    font-style: italic;
+}
+
+/* ============================================================================
+   HELPER UTILITIES
+   ============================================================================ */
+
+/* Icon/badge coloring for role indicators */
+.role-badge-greeter {
+    color: var(--role-greeter);
+    background: var(--role-greeter-light);
+    border: 1px solid var(--role-greeter);
+}
+
+.role-badge-mapper {
+    color: var(--role-mapper);
+    background: var(--role-mapper-light);
+    border: 1px solid var(--role-mapper);
+}
+
+.role-badge-cogitarian {
+    color: var(--role-cogitarian);
+    background: var(--role-cogitarian-light);
+    border: 1px solid var(--role-cogitarian);
+}
+
+/* Text emphasis for special events */
+.event-special-text {
+    font-weight: 600;
+}
+
+/* Hover states for colored rows */
+.color-user:hover,
+.color-role:hover {
+    filter: brightness(0.98);
+}

@@ -1,0 +1,146 @@
+/**
+ * Other Color Systems
+ * 
+ * Special color systems that don't fit into the standard user/role/octant categories.
+ */
+
+/* ============================================================================
+   NIGHTMARE COLOR SYSTEM (Dark, mysterious tones)
+   ============================================================================ */
+
+:root {
+    --nightmare-dark: rgb(45, 35, 55);
+    --nightmare-medium: rgb(65, 50, 75);
+    --nightmare-light: rgba(45, 35, 55, 0.12);
+    --nightmare-lighter: rgba(45, 35, 55, 0.08);
+}
+
+/* None intensity - minimal nightmare color */
+.color-nightmare.intensity-none {
+    border-left: 2px solid var(--nightmare-dark);
+    color: var(--nightmare-medium);
+}
+
+/* Highlight intensity - visible nightmare background with light text */
+.color-nightmare.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--nightmare-light) 0%,
+        var(--nightmare-lighter) 100%
+    );
+    border-left: 2px solid var(--nightmare-dark);
+    color: color-mix(in srgb, var(--nightmare-dark) 95%, #fff);
+    font-style: italic;
+}
+
+/* Special intensity - strong nightmare emphasis */
+.color-nightmare.intensity-special {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--nightmare-dark) 25%, transparent) 0%,
+        color-mix(in srgb, var(--nightmare-dark) 8%, transparent) 100%
+    );
+    border-left: 3px solid var(--nightmare-dark);
+    box-shadow: inset 0 0 0 1px var(--nightmare-light);
+    color: color-mix(in srgb, var(--nightmare-dark) 98%, #fff);
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Fallback for browsers that don't support color-mix */
+@supports not (background: color-mix(in srgb, red, blue)) {
+    .color-nightmare.intensity-highlight {
+        background: rgba(45, 35, 55, 0.1);
+        color: rgb(45, 35, 55);
+    }
+    
+    .color-nightmare.intensity-special {
+        background: rgba(45, 35, 55, 0.2);
+        box-shadow: inset 0 0 0 1px rgba(45, 35, 55, 0.15);
+        color: rgb(35, 25, 45);
+        font-weight: 500;
+    }
+}
+
+/* ============================================================================
+   NIGHTMARE PREPARE - Bespoke smokey black-grey with animated effects
+   ============================================================================ */
+
+.row-entry.event-key-prepare.color-nightmare.intensity-special {
+    background:
+        repeating-linear-gradient(
+            90deg,
+            rgba(45, 45, 55, 0.65) 0px,
+            rgba(60, 60, 70, 0.75) 25px,
+            rgba(50, 50, 60, 0.65) 50px,
+            rgba(60, 60, 70, 0.75) 75px,
+            rgba(45, 45, 55, 0.65) 100px
+        ),
+        radial-gradient(
+            ellipse at 30% 50%,
+            rgba(80, 80, 95, 0.45) 0%,
+            transparent 60%
+        ),
+        radial-gradient(
+            ellipse at 70% 50%,
+            rgba(70, 70, 85, 0.4) 0%,
+            transparent 60%
+        ),
+        linear-gradient(
+            to right,
+            rgba(50, 50, 60, 0.7) 0%,
+            rgba(65, 65, 75, 0.8) 50%,
+            rgba(50, 50, 60, 0.7) 100%
+        );
+    background-size: 200% 100%, 100% 100%, 100% 100%, 100% 100%;
+    border-left: 3px solid #3a3a45;
+    box-shadow:
+        inset 0 0 50px rgba(0, 0, 0, 0.3),
+        inset 0 1px 1px rgba(255, 255, 255, 0.08),
+        0 2px 6px rgba(0, 0, 0, 0.25);
+    color: #d8d8e0;
+    position: relative;
+    animation: nightmareSmoke 20s linear infinite;
+    font-style: italic;
+    font-weight: 500;
+}
+
+@keyframes nightmareSmoke {
+    0% {
+        background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+    100% {
+        background-position: 100% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+}
+
+/* Visible smoke particles effect with better contrast */
+.row-entry.event-key-prepare.color-nightmare.intensity-special::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(220, 220, 235, 0.15) 0%, transparent 5%),
+        radial-gradient(circle at 60% 70%, rgba(220, 220, 235, 0.12) 0%, transparent 4%),
+        radial-gradient(circle at 85% 40%, rgba(220, 220, 235, 0.14) 0%, transparent 6%),
+        radial-gradient(circle at 35% 80%, rgba(220, 220, 235, 0.11) 0%, transparent 4%);
+    background-size: 100% 100%;
+    pointer-events: none;
+    opacity: 0.6;
+    animation: smokeParticles 15s ease-in-out infinite;
+}
+
+@keyframes smokeParticles {
+    0%, 100% {
+        opacity: 0.3;
+        transform: translateY(0);
+    }
+    50% {
+        opacity: 0.5;
+        transform: translateY(-2px);
+    }
+}
+

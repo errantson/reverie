@@ -35,34 +35,74 @@ export function renderEventRow(event, options = {}) {
     const g = parseInt(eventColor.substr(3, 2), 16);
     const b = parseInt(eventColor.substr(5, 2), 16);
     
-    // Determine if this is a canon row or reactionary row
-    const isCanonRow = event.key === 'canon';
+    // Build color system classes matching database.html logic
     const isReactionary = event.isReactionary || false;
+    const colorSource = event.color_source || 'none';
+    const colorIntensity = event.color_intensity || 'none';
+    const key = event.key || '';
     
     // Build class list for the row
     let rowClasses = ['row-entry'];
-    if (isCanonRow) {
-        rowClasses.push('canon-row');
-    }
+    
+    // Add reactionary class
     if (isReactionary) {
         rowClasses.push('reaction-row');
     }
-    // Add role-specific class for role events (greeter, mapper, cogitarian, etc.)
-    if (event.key === 'greeter') {
-        rowClasses.push('row-greeter');
-    } else if (event.key === 'mapper') {
-        rowClasses.push('row-mapper');
-    } else if (event.key === 'cogitarian') {
-        rowClasses.push('row-cogitarian');
-    } else if (event.key === 'name') {
-        rowClasses.push('row-name');
-    } else if (event.key === 'spectrum') {
-        rowClasses.push('row-spectrum');
+    
+    // Add event-key class for all events
+    if (key) {
+        rowClasses.push(`event-key-${key}`);
     }
+    
+    // Add color-source class
+    if (colorSource !== 'none') {
+        rowClasses.push(`color-${colorSource}`);
+    }
+    
+    // Add intensity class
+    if (colorIntensity !== 'none') {
+        rowClasses.push(`intensity-${colorIntensity}`);
+    }
+    
+    // Add role-specific class for work events
+    if (colorSource === 'role' && key) {
+        rowClasses.push(`role-${key}`);
+    }
+    
+    // Add octant class for octant-colored events
+    if (colorSource === 'octant') {
+        const octant = ((key === 'origin' || key === 'name') && event.origin_octant) ? event.origin_octant : event.octant;
+        if (octant) {
+            rowClasses.push(`octant-${octant}`);
+        }
+    }
+    
+    // Add souvenir-specific class for bespoke souvenir styling
+    if (colorSource === 'souvenir' && key) {
+        rowClasses.push(`souvenir-${key}`);
+    }
+    
+    // Add nightmare class for nightmare prepare events
+    if (key === 'prepare' && event.nightmare) {
+        rowClasses.push('nightmare-prepare');
+    }
+    
+    // Add reactionary class for welcomed greeter events
+    if (key === 'greeter' && event.reactionary) {
+        rowClasses.push('greeter-reactionary');
+    }
+    
     const rowClass = rowClasses.join(' ');
     
-    // Build style attribute - always set border color (transparent for non-canon)
+    // Build style attribute - set color variables for the color system
     let rowStyles = [];
+    
+    // Set user color CSS variable for user-colored events
+    if (colorSource === 'user' && eventColor) {
+        rowStyles.push(`--user-color: ${eventColor}`);
+    }
+    
+    // Legacy canon color support (for backwards compatibility)
     rowStyles.push(`--canon-color: ${eventColor}`);
     rowStyles.push(`--canon-color-rgb: ${r}, ${g}, ${b}`);
     
@@ -107,6 +147,10 @@ export function renderEventRow(event, options = {}) {
             keyValue = `<span style="color: var(--role-mapper); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
         } else if (event.key === 'cogitarian') {
             keyValue = `<span style="color: var(--role-cogitarian); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
+        } else if ((event.key === 'origin' || event.key === 'name') && event.origin_octant) {
+            // Origin and name events use origin_octant color
+            const octantColor = `var(--octant-${event.origin_octant}-dark)`;
+            keyValue = `<span style="color: ${octantColor}; font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
         } else if (event.key === 'canon' && eventColor) {
             keyValue = `<span style="color: ${eventColor}; font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
         } else if (event.key) {
@@ -204,8 +248,23 @@ function renderCanonColumn(event, allDreamers, currentDid) {
         nameLink = `<span class="dreamer-name">${name}</span>`;
     }
     
-    // Event text is non-clickable (row click will open URL)
-    const eventSpan = `<span class="event-text">${eventText}</span>`;
+    // Event text with conditional coloring for origin/name events
+    let eventSpan;
+    if ((event.key === 'origin' || event.key === 'name') && event.origin_octant) {
+        const octantColor = `var(--octant-${event.origin_octant}-dark)`;
+        eventSpan = `<span class="event-text" style="color: ${octantColor}; font-weight: 500;">${eventText}</span>`;
+    } else if (event.key === 'greeter') {
+        // Greeter events use greeter role color
+        eventSpan = `<span class="event-text" style="color: var(--role-greeter); font-weight: 500;">${eventText}</span>`;
+    } else if (event.key === 'mapper') {
+        // Mapper events use mapper role color
+        eventSpan = `<span class="event-text" style="color: var(--role-mapper); font-weight: 500;">${eventText}</span>`;
+    } else if (event.key === 'cogitarian') {
+        // Cogitarian events use cogitarian role color
+        eventSpan = `<span class="event-text" style="color: var(--role-cogitarian); font-weight: 500;">${eventText}</span>`;
+    } else {
+        eventSpan = `<span class="event-text">${eventText}</span>`;
+    }
     
     // Add slight indent for reactionary entries (arrow is in avatar column)
     const indent = isReactionary ? 'padding-left: 4px;' : '';

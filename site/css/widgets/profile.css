@@ -3245,6 +3245,104 @@
     font-weight: 700;
 }
 
+/* Origin row base styling */
+.row-entry.row-origin {
+    background: rgba(100, 100, 100, 0.08) !important;
+}
+
+.row-entry.row-origin:nth-child(even) {
+    background: rgba(100, 100, 100, 0.12) !important;
+}
+
+/* Octant-specific origin/name row backgrounds */
+.row-entry.row-octant-adaptive {
+    background: rgba(100, 255, 200, 0.08) !important;
+}
+
+.row-entry.row-octant-adaptive:nth-child(even) {
+    background: rgba(100, 255, 200, 0.12) !important;
+}
+
+.row-entry.row-octant-chaotic {
+    background: rgba(100, 200, 255, 0.08) !important;
+}
+
+.row-entry.row-octant-chaotic:nth-child(even) {
+    background: rgba(100, 200, 255, 0.12) !important;
+}
+
+.row-entry.row-octant-intended {
+    background: rgba(255, 100, 150, 0.08) !important;
+}
+
+.row-entry.row-octant-intended:nth-child(even) {
+    background: rgba(255, 100, 150, 0.12) !important;
+}
+
+.row-entry.row-octant-prepared {
+    background: rgba(255, 180, 100, 0.08) !important;
+}
+
+.row-entry.row-octant-prepared:nth-child(even) {
+    background: rgba(255, 180, 100, 0.12) !important;
+}
+
+.row-entry.row-octant-contented {
+    background: rgba(255, 150, 255, 0.08) !important;
+}
+
+.row-entry.row-octant-contented:nth-child(even) {
+    background: rgba(255, 150, 255, 0.12) !important;
+}
+
+.row-entry.row-octant-assertive {
+    background: rgba(150, 150, 255, 0.08) !important;
+}
+
+.row-entry.row-octant-assertive:nth-child(even) {
+    background: rgba(150, 150, 255, 0.12) !important;
+}
+
+.row-entry.row-octant-ordered {
+    background: rgba(255, 255, 100, 0.08) !important;
+}
+
+.row-entry.row-octant-ordered:nth-child(even) {
+    background: rgba(255, 255, 100, 0.12) !important;
+}
+
+.row-entry.row-octant-guarded {
+    background: rgba(169, 85, 214, 0.08) !important;
+}
+
+.row-entry.row-octant-guarded:nth-child(even) {
+    background: rgba(169, 85, 214, 0.12) !important;
+}
+
+.row-entry.row-octant-confused {
+    background: rgba(127, 125, 105, 0.08) !important;
+}
+
+.row-entry.row-octant-confused:nth-child(even) {
+    background: rgba(127, 125, 105, 0.12) !important;
+}
+
+.row-entry.row-octant-equilibrium {
+    background: rgba(200, 200, 200, 0.08) !important;
+}
+
+.row-entry.row-octant-equilibrium:nth-child(even) {
+    background: rgba(200, 200, 200, 0.12) !important;
+}
+
+.row-entry.row-octant-singling {
+    background: rgba(200, 180, 180, 0.08) !important;
+}
+
+.row-entry.row-octant-singling:nth-child(even) {
+    background: rgba(200, 180, 180, 0.12) !important;
+}
+
 /* Reactionary row styling - subtle background for reactions */
 .row-entry.reaction-row {
     background: rgba(var(--primary-rgb, 107, 79, 161), 0.03) !important;

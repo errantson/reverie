@@ -29,6 +29,10 @@
     <link rel="stylesheet" href="css/pages/database.css">
     <link rel="stylesheet" href="css/pages/canon.css">
     <link rel="stylesheet" href="css/roles.css">
+    <link rel="stylesheet" href="css/octants.css">
+    <link rel="stylesheet" href="css/color-rows.css">
+    <link rel="stylesheet" href="css/others.css">
+    <link rel="stylesheet" href="css/souvenirs.css">
     <link rel="stylesheet" href="css/widgets/login.css">
     <link rel="stylesheet" href="css/widgets/createdreamer.css">
     <link rel="stylesheet" href="css/widgets/dialogue.css">
@@ -531,7 +535,66 @@
                 // Filter: reactions are only shown beneath their parent event
                 if (tableName === 'events' && row.reaction_to) return;
                 
-                // Apply user color styling to canon key rows
+                // Build color system classes for events table
+                let colorSystemClasses = '';
+                let colorSystemStyles = '';
+                
+                if (tableName === 'events') {
+                    const colorSource = row.color_source || 'none';
+                    const colorIntensity = row.color_intensity || 'none';
+                    const key = row.key || '';
+                    
+                    // Add key-based class for all events (for direct styling by event type)
+                    if (key) {
+                        colorSystemClasses += ` event-key-${key}`;
+                    }
+                    
+                    // Add color-source class
+                    if (colorSource !== 'none') {
+                        colorSystemClasses += ` color-${colorSource}`;
+                    }
+                    
+                    // Add intensity class
+                    if (colorIntensity !== 'none') {
+                        colorSystemClasses += ` intensity-${colorIntensity}`;
+                    }
+                    
+                    // Add role-specific class for work events
+                    if (colorSource === 'role' && key) {
+                        colorSystemClasses += ` role-${key}`;
+                    }
+                    
+                    // Add octant class for octant-colored events
+                    if (colorSource === 'octant') {
+                        // Use origin_octant for origin and name events, regular octant for others
+                        const octant = ((key === 'origin' || key === 'name') && row.origin_octant) ? row.origin_octant : row.octant;
+                        if (octant) {
+                            colorSystemClasses += ` octant-${octant}`;
+                        }
+                    }
+                    
+                    // Add souvenir-specific class for bespoke souvenir styling
+                    if (colorSource === 'souvenir' && key) {
+                        colorSystemClasses += ` souvenir-${key}`;
+                    }
+                    
+                    // Add nightmare class for nightmare prepare events
+                    if (key === 'prepare' && row.nightmare) {
+                        colorSystemClasses += ' nightmare-prepare';
+                    }
+                    
+                    // Add reactionary class for welcomed greeter events
+                    if (key === 'greeter' && row.reactionary) {
+                        colorSystemClasses += ' greeter-reactionary';
+                    }
+                    
+                    // Set user color CSS variable for user-colored events
+                    if (colorSource === 'user' && row.color_hex) {
+                        colorSystemStyles = `--user-color: ${row.color_hex};`;
+                    }
+                }
+                
+                // Apply user color styling to canon key rows (legacy - now handled by color system)
                 let canonColorVars = '';
                 if (tableName === 'events' && row.key === 'canon' && row.color_hex) {
                     // Convert hex to rgba with multiple opacity levels for gradient
@@ -556,6 +619,8 @@
                 const rowClass = isBookRow ? 'row-entry book-row' : 
                                  isChapterRow ? 'row-entry chapter-row' :
                                  isCanonRow ? 'row-entry canon-row' : 'row-entry';
+                
+                const finalRowClass = rowClass + colorSystemClasses;
                 
                 // Make souvenir rows clickable
                 const souvenirKey = (tableName === 'souvenirs' && row.key) ? row.key : null;
@@ -589,14 +654,15 @@
                     }
                 }
                 
-                // Build style attribute combining cursor and canon colors
+                // Build style attribute combining cursor, canon colors, and color system
                 let rowStyles = [];
                 if (rowOnClick) rowStyles.push('cursor: pointer');
                 if (canonColorVars) rowStyles.push(canonColorVars);
+                if (colorSystemStyles) rowStyles.push(colorSystemStyles);
                 const rowStyleAttr = rowStyles.length > 0 ? ` style="${rowStyles.join('; ')}"` : '';
                 const rowOnClickAttr = rowOnClick ? ` onclick="${rowOnClick}"` : '';
                 
-                html += `<div class="${rowClass}"${rowOnClickAttr}${rowStyleAttr}>`;
+                html += `<div class="${finalRowClass}"${rowOnClickAttr}${rowStyleAttr}>`;
                 
                 // For chapter rows, render author (chapter #) first, then title
                 if (isChapterRow && tableName === 'library') {
@@ -819,7 +885,7 @@
                                 const sessionCode = value.substring(7); // Remove "stripe:" prefix
                                 if (row.url && row.url.startsWith('/')) {
                                     // Link to internal URL (e.g., /order)
-                                    displayValue = `<a href="${row.url}" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${sessionCode}</a>`;
+                                    displayValue = `<a href="${row.url}" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${sessionCode}</a>`;
                                 } else {
                                     // No URL, display as non-clickable text
                                     displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${sessionCode}</span>`;
@@ -835,11 +901,11 @@
                                     const did = match[1];
                                     const rkey = match[2];
                                     const webUrl = `https://bsky.app/profile/${did}/post/${rkey}`;
-                                    displayValue = `<a href="${webUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${endpoint}</a>`;
+                                    displayValue = `<a href="${webUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
                                 } else {
                                     // Other AT URIs (like profile/self) - display as text or use row.url if available
                                     if (row.url) {
-                                        displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${endpoint}</a>`;
+                                        displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
                                     } else {
                                         displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
                                     }
@@ -848,7 +914,7 @@
                                 // URL field exists - link to it directly
                                 const parts = value.split('/');
                                 const endpoint = parts[parts.length - 1] || value;
-                                displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; color: var(--primary); text-decoration: none;">${endpoint}</a>`;
+                                displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
                             } else {
                                 // Other URIs - display as non-clickable text
                                 const parts = value.split('/');
@@ -979,8 +1045,23 @@
                             displayValue = date.toLocaleDateString();
                         }
                     } else if (col === 'key' && tableName === 'events') {
-                        // Just display the key value, styling handled at row level for canon rows
-                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                        // Apply appropriate coloring based on event type
+                        if (value === 'greeter') {
+                            displayValue = `<span style="color: var(--role-greeter); font-weight: 600;">${value}</span>`;
+                        } else if (value === 'mapper') {
+                            displayValue = `<span style="color: var(--role-mapper); font-weight: 600;">${value}</span>`;
+                        } else if (value === 'cogitarian') {
+                            displayValue = `<span style="color: var(--role-cogitarian); font-weight: 600;">${value}</span>`;
+                        } else if (value === 'origin' && row.origin_octant) {
+                            // For origin events, use the origin_octant color
+                            const octantColor = `var(--octant-${row.origin_octant}-dark)`;
+                            displayValue = `<span style="color: ${octantColor}; font-weight: 600;">${value}</span>`;
+                        } else if (value === 'canon' && row.color_hex) {
+                            // Canon rows use user color
+                            displayValue = `<span style="color: ${row.color_hex}; font-weight: 600;">${value}</span>`;
+                        } else {
+                            displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                        }
                     } else if (typeof value === 'number') {
                         displayValue = value.toLocaleString();
                     } else if (typeof value === 'boolean') {
@@ -1009,7 +1090,9 @@
                         url: row.reaction_url,
                         epoch: row.reaction_epoch || null,
                         name: row.reaction_name,
-                        avatar: row.reaction_avatar
+                        avatar: row.reaction_avatar,
+                        octant: row.reaction_octant,
+                        origin_octant: row.reaction_origin_octant
                     };
                     
                     const reactionClickAttr = reactionRow.url ? `onclick="window.open('${reactionRow.url}', '_blank')" style="cursor: pointer;"` : '';
@@ -1055,8 +1138,18 @@
                             const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;
                             displayValue = `<span style="white-space: normal; padding-left: 4px;">${nameLink} ${eventText}</span>`;
                         } else if (col === 'key') {
-                            // Color the key cell for canon rows with user color
-                            if (tableName === 'events' && value === 'canon' && row.color_hex) {
+                            // Apply appropriate coloring based on event type
+                            if (value === 'greeter') {
+                                displayValue = `<span style="color: var(--role-greeter); font-weight: 600;">${value}</span>`;
+                            } else if (value === 'mapper') {
+                                displayValue = `<span style="color: var(--role-mapper); font-weight: 600;">${value}</span>`;
+                            } else if (value === 'cogitarian') {
+                                displayValue = `<span style="color: var(--role-cogitarian); font-weight: 600;">${value}</span>`;
+                            } else if (value === 'origin' && reactionRow.origin_octant) {
+                                // For origin events, use the origin_octant color
+                                const octantColor = `var(--octant-${reactionRow.origin_octant}-dark)`;
+                                displayValue = `<span style="color: ${octantColor}; font-weight: 600;">${value}</span>`;
+                            } else if (tableName === 'events' && value === 'canon' && row.color_hex) {
                                 displayValue = `<span style="color: ${row.color_hex}; font-weight: 600;">${value}</span>`;
                             } else {
                                 displayValue = value || '<span style="color: var(--text-dim);">—</span>';
@@ -1089,6 +1182,9 @@
             });
             
             container.innerHTML = html;
+            
+            // Apply snake charmer effect to strange souvenir rows
+            applySnakeCharmerEffect();
             
             // Populate souvenir icons after render (for dreamers table)
             if (tableName === 'dreamers') {
@@ -1147,6 +1243,55 @@
             } catch (error) {
                 console.error('Error loading souvenirs:', error);
             }
+        }
+
+        function applySnakeCharmerEffect() {
+            // Find all strange souvenir rows
+            const strangeRows = document.querySelectorAll('.souvenir-strange.intensity-highlight, .souvenir-strange.intensity-special');
+            
+            strangeRows.forEach(row => {
+                // Get all cells in the row (including key cell for wobble)
+                const cells = row.querySelectorAll('.cell');
+                
+                cells.forEach((cell, cellIndex) => {
+                    // Skip if cell only contains images or empty content
+                    const hasOnlyImages = cell.querySelectorAll('img').length > 0 && !cell.textContent.trim();
+                    if (hasOnlyImages) return;
+                    
+                    let wordIndex = 0;
+                    
+                    // Recursively process all text nodes within the cell
+                    function processNode(node) {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            const text = node.textContent;
+                            const wordParts = text.split(/(\s+)/);
+                            const fragment = document.createDocumentFragment();
+                            
+                            wordParts.forEach(part => {
+                                if (part.trim()) {
+                                    const wordSpan = document.createElement('span');
+                                    wordSpan.textContent = part;
+                                    wordSpan.className = 'snake-word';
+                                    const totalDelay = (cellIndex * 8 + wordIndex * 2) * 0.1;
+                                    wordSpan.style.animationDelay = `${totalDelay}s`;
+                                    fragment.appendChild(wordSpan);
+                                    wordIndex++;
+                                } else if (part) {
+                                    fragment.appendChild(document.createTextNode(part));
+                                }
+                            });
+                            
+                            node.parentNode.replaceChild(fragment, node);
+                        } else if (node.nodeType === Node.ELEMENT_NODE) {
+                            // Recursively process child nodes
+                            Array.from(node.childNodes).forEach(child => processNode(child));
+                        }
+                    }
+                    
+                    // Process all child nodes of the cell
+                    Array.from(cell.childNodes).forEach(node => processNode(node));
+                });
+            });
         }
 
         function formatValue(col, value) {

@@ -1073,6 +1073,8 @@ def get_all_database_data():
                             d.name, 
                             d.avatar,
                             d.color_hex,
+                            s.octant,
+                            s.origin_octant,
                             r.id as reaction_id,
                             r.did as reaction_did,
                             r.event as reaction_event,
@@ -1082,11 +1084,15 @@ def get_all_database_data():
                             r.url as reaction_url,
                             r.epoch as reaction_epoch,
                             rd.name as reaction_name,
-                            rd.avatar as reaction_avatar
+                            rd.avatar as reaction_avatar,
+                            rs.octant as reaction_octant,
+                            rs.origin_octant as reaction_origin_octant
                         FROM events c
                         LEFT JOIN dreamers d ON c.did = d.did
+                        LEFT JOIN spectrum s ON c.did = s.did
                         LEFT JOIN events r ON r.reaction_to = c.id
                         LEFT JOIN dreamers rd ON r.did = rd.did
+                        LEFT JOIN spectrum rs ON r.did = rs.did
                         ORDER BY c.epoch DESC
                     """)
                 # Special handling for souvenirs - add keeper count
@@ -1249,9 +1255,12 @@ def get_canon():
         # Get all canon entries with dreamer names and avatars, sorted by epoch descending
         cursor = db.execute("""
             SELECT c.id, c.epoch, c.did, c.event, c.url, c.uri, c.type, c.key, c.created_at, 
-                   d.name, d.avatar, d.color_hex
+                   c.color_source, c.color_intensity,
+                   d.name, d.avatar, d.color_hex,
+                   s.octant, s.origin_octant
             FROM events c
             LEFT JOIN dreamers d ON c.did = d.did
+            LEFT JOIN spectrum s ON c.did = s.did
             ORDER BY c.epoch DESC
         """)
         canon_entries = cursor.fetchall()
@@ -1270,7 +1279,11 @@ def get_canon():
                 'url': entry['url'] or '',
                 'uri': entry['uri'] or '',
                 'type': entry['type'] or 'souvenir',
-                'key': entry['key'] or ''
+                'key': entry['key'] or '',
+                'color_source': entry['color_source'] or 'none',
+                'color_intensity': entry['color_intensity'] or 'none',
+                'octant': entry['octant'] or '',
+                'origin_octant': entry['origin_octant'] or ''
             }
             result.append(canon_dict)
         

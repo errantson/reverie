@@ -249,6 +249,29 @@ td {
     font-family: monospace;
     font-size: 0.85em;
 }
+
+/* Make links in table rows inherit the row's text color by default */
+.row-entry a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.row-entry a:hover {
+    text-decoration: underline;
+}
+
+/* Ensure key and uri cells inherit row color */
+.row-entry .cell.key,
+.row-entry .cell.uri {
+    color: inherit !important;
+}
+
+.row-entry .cell.key a,
+.row-entry .cell.uri a,
+.row-entry .cell.key span,
+.row-entry .cell.uri span {
+    color: inherit !important;
+}
 .row-entry {
     display: flex;
     padding: 10px 0 10px 4px;
@@ -257,14 +280,14 @@ td {
     font-family: monospace;
     font-size: 0.9em;
     line-height: 1.2;
-    background: var(--bg-white);
+    background: #f0f0f0;
     transition: background 0.15s;
     width: 100%;
     align-items: center;
     min-height: 40px;
 }
 .row-entry:nth-child(even) {
-    background: #f0f0f0;
+    background: var(--bg-white);
 }
 .row-entry:hover {
     background: var(--bg-light);
@@ -536,7 +559,6 @@ td {
     font-family: monospace;
     font-size: 0.85em;
     font-weight: 600;
-    color: var(--primary);
 }
 .row-header .cell.uri,
 .row-entry .cell.uri {
@@ -1241,7 +1263,7 @@ td {
 }
 
 .row-entry.reaction-greeter .cell.key {
-    color: var(--role-greeter) !important;
+    /* Color inherited from row color system */
 }
 
 .row-entry.reaction-mapper {
@@ -1253,7 +1275,7 @@ td {
 }
 
 .row-entry.reaction-mapper .cell.key {
-    color: var(--role-mapper) !important;
+    /* Color inherited from row color system */
 }
 
 .row-entry.reaction-cogitarian {
@@ -1265,7 +1287,7 @@ td {
 }
 
 .row-entry.reaction-cogitarian .cell.key {
-    color: var(--role-cogitarian) !important;
+    /* Color inherited from row color system */
 }
 
 .row-entry.reaction-row .cell.avatar {
