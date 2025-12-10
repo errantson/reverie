@@ -11,136 +11,218 @@ import pytest
 import jwt
 import time
 from datetime import datetime, timedelta
+from unittest.mock import patch, Mock
+import requests
 
 
 # ============================================================================
-# SESSION MANAGEMENT
+# JWT VALIDATION SECURITY TESTS
 # ============================================================================
 
-@pytest.mark.database
-class TestSessions:
-    """Session creation and validation"""
+@pytest.mark.unit
+class TestJWTValidation:
+    """Test JWT token validation security"""
     
-    def test_create_session(self, test_db):
-        """Test session creation"""
-        from utils.auth import create_session
+    @patch('core.admin_auth.auth')
+    def test_validate_user_token_admin_session(self, mock_auth):
+        """Test validate_user_token accepts valid admin session"""
+        from core.admin_auth import validate_user_token
         
-        did = 'did:plc:test123'
-        token = create_session(did)
-        
-        assert token is not None
-        assert isinstance(token, str)
-        assert len(token) > 20
+        mock_auth.validate_session.return_value = (True, 'did:plc:test123', 'test.handle')
+            
+        valid, did, handle = validate_user_token('valid-admin-token')
+        assert valid == True
+        assert did == 'did:plc:test123'
+        assert handle == 'test.handle'
     
-    def test_validate_valid_session(self, test_db):
-        """Test validating valid session"""
-        from utils.auth import create_session, validate_session
+    @patch('core.admin_auth.auth')
+    def test_validate_user_token_invalid_admin_session(self, mock_auth):
+        """Test validate_user_token rejects invalid admin session"""
+        from core.admin_auth import validate_user_token
         
-        did = 'did:plc:test123'
-        token = create_session(did)
-        
-        validated_did = validate_session(token)
-        assert validated_did == did
+        mock_auth.validate_session.return_value = (False, None, None)
+            
+        valid, did, handle = validate_user_token('invalid-admin-token')
+        assert valid == False
+        assert did is None
+        assert handle is None
     
-    def test_validate_invalid_session(self, test_db):
-        """Test validating invalid session"""
-        from utils.auth import validate_session
+    @patch('core.admin_auth.verify_pds_jwt')
+    @patch('core.admin_auth.auth')
+    def test_validate_user_token_calls_pds_verification(self, mock_auth, mock_verify):
+        """Test validate_user_token calls PDS verification when admin session fails"""
+        from core.admin_auth import validate_user_token
         
-        result = validate_session('invalid-token-12345')
-        assert result is None
-
-
-# ============================================================================
-# JWT VALIDATION
-# ============================================================================
-
-@pytest.mark.database
-class TestJWT:
-    """JWT token validation"""
+        mock_auth.validate_session.return_value = (False, None, None)
+        mock_verify.return_value = (True, 'did:plc:test123', None)
+            
+        valid, did, handle = validate_user_token('pds-jwt-token')
+        assert valid == True
+        assert did == 'did:plc:test123'
+        mock_verify.assert_called_once_with('pds-jwt-token')
     
-    def test_jwt_structure(self, test_db):
-        """Test JWT has valid structure"""
-        from utils.auth import create_session
+    def test_verify_pds_jwt_invalid_structure(self):
+        """Test verify_pds_jwt rejects malformed JWT"""
+        from core.admin_auth import verify_pds_jwt
         
-        token = create_session('did:plc:test123')
-        
-        # Should have 3 parts
-        parts = token.split('.')
-        assert len(parts) == 3
+        # Invalid JWT
+        valid, did, handle = verify_pds_jwt('not-a-jwt')
+        assert valid == False
+        assert did is None
     
-    def test_jwt_expired_token(self, test_db):
-        """Test expired JWT is rejected"""
-        from utils.auth import validate_session
-        from config import SECRET_KEY
+    def test_verify_pds_jwt_expired_token(self):
+        """Test verify_pds_jwt rejects expired JWT"""
+        from core.admin_auth import verify_pds_jwt
         
-        # Create expired token
+        # Create expired JWT
         expired_token = jwt.encode(
-            {'sub': 'did:plc:test123', 'exp': datetime.utcnow() - timedelta(hours=1)},
-            SECRET_KEY,
-            algorithm='HS256'
+            {'sub': 'did:plc:test123', 'iss': 'https://pds.example.com', 'exp': time.time() - 3600},
+            'fake-key',
+            algorithm='RS256'
         )
         
-        result = validate_session(expired_token)
-        assert result is None
+        valid, did, handle = verify_pds_jwt(expired_token)
+        assert valid == False
+    
+    @patch('core.admin_auth.requests.get')
+    def test_verify_pds_jwt_forged_signature(self, mock_get):
+        """Test verify_pds_jwt rejects JWT with forged signature"""
+        from core.admin_auth import verify_pds_jwt
+        
+        # Mock JWKS response with wrong key
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'keys': [{
+                'kid': 'test-key',
+                'kty': 'RSA',
+                'n': 'wrong-public-key-modulus',
+                'e': 'AQAB'
+            }]
+        }
+        mock_get.return_value = mock_response
+        
+        # Create JWT signed with different key
+        forged_token = jwt.encode(
+            {'sub': 'did:plc:test123', 'iss': 'https://pds.example.com', 'exp': time.time() + 3600, 'kid': 'test-key'},
+            'different-private-key',
+            algorithm='RS256'
+        )
+        
+        valid, did, handle = verify_pds_jwt(forged_token)
+        assert valid == False
+    
+    @patch('core.admin_auth.requests.get')
+    def test_verify_pds_jwt_valid_token(self, mock_get):
+        """Test verify_pds_jwt accepts properly signed JWT"""
+        from core.admin_auth import verify_pds_jwt
+        import json
+        
+        # Create a proper RSA key pair for testing
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.hazmat.backends import default_backend
+        
+        # Generate test key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
+        )
+        
+        # Get public key in JWK format
+        public_key = private_key.public_key()
+        public_numbers = public_key.public_numbers()
+        
+        # Create JWKS response
+        jwk = {
+            'kid': 'test-key',
+            'kty': 'RSA',
+            'n': jwt.utils.base64url_encode(
+                public_numbers.n.to_bytes((public_numbers.n.bit_length() + 7) // 8, 'big')
+            ).decode(),
+            'e': jwt.utils.base64url_encode(
+                public_numbers.e.to_bytes((public_numbers.e.bit_length() + 7) // 8, 'big')
+            ).decode()
+        }
+        
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {'keys': [jwk]}
+        mock_get.return_value = mock_response
+        
+        # Create properly signed JWT
+        token = jwt.encode(
+            {'sub': 'did:plc:test123', 'iss': 'https://pds.example.com', 'exp': time.time() + 3600, 'kid': 'test-key'},
+            private_key,
+            algorithm='RS256'
+        )
+        
+        valid, did, handle = verify_pds_jwt(token)
+        assert valid == True
+        assert did == 'did:plc:test123'
 
 
 # ============================================================================
-# PASSWORD ENCRYPTION
+# ACCOUNT DELETION SECURITY TESTS
 # ============================================================================
 
-@pytest.mark.database  
-class TestEncryption:
-    """Password hashing and verification"""
+@pytest.mark.unit
+class TestAccountDeletion:
+    """Test account deletion endpoint security"""
     
-    def test_password_hashing(self):
-        """Test password hashing"""
-        from utils.encryption import hash_password
+    @pytest.fixture
+    def app(self):
+        """Create Flask app for testing"""
+        from flask import Flask
+        app = Flask(__name__)
+        app.config['TESTING'] = True
         
-        password = 'test-password-123'
-        hashed = hash_password(password)
+        # Register the blueprint
+        from api.routes import user_routes
+        app.register_blueprint(user_routes.bp)
         
-        assert hashed != password
-        assert len(hashed) > 20
+        return app
     
-    def test_password_verification(self):
-        """Test password verification"""
-        from utils.encryption import hash_password, verify_password
-        
-        password = 'test-password-123'
-        hashed = hash_password(password)
-        
-        assert verify_password(password, hashed) == True
-        assert verify_password('wrong-password', hashed) == False
-
-
-# ============================================================================
-# AUTH RECOVERY
-# ============================================================================
-
-@pytest.mark.database
-class TestAuthRecovery:
-    """Authentication recovery flows"""
+    @pytest.fixture
+    def client(self, app):
+        """Create test client"""
+        return app.test_client()
     
-    def test_recovery_code_generation(self, test_db):
-        """Test recovery code generation"""
-        from utils.courier_auth import generate_recovery_code
+    @patch('api.routes.user_routes.validate_user_token')
+    @patch('api.routes.user_routes.DatabaseManager')
+    @patch('api.routes.user_routes.EventsManager')
+    def test_delete_account_unauthorized(self, mock_events, mock_db_class, mock_validate, client):
+        """Test delete account rejects unauthorized requests"""
+        mock_validate.return_value = (False, None, None)
         
-        code = generate_recovery_code()
+        response = client.delete('/api/user/delete', 
+                               json={'did': 'did:plc:test123', 'confirm': 'Goodbye, Reverie House'})
         
-        assert code is not None
-        assert len(code) >= 6
-        assert code.isalnum()
+        assert response.status_code == 401
+        assert b'Unauthorized' in response.data
     
-    def test_recovery_code_validation(self, test_db):
-        """Test recovery code validation"""
-        from utils.courier_auth import generate_recovery_code, validate_recovery_code
+    @patch('api.routes.user_routes.validate_user_token')
+    def test_delete_account_wrong_user(self, mock_validate, client):
+        """Test delete account rejects when authenticated user != target user"""
+        mock_validate.return_value = (True, 'did:plc:attacker', 'attacker.handle')
         
-        code = generate_recovery_code()
-        did = 'did:plc:test123'
+        response = client.delete('/api/user/delete', 
+                               json={'did': 'did:plc:victim', 'confirm': 'Goodbye, Reverie House'})
         
-        # Store code (mock)
-        # Validate code
-        # Should work in real implementation
+        assert response.status_code == 403
+        assert b'Forbidden' in response.data
+    
+    @patch('api.routes.user_routes.validate_user_token')
+    def test_delete_account_wrong_confirmation(self, mock_validate, client):
+        """Test delete account rejects wrong confirmation text"""
+        mock_validate.return_value = (True, 'did:plc:test123', 'test.handle')
+        
+        response = client.delete('/api/user/delete', 
+                               json={'did': 'did:plc:test123', 'confirm': 'Wrong text'})
+        
+        assert response.status_code == 400
+        assert b'Confirmation text does not match' in response.data
 
 
 if __name__ == '__main__':

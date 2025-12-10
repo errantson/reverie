@@ -272,6 +272,12 @@ def register_dreamer(
         else:
             avatar = ''
         
+        # Set default avatar for reverie.house accounts if none available
+        if not avatar and handle and handle.endswith('.reverie.house'):
+            avatar = '/assets/avatars/avatar001.png'
+            if verbose:
+                print(f"   🎨 Using default avatar for reverie.house account")
+        
         banner_data = profile.get('banner', '')
         if isinstance(banner_data, dict):
             # Extract CID and build full CDN URL (from repo.getRecord)
@@ -335,12 +341,16 @@ def register_dreamer(
             server = network.get_pds_from_profile(profile) or ""
         
         now = int(time.time())
+        
+        # Set default color for new dreamers (Reverie purple)
+        default_color = '#734ba1'
+        
         db.execute("""
             INSERT INTO dreamers 
-            (did, handle, name, display_name, description, avatar, banner,
+            (did, handle, name, display_name, description, avatar, banner, color_hex,
              followers_count, follows_count, posts_count, server, arrival, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (did, handle, dreamer_name, display_name, description, avatar, banner,
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (did, handle, dreamer_name, display_name, description, avatar, banner, default_color,
               followers_count, follows_count, posts_count, server, arrival_timestamp, created_at_str, now))
         
         if verbose:

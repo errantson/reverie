@@ -4,20 +4,18 @@ Determines user status/role and saves it to the database
 """
 
 import requests
-import sqlite3
 import time
-from pathlib import Path
+import sys
 import os
 
-def get_db_path():
-    """Get the path to the reverie.db database"""
-    try:
-        from config import Config
-        return Path(Config.DATA_DIR) / 'reverie.db'
-    except ImportError:
-        # Fallback
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        return Path(project_root) / 'data' / 'reverie.db'
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from core.database import DatabaseManager
+
+def get_db_manager():
+    """Get DatabaseManager instance"""
+    return DatabaseManager()
 
 
 def calculate_user_status(did, handle, server=None, auth_token=None):
@@ -53,16 +51,12 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
     
     # Check patronage and Great Patron status
     try:
-        db_path = get_db_path()
-        conn = sqlite3.connect(str(db_path))
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        db = get_db_manager()
         
         # Calculate this user's patronage from canon table
-        cursor.execute("""
-            SELECT event FROM canon WHERE type = 'order' AND did = ?
+        order_data = db.fetch_all("""
+            SELECT event FROM canon WHERE type = 'order' AND did = %s
         """, (did,))
-        order_data = cursor.fetchall()
         
         POINTS_PER_BOOK = 150  # Flat contribution points per book
         patronage = 0
@@ -86,10 +80,9 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
         # Check if this user has the highest patronage (Great Patron)
         if patronage > 0:
             # Get all patronage scores
-            cursor.execute("""
+            all_orders = db.fetch_all("""
                 SELECT did, event FROM canon WHERE type = 'order'
             """)
-            all_orders = cursor.fetchall()
             
             patronage_by_did = {}
             for row in all_orders:
@@ -109,8 +102,6 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
                     top_patrons = [d for d, p in patronage_by_did.items() if p == max_patronage]
                     if len(top_patrons) == 1:
                         status_data['is_great_patron'] = True
-        
-        conn.close()
         
     except Exception as e:
         print(f"Warning: Could not check patronage status: {e}")
@@ -305,17 +296,12 @@ def update_user_status_in_db(did, status):
         status: Status string to save
     """
     try:
-        db_path = get_db_path()
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
+        db = get_db_manager()
         
-        cursor.execute(
-            "UPDATE dreamers SET status = ?, updated_at = ? WHERE did = ?",
+        db.execute(
+            "UPDATE dreamers SET status = %s, updated_at = %s WHERE did = %s",
             (status, int(time.time()), did)
         )
-        
-        conn.commit()
-        conn.close()
         
         print(f"✅ Updated status for {did}: {status}")
         return True

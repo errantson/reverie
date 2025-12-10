@@ -11,10 +11,11 @@ bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 # Import shared dependencies
 from core.admin_auth import auth, require_auth, get_client_ip, AUTHORIZED_ADMIN_DID
-from core.audit import get_audit_logger
+# from core.audit import get_audit_logger
 from core.rate_limiter import PersistentRateLimiter
 
-audit = get_audit_logger()
+# audit = get_audit_logger()
+audit = None
 rate_limiter = PersistentRateLimiter()
 RATE_LIMIT_WINDOW = 60
 
@@ -39,15 +40,16 @@ def rate_limit(requests_per_minute=100):
             )
             
             if not allowed:
-                audit.log(
-                    event_type='rate_limit_exceeded',
-                    endpoint=endpoint,
-                    method=request.method,
-                    user_ip=ip,
-                    response_status=429,
-                    user_agent=request.headers.get('User-Agent'),
-                    extra_data={'limit': requests_per_minute, 'window': RATE_LIMIT_WINDOW, 'retry_after': retry_after}
-                )
+                if audit:
+                    audit.log(
+                        event_type='rate_limit_exceeded',
+                        endpoint=endpoint,
+                        method=request.method,
+                        user_ip=ip,
+                        response_status=429,
+                        user_agent=request.headers.get('User-Agent'),
+                        extra_data={'limit': requests_per_minute, 'window': RATE_LIMIT_WINDOW, 'retry_after': retry_after}
+                    )
                 
                 return jsonify({
                     'error': 'Rate limit exceeded',
@@ -63,29 +65,31 @@ def rate_limit(requests_per_minute=100):
                     duration_ms = int((time.time() - start_time) * 1000)
                     status = response[1] if isinstance(response, tuple) else 200
                     
-                    audit.log(
-                        event_type='api_write',
-                        endpoint=endpoint,
-                        method=request.method,
-                        user_ip=ip,
-                        response_status=status,
-                        user_agent=request.headers.get('User-Agent'),
-                        request_body=request.get_data(as_text=True)[:1000] if request.method == 'POST' else None,
-                        query_duration_ms=duration_ms
-                    )
+                    if audit:
+                        audit.log(
+                            event_type='api_write',
+                            endpoint=endpoint,
+                            method=request.method,
+                            user_ip=ip,
+                            response_status=status,
+                            user_agent=request.headers.get('User-Agent'),
+                            request_body=request.get_data(as_text=True)[:1000] if request.method == 'POST' else None,
+                            query_duration_ms=duration_ms
+                        )
                 
                 return response
                 
             except Exception as e:
-                audit.log(
-                    event_type='api_error',
-                    endpoint=endpoint,
-                    method=request.method,
-                    user_ip=ip,
-                    response_status=500,
-                    user_agent=request.headers.get('User-Agent'),
-                    error_message=str(e)
-                )
+                if audit:
+                    audit.log(
+                        event_type='api_error',
+                        endpoint=endpoint,
+                        method=request.method,
+                        user_ip=ip,
+                        response_status=500,
+                        user_agent=request.headers.get('User-Agent'),
+                        error_message=str(e)
+                    )
                 raise
                 
         return wrapped
@@ -114,29 +118,31 @@ def admin_login():
         success, did, verified_handle, error_msg = auth.authenticate_with_pds(handle, password, client_ip)
         
         if not success:
-            audit.log(
-                event_type='admin_login_failed',
-                endpoint='/api/admin/login',
-                method='POST',
-                user_ip=client_ip,
-                response_status=401,
-                user_agent=request.headers.get('User-Agent'),
-                extra_data={'handle': handle, 'error': error_msg}
-            )
+            if audit:
+                audit.log(
+                    event_type='admin_login_failed',
+                    endpoint='/api/admin/login',
+                    method='POST',
+                    user_ip=client_ip,
+                    response_status=401,
+                    user_agent=request.headers.get('User-Agent'),
+                    extra_data={'handle': handle, 'error': error_msg}
+                )
             return jsonify({'error': error_msg}), 401
         
         # Check if user is the authorized admin
         if did != AUTHORIZED_ADMIN_DID:
             current_app.logger.warning(f"Unauthorized admin login attempt from DID: {did}")
-            audit.log(
-                event_type='admin_login_unauthorized',
-                endpoint='/api/admin/login',
-                method='POST',
-                user_ip=client_ip,
-                response_status=403,
-                user_agent=request.headers.get('User-Agent'),
-                extra_data={'did': did, 'handle': verified_handle, 'error': 'Not authorized admin DID'}
-            )
+            if audit:
+                audit.log(
+                    event_type='admin_login_unauthorized',
+                    endpoint='/api/admin/login',
+                    method='POST',
+                    user_ip=client_ip,
+                    response_status=403,
+                    user_agent=request.headers.get('User-Agent'),
+                    extra_data={'did': did, 'handle': verified_handle, 'error': 'Not authorized admin DID'}
+                )
             return jsonify({'error': 'Unauthorized: Admin access restricted'}), 403
         
         # Create session
@@ -156,15 +162,16 @@ def admin_login():
             user_agent=request.headers.get('User-Agent')
         )
         
-        audit.log(
-            event_type='admin_login_success',
-            endpoint='/api/admin/login',
-            method='POST',
-            user_ip=get_client_ip(),
-            response_status=200,
-            user_agent=request.headers.get('User-Agent'),
-            extra_data={'did': did, 'handle': verified_handle}
-        )
+        if audit:
+            audit.log(
+                event_type='admin_login_success',
+                endpoint='/api/admin/login',
+                method='POST',
+                user_ip=get_client_ip(),
+                response_status=200,
+                user_agent=request.headers.get('User-Agent'),
+                extra_data={'did': did, 'handle': verified_handle}
+            )
         
         return jsonify({
             'success': True,
@@ -175,15 +182,16 @@ def admin_login():
         })
         
     except Exception as e:
-        audit.log(
-            event_type='admin_login_error',
-            endpoint='/api/admin/login',
-            method='POST',
-            user_ip=get_client_ip(),
-            response_status=500,
-            user_agent=request.headers.get('User-Agent'),
-            error_message=str(e)
-        )
+        if audit:
+            audit.log(
+                event_type='admin_login_error',
+                endpoint='/api/admin/login',
+                method='POST',
+                user_ip=get_client_ip(),
+                response_status=500,
+                user_agent=request.headers.get('User-Agent'),
+                error_message=str(e)
+            )
         return jsonify({'error': 'Login failed', 'message': str(e)}), 500
 
 

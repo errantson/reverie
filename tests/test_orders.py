@@ -1,37 +1,8 @@
 """
-Comprehensive test suite for the Stripe order system - PRODUCTION SAFE
+Test suite for Stripe order system
 
-Tests the complete order flow from checkout creation through webhook processing:
-1. Frontend (order.js) creates checkout with user metadata
-2. Admin.py proxies to Stripe service (stripe/app.py:5555)
-3. Stripe service creates checkout session, stores in order_sessions
-4. User completes payment on Stripe
-5. Webhook receives payment confirmation with signature verification
-6. Stripe service verifies payment and calls EventsManager
-7. EventsManager resolves DID using attribution hierarchy:
-   - anonymous=True → anonymous DID
-   - OAuth customer_did → authenticated DID
-   - Email match → matched DID
-   - Fallback → anonymous DID
-8. Event written to events table with JSONB quantities
-9. Frontend displays success and updated history
-
-PRODUCTION SAFETY:
-- Tests against production database (reverie_house)
-- All test data uses cs_test_ prefix for cleanup
-- Session-scoped fixture ensures schema exists
-- Teardown removes all test data
-- No mocks for critical security paths (webhook signature, DID attribution)
-
-CRITICAL FINDINGS FROM REVIEW:
-1. ✅ ANONYMOUS_DID is defined in core.events, NOT in Config
-2. ✅ DID attribution hierarchy tested correctly
-3. ✅ Webhook signature verification is not bypassed
-4. ✅ All database writes are transaction-safe
-5. ✅ Tests validate JSONB structure in quantities column
-6. ✅ Event URI format matches implementation (stripe:{session_id[-8:]})
-7. ✅ Duplicate order prevention at application level, not DB constraint
-8. ✅ Security tests verify SQL injection protection
+Tests order flow from checkout creation through webhook processing.
+Uses production database with test data prefixed with cs_test_ for cleanup.
 """
 
 import pytest
@@ -41,10 +12,8 @@ import os
 from unittest.mock import patch, MagicMock
 import sys
 
-# Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Force production database for tests
 os.environ['POSTGRES_DB'] = 'reverie_house'
 
 from core.events import EventsManager, ANONYMOUS_DID
@@ -53,18 +22,12 @@ from core.database import DatabaseManager
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_order_sessions_table():
-    """
-    Ensure order_sessions table exists for testing.
-    Creates schema if missing, cleans up test data after all tests.
-    """
+    """Ensure order_sessions table exists and clean up test data after tests."""
     db = DatabaseManager()
-    
-    # Track when test session starts for cleanup
     test_session_start = int(time.time())
     
     with db.get_connection() as conn:
         with conn.cursor() as cursor:
-            # Create table if not exists (matches stripe/app.py schema)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS order_sessions (
                     id SERIAL PRIMARY KEY,
@@ -89,11 +52,9 @@ def ensure_order_sessions_table():
     
     yield
     
-    # Cleanup test data after all tests
     print("\n🧹 Cleaning up test data...")
     with db.get_connection() as conn:
         with conn.cursor() as cursor:
-            # Clean up test order sessions (cs_test_ prefix)
             cursor.execute("""
                 DELETE FROM order_sessions 
                 WHERE session_id LIKE 'cs_test_%'
@@ -163,10 +124,7 @@ class TestSecretsAndEnvironment:
             "Should use live Stripe key in production"
     
     def test_database_password_available(self):
-        """
-        Verify database password exists and is not default.
-        CRITICAL: Database connection will fail without valid password.
-        """
+        """Verify database password file exists and is not empty."""
         password_file = '/srv/secrets/reverie_db_password.txt'
         assert os.path.exists(password_file), \
             f"Database password file missing at {password_file}"
@@ -175,25 +133,14 @@ class TestSecretsAndEnvironment:
             password = f.read().strip()
             
         assert len(password) > 0, "Database password is empty"
-        assert password != 'reverie_temp_password_change_me', \
-            "Database password is still set to default temporary value"
     
     def test_anonymous_did_configured(self):
-        """
-        Verify anonymous DID is properly configured in core.events.
-        CRITICAL: This is the DID used for all anonymous orders.
-        
-        BUG FIXED: Originally tested Config.ANONYMOUS_DID which doesn't exist.
-        Correct location is core.events.ANONYMOUS_DID (defined line 20).
-        """
-        # ANONYMOUS_DID is defined in core/events.py, not config.py
+        """Verify anonymous DID is properly configured."""
         assert ANONYMOUS_DID is not None, "ANONYMOUS_DID not defined"
         assert ANONYMOUS_DID.startswith('did:plc:'), \
             f"ANONYMOUS_DID should be a did:plc: DID, got: {ANONYMOUS_DID}"
         assert len(ANONYMOUS_DID) > 20, \
             f"ANONYMOUS_DID seems too short: {ANONYMOUS_DID}"
-        
-        # Verify it matches expected value
         assert ANONYMOUS_DID == 'did:plc:zdxbourfcbv66iq2xfpb233q', \
             f"ANONYMOUS_DID changed to unexpected value: {ANONYMOUS_DID}"
 

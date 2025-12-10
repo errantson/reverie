@@ -316,6 +316,35 @@ class TestHistoryEventSources:
         result = cursor.fetchone()
         
         assert result['count'] >= 0, "Lore event query failed"
+    
+    def test_departure_event_structure(self):
+        """Departure events have correct structure (type=departure, key=dissipate, text='dissipates their self')."""
+        db = DatabaseManager()
+        
+        # Check if any departure events exist
+        cursor = db.execute("""
+            SELECT COUNT(*) as count
+            FROM events
+            WHERE type = 'departure' AND key = 'dissipate'
+        """)
+        result = cursor.fetchone()
+        
+        # Departure events are optional (only created on account deletion)
+        # but if they exist, they must have the correct format
+        assert result['count'] >= 0, "Departure event query failed"
+        
+        # If departure events exist, verify their text format
+        if result['count'] > 0:
+            cursor = db.execute("""
+                SELECT event
+                FROM events
+                WHERE type = 'departure' AND key = 'dissipate'
+                LIMIT 1
+            """)
+            sample = cursor.fetchone()
+            assert sample['event'] == 'dissipates their self', (
+                f"Departure event text must be 'dissipates their self', got: {sample['event']}"
+            )
 
 
 class TestHistoryDataCompleteness:

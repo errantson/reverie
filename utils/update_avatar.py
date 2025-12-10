@@ -3,25 +3,18 @@ Update Avatar Utility
 Handles avatar updates on Bluesky using app passwords
 """
 
-import sqlite3
 import requests
-from pathlib import Path
+import sys
+import os
 
-try:
-    from config import Config
-except ImportError:
-    import os
-    class Config:
-        PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from core.database import DatabaseManager
 
 def get_db_connection():
-    """Get a connection to the reverie database."""
-    db_path = Path(Config.DATA_DIR) / 'reverie.db'
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Get DatabaseManager instance."""
+    return DatabaseManager()
 
 
 def _get_user_credentials(did: str):
@@ -34,15 +27,12 @@ def _get_user_credentials(did: str):
     import base64
     import json
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_db_connection()
     
     # Get user handle and server
-    cursor.execute("SELECT handle, server FROM dreamers WHERE did = ?", (did,))
-    dreamer = cursor.fetchone()
+    dreamer = db.fetch_one("SELECT handle, server FROM dreamers WHERE did = %s", (did,))
     
     if not dreamer:
-        conn.close()
         return None, None, None
     
     handle = dreamer['handle']
@@ -50,11 +40,10 @@ def _get_user_credentials(did: str):
     app_password = None
     
     # Try new user_credentials table first
-    cursor.execute(
-        "SELECT app_password_hash, pds_url FROM user_credentials WHERE did = ? AND is_valid = 1",
+    cred = db.fetch_one(
+        "SELECT app_password_hash, pds_url FROM user_credentials WHERE did = %s AND is_valid = TRUE",
         (did,)
     )
-    cred = cursor.fetchone()
     
     if cred:
         # Decode base64 password
@@ -64,8 +53,7 @@ def _get_user_credentials(did: str):
             pds_url = cred['pds_url']
     else:
         # Fall back to legacy work table
-        cursor.execute("SELECT role, workers FROM work")
-        work_rows = cursor.fetchall()
+        work_rows = db.fetch_all("SELECT role, workers FROM work")
         
         for row in work_rows:
             workers = json.loads(row['workers'])
@@ -75,8 +63,6 @@ def _get_user_credentials(did: str):
                     break
             if app_password:
                 break
-    
-    conn.close()
     
     return handle, app_password, pds_url
 

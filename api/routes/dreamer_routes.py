@@ -12,48 +12,13 @@ import traceback
 bp = Blueprint('dreamers', __name__, url_prefix='/api')
 
 # Import shared dependencies
-from core.admin_auth import auth, AUTHORIZED_ADMIN_DID
+from core.admin_auth import auth, AUTHORIZED_ADMIN_DID, validate_user_token
 from core.rate_limiter import PersistentRateLimiter
 from functools import wraps
 import time
 
 rate_limiter = PersistentRateLimiter()
 RATE_LIMIT_WINDOW = 60
-
-
-def validate_user_token(token):
-    """
-    Validate authentication token - supports both admin sessions and OAuth JWT.
-    Returns: (valid, user_did, handle)
-    """
-    if not token:
-        return False, None, None
-    
-    # Try admin session first
-    valid, user_did, handle = auth.validate_session(token)
-    
-    # If admin session fails, try OAuth JWT (from PDS)
-    if not valid:
-        import jwt
-        try:
-            # Decode JWT without verification to get the DID
-            unverified = jwt.decode(token, options={"verify_signature": False})
-            user_did = unverified.get('sub')  # DID is in 'sub' claim
-            
-            if user_did and user_did.startswith('did:'):
-                # Check token expiration
-                exp = unverified.get('exp')
-                if exp:
-                    import time
-                    if time.time() <= exp:
-                        return True, user_did, None
-                else:
-                    # No expiration, accept it
-                    return True, user_did, None
-        except Exception:
-            pass
-    
-    return valid, user_did, handle
 
 
 def rate_limit(requests_per_minute=100):

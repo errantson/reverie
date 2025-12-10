@@ -101,6 +101,13 @@ class Dashboard {
             document.head.appendChild(spectrumModalScript);
         }
         
+        // Load delete account modal widget
+        if (!document.querySelector('script[src*="js/widgets/deleteaccount.js"]')) {
+            const deleteAccountScript = document.createElement('script');
+            deleteAccountScript.src = '/js/widgets/deleteaccount.js';
+            document.head.appendChild(deleteAccountScript);
+        }
+        
         // Load calendar widget CSS
         if (!document.querySelector('link[href*="css/calendar.css"]')) {
             const calendarCss = document.createElement('link');
@@ -945,18 +952,25 @@ class Dashboard {
     
     renderAccountActions() {
         const hasAdminToken = !!localStorage.getItem('admin_token');
-        const isReverieHost = this.dreamerData?.handle?.endsWith('.reverie.house') || false;
+        const handle = this.dreamerData?.handle || '';
+        const isReverieHost = handle === 'reverie.house' || handle.endsWith('.reverie.house');
+        
+        // Only show Delete Account button for reverie.house users
+        const deleteAccountButton = isReverieHost ? `
+            <button class="account-action-compact delete-account-action" onclick="window.dashboardWidget.handleDeleteAccount()" title="Delete Account">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                Delete Account
+            </button>
+        ` : '';
         
         return `
             <div class="account-actions-inline-container">
-                <button class="account-action-compact share-lore-btn" onclick="window.dashboardWidget.handleShareLore()" title="Share Lore">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                        <path d="M2 17l10 5 10-5"></path>
-                        <path d="M2 12l10 5 10-5"></path>
-                    </svg>
-                    Share Lore
-                </button>
+                ${deleteAccountButton}
                 <button class="account-action-compact logout-btn logout-flush-right" onclick="window.dashboardWidget.handleLogout()" title="Logout">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -1004,6 +1018,43 @@ class Dashboard {
             console.error('❌ [Dashboard] shareLoreWidget not available');
             alert('Share Lore feature is loading. Please try again in a moment.');
         }
+    }
+    
+    handleDeleteAccount() {
+        console.log('🗑️ [Dashboard] Delete Account button clicked');
+        
+        // Check if user is logged in
+        const session = window.oauthManager?.getSession?.();
+        if (!session) {
+            console.log('⚠️ [Dashboard] No session, cannot delete account');
+            return;
+        }
+        
+        // Check if user is on reverie.house
+        const handle = this.dreamerData?.handle || '';
+        const isResident = handle === 'reverie.house' || handle.endsWith('.reverie.house');
+        if (!isResident) {
+            console.log('⚠️ [Dashboard] Delete account only available for reverie.house users');
+            return;
+        }
+        
+        // Ensure modal is loaded and initialized
+        const openModal = () => {
+            if (window.deleteAccountModal) {
+                console.log('✅ [Dashboard] Opening delete account modal');
+                window.deleteAccountModal.open(session);
+            } else if (window.DeleteAccountModal) {
+                // Class is loaded but not instantiated yet
+                console.log('🔄 [Dashboard] Initializing delete account modal');
+                window.deleteAccountModal = new window.DeleteAccountModal();
+                window.deleteAccountModal.open(session);
+            } else {
+                console.error('❌ [Dashboard] DeleteAccountModal not available');
+                alert('Delete Account feature is loading. Please try again in a moment.');
+            }
+        };
+        
+        openModal();
     }
     
     async onHeadingSelectChange(value) {
@@ -2975,9 +3026,19 @@ class Dashboard {
                 <div class="tool-row">
                     <span class="tool-label">Spectrum Calculator</span>
                     <button class="tool-btn ${mapperAvailable ? 'available' : 'unavailable'}" 
-                            onclick="window.dashboardWidget.openSpectrumCalculator()"
-                            ${mapperAvailable ? '' : 'disabled'}>
+                            onclick="window.dashboardWidget.openSpectrumCalculator()">
                         ${mapperAvailable ? 'USE TOOL' : 'NEEDS MAPPER'}
+                    </button>
+                </div>
+            `;
+            
+            // Share Lore Tool
+            html += `
+                <div class="tool-row">
+                    <span class="tool-label">Share Lore</span>
+                    <button class="tool-btn available" 
+                            onclick="window.dashboardWidget.handleShareLore()">
+                        USE TOOL
                     </button>
                 </div>
             `;

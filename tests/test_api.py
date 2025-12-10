@@ -69,7 +69,10 @@ class TestWorldEndpoint:
         
         assert 'keeper' in data
         assert isinstance(data['keeper'], str)
-        assert data['keeper'].startswith('did:')
+        # keeper is the handle, keeper_did is the DID
+        assert 'keeper_did' in data
+        if data['keeper_did']:  # May be None if not found
+            assert data['keeper_did'].startswith('did:')
     
     def test_world_core_color_is_hex(self, api_base_url):
         """Test core_color is a valid hex color"""
@@ -78,7 +81,7 @@ class TestWorldEndpoint:
         
         assert 'core_color' in data
         assert data['core_color'].startswith('#')
-        assert len(data['core_color']) in [4, 7]  # #RGB or #RRGGBB
+        assert len(data['core_color']) in [4, 7, 9]  # #RGB, #RRGGBB, or #RRGGBBAA
     
     def test_world_no_sql_errors_exposed(self, api_base_url):
         """Test that SQL errors are not exposed in responses"""
@@ -122,15 +125,18 @@ class TestDreamersEndpoint:
                 assert field in dreamer
     
     def test_dreamer_spectrum_structure(self, api_base_url):
-        """Test dreamer spectrum values are floats 0-1"""
+        """Test dreamer spectrum values are floats 0-100"""
         response = requests.get(f'{api_base_url}/api/dreamers', timeout=10)
         data = response.json()
         
         for dreamer in data[:10]:  # Check first 10
             if 'spectrum' in dreamer and dreamer['spectrum']:
                 for key, value in dreamer['spectrum'].items():
-                    assert isinstance(value, (int, float))
-                    assert 0 <= value <= 1
+                    if key == 'octant':
+                        assert isinstance(value, str)  # Octant is a string label
+                    else:
+                        assert isinstance(value, (int, float))
+                        assert 0 <= value <= 100  # Spectrum is 0-100, not 0-1
     
     def test_dreamer_did_format_valid(self, api_base_url):
         """Test all dreamer DIDs have valid format"""
@@ -152,13 +158,14 @@ class TestDreamersEndpoint:
             assert not dreamer['handle'].startswith('did:')
     
     def test_dreamer_avatar_is_url_or_empty(self, api_base_url):
-        """Test avatar is either a URL or empty"""
+        """Test avatar is either a URL or local path"""
         response = requests.get(f'{api_base_url}/api/dreamers', timeout=10)
         data = response.json()
         
         for dreamer in data[:10]:
             if 'avatar' in dreamer and dreamer['avatar']:
-                assert 'http' in dreamer['avatar'].lower()
+                # Can be HTTP URL or local path
+                assert ('http' in dreamer['avatar'].lower()) or dreamer['avatar'].startswith('/')
     
     def test_dreamers_no_sensitive_data_leak(self, api_base_url):
         """Test that sensitive data is not exposed"""

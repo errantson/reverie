@@ -63,6 +63,50 @@ class TestFeedGen:
             assert hasattr(gen, 'get_feed_skeleton') or hasattr(gen, 'generate_feed')
         except ImportError:
             pytest.skip("FeedGen not available")
+    
+    def test_feedgen_did_document(self):
+        """Test feedgen DID document is accessible"""
+        import requests
+        response = requests.get('https://reverie.house/.well-known/did.json', verify=False)
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert data['id'] == 'did:web:reverie.house', "DID should match"
+        assert len(data['service']) > 0, "Should have service endpoints"
+        assert data['service'][0]['type'] == 'BskyFeedGenerator', "Should be feed generator service"
+    
+    def test_feedgen_describe_endpoint(self):
+        """Test feedgen describe endpoint returns feed metadata"""
+        import requests
+        response = requests.get('https://reverie.house/xrpc/app.bsky.feed.describeFeedGenerator', verify=False)
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert data['did'] == 'did:web:reverie.house', "DID should match"
+        assert 'feeds' in data, "Should have feeds list"
+        assert len(data['feeds']) >= 2, "Should have at least 2 feeds (lore, dreaming)"
+        
+        # Check feed metadata
+        feed_uris = [f['uri'] for f in data['feeds']]
+        assert any('lore' in uri for uri in feed_uris), "Should have lore feed"
+        assert any('dreaming' in uri for uri in feed_uris), "Should have dreaming feed"
+    
+    def test_feedgen_skeleton_endpoint(self):
+        """Test feedgen skeleton endpoint returns posts"""
+        import requests
+        response = requests.get(
+            'https://reverie.house/xrpc/app.bsky.feed.getFeedSkeleton',
+            params={
+                'feed': 'at://did:web:reverie.house/app.bsky.feed.generator/lore',
+                'limit': 5
+            },
+            verify=False
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert 'feed' in data, "Should have feed array"
+        # Feed might be empty if no posts, but structure should be valid
+        if len(data['feed']) > 0:
+            assert 'post' in data['feed'][0], "Feed items should have post URIs"
+            assert data['feed'][0]['post'].startswith('at://'), "Post URIs should be AT URIs"
 
 
 # ============================================================================

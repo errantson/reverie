@@ -116,6 +116,24 @@ def reverie_login():
             print(f"Account is not on reverie.house PDS (endpoint: {service_endpoint})")
             return jsonify({'error': 'oauth_required'}), 403
         
+        # Step 3.5: Check if account is deactivated BEFORE attempting PDS auth
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from core.database import DatabaseManager
+        
+        db = DatabaseManager()
+        cursor = db.execute("""
+            SELECT deactivated 
+            FROM dreamers 
+            WHERE did = %s
+        """, (did,))
+        dreamer = cursor.fetchone()
+        
+        if dreamer and dreamer.get('deactivated'):
+            print(f"❌ Login blocked: Account {handle} is deactivated")
+            return jsonify({'error': 'Account has been deactivated'}), 403
+        
         # Try PDS authentication
         pds = "https://reverie.house"
         
@@ -137,12 +155,7 @@ def reverie_login():
             session_data = response.json()
             print(f"✅ PDS auth successful for {handle} (DID: {session_data['did']})")
             
-            # Get dreamer info from database
-            import sys
-            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-            from core.database import DatabaseManager
-            
-            db = DatabaseManager()
+            # Get dreamer info from database (deactivation already checked above)
             cursor = db.execute("""
                 SELECT name, avatar, display_name 
                 FROM dreamers 
@@ -554,12 +567,14 @@ def create_account():
         # Mark invite code as used - do this at the very end after all potential failpoints
         try:
             from core.database import DatabaseManager
+            import time
             db = DatabaseManager()
+            now = int(time.time())
             db.execute("""
                 UPDATE invites
-                SET used_by = %s, used_at = CURRENT_TIMESTAMP
+                SET used_by = %s, used_at = %s, use_count = use_count + 1
                 WHERE code = %s AND used_by IS NULL
-            """, (did, invite_code))
+            """, (did, now, invite_code))
         # Auto-committed by DatabaseManager
             print(f"   ✅ Invite code marked as used: {invite_code}")
         except Exception as invite_err:

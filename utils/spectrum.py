@@ -120,11 +120,27 @@ class SpectrumManager:
         if is_origin:
             # Initial generation - set both origin and current
             self.db.execute("""
-                INSERT OR REPLACE INTO spectrum (
+                INSERT INTO spectrum (
                     did, entropy, oblivion, liberty, authority, receptive, skeptic, octant,
                     origin_entropy, origin_oblivion, origin_liberty, origin_authority, origin_receptive, origin_skeptic, origin_octant,
                     updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (did) DO UPDATE SET
+                    entropy = EXCLUDED.entropy,
+                    oblivion = EXCLUDED.oblivion,
+                    liberty = EXCLUDED.liberty,
+                    authority = EXCLUDED.authority,
+                    receptive = EXCLUDED.receptive,
+                    skeptic = EXCLUDED.skeptic,
+                    octant = EXCLUDED.octant,
+                    origin_entropy = EXCLUDED.origin_entropy,
+                    origin_oblivion = EXCLUDED.origin_oblivion,
+                    origin_liberty = EXCLUDED.origin_liberty,
+                    origin_authority = EXCLUDED.origin_authority,
+                    origin_receptive = EXCLUDED.origin_receptive,
+                    origin_skeptic = EXCLUDED.origin_skeptic,
+                    origin_octant = EXCLUDED.origin_octant,
+                    updated_at = EXCLUDED.updated_at
             """, (
                 did,
                 spectrum.get('entropy', 0),
@@ -162,7 +178,6 @@ class SpectrumManager:
                 int(__import__('time').time()),
                 did
             ))
-        self.db.commit()
     
     def hash_did_to_seed(self, did: str) -> int:
         """
@@ -492,11 +507,27 @@ class SpectrumManager:
         
         # For initial spectrum generation, set both origin and current
         self.db.execute("""
-            INSERT OR REPLACE INTO spectrum 
+            INSERT INTO spectrum 
             (did, entropy, oblivion, liberty, authority, receptive, skeptic, octant,
              origin_entropy, origin_oblivion, origin_liberty, origin_authority, origin_receptive, origin_skeptic, origin_octant,
              updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (did) DO UPDATE SET
+                entropy = EXCLUDED.entropy,
+                oblivion = EXCLUDED.oblivion,
+                liberty = EXCLUDED.liberty,
+                authority = EXCLUDED.authority,
+                receptive = EXCLUDED.receptive,
+                skeptic = EXCLUDED.skeptic,
+                octant = EXCLUDED.octant,
+                origin_entropy = EXCLUDED.origin_entropy,
+                origin_oblivion = EXCLUDED.origin_oblivion,
+                origin_liberty = EXCLUDED.origin_liberty,
+                origin_authority = EXCLUDED.origin_authority,
+                origin_receptive = EXCLUDED.origin_receptive,
+                origin_skeptic = EXCLUDED.origin_skeptic,
+                origin_octant = EXCLUDED.origin_octant,
+                updated_at = EXCLUDED.updated_at
         """, (
             did,
             spectrum['entropy'],
@@ -516,7 +547,6 @@ class SpectrumManager:
             octant,  # origin_octant
             timestamp
         ))
-        self.db.commit()
     
     def _calculate_distance(self, spectrum_a: Dict[str, int], spectrum_b: Dict[str, int],
                            axes: Optional[List[str]] = None) -> float:

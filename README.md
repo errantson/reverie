@@ -61,7 +61,7 @@ Visit **[the library](https://reverie.house/library.html)** to read books online
 
 ## Privacy & Data
 
-**See [PRIVACY.md](PRIVACY.md)** for details on what data we collect and your rights.
+**See [docs/PRIVACY.md](docs/PRIVACY.md)** for details on what data we collect and your rights.
 
 We index public ATProto data from community members (same data visible on Bluesky) and duplicate state locally for faster queries. 
 
@@ -69,7 +69,7 @@ We index public ATProto data from community members (same data visible on Bluesk
 
 ## Technical Documentation
 
-**See [TECHNICAL.md](TECHNICAL.md)** for architecture details, deployment information, and developer resources.
+**See [docs/TECHNICAL.md](docs/TECHNICAL.md)** for architecture details, deployment information, and developer resources.
 
 ---
 

@@ -93,16 +93,16 @@ class TestBasicRegistration:
             assert dreamer['name'] is not None
             
         finally:
-            test_db.execute(\"DELETE FROM events WHERE did = %s\", (test_user_data['did'],))
-            test_db.execute(\"DELETE FROM awards WHERE did = %s\", (test_user_data['did'],))
-            test_db.execute(\"DELETE FROM dreamers WHERE did = %s\", (test_user_data['did'],))
+            test_db.execute("DELETE FROM events WHERE did = %s", (test_user_data['did'],))
+            test_db.execute("DELETE FROM awards WHERE did = %s", (test_user_data['did'],))
+            test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_user_data['did'],))
             
             # FIXED: Verify cleanup actually worked
             remaining = test_db.execute(
-                \"SELECT COUNT(*) as c FROM dreamers WHERE did = %s\",
+                "SELECT COUNT(*) as c FROM dreamers WHERE did = %s",
                 (test_user_data['did'],)
             ).fetchone()
-            assert remaining['c'] == 0, \"Cleanup must fully remove test data\"
+            assert remaining['c'] == 0, "Cleanup must fully remove test data"
     
     def test_duplicate_registration_handled(self, api_base_url, test_user_data, test_db):
         """Test that duplicate registration is handled gracefully"""
@@ -138,7 +138,7 @@ class TestBasicRegistration:
                 "SELECT COUNT(*) as c FROM dreamers WHERE did = %s",
                 (test_user_data['did'],)
             ).fetchone()
-            assert remaining['c'] == 0, \"Cleanup must remove all test data\"
+            assert remaining['c'] == 0, "Cleanup must remove all test data"
     
     def test_name_assignment_on_registration(self, api_base_url, test_user_data, test_db):
         """Test that names are assigned during registration"""
@@ -471,6 +471,162 @@ class TestRegistrationIntegration:
             test_db.execute("DELETE FROM events WHERE did = %s", (test_user_data['did'],))
             test_db.execute("DELETE FROM awards WHERE did = %s", (test_user_data['did'],))
             test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_user_data['did'],))
+
+
+# ============================================================================
+# RESIDENCE FLOW TESTS
+# ============================================================================
+
+@pytest.mark.api
+@pytest.mark.database  
+class TestResidenceFlow:
+    """Test reverie.house resident creation flow"""
+    
+    def test_resident_gets_default_color(self, test_db):
+        """Test that new residents get default color_hex"""
+        from utils.registration import register_dreamer
+        
+        test_did = f'did:plc:colortest{int(time.time())}'
+        test_handle = f'colortest{int(time.time())}.reverie.house'
+        
+        try:
+            result = register_dreamer(
+                did=test_did,
+                handle=test_handle,
+                profile={},
+                verbose=True
+            )
+            
+            assert result['success'] == True
+            
+            # Verify color_hex is set
+            dreamer = test_db.execute(
+                "SELECT color_hex FROM dreamers WHERE did = %s",
+                (test_did,)
+            ).fetchone()
+            
+            assert dreamer is not None
+            assert dreamer['color_hex'] is not None
+            assert dreamer['color_hex'] == '#734ba1'  # Default Reverie purple
+            
+        finally:
+            test_db.execute("DELETE FROM events WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM awards WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM spectrum WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_did,))
+    
+    def test_resident_gets_default_avatar(self, test_db):
+        """Test that new residents get default avatar if none provided"""
+        from utils.registration import register_dreamer
+        
+        test_did = f'did:plc:avatartest{int(time.time())}'
+        test_handle = f'avatartest{int(time.time())}.reverie.house'
+        
+        try:
+            result = register_dreamer(
+                did=test_did,
+                handle=test_handle,
+                profile={},  # No avatar in profile
+                verbose=True
+            )
+            
+            assert result['success'] == True
+            
+            # Verify default avatar is set
+            dreamer = test_db.execute(
+                "SELECT avatar FROM dreamers WHERE did = %s",
+                (test_did,)
+            ).fetchone()
+            
+            assert dreamer is not None
+            assert dreamer['avatar'] is not None
+            assert dreamer['avatar'] == '/assets/avatar/plain-dreamer.png'
+            
+        finally:
+            test_db.execute("DELETE FROM events WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM awards WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM spectrum WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_did,))
+    
+    def test_resident_gets_residence_souvenir(self, test_db):
+        """Test that reverie.house residents get residence souvenir"""
+        from utils.registration import register_dreamer
+        
+        test_did = f'did:plc:residencetest{int(time.time())}'
+        test_handle = f'residencetest{int(time.time())}.reverie.house'
+        
+        try:
+            result = register_dreamer(
+                did=test_did,
+                handle=test_handle,
+                profile={},
+                verbose=True
+            )
+            
+            assert result['success'] == True
+            
+            # Verify residence souvenir was awarded
+            award = test_db.execute(
+                "SELECT * FROM awards WHERE did = %s AND souvenir_key = 'residence'",
+                (test_did,)
+            ).fetchone()
+            
+            assert award is not None
+            assert award['earned_epoch'] is not None
+            
+            # Verify residence event was created
+            event = test_db.execute(
+                "SELECT * FROM events WHERE did = %s AND key = 'residence'",
+                (test_did,)
+            ).fetchone()
+            
+            assert event is not None
+            assert event['event'] == 'stayed at Reverie House'
+            assert event['type'] == 'souvenir'
+            
+        finally:
+            test_db.execute("DELETE FROM events WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM awards WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM spectrum WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_did,))
+    
+    def test_resident_complete_profile(self, test_db):
+        """Test that residents get complete profile with all required fields"""
+        from utils.registration import register_dreamer
+        
+        test_did = f'did:plc:completetest{int(time.time())}'
+        test_handle = f'completetest{int(time.time())}.reverie.house'
+        
+        try:
+            result = register_dreamer(
+                did=test_did,
+                handle=test_handle,
+                profile={},
+                verbose=True
+            )
+            
+            assert result['success'] == True
+            
+            # Verify all critical fields are set
+            dreamer = test_db.execute(
+                "SELECT did, handle, name, display_name, avatar, color_hex, description FROM dreamers WHERE did = %s",
+                (test_did,)
+            ).fetchone()
+            
+            assert dreamer is not None
+            assert dreamer['did'] == test_did
+            assert dreamer['handle'] == test_handle
+            assert dreamer['name'] is not None  # Generated from handle
+            assert dreamer['display_name'] is not None  # Auto-capitalized
+            assert dreamer['avatar'] == '/assets/avatar/plain-dreamer.png'
+            assert dreamer['color_hex'] == '#734ba1'
+            # description can be empty, that's ok
+            
+        finally:
+            test_db.execute("DELETE FROM events WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM awards WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM spectrum WHERE did = %s", (test_did,))
+            test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_did,))
 
 
 if __name__ == '__main__':

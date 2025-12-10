@@ -653,5 +653,257 @@ class TestErrorHandling:
             assert result.returncode == 0, "Build failed with empty names present"
 
 
+# ============================================================================
+# CRITICAL INFRASTRUCTURE TESTS
+# ============================================================================
+
+@pytest.mark.critical
+class TestCriticalInfrastructure:
+    """Test critical infrastructure that must always be present"""
+    
+    def test_reverie_house_config_exists(self):
+        """Test that /srv/reverie.house/caddy.conf exists"""
+        config_path = "/srv/reverie.house/caddy.conf"
+        assert os.path.exists(config_path), \
+            f"CRITICAL: {config_path} is missing! Main domain will not be accessible."
+    
+    def test_reverie_house_config_loaded(self, caddyfile_path):
+        """Test that reverie.house configuration is included in Caddyfile"""
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        assert 'reverie.house {' in content, \
+            "CRITICAL: reverie.house domain block missing from Caddyfile"
+    
+    def test_pds_xrpc_endpoints_configured(self, caddyfile_path):
+        """Test that PDS XRPC endpoints are properly proxied"""
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        # Find reverie.house block - match balanced braces
+        pattern = r'^reverie\.house \{(.*?)^(?=\S)'
+        match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+        assert match, "Could not find reverie.house configuration block"
+        
+        reverie_block = match.group(0)
+        
+        # Check critical PDS endpoints
+        assert 'handle /xrpc/*' in reverie_block, \
+            "CRITICAL: XRPC proxy missing - PDS will not be accessible"
+        assert 'reverse_proxy 172.23.0.1:3333' in reverie_block, \
+            "CRITICAL: PDS proxy not pointing to port 3333"
+    
+    def test_cors_headers_configured(self, caddyfile_path):
+        """Test that CORS headers are set for reverie.house"""
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        pattern = r'^reverie\.house \{(.*?)^(?=\S)'
+        match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+        assert match, "Could not find reverie.house configuration block"
+        
+        reverie_block = match.group(0)
+        
+        # Check CORS headers
+        assert 'Access-Control-Allow-Origin' in reverie_block, \
+            "CRITICAL: CORS headers missing - ATProto clients will fail"
+        assert 'Access-Control-Allow-Methods' in reverie_block
+        assert 'Access-Control-Allow-Headers' in reverie_block
+    def test_feedgen_endpoints_configured(self, caddyfile_path):
+        """Test that feed generator endpoints are proxied"""
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        pattern = r'^reverie\.house \{(.*?)^(?=\S)'
+        match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+        assert match, "Could not find reverie.house configuration block"
+        
+        reverie_block = match.group(0)
+        
+        # Check feedgen endpoints
+        assert 'app.bsky.feed.describeFeedGenerator' in reverie_block, \
+            "Feed generator describe endpoint missing"
+        assert 'app.bsky.feed.getFeedSkeleton' in reverie_block, \
+            "Feed generator skeleton endpoint missing"
+        assert 'reverie_feedgen:3001' in reverie_block, \
+            "Feed generator not proxying to correct container"
+    def test_did_resolution_configured(self, caddyfile_path):
+        """Test that DID resolution endpoint is configured"""
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        pattern = r'^reverie\.house \{(.*?)^(?=\S)'
+        match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+        assert match, "Could not find reverie.house configuration block"
+        
+        reverie_block = match.group(0)
+        
+        # Check DID resolution
+        assert '/.well-known/atproto-did' in reverie_block, \
+            "CRITICAL: DID resolution endpoint missing"
+        assert 'did:plc:yauphjufk7phkwurn266ybx2' in reverie_block, \
+            "Main server DID not configured correctly"
+    
+    def test_oauth_endpoints_configured(self, caddyfile_path):
+        """Test that OAuth endpoints are configured"""
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        # Check for auth.reverie.house subdomain
+        assert 'auth.reverie.house {' in content, \
+            "OAuth auth subdomain missing"
+        
+        # Check main domain OAuth metadata
+        pattern = r'^reverie\.house \{(.*?)^(?=\S)'
+        match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+        assert match, "Could not find reverie.house configuration block"
+        
+        reverie_block = match.group(0)
+        
+        assert '/.well-known/oauth-authorization-server' in reverie_block, \
+            "OAuth authorization server metadata endpoint missing"
+        assert '/.well-known/oauth-protected-resource' in reverie_block, \
+            "OAuth protected resource metadata endpoint missing"
+    
+    def test_api_proxy_configured(self, caddyfile_path):
+        """Test that API endpoints are proxied to backend"""
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        pattern = r'^reverie\.house \{(.*?)^(?=\S)'
+        match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+        assert match, "Could not find reverie.house configuration block"
+        
+        reverie_block = match.group(0)
+        
+        # Check API proxying
+        assert 'handle /api/*' in reverie_block, \
+            "API proxy missing"
+        # API container uses host networking, must proxy to localhost not bridge IP
+        assert 'reverse_proxy localhost:4444' in reverie_block or \
+               'reverse_proxy 127.0.0.1:4444' in reverie_block, \
+            "CRITICAL: API not proxying to localhost:4444 (reverie_api uses host networking)"
+        assert '172.23.0.12:4444' not in reverie_block, \
+            "CRITICAL: API proxying to wrong IP 172.23.0.12 - should be localhost since container uses host networking"
+    
+    def test_caddybuilder_includes_project_configs(self, caddybuilder_path):
+        """Test that caddybuilder discovers and loads project configs"""
+        result = subprocess.run(
+            ['python3', caddybuilder_path, '--no-reload'],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        assert result.returncode == 0, f"Caddybuilder failed: {result.stderr}"
+        
+        # Check that it loaded project configs
+        match = re.search(r'Loaded IP guard \+ (\d+) project configs', result.stdout)
+        assert match, "Could not find project config count in output"
+        
+        project_count = int(match.group(1))
+        assert project_count >= 7, \
+            f"Only {project_count} project configs loaded (expected at least 7: " \
+            "reverie.house, lore.farm, biblio.bond, lakeblood.ca, flawed.center, " \
+            "avonlea.town, vagabond.quest)"
+    
+    def test_reverie_route_handlers_configured(self, caddyfile_path):
+        """Test that all critical website route handlers are present
+        
+        CRITICAL: These route handlers map URLs to HTML pages. Without them,
+        pages like /library, /spectrum, /order, etc. will not load properly.
+        
+        If this test fails, restore missing handlers from:
+        /srv/caddy/caddy.hard.old-monolithic (lines 237-367)
+        """
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        # Extract just the reverie.house block
+        reverie_match = re.search(
+            r'^reverie\.house \{(.*?)^(?=\S|\Z)',
+            content,
+            re.MULTILINE | re.DOTALL
+        )
+        
+        assert reverie_match, "reverie.house configuration block not found"
+        reverie_block = reverie_match.group(1)
+        
+        # Critical route handlers that must be present
+        required_routes = {
+            '/library': 'handle /library',
+            '/books': 'handle /books',
+            '/spectrum': 'handle /spectrum',
+            '/order': 'handle /order',
+            '/dreamer': 'handle /dreamer',
+            '/story': 'handle /story',
+            '/canon': 'handle /canon',
+            '/lore': 'handle /lore',
+            '/souvenirs': 'handle /souvenirs',
+            '/database': 'handle /database',
+            '/privacy': 'handle /privacy',
+            '/work': 'handle /work',
+            '/dreams': 'handle /dreams',
+            '/explore': 'handle /explore',
+            '/home': 'handle /home',
+        }
+        
+        missing_routes = []
+        for route_path, route_pattern in required_routes.items():
+            if route_pattern not in reverie_block:
+                missing_routes.append(route_path)
+        
+        assert len(missing_routes) == 0, \
+            f"CRITICAL: Missing route handlers in reverie.house config: {missing_routes}\n" \
+            f"Without these handlers, pages will not serve correctly.\n" \
+            f"Restore from /srv/caddy/caddy.hard.old-monolithic (lines 237-367) to /srv/reverie.house/caddy.conf"
+        
+        # Verify the default handler is present (must come last)
+        assert 'handle {' in reverie_block, \
+            "CRITICAL: Missing default 'handle {}' block - this serves static files and index.html"
+        
+        # Verify try_files directives are used (SPA routing)
+        assert 'try_files' in reverie_block, \
+            "CRITICAL: Missing try_files directives - needed for proper HTML page routing"
+    
+    def test_no_duplicate_domains(self, caddyfile_path):
+        """Test that no domains are defined multiple times"""
+        with open(caddyfile_path, 'r') as f:
+            content = f.read()
+        
+        # Find all domain blocks (excluding dreamer subdomains which may repeat for alts)
+        # Focus on project domains
+        domains = re.findall(r'^([a-z0-9.-]+\.(?:house|ca|farm|bond|center|town|quest)) \{', 
+                            content, re.MULTILINE)
+        
+        # Check for duplicates
+        seen = {}
+        duplicates = []
+        for domain in domains:
+            if domain in seen:
+                seen[domain] += 1
+                if seen[domain] == 2:  # Only add once
+                    duplicates.append(domain)
+            else:
+                seen[domain] = 1
+        
+        assert len(duplicates) == 0, \
+            f"CRITICAL: Duplicate domain definitions found: {duplicates}. " \
+            "This will cause Caddy to fail to reload."
+    
+    def test_caddyfile_syntax_valid(self, caddyfile_path):
+        """Test that generated Caddyfile has valid syntax"""
+        # Run caddy validate (requires caddy binary in container)
+        result = subprocess.run(
+            ['docker', 'exec', 'caddy', 'caddy', 'validate', '--config', '/etc/caddy/Caddyfile'],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        assert result.returncode == 0, \
+            f"CRITICAL: Caddyfile has syntax errors:\n{result.stderr}"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])

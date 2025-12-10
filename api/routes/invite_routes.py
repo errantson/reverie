@@ -132,12 +132,15 @@ def mark_code_used():
         
         db = get_db()
         
-        # Update the invite code
+        import time
+        now = int(time.time())
+        
+        # Update the invite code - increment use_count and set timestamps
         cursor = db.execute("""
             UPDATE invites
-            SET used_by = %s, used_at = %s
+            SET used_by = %s, used_at = %s, use_count = use_count + 1
             WHERE code = %s AND used_by IS NULL
-        """, (used_by, datetime.now().isoformat(), code))
+        """, (used_by, now, code))
         
         if cursor.rowcount == 0:
             return jsonify({'error': 'Code not found or already used'}), 404

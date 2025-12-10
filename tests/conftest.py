@@ -119,24 +119,74 @@ def _cleanup_test_users():
     total_deleted = 0
     
     for pattern in test_patterns:
-        db.execute(
-            "DELETE FROM spectrum WHERE did IN (SELECT did FROM dreamers WHERE handle LIKE %s)",
-            (pattern,)
-        )
-        db.execute(
-            "DELETE FROM events WHERE did IN (SELECT did FROM dreamers WHERE handle LIKE %s)",
-            (pattern,)
-        )
-        result = db.execute("DELETE FROM dreamers WHERE handle LIKE %s RETURNING handle", (pattern,))
-        deleted = result.fetchall()
-        total_deleted += len(deleted)
+        # Delete in proper order (foreign keys)
+        try:
+            db.execute(
+                "DELETE FROM messages WHERE user_did IN (SELECT did FROM dreamers WHERE handle LIKE %s)",
+                (pattern,)
+            )
+        except:
+            pass
+        
+        try:
+            db.execute(
+                "DELETE FROM awards WHERE did IN (SELECT did FROM dreamers WHERE handle LIKE %s)",
+                (pattern,)
+            )
+        except:
+            pass
+        
+        try:
+            db.execute(
+                "DELETE FROM spectrum WHERE did IN (SELECT did FROM dreamers WHERE handle LIKE %s)",
+                (pattern,)
+            )
+        except:
+            pass
+        
+        try:
+            db.execute(
+                "DELETE FROM events WHERE did IN (SELECT did FROM dreamers WHERE handle LIKE %s)",
+                (pattern,)
+            )
+        except:
+            pass
+        
+        try:
+            result = db.execute("DELETE FROM dreamers WHERE handle LIKE %s RETURNING handle", (pattern,))
+            deleted = result.fetchall()
+            total_deleted += len(deleted)
+        except:
+            pass
     
-    for pattern in test_did_patterns:
-        db.execute("DELETE FROM spectrum WHERE did LIKE %s", (pattern,))
-        db.execute("DELETE FROM events WHERE did LIKE %s", (pattern,))
-        result = db.execute("DELETE FROM dreamers WHERE did LIKE %s RETURNING handle", (pattern,))
-        deleted = result.fetchall()
-        total_deleted += len(deleted)
+    # Clean up by DID patterns
+    for did_pattern in test_did_patterns:
+        try:
+            db.execute("DELETE FROM messages WHERE user_did LIKE %s", (did_pattern,))
+        except:
+            pass
+        
+        try:
+            db.execute("DELETE FROM awards WHERE did LIKE %s", (did_pattern,))
+        except:
+            pass
+        
+        try:
+            db.execute("DELETE FROM spectrum WHERE did LIKE %s", (did_pattern,))
+        except:
+            pass
+        
+        try:
+            db.execute("DELETE FROM events WHERE did LIKE %s", (did_pattern,))
+        except:
+            pass
+        
+        try:
+            result = db.execute("DELETE FROM dreamers WHERE did LIKE %s RETURNING handle", (did_pattern,))
+            deleted = result.fetchall()
+            total_deleted += len(deleted)
+        except:
+            pass
     
     if total_deleted > 0:
         print(f"✅ Cleaned up {total_deleted} test users")
@@ -174,13 +224,8 @@ def auth_manager() -> AuthManager:
 
 @pytest.fixture
 def valid_session_token() -> str:
-    """
-    Create a valid test token.
-    Note: AuthManager.create_session() may not exist in current implementation.
-    Tests using this should mock authentication or test against running services.
-    """
-    # Return a placeholder token for tests that need it
-    # Real tests should authenticate against the Docker service
+    """Test session token placeholder - tests should mock authentication."""
+    return 'test_token_placeholder'
 
 
 @pytest.fixture
@@ -237,7 +282,6 @@ def mock_pds_client():
     }
     
     return mock
-    return 'test_token_placeholder'
 
 
 @pytest.fixture

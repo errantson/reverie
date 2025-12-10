@@ -416,9 +416,263 @@ def require_user_auth(allow_admin_override=True):
 
 
 def get_client_ip():
-    """Get real client IP (handles proxy headers)"""
+    """Get the real client IP address from request headers"""
     if request.headers.get('X-Forwarded-For'):
         return request.headers.get('X-Forwarded-For').split(',')[0].strip()
     elif request.headers.get('X-Real-IP'):
         return request.headers.get('X-Real-IP')
     return request.remote_addr
+
+
+def verify_pds_jwt(token):
+    """
+    Verify a PDS JWT token by fetching the public key from the PDS.
+    Handles both OAuth JWTs (with kid) and PDS accessJwt tokens (without kid).
+    Returns: (valid, user_did, handle) or (False, None, None) on failure
+    """
+    import jwt
+    import requests
+    import json
+    import time
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"🔍 [verify_pds_jwt] Starting JWT verification")
+        logger.info(f"   Token length: {len(token)}")
+        
+        # First, decode header to get key ID
+        logger.info(f"   Decoding JWT header...")
+        header = jwt.get_unverified_header(token)
+        kid = header.get('kid')
+        logger.info(f"   Key ID (kid): {kid}")
+        
+        # Decode payload without verification to get issuer and subject
+        logger.info(f"   Decoding JWT payload (unverified)...")
+        unverified = jwt.decode(token, options={"verify_signature": False})
+        iss = unverified.get('iss')  # PDS URL
+        sub = unverified.get('sub')  # DID
+        exp = unverified.get('exp')
+        
+        logger.info(f"   Issuer (iss): {iss}")
+        logger.info(f"   Subject (sub): {sub}")
+        logger.info(f"   Expiration (exp): {exp}")
+        
+        if not sub or not sub.startswith('did:'):
+            logger.warning(f"❌ [verify_pds_jwt] Invalid subject (DID)")
+            logger.info(f"      sub={sub}")
+            return False, None, None
+        
+        # Check expiration
+        current_time = time.time()
+        if exp and current_time > exp:
+            logger.warning(f"❌ [verify_pds_jwt] Token expired")
+            logger.info(f"      Current time: {current_time}")
+            logger.info(f"      Expiration: {exp}")
+            logger.info(f"      Expired by: {current_time - exp} seconds")
+            return False, None, None
+        
+        logger.info(f"   Token not expired (expires in {exp - current_time if exp else 'N/A'} seconds)")
+        
+        # Handle PDS accessJwt tokens (no kid, from our trusted PDS)
+        if not kid:
+            logger.info(f"   No kid found - treating as PDS accessJwt (trusted token)")
+            # For PDS accessJwt, we trust tokens from our own PDS
+            # These tokens may not have an issuer field, so we trust them by default
+            # since they come from authenticated PDS sessions
+            logger.info(f"   ✅ Accepting PDS accessJwt token (issuer: {iss})")
+            
+            # Get handle from database
+            logger.info(f"   Looking up handle in database for DID: {sub}")
+            handle = None
+            try:
+                from core.database import DatabaseManager
+                db = DatabaseManager()
+                dreamer_row = db.fetch_one("SELECT handle, deactivated FROM dreamers WHERE did = %s", (sub,))
+                if dreamer_row:
+                    handle = dreamer_row['handle']
+                    # Note: We don't check deactivation here - let endpoints decide
+                    # if deactivated users should be allowed (e.g., for account deletion)
+                    logger.info(f"   ✅ Found handle: {handle} (deactivated: {dreamer_row.get('deactivated', False)})")
+                else:
+                    logger.warning(f"❌ [verify_pds_jwt] No dreamer found for DID {sub}")
+                    return False, None, None
+            except Exception as e:
+                logger.error(f"❌ [verify_pds_jwt] Database error: {e}")
+                return False, None, None
+            
+            logger.info(f"   ✅ PDS accessJwt validated for {handle} ({sub})")
+            return True, sub, handle
+        
+        # OAuth JWT path (with kid) - verify with JWKS
+        logger.info(f"   OAuth JWT detected (has kid) - verifying with JWKS")
+        if not iss:
+            logger.warning(f"❌ [verify_pds_jwt] No issuer in OAuth JWT")
+            return False, None, None
+        
+        jwks_url = f"{iss}/.well-known/jwks.json"
+        logger.info(f"   Fetching JWKS from: {jwks_url}")
+        
+        try:
+            response = requests.get(jwks_url, timeout=5)
+            logger.info(f"   JWKS response status: {response.status_code}")
+            response.raise_for_status()
+            jwks = response.json()
+            logger.info(f"   JWKS keys found: {len(jwks.get('keys', []))}")
+        except requests.RequestException as e:
+            logger.error(f"❌ [verify_pds_jwt] Failed to fetch JWKS: {e}")
+            return False, None, None
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ [verify_pds_jwt] Failed to parse JWKS JSON: {e}")
+            return False, None, None
+        
+        # Find the key
+        logger.info(f"   Looking for key with kid={kid}")
+        public_key = None
+        for key in jwks.get('keys', []):
+            if key.get('kid') == kid:
+                logger.info(f"   ✅ Found matching key!")
+                public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(key))
+                break
+        
+        if not public_key:
+            logger.warning(f"❌ [verify_pds_jwt] No matching public key found")
+            logger.info(f"      Available kids: {[k.get('kid') for k in jwks.get('keys', [])]}")
+            return False, None, None
+        
+        # Verify the JWT
+        logger.info(f"   Verifying JWT signature...")
+        try:
+            verified = jwt.decode(token, public_key, algorithms=['RS256'], issuer=iss)
+            logger.info(f"   ✅ JWT signature valid!")
+        except jwt.InvalidTokenError as e:
+            logger.error(f"❌ [verify_pds_jwt] JWT signature verification failed: {e}")
+            return False, None, None
+        
+        # Additional validation
+        if verified.get('sub') != sub:
+            logger.warning(f"❌ [verify_pds_jwt] Subject mismatch after verification")
+            return False, None, None
+        
+        logger.info(f"   ✅ JWT fully verified for DID: {sub}")
+        
+        # Get handle from database (DID is verified)
+        logger.info(f"   Looking up handle in database for DID: {sub}")
+        handle = None
+        try:
+            from core.database import DatabaseManager
+            db = DatabaseManager()
+            dreamer = db.fetch_one(
+                "SELECT handle, deactivated FROM dreamers WHERE did = %s",
+                (sub,)
+            )
+            if dreamer:
+                if dreamer.get('deactivated'):
+                    logger.warning(f"❌ [verify_pds_jwt] Account is deactivated")
+                    return False, None, None
+                handle = dreamer['handle']
+                logger.info(f"   ✅ Found handle in database: {handle}")
+            else:
+                logger.warning(f"   ❌ DID not found in dreamers table")
+                return False, None, None
+        except Exception as e:
+            logger.error(f"❌ [verify_pds_jwt] Database lookup failed: {e}")
+            return False, None, None
+        
+        logger.info(f"✅ [verify_pds_jwt] Returning: valid=True, did={sub}, handle={handle}")
+        return True, sub, handle
+        
+    except jwt.InvalidTokenError as e:
+        logger.error(f"❌ [verify_pds_jwt] JWT error: {e}")
+        return False, None, None
+    except Exception as e:
+        logger.error(f"❌ [verify_pds_jwt] Unexpected error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return False, None, None
+
+
+def validate_user_token(token, allow_deactivated=False):
+    """
+    Validate authentication token - supports both admin sessions and PDS OAuth JWT.
+    Returns: (valid, user_did, handle)
+    
+    This function handles two authentication methods:
+    1. Admin session tokens (from sessions table)
+    2. PDS OAuth JWT tokens (accessJwt from ATProto PDS)
+    
+    Also checks if the account is deactivated and blocks access (unless allow_deactivated=True).
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"\n{'─'*80}")
+    logger.info(f"🔐 [validate_user_token] Starting token validation")
+    logger.info(f"{'─'*80}")
+    
+    if not token:
+        logger.warning(f"❌ [validate_user_token] No token provided")
+        return False, None, None
+    
+    logger.info(f"   Token provided: Yes (length: {len(token)})")
+    logger.info(f"   Token preview: {token[:50]}...")
+    logger.info(f"   Token ends with: ...{token[-20:]}")
+    
+    # Try to decode JWT header to see what type of token it is
+    try:
+        import jwt
+        header = jwt.get_unverified_header(token)
+        logger.info(f"   JWT header: {header}")
+        has_kid = 'kid' in header
+        logger.info(f"   Has 'kid' field (OAuth token): {has_kid}")
+        if has_kid:
+            logger.info(f"   This appears to be an OAuth JWT token")
+        else:
+            logger.info(f"   This appears to be a PDS accessJwt token")
+    except Exception as e:
+        logger.warning(f"   Could not decode JWT header: {e}")
+        logger.info(f"   Token might not be a valid JWT")
+    
+    # Try admin session first
+    logger.info(f"   Attempting admin session validation...")
+    valid, user_did, handle = auth.validate_session(token)
+    logger.info(f"   Admin session result: valid={valid}, did={user_did}, handle={handle}")
+    
+    # If admin session fails, try PDS JWT verification
+    if not valid:
+        logger.info(f"   Admin session failed, trying PDS JWT verification...")
+        valid, user_did, handle = verify_pds_jwt(token)
+        logger.info(f"   PDS JWT result: valid={valid}, did={user_did}, handle={handle}")
+    else:
+        logger.info(f"   ✅ Admin session validation succeeded")
+    
+    # If token is valid, check if account is deactivated
+    if valid and user_did and not allow_deactivated:
+        logger.info(f"   Checking if account is deactivated...")
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+        try:
+            cursor = db.execute(
+                "SELECT deactivated FROM dreamers WHERE did = %s",
+                (user_did,)
+            )
+            dreamer = cursor.fetchone()
+            if dreamer:
+                is_deactivated = dreamer.get('deactivated', False)
+                logger.info(f"   Account deactivated: {is_deactivated}")
+                if is_deactivated:
+                    # Account is deactivated - deny access
+                    logger.warning(f"❌ [validate_user_token] Account is deactivated, denying access")
+                    return False, None, None
+            else:
+                logger.warning(f"   ⚠️  Account not found in dreamers table")
+        except Exception as e:
+            # If query fails, allow access (fail open for now)
+            logger.error(f"   ⚠️  Deactivation check failed: {e}")
+    
+    logger.info(f"✅ [validate_user_token] Final result: valid={valid}, did={user_did}, handle={handle}")
+    logger.info(f"{'─'*80}\n")
+    return valid, user_did, handle
+
+

@@ -399,23 +399,23 @@ class TestDisconnectedCredentialsSecurity:
         return "disconnect_test.reverie.house"
     
     def test_disconnected_credentials_cannot_be_used(self, test_db, test_dreamer_did, test_dreamer_handle):
-        \"\"\"Verify disconnected credentials are truly unusable for posting\"\"\"
+        """Verify disconnected credentials are truly unusable for posting"""
         import time
         
         # Check if user_credentials table exists
-        table_exists = test_db.execute(\"\"\"
+        table_exists = test_db.execute("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
                 WHERE table_name = 'user_credentials'
             )
-        \"\"\").fetchone()
+        """).fetchone()
         
         if not table_exists[0]:
-            pytest.skip(\"user_credentials table not implemented yet\")
+            pytest.skip("user_credentials table not implemented yet")
         
         # Setup: Create test dreamer
-        test_db.execute(\"DELETE FROM user_credentials WHERE did = %s\", (test_dreamer_did,))
-        test_db.execute(\"DELETE FROM dreamers WHERE did = %s\", (test_dreamer_did,))
+        test_db.execute("DELETE FROM user_credentials WHERE did = %s", (test_dreamer_did,))
+        test_db.execute("DELETE FROM dreamers WHERE did = %s", (test_dreamer_did,))
         test_db.execute("""
             INSERT INTO dreamers (did, handle, name, created_at)
             VALUES (%s, %s, %s, EXTRACT(EPOCH FROM NOW())::INTEGER)

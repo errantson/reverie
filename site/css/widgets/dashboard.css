@@ -3038,6 +3038,12 @@
     color: #dc3545;
 }
 
+.account-action-compact.delete-account-action:hover {
+    background: rgba(139, 0, 0, 0.08);
+    border-color: rgba(139, 0, 0, 0.4);
+    color: #8b0000;
+}
+
 .account-action-compact.share-lore-btn:hover {
     background: rgba(255, 136, 0, 0.1);
     border-color: rgba(255, 136, 0, 0.5);

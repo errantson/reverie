@@ -16,13 +16,54 @@ app = Flask(__name__, static_folder='site', template_folder='site')
 
 # Import audit logger and admin auth
 import sys
+import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from core.audit import get_audit_logger
+sys.path.insert(0, '/srv/reverie.house')
+
+# Audit logging system (optional)
+audit = None
+audit_enabled = False  # Enable if audit module is available
+
+def audit_log(*args, **kwargs):
+    if audit_enabled and audit:
+        audit.log(*args, **kwargs)
+
+def audit_log_error(*args, **kwargs):
+    if audit_enabled and audit:
+        audit.log_error(*args, **kwargs)
+
+def audit_get_recent_logs(*args, **kwargs):
+    if audit_enabled and audit:
+        return audit.get_recent_logs(*args, **kwargs)
+    return []
+
+def audit_get_stats(*args, **kwargs):
+    if audit_enabled and audit:
+        return audit.get_stats(*args, **kwargs)
+    return {}
+
+def audit_get_suspicious_ips(*args, **kwargs):
+    if audit_enabled and audit:
+        return audit.get_suspicious_ips(*args, **kwargs)
+    return []
+
+def audit_get_errors(*args, **kwargs):
+    if audit_enabled and audit:
+        return audit.get_errors(*args, **kwargs)
+    return []
+
+def audit_get_error_stats(*args, **kwargs):
+    if audit_enabled and audit:
+        return audit.get_error_stats(*args, **kwargs)
+    return {}
+
+def audit_resolve_error(*args, **kwargs):
+    if audit_enabled and audit:
+        audit.resolve_error(*args, **kwargs)
+
 from core.admin_auth import auth, require_auth, get_client_ip, AUTHORIZED_ADMIN_DID
 from core.rate_limiter import PersistentRateLimiter
 from core.encryption import encrypt_password, decrypt_password
-
-audit = get_audit_logger()
 
 # Persistent rate limiting (survives restarts)
 rate_limiter = PersistentRateLimiter()
@@ -81,7 +122,7 @@ def handle_exception(e):
         severity = 'critical'
     
     # Log to error system
-    audit.log_error(
+    audit_log_error(
         error_type=type(e).__name__,
         error_message=str(e),
         stack_trace=stack_trace,
@@ -96,7 +137,7 @@ def handle_exception(e):
     )
     
     # Also log to audit log
-    audit.log(
+    audit_log(
         event_type='unhandled_exception',
         endpoint=endpoint,
         method=method,
@@ -133,7 +174,7 @@ def rate_limit(requests_per_minute=100):
             
             if not allowed:
                 # Log rate limit hit
-                audit.log(
+                audit_log(
                     event_type='rate_limit_exceeded',
                     endpoint=endpoint,
                     method=request.method,
@@ -159,7 +200,7 @@ def rate_limit(requests_per_minute=100):
                     duration_ms = int((time.time() - start_time) * 1000)
                     status = response[1] if isinstance(response, tuple) else 200
                     
-                    audit.log(
+                    audit_log(
                         event_type='api_write',
                         endpoint=endpoint,
                         method=request.method,
@@ -174,7 +215,7 @@ def rate_limit(requests_per_minute=100):
                 
             except Exception as e:
                 # Log errors
-                audit.log(
+                audit_log(
                     event_type='api_error',
                     endpoint=endpoint,
                     method=request.method,
@@ -736,7 +777,7 @@ def stripe_proxy(endpoint):
         stripe_url = f'http://127.0.0.1:5555/{endpoint}'
         
         # Log the request
-        audit.log(
+        audit_log(
             event_type='stripe_api_call',
             endpoint=endpoint,
             method=request.method,
@@ -770,7 +811,7 @@ def stripe_proxy(endpoint):
         
     except requests.exceptions.ConnectionError:
         # Stripe service unavailable
-        audit.log(
+        audit_log(
             event_type='stripe_service_unavailable',
             endpoint=endpoint,
             user_ip=user_ip,
@@ -782,7 +823,7 @@ def stripe_proxy(endpoint):
         }), 503
     except Exception as e:
         # Other errors
-        audit.log(
+        audit_log(
             event_type='stripe_proxy_error',
             endpoint=endpoint,
             user_ip=user_ip,
@@ -1515,16 +1556,21 @@ def get_library():
 def get_world():
     """Get world state from database and environment"""
     try:
+        print("DEBUG: Starting /api/world")
         import sys
         import json
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        print("DEBUG: Importing DatabaseManager")
         from core.database import DatabaseManager
         
+        print("DEBUG: Creating DatabaseManager")
         db = DatabaseManager()
         
+        print("DEBUG: Executing query")
         # Get all world state key-value pairs
         cursor = db.execute("SELECT key, value FROM world")
         rows = cursor.fetchall()
+        print(f"DEBUG: Got {len(rows)} rows")
         
         # Build world data object
         world_data = {}
@@ -1540,8 +1586,12 @@ def get_world():
         
         # Add environment flags
         world_data['force_record'] = os.getenv('FORCE_RECORD', 'false').lower() == 'true'
+        print(f"DEBUG: World data built: {world_data}")
         
-        return jsonify(world_data)
+        print("DEBUG: Calling jsonify")
+        result = jsonify(world_data)
+        print("DEBUG: Jsonify successful")
+        return result
         
     except Exception as e:
         print(f"Error in /api/world: {e}")
@@ -1792,7 +1842,7 @@ def apply_lore_label():
         
         # Log the label application attempt
         try:
-            audit.log(
+            audit_log(
                 event_type='lore_label_apply',
                 endpoint='/api/lore/apply-label',
                 method='POST',
@@ -2616,7 +2666,7 @@ def get_audit_logs():
         limit = min(int(request.args.get('limit', 100)), 1000)
         event_type = request.args.get('event_type')
         
-        logs = audit.get_recent_logs(limit=limit, event_type=event_type)
+        logs = audit_get_recent_logs(limit=limit, event_type=event_type)
         
         return jsonify({
             'success': True,
@@ -2634,8 +2684,8 @@ def get_audit_stats():
     try:
         hours = int(request.args.get('hours', 24))
         
-        stats = audit.get_stats(hours=hours)
-        suspicious_ips = audit.get_suspicious_ips(hours=hours)
+        stats = audit_get_stats(hours=hours)
+        suspicious_ips = audit_get_suspicious_ips(hours=hours)
         
         return jsonify({
             'success': True,
@@ -2654,7 +2704,7 @@ def get_suspicious_activity():
     try:
         hours = int(request.args.get('hours', 24))
         
-        suspicious = audit.get_suspicious_ips(hours=hours)
+        suspicious = audit_get_suspicious_ips(hours=hours)
         
         return jsonify({
             'success': True,
@@ -2683,7 +2733,7 @@ def get_errors():
         
         since = int(time.time()) - (hours * 3600) if hours else None
         
-        errors = audit.get_errors(
+        errors = audit_get_errors(
             limit=limit,
             status=status,
             severity=severity,
@@ -2708,7 +2758,7 @@ def get_error_stats():
     try:
         hours = int(request.args.get('hours', 24))
         
-        stats = audit.get_error_stats(hours=hours)
+        stats = audit_get_error_stats(hours=hours)
         
         return jsonify({
             'success': True,
@@ -2740,7 +2790,7 @@ def resolve_error(error_id):
         data = request.get_json() or {}
         notes = data.get('notes')
         
-        audit.resolve_error(error_id, resolved_by=user_did, notes=notes)
+        audit_resolve_error(error_id, resolved_by=user_did, notes=notes)
         
         return jsonify({
             'success': True,
@@ -2763,12 +2813,12 @@ def update_error_status(error_id):
         if status not in ['new', 'investigating', 'resolved', 'ignored']:
             return jsonify({'error': 'Invalid status'}), 400
         
-        import sys
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from core.audit import AuditLogger
+        # import sys
+        # sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        # from core.audit import AuditLogger
         
-        # Update via audit logger
-        audit = AuditLogger()
+        # # Update via audit logger
+        # audit = AuditLogger()
         
         if status == 'resolved':
             # Get authenticated user
@@ -2782,9 +2832,9 @@ def update_error_status(error_id):
             valid, user_did, handle = auth.validate_session(token)
             resolved_by = user_did if valid else 'admin'
             
-            audit.resolve_error(error_id, resolved_by, status, notes)
+            audit_resolve_error(error_id, resolved_by, status, notes)
         else:
-            audit.resolve_error(error_id, 'admin', status, notes)
+            audit_resolve_error(error_id, 'admin', status, notes)
         
         return jsonify({
             'success': True,
@@ -2831,7 +2881,7 @@ def log_client_error():
             detailed_message = f"{error_message} at {url}"
         
         # Log the error
-        audit.log_error(
+        audit_log_error(
             error_type=error_type,
             error_message=detailed_message,
             stack_trace=stack_trace,
@@ -5703,7 +5753,7 @@ def volunteer_for_work(role):
                 # Replace retiring worker
                 old_worker = workers.pop(retiring_idx)
                 # TODO: Print to canon: worker retired, new worker started
-                audit.log(
+                audit_log(
                     event_type='work_replaced',
                     role=role,
                     old_worker=old_worker['did'],
@@ -5728,7 +5778,7 @@ def volunteer_for_work(role):
         # Auto-committed by DatabaseManager
         
         # TODO: Print to canon: new worker started
-        audit.log(
+        audit_log(
             event_type='work_volunteered',
             role=role,
             worker=user_did
@@ -5787,7 +5837,7 @@ def set_retiring(role):
         )
         # Auto-committed by DatabaseManager
         
-        audit.log(
+        audit_log(
             event_type='work_set_retiring',
             role=role,
             worker=user_did
@@ -5846,7 +5896,7 @@ def set_working(role):
         )
         # Auto-committed by DatabaseManager
         
-        audit.log(
+        audit_log(
             event_type='work_set_working',
             role=role,
             worker=user_did
@@ -5921,7 +5971,7 @@ def step_down_from_work(role):
         # Auto-committed by DatabaseManager
         
         # TODO: Print to canon: worker stepped down
-        audit.log(
+        audit_log(
             event_type='work_stepped_down',
             role=role,
             worker=user_did
@@ -6365,7 +6415,7 @@ def activate_greeter():
         # Auto-committed by DatabaseManager
         print(f"✅ Greeter activation complete (dual-system storage)")
         
-        audit.log(
+        audit_log(
             event_type='work_activated',
             endpoint='/api/work/greeter/activate',
             method='POST',
@@ -6464,7 +6514,7 @@ def set_greeter_status():
         # Auto-committed by DatabaseManager
         print(f"✅ Status change complete (dual-system update)")
         
-        audit.log(
+        audit_log(
             event_type='work_status_changed',
             endpoint='/api/work/greeter/set-status',
             method='POST',
@@ -6547,7 +6597,7 @@ def step_down_greeter():
         # Auto-committed by DatabaseManager
         print(f"✅ Greeter step-down complete (dual-system removal)")
         
-        audit.log(
+        audit_log(
             event_type='work_resigned',
             endpoint='/api/work/greeter/step-down',
             method='POST',
@@ -7437,7 +7487,7 @@ def connect_user_credentials():
         # Return available roles
         roles_available = ['greeter']  # Future: add 'moderator', etc.
         
-        audit.log(
+        audit_log(
             event_type='credentials_connected',
             endpoint='/api/user/credentials/connect',
             method='POST',
@@ -7561,7 +7611,7 @@ def disconnect_user_credentials():
         
         # Auto-committed by DatabaseManager
         
-        audit.log(
+        audit_log(
             event_type='credentials_disconnected',
             endpoint='/api/user/credentials/disconnect',
             method='DELETE',
@@ -7682,7 +7732,7 @@ def update_user_profile():
         except Exception as e:
             print(f"⚠️ [API] Could not update user status: {e}")
         
-        audit.log(
+        audit_log(
             event_type='profile_updated',
             endpoint='/api/user/update-profile',
             method='POST',
@@ -7790,7 +7840,7 @@ def set_primary_name():
         # for both primary name AND all alts, so both names already work
         # Note: No need to recalculate status - status doesn't depend on name choice
         
-        audit.log(
+        audit_log(
             event_type='name_swapped',
             endpoint='/api/user/set-primary-name',
             method='POST',
@@ -7918,7 +7968,7 @@ def update_user_avatar():
         except Exception as e:
             print(f"⚠️ [API] Could not update user status: {e}")
         
-        audit.log(
+        audit_log(
             event_type='avatar_updated',
             endpoint='/api/user/update-avatar',
             method='POST',
@@ -8003,7 +8053,7 @@ def update_user_description():
         
         print(f"✅ [API] Description updated in database")
         
-        audit.log(
+        audit_log(
             event_type='description_updated',
             endpoint='/api/user/update-description',
             method='POST',
@@ -8068,7 +8118,7 @@ def refresh_user_status():
         
         print(f"✅ [API] Status refreshed: {status}")
         
-        audit.log(
+        audit_log(
             event_type='status_refreshed',
             endpoint='/api/user/refresh-status',
             method='POST',
@@ -8181,7 +8231,7 @@ def enable_user_role():
         
         # Auto-committed by DatabaseManager
         
-        audit.log(
+        audit_log(
             event_type='role_enabled',
             endpoint='/api/user/roles/enable',
             method='POST',
@@ -8245,7 +8295,7 @@ def disable_user_role():
         
         # Auto-committed by DatabaseManager
         
-        audit.log(
+        audit_log(
             event_type='role_disabled',
             endpoint='/api/user/roles/disable',
             method='POST',
@@ -8410,7 +8460,7 @@ if __name__ == '__main__':
     print("🏰 Starting Reverie House Admin Panel...")
     print(f"DID-based authentication enabled")
     print("Zowell.exe integration ready")
-    print("Audit logging enabled (audit.db)")
+    print("Audit logging enabled (if available) (audit.db)")
     
     # Dream enrichment worker disabled (dream_queue service removed)
     # try:
@@ -8423,5 +8473,5 @@ if __name__ == '__main__':
     print(f"Admin panel: http://localhost:{port}/")
     
     from config import Config
-    app.run(host='0.0.0.0', port=port, debug=Config.DEBUG)
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
     
