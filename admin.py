@@ -14,6 +14,9 @@ from functools import wraps
 
 app = Flask(__name__, static_folder='site', template_folder='site')
 
+# Configure Flask to preserve UTF-8 characters (emoji) in JSON responses
+app.config['JSON_AS_ASCII'] = False
+
 # Import audit logger and admin auth
 import sys
 import os

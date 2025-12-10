@@ -144,7 +144,7 @@ class Profile {
                         <button class="activity-face-btn" data-face="history" title="Event History">History</button>
                         <button class="activity-face-btn" data-face="souvenirs" title="Earned Souvenirs">Souvenirs</button>
                         <button class="activity-face-btn" data-face="spectrum" title="Spectrum Map">Spectrum</button>
-                        <button class="activity-face-btn" data-face="identity" title="Identity Info">Identity</button>
+                        <button class="activity-face-btn" data-face="identity" title="Contribution & Patron">Identity</button>
                     </div>
                 </div>
                 <div class="profile-activity-content"></div>
