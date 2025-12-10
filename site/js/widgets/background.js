@@ -57,10 +57,14 @@ class Background {
             return;
         }
         
+        console.log('[background] Found fullscreen background container');
+        
         this.backgroundLayer = fullscreenBg.querySelector('.background-layer');
         
         if (!this.backgroundLayer) {
             console.warn('[background] Background layer not found');
+        } else {
+            console.log('[background] Found background layer element');
         }
     }
 
@@ -175,8 +179,70 @@ class Background {
      * Load background for static mode (shows a specific phanera)
      */
     loadStaticMode() {
-        const phaneraKey = this.options.phaneraKey || 'residence/home';
-        this.showPhaneraBackground(phaneraKey);
+        console.log('[background] Loading static mode with options:', this.options);
+        // Support both phaneraUrl (full URL) and phaneraKey (key to construct path)
+        if (this.options.phaneraUrl) {
+            console.log('[background] Using phaneraUrl:', this.options.phaneraUrl);
+            this.showPhaneraBackgroundUrl(this.options.phaneraUrl);
+        } else {
+            const phaneraKey = this.options.phaneraKey || 'residence/home';
+            console.log('[background] Using phaneraKey:', phaneraKey);
+            this.showPhaneraBackground(phaneraKey);
+        }
+    }
+
+    /**
+     * Show phanera background image from full URL
+     */
+    showPhaneraBackgroundUrl(phaneraUrl) {
+        console.log('[background] showPhaneraBackgroundUrl called with:', phaneraUrl);
+        
+        if (!this.backgroundLayer) {
+            console.warn('[background] Cannot show background - backgroundLayer not initialized');
+            return;
+        }
+        
+        // Don't change if it's already the current phanera
+        if (this.currentPhanera === phaneraUrl) {
+            return;
+        }
+        
+        // Store current phanera
+        this.currentPhanera = phaneraUrl;
+        
+        // Show the fullscreen background container
+        const fullscreenBg = document.querySelector('.fullscreen-background');
+        if (fullscreenBg) {
+            fullscreenBg.style.display = 'block';
+        }
+        
+        // Preload the image for smooth transition
+        const img = new Image();
+        img.onload = () => {
+            // Fade out current image
+            this.backgroundLayer.style.opacity = '0';
+            
+            // Change source after fade
+            setTimeout(() => {
+                this.backgroundLayer.src = phaneraUrl;
+                this.backgroundLayer.alt = `Phanera`;
+                
+                // Fade in new image
+                setTimeout(() => {
+                    this.backgroundLayer.style.opacity = '1';
+                }, 50);
+            }, 800); // Match CSS transition duration
+        };
+        
+        img.onerror = () => {
+            console.warn(`[background] Failed to load phanera: ${phaneraUrl}, keeping current`);
+            // Keep current background on error
+        };
+        
+        img.src = phaneraUrl;
+        
+        // Make body transparent so phanera shows through
+        document.body.style.backgroundColor = 'transparent';
     }
 
     /**

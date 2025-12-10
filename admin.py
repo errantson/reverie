@@ -1307,28 +1307,37 @@ def get_active_roles():
     """Get all active worker roles (public endpoint for sidebar)"""
     try:
         import sys
+        import json
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from core.database import DatabaseManager
         
         db = DatabaseManager()
         
-        # Get all active roles
+        # Get all roles from work table
         cursor = db.execute("""
-            SELECT did, role, status
-            FROM user_roles
-            WHERE status = 'active'
-            ORDER BY activated_at DESC
+            SELECT role, workers, status
+            FROM work
         """)
-        roles = cursor.fetchall()
+        work_rows = cursor.fetchall()
         
-        # Convert to list of dicts
+        # Extract active workers from each role
         result = []
-        for role in roles:
-            result.append({
-                'did': role['did'],
-                'role': role['role'],
-                'status': role['status']
-            })
+        for row in work_rows:
+            role_name = row['role']
+            workers = row['workers']
+            
+            # Parse workers JSON array
+            if isinstance(workers, str):
+                workers = json.loads(workers)
+            
+            if workers and isinstance(workers, list):
+                for worker in workers:
+                    if isinstance(worker, dict) and worker.get('status') in ['working', 'retiring']:
+                        result.append({
+                            'did': worker.get('did'),
+                            'role': role_name,
+                            'status': worker.get('status')
+                        })
         
         return jsonify(result)
         

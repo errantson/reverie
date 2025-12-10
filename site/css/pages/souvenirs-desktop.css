@@ -1,0 +1,833 @@
+/* Souvenir Page - Typography-focused Layout */
+
+/* Fullscreen Background - matches other pages */
+.fullscreen-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    overflow: hidden;
+    background-color: #1a1a2e;
+    pointer-events: none; /* Allow clicks to pass through to content */
+}
+
+.scene-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a2e;
+}
+
+.scene-layer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.background-layer {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+    background-color: #1a1a2e;
+    animation: subtle-breathing 6s ease-in-out infinite;
+}
+
+.background-layer.loaded {
+    opacity: 1;
+}
+
+@keyframes subtle-breathing {
+    0%, 100% { 
+        transform: scale(1); 
+    }
+    50% { 
+        transform: scale(1.02); 
+    }
+}
+
+/* Ensure body has proper background */
+body.souvenir-page {
+    position: relative;
+    background-color: #1a1a2e; /* Prevent white flash */
+}
+
+/* Fullscreen Background Container */
+#souvenir-page-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 10; /* Above background (1) but below header */
+    padding: 120px 0 0 40px;
+    background: transparent;
+    pointer-events: none; /* Allow clicks to pass through to background */
+}
+
+/* Main Souvenir Frame - Left-aligned, Fixed Width */
+.souvenir-frame {
+    pointer-events: auto; /* Re-enable clicks on the frame itself */
+    background: white;
+    border-radius: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    border: 1.5px solid var(--border, #d0c7f0);
+    width: 470px !important;
+    min-width: 470px;
+    max-width: 470px;
+    max-height: calc(100vh - 160px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Souvenir Info Section - Compact Header */
+.souvenir-info-section {
+    padding: 20px 28px;
+    border-bottom: 1.5px solid var(--border, #d0c7f0);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: white;
+    position: relative;
+    z-index: 100002; /* Above popup (100001) to prevent being affected */
+}
+
+/* Tab Controls - Button Style */
+.souvenir-face-controls {
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    background: white;
+    border-bottom: 1.5px solid var(--border, #d0c7f0);
+    justify-content: center;
+}
+
+.souvenir-face-btn {
+    min-width: 100px;
+    height: 36px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(115, 75, 161, 0.3);
+    border-radius: 0;
+    color: var(--user-color, #734ba1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.souvenir-face-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: var(--user-color, #734ba1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.3);
+}
+
+.souvenir-face-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.souvenir-face-btn.active {
+    background: var(--user-color, #734ba1);
+    color: white;
+    border-color: var(--user-color, #734ba1);
+}
+
+.souvenir-face-btn .btn-icon {
+    display: block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+/* Souvenir Icon Bubble - Floating Animation */
+.souvenir-icon-bubble {
+    width: 70px !important;
+    height: 70px !important;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(200,220,255,0.4));
+    border: 3px solid rgba(255,255,255,0.6);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15), 
+                inset -4px -4px 18px rgba(0,0,0,0.08),
+                inset 4px 4px 15px rgba(255,255,255,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    animation: gentle-float 4s ease-in-out infinite;
+}
+
+@keyframes gentle-float {
+    0%, 100% { 
+        transform: translate(0, 0) rotate(0deg);
+    }
+    25% { 
+        transform: translate(2px, -3px) rotate(1deg);
+    }
+    50% { 
+        transform: translate(-1px, -5px) rotate(-1deg);
+    }
+    75% { 
+        transform: translate(-3px, -2px) rotate(0.5deg);
+    }
+}
+
+@keyframes souvenir-pop {
+    0% {
+        transform: scale(0.8) rotate(-5deg);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1) rotate(3deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.souvenir-icon {
+    width: 60px !important;
+    height: 60px !important;
+    opacity: 0.85;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+}
+
+/* Souvenir Text Content - Sans-serif, Left-aligned, User Color */
+.souvenir-text {
+    flex: 1;
+    text-align: left;
+}
+
+.souvenir-name {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 24px !important;
+    font-weight: 600;
+    color: #555 !important;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+    position: relative;
+    z-index: 100003;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.souvenir-description {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px;
+    color: #666;
+    margin: 0 0 3px 0;
+    line-height: 1.5;
+    font-weight: 400;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.souvenir-details {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    color: #888;
+    margin: 0;
+    font-style: italic;
+    line-height: 1.4;
+    text-transform: lowercase;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Content Faces Container - Fixed height */
+.souvenir-content-faces {
+    position: relative;
+    height: 272px; /* Same as 8 event rows */
+    background: white;
+    overflow: hidden;
+}
+
+/* Face transition animations */
+.souvenir-events-face,
+.souvenir-keepers-face,
+.souvenir-bouncer-face {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.souvenir-events-face:not(.active),
+.souvenir-keepers-face:not(.active),
+.souvenir-bouncer-face:not(.active) {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+}
+
+.souvenir-events-face.active,
+.souvenir-keepers-face.active,
+.souvenir-bouncer-face.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Canon Events Face - Scrollable, limited to 8 rows */
+.souvenir-events-face {
+    height: 100%;
+    overflow-y: auto;
+    background: white;
+    display: none;
+}
+
+.souvenir-events-face.active {
+    display: block;
+}
+
+/* Custom scrollbar styling for events face - overlay style */
+.souvenir-events-face::-webkit-scrollbar {
+    width: 8px;
+}
+
+.souvenir-events-face::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.souvenir-events-face::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s ease;
+}
+
+.souvenir-events-face::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* Firefox scrollbar */
+.souvenir-events-face {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    overflow-y: overlay;
+}
+
+/* Make event rows clickable */
+.souvenir-events-face .row-entry {
+    cursor: pointer;
+    width: 100% !important;
+    min-width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Event Stack Content - Apply same reset as #rows-container */
+.souvenir-events-face,
+.souvenir-events-face * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Keepers Face - Profile holder list with scrolling */
+/* Custom scrollbar styling for events face - overlay style */
+.souvenir-events-face::-webkit-scrollbar {
+    width: 8px;
+}
+
+.souvenir-events-face::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.souvenir-events-face::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s ease;
+}
+
+.souvenir-events-face::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* Firefox scrollbar */
+.souvenir-events-face {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    overflow-y: overlay;
+}
+
+.souvenir-keepers-face.active {
+    display: block;
+}
+
+/* Custom scrollbar styling for keepers face - overlay style */
+.souvenir-keepers-face::-webkit-scrollbar {
+    width: 8px;
+}
+
+.souvenir-keepers-face::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.souvenir-keepers-face::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s ease;
+}
+
+.souvenir-keepers-face::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* Firefox scrollbar */
+.souvenir-keepers-face {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    overflow-y: overlay;
+}
+
+.souvenir-keepers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.souvenir-keepers-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    padding: 0 0 40px 0;
+}
+
+.keeper-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.85), #fdfcfe),
+                linear-gradient(to bottom, var(--user-color, #e8e6f5), var(--user-color, #e8e6f5));
+    background-blend-mode: normal, overlay;
+    border: 1.5px solid #e8e6f5;
+    border-left: 3px solid var(--user-color, #e8e6f5);
+    border-radius: 0;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.keeper-card:hover {
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.95), white),
+                linear-gradient(to bottom, var(--user-color, #734ba1), var(--user-color, #734ba1));
+    background-blend-mode: normal, overlay;
+    border-color: var(--user-color, #734ba1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Octant-based left border colors (fallback if user color not available) */
+.keeper-card.octant-adaptive:not([style*="--user-color"]) { border-left-color: var(--octant-adaptive-dark); }
+.keeper-card.octant-chaotic:not([style*="--user-color"]) { border-left-color: var(--octant-chaotic-dark); }
+.keeper-card.octant-intended:not([style*="--user-color"]) { border-left-color: var(--octant-intended-dark); }
+.keeper-card.octant-prepared:not([style*="--user-color"]) { border-left-color: var(--octant-prepared-dark); }
+.keeper-card.octant-contented:not([style*="--user-color"]) { border-left-color: var(--octant-contented-dark); }
+.keeper-card.octant-assertive:not([style*="--user-color"]) { border-left-color: var(--octant-assertive-dark); }
+.keeper-card.octant-ordered:not([style*="--user-color"]) { border-left-color: var(--octant-ordered-dark); }
+.keeper-card.octant-guarded:not([style*="--user-color"]) { border-left-color: var(--octant-guarded-dark); }
+.keeper-card.octant-equilibrium:not([style*="--user-color"]) { border-left-color: var(--octant-equilibrium-dark); }
+
+.keeper-card-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid var(--user-color, rgba(0, 0, 0, 0.1));
+}
+
+.keeper-card-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.keeper-card-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #372e42;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.keeper-card-handle {
+    font-size: 0.65rem;
+    color: #888;
+    font-family: monospace;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.keeper-badge-octant {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    white-space: nowrap;
+    align-self: center;
+}
+
+/* Octant-specific badge colors with proper text contrast */
+.keeper-badge-octant.octant-bg-adaptive { 
+    background: var(--octant-adaptive); 
+    color: var(--octant-adaptive-darker);
+}
+.keeper-badge-octant.octant-bg-chaotic { 
+    background: var(--octant-chaotic); 
+    color: var(--octant-chaotic-darker);
+}
+.keeper-badge-octant.octant-bg-intended { 
+    background: var(--octant-intended); 
+    color: var(--octant-intended-darker);
+}
+.keeper-badge-octant.octant-bg-prepared { 
+    background: var(--octant-prepared); 
+    color: var(--octant-prepared-darker);
+}
+.keeper-badge-octant.octant-bg-contented { 
+    background: var(--octant-contented); 
+    color: var(--octant-contented-darker);
+}
+.keeper-badge-octant.octant-bg-assertive { 
+    background: var(--octant-assertive); 
+    color: var(--octant-assertive-darker);
+}
+.keeper-badge-octant.octant-bg-ordered { 
+    background: var(--octant-ordered); 
+    color: var(--octant-ordered-darker);
+}
+.keeper-badge-octant.octant-bg-guarded { 
+    background: var(--octant-guarded); 
+    color: var(--octant-guarded-darker);
+}
+.keeper-badge-octant.octant-bg-equilibrium { 
+    background: var(--octant-equilibrium); 
+    color: var(--octant-equilibrium-darker);
+}
+
+/* BouncerBox Face - Same fixed height */
+.souvenir-bouncer-face {
+    background: white;
+    display: none;
+    height: 100%;
+    overflow: hidden;
+}
+
+.souvenir-bouncer-face.active {
+    display: block;
+}
+
+/* Toggle Details Button - Right Side Above Drawer */
+.toggle-details-btn {
+    position: fixed;
+    bottom: 120px;
+    right: 40px;
+    width: 50px;
+    height: 50px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 100;
+    padding: 0;
+    pointer-events: auto; /* Ensure button is clickable */
+}
+
+.toggle-details-btn:hover {
+    transform: scale(1.1);
+}
+
+.toggle-details-btn:active {
+    transform: scale(0.95);
+}
+
+.eye-icon {
+    position: absolute;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    color: rgba(255, 255, 255, 0.7);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.eye-open {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.eye-closed {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.toggle-details-btn.details-hidden .eye-open {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.toggle-details-btn.details-hidden .eye-closed {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Frame fade in/out animation */
+.souvenir-frame {
+    animation: fadeIn 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.souvenir-frame.hidden {
+    opacity: 0;
+    transform: translateY(-20px);
+    pointer-events: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+
+/* Ensure database row styling works correctly in souvenir events */
+.souvenir-events-face .row-entry,
+.canon-events .row-entry {
+    min-height: 40px;
+    align-items: center;
+    width: 100% !important;
+}
+
+.souvenir-events-face .row-entry .cell,
+.canon-events .row-entry .cell {
+    display: flex;
+    align-items: center;
+    padding: 0 1px;
+    box-sizing: border-box;
+}
+
+.souvenir-events-face .row-entry .cell:first-child,
+.canon-events .row-entry .cell:first-child {
+    padding-left: 16px;
+}
+
+.souvenir-events-face .row-entry .cell:last-child,
+.canon-events .row-entry .cell:last-child {
+    padding-right: 16px;
+}
+
+/* Cell widths optimized for 470px frame width */
+.souvenir-events-face .row-entry .cell.epoch,
+.canon-events .row-entry .cell.epoch {
+    flex: 0 0 90px;
+    max-width: 90px;
+    min-width: 90px;
+    text-align: center;
+    justify-content: center;
+    font-size: 0.75em;
+}
+
+.souvenir-events-face .row-entry .cell.avatar,
+.canon-events .row-entry .cell.avatar {
+    flex: 0 0 20px;
+    max-width: 20px;
+    min-width: 20px;
+    padding: 4px 1px;
+    text-align: center;
+    justify-content: center;
+    margin-left: 8px;
+}
+
+.souvenir-events-face .row-entry .cell.canon,
+.canon-events .row-entry .cell.canon {
+    flex: 1 1 auto;
+    max-width: none;
+    min-width: 0;
+    justify-content: flex-start;
+    padding-left: 8px;
+    overflow: hidden;
+}
+
+/* Souvenir Box Styles (Legacy - kept for potential use) */
+
+.souvenir-description {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #555;
+    margin: 0 0 10px 0;
+}
+
+.souvenir-keepers {
+    font-size: 10px !important;
+    color: #aaa !important;
+    font-style: italic !important;
+    margin: 0;
+    font-weight: 300;
+    display: block;
+    line-height: 1.4;
+}
+
+/* Souvenir Box Carousel - Compact */
+.souvenir-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e8e6f5;
+}
+
+.souvenir-box-title {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    color: #5a4a7a;
+    font-weight: 600;
+}
+
+.souvenir-box-nav {
+    display: flex;
+    gap: 6px;
+}
+
+.nav-btn {
+    background: transparent;
+    border: 1.5px solid #d0c7f0;
+    color: #888;
+    padding: 4px 10px;
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+}
+
+.nav-btn:hover {
+    background: #fff;
+    color: var(--user-color, #734ba1);
+    border-color: var(--user-color, #734ba1);
+}
+
+.nav-btn.active {
+    background: var(--user-color, #734ba1);
+    color: white;
+    border-color: var(--user-color, #734ba1);
+}
+
+.souvenir-box-content {
+    height: 140px;
+    overflow-y: auto;
+}
+
+.souvenir-keeper-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    background: #fdfcfe;
+    border: 1px solid #e8e6f5;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #5a4a7a;
+}
+
+.souvenir-keeper-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.souvenir-keeper-time {
+    color: #888;
+    font-size: 12px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1024px) {
+    .floating-widget {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        width: calc(100% - 32px) !important;
+        max-width: 100% !important;
+        margin: 16px;
+        max-height: none !important;
+    }
+    
+    #souvenir-page-container {
+        position: relative;
+        height: auto;
+        overflow: visible;
+        padding-top: var(--content-top-spacing-mobile);
+    }
+    
+    .box-widget {
+        height: auto !important;
+    }
+    
+    .souvenir-box-content {
+        height: auto;
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .souvenir-info {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .souvenir-text {
+        text-align: center;
+    }
+}
