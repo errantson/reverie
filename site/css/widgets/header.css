@@ -85,6 +85,8 @@
     position: relative;
     width: 44px;
     height: 44px;
+    min-width: 44px; /* Prevent shrinking */
+    min-height: 44px;
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.2);
@@ -196,7 +198,7 @@
     align-items: center;
     gap: 16px;
     pointer-events: auto;
-    min-height: 44px; /* Match errantson button height to prevent vertical shift */
+    height: 44px;
 }
 
 .desktop-nav {
@@ -229,6 +231,7 @@
 .nav-dropdown-trigger:hover {
     background: rgba(255, 255, 255, 0.25);
     border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
 }
 
 .nav-dropdown-trigger.open {

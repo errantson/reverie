@@ -191,7 +191,7 @@ class Sidebar {
                                 <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="font-size: 10px; color: #734ba1; font-weight: 600;">${contributionScore}</span>
+                                <span style="font-size: 10px; color: var(--reverie-core-color, #734ba1); font-weight: 600;">${contributionScore}</span>
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;">
                             </div>
                         </div>
@@ -646,7 +646,7 @@ class Sidebar {
                                 <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="font-size: 10px; color: #734ba1; font-weight: 600;">${patronScore}</span>
+                                <span style="font-size: 10px; color: var(--reverie-core-color, #734ba1); font-weight: 600;">${patronScore}</span>
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;">
                             </div>
                         </div>

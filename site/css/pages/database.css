@@ -1370,3 +1370,60 @@ td {
 .row-entry.canon-row .cell.canon span {
     color: var(--canon-color) !important;
 }
+
+/* Dream row styling - similar to canon but with dream-specific colors */
+.row-entry.dream-row {
+    background: linear-gradient(
+        to right,
+        rgba(var(--dream-color-rgb), 0.20) 0%,
+        rgba(var(--dream-color-rgb), 0.12) 30%,
+        rgba(var(--dream-color-rgb), 0.06) 70%,
+        rgba(var(--dream-color-rgb), 0.02) 100%
+    ) !important;
+    border-left: 3px solid var(--dream-color) !important;
+    border-top: 1px solid rgba(var(--dream-color-rgb), 0.25) !important;
+    border-bottom: 1px solid rgba(var(--dream-color-rgb), 0.25) !important;
+    box-shadow: inset 0 0 6px rgba(var(--dream-color-rgb), 0.12), 
+                0 1px 2px rgba(var(--dream-color-rgb), 0.15);
+}
+
+.row-entry.dream-row:hover {
+    background: linear-gradient(
+        to right,
+        rgba(var(--dream-color-rgb), 0.30) 0%,
+        rgba(var(--dream-color-rgb), 0.18) 30%,
+        rgba(var(--dream-color-rgb), 0.09) 70%,
+        rgba(var(--dream-color-rgb), 0.03) 100%
+    ) !important;
+    box-shadow: inset 0 0 10px rgba(var(--dream-color-rgb), 0.18),
+                0 2px 3px rgba(var(--dream-color-rgb), 0.2);
+}
+
+.row-entry.dream-row .cell {
+    color: var(--dream-color) !important;
+}
+
+.row-entry.dream-row .cell.type,
+.row-entry.dream-row .cell.key {
+    font-weight: 600;
+    text-shadow: 0 0 1px rgba(var(--dream-color-rgb), 0.3);
+}
+
+/* Dream-specific styles */
+.row-entry.dream-flawed {
+    --dream-color: #8b4789;
+    --dream-color-rgb: 139, 71, 137;
+    animation: flawedPulse 4s ease-in-out infinite;
+}
+
+@keyframes flawedPulse {
+    0%, 100% {
+        box-shadow: inset 0 0 6px rgba(139, 71, 137, 0.12), 
+                    0 1px 2px rgba(139, 71, 137, 0.15);
+    }
+    50% {
+        box-shadow: inset 0 0 12px rgba(139, 71, 137, 0.25), 
+                    0 2px 4px rgba(139, 71, 137, 0.3),
+                    0 0 8px rgba(255, 107, 157, 0.2);
+    }
+}

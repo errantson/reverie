@@ -62,6 +62,7 @@ class SpectrumVisualizer {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.isTouchDevice = this.detectTouchDevice();
+        this.userColor = options.userColor || '#734ba1';
         this.options = {
             showLabels: options.showLabels !== false,
             showAllNames: options.showAllNames || this.isTouchDevice,
@@ -69,7 +70,8 @@ class SpectrumVisualizer {
             initialZoom: options.initialZoom || 1.2,
             showControls: options.showControls !== false,
             onNameClick: options.onNameClick || null,
-            onDotClick: options.onDotClick || null
+            onDotClick: options.onDotClick || null,
+            userColor: options.userColor || '#734ba1'
         };
         this.currentView = '3d';
         this.miniProfile = null;
@@ -1402,6 +1404,12 @@ class SpectrumVisualizer {
         }
         requestAnimationFrame(() => this.animate());
     }
+    hexToRgba(hex, alpha = 1) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
     render() {
         if (this.canvas.width === 0 || this.canvas.height === 0) {
             console.warn('[SpectrumVisualizer] Canvas has zero dimensions!', {width: this.canvas.width, height: this.canvas.height});
@@ -1497,7 +1505,9 @@ class SpectrumVisualizer {
         this.labelBounds = [];
         for (const item of renderQueue) {
             if (item.type === 'axis') {
-                this.ctx.strokeStyle = 'rgba(115, 75, 161, 0.35)';
+                // Parse userColor to get rgba version
+                const userColorRgba = this.userColor ? this.hexToRgba(this.userColor, 0.35) : 'rgba(115, 75, 161, 0.35)';
+                this.ctx.strokeStyle = userColorRgba;
                 this.ctx.lineWidth = 2;
                 this.ctx.beginPath();
                 this.ctx.moveTo(item.data.from.x, item.data.from.y);
@@ -1513,7 +1523,7 @@ class SpectrumVisualizer {
                         this.ctx.font = '600 11px monospace';
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
-                        this.ctx.fillStyle = '#6b4fa1';
+                        this.ctx.fillStyle = this.userColor || '#6b4fa1';
                         let fixedY;
                         if (label === 'Liberty' || label === 'Skeptic') {
                             fixedY = 20;
@@ -1541,7 +1551,7 @@ class SpectrumVisualizer {
                             this.ctx.font = '600 11px monospace';
                             this.ctx.textAlign = 'center';
                             this.ctx.textBaseline = 'middle';
-                            this.ctx.fillStyle = '#6b4fa1';
+                            this.ctx.fillStyle = this.userColor || '#6b4fa1';
                             this.ctx.fillText(label, 0, -7);
                             this.ctx.restore();
                         } else {
@@ -1549,7 +1559,7 @@ class SpectrumVisualizer {
                             this.ctx.font = '600 11px monospace';
                             this.ctx.textAlign = 'center';
                             this.ctx.textBaseline = 'bottom';
-                            this.ctx.fillStyle = '#6b4fa1';
+                            this.ctx.fillStyle = this.userColor || '#6b4fa1';
                             const from = item.data.from;
                             const to = item.data.to;
                             const dx = to.x - from.x;
@@ -1653,7 +1663,8 @@ class SpectrumVisualizer {
             }
             const lineStartY = pos.y - radius;
             const lineEndY = labelY + padding;
-            this.ctx.strokeStyle = 'rgba(107, 79, 161, 0.25)';
+            const userColorRgba = this.userColor ? this.hexToRgba(this.userColor, 0.25) : 'rgba(107, 79, 161, 0.25)';
+            this.ctx.strokeStyle = userColorRgba;
             this.ctx.lineWidth = 1.5;
             this.ctx.beginPath();
             this.ctx.moveTo(pos.x, lineStartY);

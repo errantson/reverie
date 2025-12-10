@@ -228,7 +228,7 @@ class DreamerhoseMonitor:
                 updates['display_name'] = profile['displayName']
             
             if 'description' in profile:
-                updates['bio'] = profile['description']
+                updates['description'] = profile['description']
             
             if 'avatar' in profile:
                 updates['avatar'] = profile['avatar']

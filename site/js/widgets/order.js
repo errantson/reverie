@@ -257,6 +257,7 @@ class OrderWidget {
                     showType: false
                 });
                 container.innerHTML = eventsHTML;
+                this.applySnakeCharmerEffect(container);
             }
             
             // Render in full list (bottom right)
@@ -276,6 +277,10 @@ class OrderWidget {
                         <h3 class=\"recent-orders-title\">📚 Recent Support</h3>
                         <div class=\"recent-orders-list\">${eventsHTML}</div>
                     `;
+                    const recentList = fullContainer.querySelector('.recent-orders-list');
+                    if (recentList) {
+                        this.applySnakeCharmerEffect(recentList);
+                    }
                 }
             }
             
@@ -284,6 +289,55 @@ class OrderWidget {
             if (container) container.innerHTML = '';
             if (fullContainer) fullContainer.innerHTML = '<div class=\"recent-orders-error\">Unable to load recent orders</div>';
         }
+    }
+
+    applySnakeCharmerEffect(container) {
+        // Find all strange souvenir rows within the container
+        const strangeRows = container.querySelectorAll('.souvenir-strange.intensity-highlight, .souvenir-strange.intensity-special');
+        
+        strangeRows.forEach(row => {
+            // Get all cells in the row (including key cell for wobble)
+            const cells = row.querySelectorAll('.cell');
+            
+            cells.forEach((cell, cellIndex) => {
+                // Skip if cell only contains images or empty content
+                const hasOnlyImages = cell.querySelectorAll('img').length > 0 && !cell.textContent.trim();
+                if (hasOnlyImages) return;
+                
+                let wordIndex = 0;
+                
+                // Recursively process all text nodes within the cell
+                function processNode(node) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent;
+                        const wordParts = text.split(/(\s+)/);
+                        const fragment = document.createDocumentFragment();
+                        
+                        wordParts.forEach(part => {
+                            if (part.trim()) {
+                                const wordSpan = document.createElement('span');
+                                wordSpan.textContent = part;
+                                wordSpan.className = 'snake-word';
+                                const totalDelay = (cellIndex * 8 + wordIndex * 2) * 0.1;
+                                wordSpan.style.animationDelay = `${totalDelay}s`;
+                                fragment.appendChild(wordSpan);
+                                wordIndex++;
+                            } else if (part) {
+                                fragment.appendChild(document.createTextNode(part));
+                            }
+                        });
+                        
+                        node.parentNode.replaceChild(fragment, node);
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Recursively process child nodes
+                        Array.from(node.childNodes).forEach(child => processNode(child));
+                    }
+                }
+                
+                // Process all child nodes of the cell
+                Array.from(cell.childNodes).forEach(node => processNode(node));
+            });
+        });
     }
 
     renderSliderNotches() {

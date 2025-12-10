@@ -613,12 +613,14 @@
                 // Skip header rows completely
                 if (isHeaderRow) return;
                 
-                // Check if this is a canon row
+                // Check if this is a canon row or dream row
                 const isCanonRow = tableName === 'events' && row.key === 'canon';
+                const isDreamRow = tableName === 'events' && row.type === 'dream';
                 
                 const rowClass = isBookRow ? 'row-entry book-row' : 
                                  isChapterRow ? 'row-entry chapter-row' :
-                                 isCanonRow ? 'row-entry canon-row' : 'row-entry';
+                                 isCanonRow ? 'row-entry canon-row' :
+                                 isDreamRow ? `row-entry dream-row dream-${row.key || 'unknown'}` : 'row-entry';
                 
                 const finalRowClass = rowClass + colorSystemClasses;
                 
@@ -654,11 +656,23 @@
                     }
                 }
                 
-                // Build style attribute combining cursor, canon colors, and color system
+                // Build style attribute combining cursor, canon colors, dream colors, and color system
                 let rowStyles = [];
                 if (rowOnClick) rowStyles.push('cursor: pointer');
                 if (canonColorVars) rowStyles.push(canonColorVars);
                 if (colorSystemStyles) rowStyles.push(colorSystemStyles);
+                
+                // Add dream color vars for dream rows
+                if (isDreamRow && row.key) {
+                    const dreamColors = {
+                        'flawed': { hex: '#8b4789', rgb: '139, 71, 137' }
+                    };
+                    const dreamColor = dreamColors[row.key];
+                    if (dreamColor) {
+                        rowStyles.push(`--dream-color: ${dreamColor.hex}; --dream-color-rgb: ${dreamColor.rgb};`);
+                    }
+                }
+                
                 const rowStyleAttr = rowStyles.length > 0 ? ` style="${rowStyles.join('; ')}"` : '';
                 const rowOnClickAttr = rowOnClick ? ` onclick="${rowOnClick}"` : '';
                 

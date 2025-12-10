@@ -93,12 +93,11 @@ body.dreamer-page {
 #profile-container {
     flex: 1;
     min-width: 0;
-    max-width: 800px; 
+    max-width: 800px;
     background: #ffffff;
     border: 2px solid #d0c7f0;
     padding: 20px;
     transition: opacity 0.3s ease;
-    align-self: stretch;
 }
 #profile-container.loading {
     opacity: 0.5;
@@ -833,14 +832,14 @@ body.dreamer-page {
 
 .carousel-btn:hover {
     opacity: 1;
-    color: #734ba1;
+    color: var(--profile-color, var(--reverie-core-color, #734ba1));
 }
 
 .carousel-btn.active {
-    background: rgba(115, 75, 161, 0.12);
-    color: #734ba1;
+    background: rgba(var(--profile-color-rgb, 115, 75, 161), 0.12);
+    color: var(--profile-color, var(--reverie-core-color, #734ba1));
     opacity: 1;
-    border-color: #734ba1;
+    border-color: var(--profile-color, var(--reverie-core-color, #734ba1));
 }
     border-top-color: #734ba1;
     animation: rotate-border 10s linear forwards;

@@ -632,10 +632,61 @@ class Profile {
             
             // Priority 5: "Just arrived" template
             if (!activityData) {
+                // Show empty state with proper interactive buttons at 0 counts
+                const timeAgo = 'just now';
+                
+                // Check if user is logged in to show interactive buttons
+                const session = window.oauthManager ? window.oauthManager.getSession() : null;
+                const isLoggedIn = !!session;
+                
+                let interactionStats = '';
+                if (isLoggedIn) {
+                    // Show interactive buttons but disabled (no URI to interact with)
+                    interactionStats = `
+                        <button class="activity-time" 
+                                style="border: none; background: none; padding: 0; margin: 0; cursor: default; opacity: 0.5;"
+                                disabled
+                                title="No posts yet">
+                            ♡
+                        </button>
+                        <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
+                        <button class="activity-time" 
+                                style="border: none; background: none; padding: 0; margin: 0; cursor: default; opacity: 0.5;"
+                                disabled
+                                title="No posts yet">
+                            ↻
+                        </button>
+                        <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
+                        <button class="activity-time" 
+                                style="border: none; background: none; padding: 0; margin: 0; cursor: default; opacity: 0.5;"
+                                disabled
+                                title="No posts yet">
+                            ↵
+                        </button>
+                    `;
+                } else {
+                    // Not logged in - show stats as text
+                    interactionStats = `
+                        <span class="activity-time" style="opacity: 0.5;">0 likes</span>
+                        <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
+                        <span class="activity-time" style="opacity: 0.5;">0 reposts</span>
+                        <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
+                        <span class="activity-time" style="opacity: 0.5;">0 replies</span>
+                    `;
+                }
+                
                 activityContent.innerHTML = `
                     <div class="activity-box">
-                        <div class="activity-text-content">
-                            <div class="activity-text">Just exploring our wild mindscape</div>
+                        <div class="activity-text-content activity-text-only-centered">
+                            <div class="activity-text activity-text-empty">Just exploring our wild mindscape</div>
+                            <div class="activity-info-overlay">
+                                <div class="activity-overlay-content">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span class="activity-time">${timeAgo}</span>
+                                        ${interactionStats}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -646,57 +697,26 @@ class Profile {
             const timeAgo = this.getTimeAgo(new Date(activityData.createdAt).getTime());
             const postUrl = activityData.uri ? this.uriToUrl(activityData.uri) : '#';
             
+            // Generate complementary colors for badges
+            const userColor = dreamer.color_hex || '#734ba1';
+            const { canon: canonColor, lore: loreColor } = this.generateBadgeColors(userColor);
+            
             // Build label badge (overlay on image if present, inline if not)
             let badgeOverlay = '';
             let badgeInline = '';
             if (labelType === 'canon') {
-                badgeOverlay = '<span class="activity-badge-overlay badge-canon">canon</span>';
-                badgeInline = '<span class="activity-badge-inline badge-canon">canon</span>';
+                badgeOverlay = `<span class="activity-badge-overlay badge-canon" style="background: ${canonColor}; border-color: ${canonColor};">canon</span>`;
+                badgeInline = `<span class="activity-badge-inline badge-canon" style="background: ${canonColor};">canon</span>`;
             } else if (labelType === 'lore') {
-                badgeOverlay = '<span class="activity-badge-overlay badge-lore">lore</span>';
-                badgeInline = '<span class="activity-badge-inline badge-lore">lore</span>';
+                badgeOverlay = `<span class="activity-badge-overlay badge-lore" style="background: ${loreColor}; border-color: ${loreColor};">lore</span>`;
+                badgeInline = `<span class="activity-badge-inline badge-lore" style="background: ${loreColor};">lore</span>`;
             }
             
             // Linkify text content
             const linkedText = await this.linkifyText(activityData.text);
             const hasText = activityData.text && activityData.text.trim().length > 0;
             
-            // Build image HTML if present
-            let imageHtml = '';
-            let textContentHtml = '';
-            if (activityData.images && activityData.images.length > 0) {
-                const img = activityData.images[0];
-                
-                // If there's text, show it as overlay; if no text, just show image
-                if (hasText) {
-                    imageHtml = `
-                        <div class="activity-image-container">
-                            <img src="${img.thumb || img.fullsize}" alt="${img.alt || 'Post image'}" class="activity-image" onclick="window.open('${img.fullsize}', '_blank')">
-                            <div class="activity-text-overlay">
-                                <div class="activity-text-overlay-content">
-                                    <div class="activity-text">${linkedText}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    // Just image, no text overlay
-                    imageHtml = `
-                        <div class="activity-image-container">
-                            <img src="${img.thumb || img.fullsize}" alt="${img.alt || 'Post image'}" class="activity-image" onclick="window.open('${img.fullsize}', '_blank')">
-                        </div>
-                    `;
-                }
-            } else {
-                // No image - show text normally without badge
-                textContentHtml = `
-                    <div class="activity-text-content">
-                        <div class="activity-text">${linkedText}</div>
-                    </div>
-                `;
-            }
-            
-            // Get interaction counts if available
+            // Get interaction counts and build overlay first
             const likeCount = activityData.likeCount || 0;
             const repostCount = activityData.repostCount || 0;
             const replyCount = activityData.replyCount || 0;
@@ -726,6 +746,7 @@ class Profile {
                             title="${isLiked ? 'Unlike' : 'Like'} this post">
                         ${likeCount > 0 ? likeCount : '♡'}
                     </button>
+                    <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
                     <button class="activity-time" 
                             data-uri="${activityData.uri}"
                             data-cid="${activityData.cid}"
@@ -735,6 +756,7 @@ class Profile {
                             title="${isReposted ? 'Undo repost' : 'Repost'} to your timeline">
                         ${repostCount > 0 ? repostCount : '↻'}
                     </button>
+                    <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
                     <button class="activity-time" 
                             data-uri="${activityData.uri}"
                             data-cid="${activityData.cid}"
@@ -751,7 +773,9 @@ class Profile {
                 // Not logged in - show stats as links with activity-time class
                 interactionStats = `
                     <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${likeCount} like${likeCount === 1 ? '' : 's'}</a>
+                    <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
                     <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${repostCount} repost${repostCount === 1 ? '' : 's'}</a>
+                    <span class="activity-time" style="opacity: 0.3; cursor: default;">•</span>
                     <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}</a>
                 `;
             }
@@ -760,18 +784,57 @@ class Profile {
             const infoOverlay = `
                 <div class="activity-info-overlay">
                     <div class="activity-overlay-content">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${timeAgo}</a>
+                            ${interactionStats}
+                        </div>
                         ${badgeOverlay}
-                        <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time">${timeAgo}</a>
-                        ${interactionStats}
                     </div>
                 </div>
             `;
+            
+            // Build image HTML if present
+            let imageHtml = '';
+            let textContentHtml = '';
+            if (activityData.images && activityData.images.length > 0) {
+                const img = activityData.images[0];
+                
+                // If there's text, show it as overlay; if no text, just show image
+                if (hasText) {
+                    imageHtml = `
+                        <div class="activity-image-container">
+                            <img src="${img.thumb || img.fullsize}" alt="${img.alt || 'Post image'}" class="activity-image" onclick="window.open('${img.fullsize}', '_blank')">
+                            <div class="activity-text-overlay">
+                                <div class="activity-text-overlay-content">
+                                    <div class="activity-text">${linkedText}</div>
+                                </div>
+                            </div>
+                            ${infoOverlay}
+                        </div>
+                    `;
+                } else {
+                    // Just image, no text overlay
+                    imageHtml = `
+                        <div class="activity-image-container">
+                            <img src="${img.thumb || img.fullsize}" alt="${img.alt || 'Post image'}" class="activity-image" onclick="window.open('${img.fullsize}', '_blank')">
+                            ${infoOverlay}
+                        </div>
+                    `;
+                }
+            } else {
+                // No image - show text normally centered in box with overlay
+                textContentHtml = `
+                    <div class="activity-text-content activity-text-only-centered">
+                        <div class="activity-text">${linkedText}</div>
+                        ${infoOverlay}
+                    </div>
+                `;
+            }
             
             activityContent.innerHTML = `
                 <div class="activity-box">
                     ${imageHtml}
                     ${textContentHtml}
-                    ${infoOverlay}
                 </div>
             `;
             
@@ -808,95 +871,421 @@ class Profile {
             // Sort by epoch descending (newest first)
             dreamerEvents.sort((a, b) => b.epoch - a.epoch);
             
-            // For greeter events that welcomed someone, find the 'name' event that triggered it
-            // The 'name' event happens BEFORE the greeter welcomes them
-            dreamerEvents.forEach(event => {
-                if (event.key === 'greeter' && event.event.includes('welcomed')) {
-                    // Extract the person's name from "welcomed [name]"
-                    const match = event.event.match(/welcomed (.+)/);
-                    if (match) {
-                        const welcomedName = match[1];
-                        // Find the most recent 'name' event by someone with that name, before this greeter event
-                        const nameEvent = allCanon.find(e => 
-                            e.key === 'name' && 
-                            e.name.toLowerCase() === welcomedName.toLowerCase() &&
-                            e.epoch < event.epoch &&
-                            e.did !== event.did
-                        );
-                        if (nameEvent) {
-                            event.reactionOrigin = nameEvent;
-                            event.isReactionary = true;
-                        }
-                    }
-                }
-                
-                // For mapper events, find spectrum events that responded to them
-                if (event.key === 'mapper' && event.event.includes('mapped')) {
-                    const match = event.event.match(/mapped (.+)/);
-                    if (match) {
-                        const mappedName = match[1];
-                        const spectrumEvent = allCanon.find(e =>
-                            e.key === 'spectrum' &&
-                            e.name.toLowerCase() === mappedName.toLowerCase() &&
-                            e.epoch < event.epoch &&
-                            e.did !== event.did
-                        );
-                        if (spectrumEvent) {
-                            event.reactionOrigin = spectrumEvent;
-                            event.isReactionary = true;
-                        }
-                    }
-                }
-            });
-            
-            // Build the display list: when an event has an origin, show origin THEN the event
-            const allRelevantEvents = [];
-            const addedOriginIds = new Set();
-            
-            dreamerEvents.forEach(event => {
-                if (event.reactionOrigin && !addedOriginIds.has(event.reactionOrigin.id)) {
-                    // Add origin first (not indented)
-                    allRelevantEvents.push(event.reactionOrigin);
-                    addedOriginIds.add(event.reactionOrigin.id);
-                    // Then add the dreamer's reaction (indented)
-                    allRelevantEvents.push(event);
-                } else if (!event.reactionOrigin) {
-                    // Events without origins are added normally
-                    allRelevantEvents.push(event);
-                }
-                // Skip events that have origins but whose origin was already added
-            });
-            
-            // Take most recent 20 events
-            const recentEvents = allRelevantEvents.slice(0, 20);
-            
-            if (recentEvents.length === 0) {
-                eventsContent.innerHTML = '<div class=\"activity-empty\">No events recorded</div>';
+            if (dreamerEvents.length === 0) {
+                eventsContent.innerHTML = '<div class="activity-empty">No events recorded</div>';
                 return;
             }
             
-            // Get color for this dreamer's spectrum
-            const color = dreamer.color_hex || '#8b7355';
+            // Render rows using database.html style rendering
+            const html = this.renderEventRows(dreamerEvents, allDreamers, dreamer);
+            eventsContent.innerHTML = html;
             
-            // Import and use the unified event renderer
-            const { renderEventRows } = await import('/js/utils/event-renderer.js');
-            
-            const eventsHTML = renderEventRows(recentEvents, {
-                colorHex: color,
-                allDreamers: allDreamers,
-                showAvatar: true,
-                showType: false,
-                showKey: true,
-                showUri: false,
-                currentDid: dreamer.did
-            });
-            
-            eventsContent.innerHTML = `<div class="profile-canon-log">${eventsHTML}</div>`;
+            // Apply snake charmer effect to strange souvenir rows
+            this.applySnakeCharmerEffect(eventsContent);
             
         } catch (error) {
             console.error('Error loading events:', error);
-            eventsContent.innerHTML = '<div class=\"activity-empty\">Unable to load events</div>';
+            eventsContent.innerHTML = '<div class="activity-empty">Unable to load events</div>';
         }
+    }
+
+    applySnakeCharmerEffect(container) {
+        // Find all strange souvenir rows within the container
+        const strangeRows = container.querySelectorAll('.souvenir-strange.intensity-highlight, .souvenir-strange.intensity-special');
+        
+        strangeRows.forEach(row => {
+            // Get all cells in the row (including key cell for wobble)
+            const cells = row.querySelectorAll('.cell');
+            
+            cells.forEach((cell, cellIndex) => {
+                // Skip if cell only contains images or empty content
+                const hasOnlyImages = cell.querySelectorAll('img').length > 0 && !cell.textContent.trim();
+                if (hasOnlyImages) return;
+                
+                let wordIndex = 0;
+                
+                // Recursively process all text nodes within the cell
+                function processNode(node) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent;
+                        const wordParts = text.split(/(\s+)/);
+                        const fragment = document.createDocumentFragment();
+                        
+                        wordParts.forEach(part => {
+                            if (part.trim()) {
+                                const wordSpan = document.createElement('span');
+                                wordSpan.textContent = part;
+                                wordSpan.className = 'snake-word';
+                                const totalDelay = (cellIndex * 8 + wordIndex * 2) * 0.1;
+                                wordSpan.style.animationDelay = `${totalDelay}s`;
+                                fragment.appendChild(wordSpan);
+                                wordIndex++;
+                            } else if (part) {
+                                fragment.appendChild(document.createTextNode(part));
+                            }
+                        });
+                        
+                        node.parentNode.replaceChild(fragment, node);
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Recursively process child nodes
+                        Array.from(node.childNodes).forEach(child => processNode(child));
+                    }
+                }
+                
+                // Process all child nodes of the cell
+                Array.from(cell.childNodes).forEach(node => processNode(node));
+            });
+        });
+    }
+
+    renderEventRows(events, allDreamers, currentDreamer) {
+        // Table configuration for events
+        const columns = ['epoch', 'type', 'avatar', 'canon', 'key', 'uri'];
+        let html = '';
+        
+        events.forEach((row, idx) => {
+            // Filter: reactions are only shown beneath their parent event
+            if (row.reaction_to) return;
+            
+            // If this row has a reaction, render the reaction post ABOVE it first
+            if (row.reaction_id) {
+                const reactionRow = {
+                    id: row.reaction_id,
+                    did: row.reaction_did,
+                    event: row.reaction_event,
+                    type: row.reaction_type,
+                    key: row.reaction_key,
+                    uri: row.reaction_uri,
+                    url: row.reaction_url,
+                    epoch: row.reaction_epoch || null,
+                    name: row.reaction_name,
+                    avatar: row.reaction_avatar,
+                    octant: row.reaction_octant,
+                    origin_octant: row.reaction_origin_octant,
+                    color_hex: row.reaction_color_hex
+                };
+                
+                const reactionClickAttr = reactionRow.url ? `onclick="window.open('${reactionRow.url}', '_blank')" style="cursor: pointer;"` : '';
+                const roleClass = reactionRow.key ? `reaction-parent-${reactionRow.key}` : '';
+                html += `<div class="row-entry reaction-parent-row ${roleClass}" ${reactionClickAttr}>`;
+                
+                columns.forEach(col => {
+                    const value = reactionRow[col];
+                    let displayValue = '';
+                    
+                    if (col === 'epoch') {
+                        if (value) {
+                            const date = new Date(value * 1000);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'type') {
+                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                    } else if (col === 'avatar') {
+                        const dreamerLink = reactionRow.did ? `/dreamer?did=${encodeURIComponent(reactionRow.did)}` : '#';
+                        if (value) {
+                            displayValue = reactionRow.did ? 
+                                `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(reactionRow.did)}" onclick="event.stopPropagation()"><img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>` :
+                                `<img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
+                        } else {
+                            displayValue = reactionRow.did ?
+                                `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(reactionRow.did)}" onclick="event.stopPropagation()"><img src="/assets/icon_face.png" class="avatar-img" alt="avatar" style="cursor: pointer;"></a>` :
+                                '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
+                        }
+                    } else if (col === 'canon') {
+                        const name = reactionRow.name || 'unknown';
+                        const event = reactionRow.event || '';
+                        const did = reactionRow.did || '';
+                        const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
+                        const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;
+                        displayValue = `<span style="white-space: normal;">${nameLink} ${eventText}</span>`;
+                    } else if (col === 'key') {
+                        if (value === 'greeter') {
+                            displayValue = `<span style="color: var(--role-greeter); font-weight: 600;">${value}</span>`;
+                        } else if (value === 'mapper') {
+                            displayValue = `<span style="color: var(--role-mapper); font-weight: 600;">${value}</span>`;
+                        } else if (value === 'cogitarian') {
+                            displayValue = `<span style="color: var(--role-cogitarian); font-weight: 600;">${value}</span>`;
+                        } else if (value === 'origin' && reactionRow.origin_octant) {
+                            const octantColor = `var(--octant-${reactionRow.origin_octant}-dark)`;
+                            displayValue = `<span style="color: ${octantColor}; font-weight: 600;">${value}</span>`;
+                        } else if (value === 'canon' && reactionRow.color_hex) {
+                            displayValue = `<span style="color: ${reactionRow.color_hex}; font-weight: 600;">${value}</span>`;
+                        } else {
+                            displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (col === 'uri') {
+                        if (value) {
+                            const parts = value.split('/');
+                            const endpoint = parts[parts.length - 1] || value;
+                            if (value.startsWith('at://') || reactionRow.url) {
+                                displayValue = reactionRow.url ? 
+                                    `<a href="${reactionRow.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>` :
+                                    `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                            } else {
+                                displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                            }
+                        } else {
+                            displayValue = '<span style="color: var(--text-dim);">—</span>';
+                        }
+                    } else if (value === null || value === undefined) {
+                        displayValue = '<span style="color: var(--text-dim);">—</span>';
+                    } else {
+                        displayValue = value;
+                    }
+                    
+                    html += `<div class="cell ${col}">${displayValue}</div>`;
+                });
+                
+                html += '</div>';
+            }
+            
+            // Build color system classes for events table
+            let colorSystemClasses = '';
+            let colorSystemStyles = '';
+            
+            const colorSource = row.color_source || 'none';
+            const colorIntensity = row.color_intensity || 'none';
+            const key = row.key || '';
+            
+            // Add key-based class for all events (for direct styling by event type)
+            if (key) {
+                colorSystemClasses += ` event-key-${key}`;
+            }
+            
+            // Add color-source class
+            if (colorSource !== 'none') {
+                colorSystemClasses += ` color-${colorSource}`;
+            }
+            
+            // Add intensity class
+            if (colorIntensity !== 'none') {
+                colorSystemClasses += ` intensity-${colorIntensity}`;
+            }
+            
+            // Add role-specific class for work events
+            if (colorSource === 'role' && key) {
+                colorSystemClasses += ` role-${key}`;
+            }
+            
+            // Add octant class for octant-colored events
+            if (colorSource === 'octant') {
+                // Use origin_octant for origin and name events, regular octant for others
+                const octant = ((key === 'origin' || key === 'name') && row.origin_octant) ? row.origin_octant : row.octant;
+                if (octant) {
+                    colorSystemClasses += ` octant-${octant}`;
+                }
+            }
+            
+            // Add souvenir-specific class for bespoke souvenir styling
+            if (colorSource === 'souvenir' && key) {
+                colorSystemClasses += ` souvenir-${key}`;
+            }
+            
+            // Add nightmare class for nightmare prepare events
+            if (key === 'prepare' && row.nightmare) {
+                colorSystemClasses += ' nightmare-prepare';
+            }
+            
+            // Add reactionary class for welcomed greeter events
+            if (key === 'greeter' && row.reactionary) {
+                colorSystemClasses += ' greeter-reactionary';
+            }
+            
+            // Set user color CSS variable for user-colored events
+            if (colorSource === 'user' && row.color_hex) {
+                colorSystemStyles = `--user-color: ${row.color_hex};`;
+            }
+            
+            // Apply user color styling to canon key rows
+            let canonColorVars = '';
+            if (row.key === 'canon' && row.color_hex) {
+                // Convert hex to rgba with multiple opacity levels for gradient
+                const hex = row.color_hex.replace('#', '');
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                canonColorVars = `--canon-color: ${row.color_hex}; --canon-color-rgb: ${r}, ${g}, ${b};`;
+            }
+            
+            // Check if this is a canon row or a reaction row or a dream row
+            const isCanonRow = row.key === 'canon';
+            const isReactionRow = row.reaction_id !== null && row.reaction_id !== undefined;
+            const isDreamRow = row.type === 'dream';
+            let rowClass = 'row-entry';
+            if (isCanonRow) rowClass += ' canon-row';
+            if (isReactionRow) rowClass += ' reaction-row';
+            if (isDreamRow) {
+                rowClass += ' dream-row';
+                // Add dream-specific class
+                if (row.key) rowClass += ` dream-${row.key}`;
+            }
+            const finalRowClass = rowClass + colorSystemClasses;
+            
+            // Make events rows clickable to URL (if exists)
+            let rowOnClick = '';
+            if (row.url) {
+                rowOnClick = `window.open('${row.url}', '_blank')`;
+            }
+            
+            // Build style attribute combining cursor, canon colors, dream colors, and color system
+            let rowStyles = [];
+            if (rowOnClick) rowStyles.push('cursor: pointer');
+            if (canonColorVars) rowStyles.push(canonColorVars);
+            if (colorSystemStyles) rowStyles.push(colorSystemStyles);
+            
+            // Add dream color vars for dream rows
+            if (isDreamRow && row.key) {
+                // Define dream colors per type
+                const dreamColors = {
+                    'flawed': { hex: '#8b4789', rgb: '139, 71, 137' }
+                };
+                const dreamColor = dreamColors[row.key];
+                if (dreamColor) {
+                    rowStyles.push(`--dream-color: ${dreamColor.hex}; --dream-color-rgb: ${dreamColor.rgb};`);
+                }
+            }
+            
+            const rowStyleAttr = rowStyles.length > 0 ? ` style="${rowStyles.join('; ')}"` : '';
+            const rowOnClickAttr = rowOnClick ? ` onclick="${rowOnClick}"` : '';
+            
+            html += `<div class="${finalRowClass}"${rowOnClickAttr}${rowStyleAttr}>`;
+            
+            // Render columns
+            columns.forEach(col => {
+                const value = row[col];
+                let displayValue = '';
+                
+                // Handle synthetic 'canon' column first (before null check)
+                if (col === 'canon') {
+                    // Display unified "name event" for canon table with links
+                    const name = row.name || 'unknown';
+                    const event = row.event || 'an event occurred';
+                    const did = row.did || '';
+                    
+                    // Name links to dreamer page (stop propagation to prevent row click)
+                    const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
+                    
+                    // Event text is non-clickable (row click will open URL)
+                    const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;
+                    
+                    displayValue = `<span style="white-space: normal;">${nameLink} ${eventText}</span>`;
+                } else if (value === null || value === undefined) {
+                    if (col === 'avatar') {
+                        // Show default icon face for missing avatar
+                        displayValue = '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
+                    } else {
+                        displayValue = '<span style="color: var(--text-dim);">—</span>';
+                    }
+                } else if (col === 'avatar') {
+                    // Display avatar image or default icon - clickable to dreamer page with dreamer-link class
+                    const dreamerLink = row.did ? `/dreamer?did=${encodeURIComponent(row.did)}` : '#';
+                    if (value) {
+                        displayValue = row.did ? 
+                            `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()"><img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>` :
+                            `<img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
+                    } else {
+                        displayValue = row.did ?
+                            `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()"><img src="/assets/icon_face.png" class="avatar-img" alt="avatar" style="cursor: pointer;"></a>` :
+                            '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
+                    }
+                } else if (col === 'event') {
+                    // Display event with larger text, no truncation
+                    displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                } else if (col === 'uri') {
+                    // Display URI - link to URL if available, otherwise convert to web link
+                    if (value) {
+                        if (value.startsWith('stripe:')) {
+                            // Stripe session code - link to order page if URL available
+                            const sessionCode = value.substring(7); // Remove "stripe:" prefix
+                            if (row.url && row.url.startsWith('/')) {
+                                // Link to internal URL (e.g., /order)
+                                displayValue = `<a href="${row.url}" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${sessionCode}</a>`;
+                            } else {
+                                // No URL, display as non-clickable text
+                                displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${sessionCode}</span>`;
+                            }
+                        } else if (value.startsWith('at://')) {
+                            // AT Protocol URI - convert to Bluesky web link
+                            const parts = value.split('/');
+                            const endpoint = parts[parts.length - 1] || value;
+                            
+                            // Parse AT URI: at://did:plc:xxx/app.bsky.feed.post/rkey
+                            const match = value.match(/^at:\/\/(did:[^\/]+)\/app\.bsky\.feed\.post\/(.+)$/);
+                            if (match) {
+                                const did = match[1];
+                                const rkey = match[2];
+                                const webUrl = `https://bsky.app/profile/${did}/post/${rkey}`;
+                                displayValue = `<a href="${webUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
+                            } else {
+                                // Other AT URIs (like profile/self) - display as text or use row.url if available
+                                if (row.url) {
+                                    displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
+                                } else {
+                                    displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                                }
+                            }
+                        } else if (row.url) {
+                            // URL field exists - link to it directly
+                            const parts = value.split('/');
+                            const endpoint = parts[parts.length - 1] || value;
+                            displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
+                        } else {
+                            // Other URIs - display as non-clickable text
+                            const parts = value.split('/');
+                            const endpoint = parts[parts.length - 1] || value;
+                            displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                        }
+                    } else {
+                        displayValue = '<span style="color: var(--text-dim);">—</span>';
+                    }
+                } else if (col.includes('epoch') && typeof value === 'number') {
+                    // Format epoch timestamps
+                    const date = new Date(value * 1000);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = String(date.getFullYear()).slice(-2);
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
+                } else if (col === 'key') {
+                    // Apply appropriate coloring based on event type
+                    if (value === 'greeter') {
+                        displayValue = `<span style="color: var(--role-greeter); font-weight: 600;">${value}</span>`;
+                    } else if (value === 'mapper') {
+                        displayValue = `<span style="color: var(--role-mapper); font-weight: 600;">${value}</span>`;
+                    } else if (value === 'cogitarian') {
+                        displayValue = `<span style="color: var(--role-cogitarian); font-weight: 600;">${value}</span>`;
+                    } else if (value === 'origin' && row.origin_octant) {
+                        // For origin events, use the origin_octant color
+                        const octantColor = `var(--octant-${row.origin_octant}-dark)`;
+                        displayValue = `<span style="color: ${octantColor}; font-weight: 600;">${value}</span>`;
+                    } else if (value === 'canon' && row.color_hex) {
+                        // Canon rows use user color
+                        displayValue = `<span style="color: ${row.color_hex}; font-weight: 600;">${value}</span>`;
+                    } else {
+                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                    }
+                } else if (col === 'type') {
+                    displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                } else {
+                    displayValue = value;
+                }
+                
+                const extraClass = ` ${col}`;
+                html += `<div class="cell${extraClass}">${displayValue}</div>`;
+            });
+            
+            html += '</div>';
+        });
+        
+        return html;
     }
 
     async updateIdentityFace(dreamer) {
@@ -938,8 +1327,8 @@ class Profile {
             const books = dreamer.recently_read.slice(0, 3);
             recentlyReadHTML = books.map(book => `
                 <div class="identity-book-item">
-                    <span class="identity-book-title">${book.title || 'Untitled'}</span>
-                    ${book.author ? `<span class="identity-book-author">by ${book.author}</span>` : ''}
+                    <span class="identity-book-title" style="color: ${dreamerColor};">${book.title || 'Untitled'}</span>
+                    ${book.author ? `<span class="identity-book-author" style="color: ${dreamerColor}; opacity: 0.7;">by ${book.author}</span>` : ''}
                 </div>
             `).join('');
         }
@@ -976,7 +1365,7 @@ class Profile {
                                                  alt="${k.name || k.handle}"
                                                  class="profile-kindred-avatar"
                                                  onerror="this.src='/assets/icon_face.png'">
-                                            <span class="profile-kindred-name">${k.name || k.handle}</span>
+                                            <span class="profile-kindred-name" style="color: ${dreamerColor};">${k.name || k.handle}</span>
                                         </a>
                                     </div>
                                 `;
@@ -994,22 +1383,29 @@ class Profile {
                 <div class="identity-top-section">
                     <div class="identity-bio-box" style="grid-column: 1 / -1;">
                         <div class="identity-bio-label">Bio</div>
-                        <div class="identity-bio-text" style="text-align: center;">${bioHTML}</div>
+                        <div class="identity-bio-text" style="text-align: center; color: ${dreamerColor};">${bioHTML}</div>
                     </div>
                 </div>
                 <div class="identity-middle-section">
                     <div class="identity-books-box">
-                        <div class="identity-kindred-label">Recently Read</div>
-                        <div class="identity-books-list">${recentlyReadHTML}</div>
+                        <div class="identity-kindred-label" style="color: ${dreamerColor};">Recently Read</div>
+                        <div class="identity-books-list" style="color: ${dreamerColor};">${recentlyReadHTML}</div>
                     </div>
                     <div class="identity-kindred-box">
-                        <div class="identity-kindred-label">Kindred</div>
+                        <div class="identity-kindred-label" style="color: ${dreamerColor};">Kindred</div>
                         ${kindredHTML}
                     </div>
                 </div>
                 <div class="identity-info-row">
                     <span class="identity-info-label">Pseudonyms</span>
-                    <span class="identity-info-value">${renderAltNames(dreamer.alt_names)}</span>
+                    <span class="identity-info-value" style="color: ${dreamerColor};">${renderAltNames(dreamer.alt_names)}</span>
+                </div>
+                <div class="identity-info-row">
+                    <span class="identity-info-label">Color</span>
+                    <span class="identity-info-value" style="display: flex; align-items: center; gap: 8px;">
+                        <span style="display: inline-block; width: 24px; height: 16px; background: ${dreamerColor}; border: 1px solid rgba(0,0,0,0.2); vertical-align: middle;"></span>
+                        <span style="font-family: monospace; font-size: 0.7rem;">${dreamerColor}</span>
+                    </span>
                 </div>
                 <div class="identity-info-row">
                     <span class="identity-info-label">${serverLabel}</span>
@@ -1091,7 +1487,7 @@ class Profile {
                 <canvas id="spectrum-face-canvas" style="display: none;"></canvas>
                 <div class="spectrum-face-octant-overlay" style="border-color: ${userColor};"></div>
                 <div class="spectrum-face-controls">
-                    <button class="spectrum-face-btn" id="spectrumExploreOctantsBtn" title="Explore the octants of the spectrum">
+                    <button class="spectrum-face-btn" id="spectrumExploreOctantsBtn" title="Explore the octants of the spectrum" style="border-color: ${userColor}; color: ${userColor};">
                         <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="7" height="7"></rect>
                             <rect x="14" y="3" width="7" height="7"></rect>
@@ -1099,7 +1495,7 @@ class Profile {
                             <rect x="3" y="14" width="7" height="7"></rect>
                         </svg>
                     </button>
-                    <button class="spectrum-face-btn" id="spectrumCalculateOriginsBtn" title="Open Spectrum Calculator">
+                    <button class="spectrum-face-btn" id="spectrumCalculateOriginsBtn" title="Open Spectrum Calculator" style="border-color: ${userColor}; color: ${userColor};">
                         <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                             <circle cx="12" cy="10" r="3"></circle>
@@ -1986,12 +2382,16 @@ class Profile {
                 // Show canvas first (it will render as it loads)
                 canvas.style.display = 'block';
                 
+                // Get user color for spectrum customization
+                const userColor = dreamer.color_hex || '#734ba1';
+                
                 this.spectrumVisualizerInstance = new SpectrumVisualizer(canvas, {
                     showLabels: true,
                     showAllNames: true,
                     filterDreamers: filteredHandles,
                     initialZoom: 1.5,
                     showControls: false,
+                    userColor: userColor,
                     onDotClick: (clickedDreamer) => {
                         // Navigate to dreamer page
                         if (clickedDreamer.did) {
@@ -2521,6 +2921,74 @@ class Profile {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    generateBadgeColors(hexColor) {
+        // Convert hex to HSL
+        const hex = hexColor.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16) / 255;
+        const g = parseInt(hex.substr(2, 2), 16) / 255;
+        const b = parseInt(hex.substr(4, 2), 16) / 255;
+        
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+            }
+        }
+        
+        // Convert HSL back to RGB with adjusted hue
+        const hslToRgb = (h, s, l) => {
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        };
+        
+        // Determine if base color is light or dark
+        const isDark = l < 0.5;
+        
+        // Canon: shift hue by +45 degrees (warmer complement)
+        // If dark, lighten and boost saturation; if light, keep vibrant
+        const canonHue = (h + 45/360) % 1;
+        const canonSat = Math.min(1, s * 1.3); // Boost saturation
+        const canonLight = isDark ? Math.min(0.65, l + 0.2) : Math.max(0.4, l - 0.1);
+        const canonRgb = hslToRgb(canonHue, canonSat, canonLight);
+        const canonHex = `#${canonRgb.map(v => v.toString(16).padStart(2, '0')).join('')}`;
+        
+        // Lore: shift hue by -50 degrees (cooler complement)
+        // Adjust for good contrast and vibrancy
+        const loreHue = (h - 50/360 + 1) % 1;
+        const loreSat = Math.min(1, s * 1.25); // Boost saturation
+        const loreLight = isDark ? Math.min(0.6, l + 0.15) : Math.max(0.45, l - 0.05);
+        const loreRgb = hslToRgb(loreHue, loreSat, loreLight);
+        const loreHex = `#${loreRgb.map(v => v.toString(16).padStart(2, '0')).join('')}`;
+        
+        return { canon: canonHex, lore: loreHex };
     }
 
     getTimeAgo(timestamp) {

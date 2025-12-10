@@ -69,14 +69,9 @@
     }
 }
 
-/* Center vertically when screen is tall enough */
+/* Remove vertical centering - profile should stay at top */
 @media (min-height: 900px) {
-    #profile-container {
-        margin-top: auto;
-        margin-bottom: auto;
-    }
-    
-    /* Remove vertical centering - use standard top spacing from main page */
+    /* Profile stays at top, no vertical centering */
 }
 
 /* Row 1: Avatar and Identity side by side */
@@ -231,7 +226,7 @@
     background: transparent;
     border: 1.5px solid #d0c7f0;
     padding: 4px 12px;
-    border-radius: 3px;
+    border-radius: 0;
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -266,6 +261,187 @@
 .profile-contribution-face {
     min-height: 200px;
     overflow-y: visible;
+}
+
+/* History rows styling - compact and contained */
+.profile-events-content {
+    overflow: hidden;
+}
+
+.profile-events-content .row-entry {
+    padding: 4px 0 4px 4px;
+    min-height: 26px;
+    font-size: 0.95em;
+    line-height: 1.2;
+}
+
+.profile-events-content .row-entry .cell {
+    padding: 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Adjust column widths for profile view */
+.profile-events-content .row-entry .cell.epoch {
+    flex: 0 0 85px;
+    max-width: 85px;
+    min-width: 85px;
+    font-size: 0.75em;
+}
+
+.profile-events-content .row-entry .cell.type {
+    flex: 0 0 50px;
+    max-width: 50px;
+    min-width: 50px;
+    font-size: 0.75em;
+    margin-left: 0px;
+}
+
+.profile-events-content .row-entry .cell.avatar {
+    flex: 0 0 18px;
+    max-width: 18px;
+    min-width: 18px;
+    margin-left: 2px;
+}
+
+.profile-events-content .row-entry .cell.canon {
+    flex: 1 1 400px;
+    max-width: none;
+    min-width: 250px;
+    font-size: 0.85em;
+    overflow: hidden;
+}
+
+.profile-events-content .row-entry .cell.key {
+    flex: 0 0 95px;
+    max-width: 95px;
+    min-width: 95px;
+    font-size: 0.75em;
+    margin-left: 0px;
+    overflow: visible;
+}
+
+.profile-events-content .row-entry .cell.uri {
+    flex: 0 0 70px;
+    max-width: 70px;
+    min-width: 70px;
+    font-size: 0.75em;
+}
+
+/* Reaction styling - parent row appears above, reactive row below with indent */
+.profile-events-content .reaction-parent-row {
+    /* Normal styling for the post being reacted to */
+}
+
+.profile-events-content .reaction-row {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-left: 2px solid var(--text-dim);
+    margin-left: 4px;
+}
+
+.profile-events-content .reaction-row .cell.avatar {
+    position: relative;
+}
+
+.profile-events-content .reaction-row .cell.avatar::before {
+    content: '↳';
+    position: absolute;
+    left: -6px;
+    color: var(--primary);
+    font-size: 1em;
+    margin-right: 2px;
+}
+
+/* Dream row styling - similar to canon but with dream-specific colors */
+.profile-events-content .row-entry.dream-row {
+    background: linear-gradient(
+        to right,
+        rgba(var(--dream-color-rgb), 0.20) 0%,
+        rgba(var(--dream-color-rgb), 0.12) 30%,
+        rgba(var(--dream-color-rgb), 0.06) 70%,
+        rgba(var(--dream-color-rgb), 0.02) 100%
+    ) !important;
+    border-left: 3px solid var(--dream-color) !important;
+    border-top: 1px solid rgba(var(--dream-color-rgb), 0.25) !important;
+    border-bottom: 1px solid rgba(var(--dream-color-rgb), 0.25) !important;
+    box-shadow: inset 0 0 6px rgba(var(--dream-color-rgb), 0.12), 
+                0 1px 2px rgba(var(--dream-color-rgb), 0.15);
+}
+
+.profile-events-content .row-entry.dream-row:hover {
+    background: linear-gradient(
+        to right,
+        rgba(var(--dream-color-rgb), 0.30) 0%,
+        rgba(var(--dream-color-rgb), 0.18) 30%,
+        rgba(var(--dream-color-rgb), 0.09) 70%,
+        rgba(var(--dream-color-rgb), 0.03) 100%
+    ) !important;
+    box-shadow: inset 0 0 10px rgba(var(--dream-color-rgb), 0.18),
+                0 2px 3px rgba(var(--dream-color-rgb), 0.2);
+}
+
+.profile-events-content .row-entry.dream-row .cell {
+    color: var(--dream-color) !important;
+}
+
+.profile-events-content .row-entry.dream-row .cell.type,
+.profile-events-content .row-entry.dream-row .cell.key {
+    font-weight: 600;
+    text-shadow: 0 0 1px rgba(var(--dream-color-rgb), 0.3);
+}
+
+/* Dream-specific styles */
+.profile-events-content .row-entry.dream-flawed {
+    --dream-color: #8b4789;
+    --dream-color-rgb: 139, 71, 137;
+}
+
+/* Ensure snake-word animation persists in profile */
+.profile-events-content .snake-word {
+    display: inline-block;
+    animation: snakeCharm 6s ease-in-out infinite;
+    transform-origin: center center;
+    vertical-align: baseline;
+    margin: 0 0.15em 0 0;
+    white-space: nowrap;
+}
+
+.profile-events-content .color-souvenir.souvenir-strange.intensity-special .snake-word {
+    animation: snakeCharmIntense 3.5s ease-in-out infinite;
+}
+
+@keyframes snakeCharm {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    25% {
+        transform: translateY(-2px) rotate(1.5deg) scale(1.01);
+    }
+    50% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    75% {
+        transform: translateY(-2px) rotate(-1.5deg) scale(1.01);
+    }
+}
+
+@keyframes snakeCharmIntense {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        text-shadow: 0 0 0 transparent;
+    }
+    20% {
+        transform: translateY(-3px) rotate(2deg) scale(1.02);
+        text-shadow: 0 1px 3px rgba(123, 90, 158, 0.3);
+    }
+    50% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        text-shadow: 0 0 0 transparent;
+    }
+    70% {
+        transform: translateY(-3px) rotate(-2deg) scale(1.02);
+        text-shadow: 0 1px 3px rgba(176, 143, 217, 0.3);
+    }
 }
 
 /* Identity Compact Layout */
@@ -562,7 +738,7 @@
     min-height: 336px;
     background: #fdfcfe;
     border: 2px solid #e8e6f5;
-    border-radius: 4px;
+    border-radius: 0;
     position: relative;
     overflow: hidden;
 }
@@ -794,7 +970,7 @@
     height: 336px;
     background: #fdfcfe;
     border: 2px solid #e8e6f5;
-    border-radius: 4px;
+    border-radius: 0;
     position: relative;
     overflow: hidden;
     display: flex;
@@ -814,9 +990,8 @@
     left: 12px;
     background: rgba(255, 255, 255, 0.98);
     border: 2px solid #734ba1;
-    border-radius: 4px;
+    border-radius: 0;
     padding: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     pointer-events: auto;
     z-index: 10;
 }
@@ -845,9 +1020,9 @@
     height: 36px;
     padding: 8px;
     background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(115, 75, 161, 0.3);
-    border-radius: 4px;
-    color: #734ba1;
+    border: 2px solid rgba(var(--profile-color-rgb, 115, 75, 161), 0.3);
+    border-radius: 0;
+    color: var(--profile-color, var(--user-color, #734ba1));
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -859,9 +1034,9 @@
 
 .spectrum-face-btn:hover {
     background: rgba(255, 255, 255, 1);
-    border-color: #734ba1;
+    border-color: var(--profile-color, var(--user-color, #734ba1));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.3);
+    box-shadow: 0 4px 12px rgba(var(--profile-color-rgb, 115, 75, 161), 0.3);
 }
 
 .spectrum-face-btn:active {
@@ -886,7 +1061,7 @@
     right: 12px;
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid #734ba1;
-    border-radius: 4px;
+    border-radius: 0;
     padding: 8px;
     font-size: 0.7rem;
     max-width: 140px;
@@ -2271,29 +2446,26 @@
 }
 
 .activity-badge-overlay {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    padding: 6px 14px;
-    font-size: 11px;
+    padding: 4px 10px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-radius: 0;
-    backdrop-filter: blur(4px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid;
+    flex-shrink: 0;
 }
 
 .activity-badge-overlay.badge-canon {
     background: rgba(115, 75, 161, 0.95);
     color: white;
-    border: 1px solid rgba(115, 75, 161, 1);
+    border-color: rgba(115, 75, 161, 1);
 }
 
 .activity-badge-overlay.badge-lore {
     background: rgba(59, 130, 246, 0.95);
     color: white;
-    border: 1px solid rgba(59, 130, 246, 1);
+    border-color: rgba(59, 130, 246, 1);
 }
 
 .activity-badge-inline {
@@ -2361,10 +2533,11 @@
     opacity: 0.8;
 }
 
-/* Activity Info Overlay */
-.activity-info-overlay {
+/* Activity Info Overlay - attached to content bottom */
+.activity-text-content .activity-info-overlay,
+.activity-image-container .activity-info-overlay {
     position: absolute;
-    bottom: 0;
+    bottom: -2px;
     left: -2px;
     right: -2px;
     background: var(--user-color, var(--reverie-core-color, #734ba1));
@@ -2376,10 +2549,27 @@
     border: 2px solid var(--user-color, var(--reverie-core-color, #734ba1));
 }
 
+/* Center text-only posts vertically and horizontally */
+.activity-text-content.activity-text-only-centered {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Style for empty activity text */
+.activity-text.activity-text-empty {
+    font-size: 1.1rem;
+    font-style: italic;
+    color: #999;
+    text-align: center;
+}
+
 .activity-overlay-content {
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
+    justify-content: space-between;
 }
 
 .activity-overlay-content > * {
