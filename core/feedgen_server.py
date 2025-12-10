@@ -21,6 +21,10 @@ from core.feedgen import FeedGenerator
 from core.rate_limiter import PersistentRateLimiter
 
 app = Flask(__name__)
+
+# Configure Flask to preserve UTF-8 characters (emoji) in JSON responses
+app.config['JSON_AS_ASCII'] = False
+
 generator = FeedGenerator()
 rate_limiter = PersistentRateLimiter()
 
