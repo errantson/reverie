@@ -43,7 +43,9 @@ class ShowPost {
         // Create shadowbox
         this.shadowbox = new Shadowbox({
             showCloseButton: true,
-            onClose: () => this.cleanup()
+            onClose: () => {
+                this.cleanup();
+            }
         });
         this.shadowbox.create();
 
@@ -532,14 +534,6 @@ window.ShowPost = ShowPost;
 
 // Helper function for easy access
 window.showPost = function(uriOrUrl) {
-    console.log('[ShowPost] Global function called with:', {
-        type: typeof uriOrUrl,
-        value: uriOrUrl,
-        isEvent: uriOrUrl instanceof Event,
-        constructor: uriOrUrl?.constructor?.name,
-        keys: typeof uriOrUrl === 'object' ? Object.keys(uriOrUrl || {}).slice(0, 10) : null
-    });
-    
     // Handle event object being passed (from inline onclick)
     if (uriOrUrl instanceof Event || (typeof uriOrUrl === 'object' && uriOrUrl?.target)) {
         console.error('[ShowPost] Event object passed instead of URL - this is a bug in the onclick handler');

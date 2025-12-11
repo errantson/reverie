@@ -6,17 +6,17 @@
  */
 
 :root {
-    /* Greeter - Blue tones (welcoming, calm) */
-    --role-greeter: rgb(60, 120, 200);
-    --role-greeter-light: rgba(60, 120, 200, 0.05);
-    --role-greeter-medium: rgba(60, 120, 200, 0.15);
-    --role-greeter-dark: rgb(45, 90, 150);
+    /* Greeter - Calm cyan tones (welcoming, serene) */
+    --role-greeter: rgb(60, 160, 180);
+    --role-greeter-light: rgba(60, 160, 180, 0.12);
+    --role-greeter-medium: rgba(60, 160, 180, 0.25);
+    --role-greeter-dark: rgb(40, 120, 140);
     
-    /* Mapper - Green tones (exploration, coordinates) */
-    --role-mapper: rgb(45, 140, 100);
-    --role-mapper-light: rgba(45, 140, 100, 0.05);
-    --role-mapper-medium: rgba(45, 140, 100, 0.15);
-    --role-mapper-dark: rgb(30, 95, 70);
+    /* Mapper - Natural lime tones (exploration, growth) */
+    --role-mapper: rgb(120, 180, 70);
+    --role-mapper-light: rgba(120, 180, 70, 0.12);
+    --role-mapper-medium: rgba(120, 180, 70, 0.25);
+    --role-mapper-dark: rgb(85, 140, 50);
     
     /* Cogitarian - Orange-red tones (wisdom, knowledge) */
     --role-cogitarian: rgb(210, 95, 50);

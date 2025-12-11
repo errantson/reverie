@@ -27,160 +27,190 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/widgets/header.css">
     <link rel="stylesheet" href="css/pages/database.css">
-    <link rel="stylesheet" href="css/pages/canon.css">
     <link rel="stylesheet" href="css/roles.css">
     <link rel="stylesheet" href="css/octants.css">
     <link rel="stylesheet" href="css/color-rows.css">
-    <link rel="stylesheet" href="css/others.css">
     <link rel="stylesheet" href="css/souvenirs.css">
-    <link rel="stylesheet" href="css/widgets/login.css">
-    <link rel="stylesheet" href="css/widgets/createdreamer.css">
-    <link rel="stylesheet" href="css/widgets/dialogue.css">
-    <link rel="stylesheet" href="css/widgets/spectrum-timeline.css">
-    <link rel="stylesheet" href="css/widgets/world.css">
-    <link rel="stylesheet" href="css/widgets/dreamer-hover.css">
-    <link rel="stylesheet" href="css/widgets/profile.css">
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
     <!-- Core utilities (must load first) -->
-    <script src="js/core/world-config-cache.js"></script>
     <script src="js/core/color-manager.js"></script>
+    <script src="js/core/rowstyle-registry.js"></script>
+    <script src="js/core/rowstyle-engine.js"></script>
     <script src="js/utils/shadowbox.js"></script>
     <script src="js/widgets/showpost.js"></script>
-    <script type="module" src="js/utils/octant.js"></script>
     <script src="js/widgets/header.js" defer></script>
-    <script type="module" src="js/widgets/oauth-manager.js"></script>
-    <script src="js/widgets/login.js" defer></script>
-    <script src="js/widgets/createdreamer.js" defer></script>
-    <script src="js/widgets/dreamer-hover.js" defer></script>
-    <script src="js/widgets/world.js" defer></script>
     <script src="js/widgets/drawer.js" defer></script>
-    <script src="/js/widgets/konami.js" defer></script>
 </head>
 <body>
     <div id="header-container"></div>
     
-    <div class="page-header" style="justify-content: flex-start; gap: 10px;">
-        <div class="search-box">
-            <input type="text" id="search" placeholder="Search...">
-            <span class="search-icon">🔍</span>
-        </div>
-        <button class="btn btn-secondary" onclick="loadAllData()">
-            🔄 Refresh
-        </button>
-        <button class="btn btn-secondary" onclick="exportData()">
-            💾 Export
-        </button>
-        <div style="margin-left:auto; display:flex; align-items:center; gap:8px; color:var(--text-dim); font-size:0.7em;">
-                <span>reverie.house</span>
-                <span id="last-updated">--</span>
-                <span id="total-records">0</span> records
+    <div class="database-layout">
+        <div class="database-left-column">
+            <div class="left-column-section mindscape-section" style="border-bottom: none;">
+                <div class="section-title" style="text-align: center; border-bottom: none; margin-bottom: 12px; font-size: 1.1em; letter-spacing: 1px;">OUR WILD MINDSCAPE</div>
+                <div class="mindscape-stat-box large">
+                    <div class="mindscape-stat-count" id="idle-dreamers-count">---</div>
+                    <div class="mindscape-stat-label">Idle Dreamers</div>
+                </div>
+                <div class="mindscape-stats-row">
+                    <div class="mindscape-stat-box">
+                        <div class="mindscape-stat-count" id="dreamweavers-count">---</div>
+                        <div class="mindscape-stat-label">Dreamweavers</div>
+                    </div>
+                    <div class="mindscape-stat-box">
+                        <div class="mindscape-stat-count" id="residents-count">---</div>
+                        <div class="mindscape-stat-label">Residents</div>
+                    </div>
+                </div>
             </div>
-    </div>
-
-    <div class="table-tabs" id="table-selector">
-        <!-- Table buttons will be populated here -->
-    </div>
-    
-    <!-- Removed schema-info block, schema info now in page-header -->
-
-    <div class="table-header">
-        <div class="table-title" id="current-table-title">Dreamers</div>
-        <div class="table-count" id="current-table-count">0 rows</div>
-    </div>
-
-    <div id="rows-container">
-        <!-- Rows will be displayed here -->
+            
+            <div class="left-column-section">
+                <div class="stat-item">
+                    <span class="stat-label">Total Events</span>
+                    <span class="stat-value" id="stat-events">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Canon Events</span>
+                    <span class="stat-value" id="stat-canon">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Lore Events</span>
+                    <span class="stat-value" id="stat-lore">0</span>
+                </div>
+                <div style="border-top: 1px solid var(--border); margin: 12px 0;"></div>
+                <div class="stat-item">
+                    <span class="stat-label">Souvenirs</span>
+                    <span class="stat-value" id="stat-souvenirs">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Dreams</span>
+                    <span class="stat-value" id="stat-dreams">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Workers</span>
+                    <span class="stat-value" id="stat-workers">0</span>
+                </div>
+                <div style="border-top: 1px solid var(--border); margin: 12px 0;"></div>
+            </div>
+            
+            <div class="left-column-section">
+                <div class="stat-item">
+                    <span class="stat-label">Dream Storage</span>
+                    <span class="operations-status">
+                        <span class="operations-text" id="ops-pds-text">---</span>
+                        <div class="operations-light" id="ops-pds-light"></div>
+                    </span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Dreamer Routing</span>
+                    <span class="operations-status">
+                        <span class="operations-text" id="ops-caddy-text">---</span>
+                        <div class="operations-light" id="ops-caddy-light"></div>
+                    </span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Dreaming Monitor</span>
+                    <span class="operations-status">
+                        <span class="operations-text" id="ops-firehose-text">---</span>
+                        <div class="operations-light" id="ops-firehose-light"></div>
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="database-main-content">
+            <div class="page-header-fixed">
+                <button class="db-btn" onclick="resetFilters()" title="Reset filters and refresh" style="padding:6px 8px;">
+                    <svg class="db-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px;">
+                        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                </button>
+                <select id="filter-type" onchange="applyFilters()" class="db-filter-dropdown">
+                    <option value="all">All Events</option>
+                    <optgroup label="Arrivals & Departures">
+                        <option value="type:arrival">Arrivals</option>
+                        <option value="key:dissipate">Departed</option>
+                    </optgroup>
+                    <optgroup label="Canon Events">
+                        <option value="key:canon">Canon Events</option>
+                        <option value="type:dream">Dreams</option>
+                        <option value="type:nightmare">Nightmares</option>
+                    </optgroup>
+                    <optgroup label="Achievements">
+                        <option value="type:souvenir">Souvenirs</option>
+                        <option value="type:order">Orders</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option value="type:work">Workers</option>
+                        <option value="type:name">Name Changes</option>
+                    </optgroup>
+                </select>
+                <input type="text" id="search" placeholder="Search database..." class="db-search-input" oninput="applyFilters()">
+                <div id="current-epoch" style="margin-left: auto; font-family: monospace; font-size: 0.95em; font-weight: 700; color: #9ca3af; letter-spacing: -1px; white-space: nowrap;">---</div>
+            </div>
+            
+            <div id="rows-container">
+                <!-- Rows will be displayed here -->
+            </div>
+        </div>
     </div>
 
     <script>
-        // Database state
-        let currentTable = null;
-        let allData = {};
-        let filteredData = {};
-        let dreamerHoverWidget = null;
+        // Debug function to log row positioning and column alignment
+        function logRowPositions(label) {
+            console.log(`🔍 [Database] ${label} - Row positions:`);
+            const rows = document.querySelectorAll('#rows-container .row-entry');
+            rows.forEach((row, idx) => {
+                const rect = row.getBoundingClientRect();
+                const cells = row.querySelectorAll('.cell');
+                const cellPositions = Array.from(cells).map((cell, cellIdx) => ({
+                    class: cell.className,
+                    left: cell.offsetLeft,
+                    width: cell.offsetWidth,
+                    text: cell.textContent.substring(0, 20) + (cell.textContent.length > 20 ? '...' : '')
+                }));
+
+                console.log(`  Row ${idx}:`, {
+                    classes: row.className,
+                    top: rect.top,
+                    left: rect.left,
+                    width: rect.width,
+                    height: rect.height,
+                    cells: cellPositions
+                });
+            });
+        }
+
+        // Make logging function globally available
+        window.logRowPositions = logRowPositions;
         
-        // Table configurations
+        // Table configuration - simplified to only support events (history)
         const tableConfig = {
             events: {
                 title: 'History',
                 icon: '📜',
-                // epoch, type, avatar, canon (name + event unified), key, uri
                 columns: ['epoch', 'type', 'avatar', 'canon', 'key', 'uri'],
                 searchFields: ['name', 'event', 'uri', 'type', 'key']
-            },
-            dreamers: {
-                title: 'Dreamers',
-                icon: '🧙‍♂️',
-                // avatar, name, handle, souvenirs, spectrum, arrival, did
-                columns: ['avatar', 'name', 'handle', 'souvenirs', 'spectrum', 'arrival', 'did'],
-                searchFields: ['name', 'handle', 'did']
-            },
-            souvenirs: {
-                title: 'Souvenirs',
-                icon: '🫧',
-                // icon, key, name, category, keepers count, description
-                columns: ['icon', 'key', 'name', 'category', 'keepers', 'description'],
-                searchFields: ['name', 'category', 'description', 'key']
-            },
-            library: {
-                title: 'Library',
-                icon: '📚',
-                // unified books/chapters display with header rows
-                columns: ['cover', 'title', 'author', 'pages', 'release', 'epub'],
-                searchFields: ['title', 'author', 'chapter_title']
-            },
-            spectrum_snapshots: {
-                title: 'Spectrum',
-                icon: '🌌',
-                hidden: true,  // Hide this tab from the UI
-                // id, epoch, operation, dreamers, avg distance, distance traveled
-                columns: ['id', 'epoch', 'operation', 'dreamer_count', 'avg_distance_from_origin', 'total_distance_traveled'],
-                searchFields: ['operation']
-            },
-            mindscape: {
-                title: 'Mindscape',
-                icon: '🌳',
-                hidden: true,  // Hide this tab from the UI
-                columns: [],
-                searchFields: []
             }
         };
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            renderTableSelector();
+            // Initialize RowStyleEngine
+            if (!window.rowStyleEngine) {
+                window.rowStyleEngine = new RowStyleEngine();
+            }
+            
             setupSearch();
             
-            // Restore last selected table from sessionStorage
-            let savedTable = sessionStorage.getItem('databaseCurrentTable');
-            
-            // Migrate old table names
-            if (savedTable === 'canon') savedTable = 'events';
-            if (savedTable === 'library_books') savedTable = 'library';
-            
-            // On mobile, switch from spectrum to events (or dreamers if spectrum was saved)
-            if (window.innerWidth <= 768 && savedTable === 'spectrum_snapshots') {
-                savedTable = 'events';
-            }
-            
-            // Default to events if no saved table or if table doesn't exist in config
-            if (!savedTable || !tableConfig[savedTable]) {
-                savedTable = 'events';
-            }
-            
-            // Load data first, then select table
+            // Load data and render events table
             await loadAllData();
-            
-            if (savedTable && tableConfig[savedTable]) {
-                selectTable(savedTable);
-            }
-        });
-        
-        // Reload data when page becomes visible (fixes tab switching issue)
+            renderTable('events');
+        });        // Reload data when page becomes visible (fixes tab switching issue)
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && currentTable) {
-                // Page is now visible, reload data but keep current table selection
-                const savedTable = currentTable; // Save current selection
+            if (!document.hidden) {
+                console.log('🔍 [Database] Page became visible, reloading data');
+                // Page is now visible, reload data
                 fetch('/api/database/all')
                     .then(r => r.json())
                     .then(data => {
@@ -189,12 +219,108 @@
                         const stats = data.stats || {};
                         const total = Object.values(stats).reduce((sum, count) => sum + count, 0);
                         document.getElementById('total-records').textContent = total.toLocaleString();
-                        // Restore the saved table selection instead of defaulting to dreamers
-                        renderTable(savedTable);
+                        renderTable('events');
                     })
                     .catch(err => console.error('Error reloading data:', err));
             }
         });
+
+        // Idle dreamers fetcher with caching
+        async function fetchIdleDreamers() {
+            const CACHE_KEY = 'reverie_idle_dreamers';
+            const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+            
+            // Check localStorage cache
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (Date.now() - data.timestamp < CACHE_TTL) {
+                        console.log('📊 Using cached idle dreamers:', data.count);
+                        return data.count;
+                    }
+                }
+            } catch (err) {
+                console.warn('Cache read error:', err);
+            }
+            
+            // Fetch fresh data via our proxy endpoint
+            try {
+                const response = await fetch('/api/bsky-stats', {
+                    signal: AbortSignal.timeout(5000) // 5 second timeout
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const count = data.last_user_count;
+                
+                if (count && typeof count === 'number') {
+                    // Cache the result
+                    try {
+                        localStorage.setItem(CACHE_KEY, JSON.stringify({
+                            count: count,
+                            timestamp: Date.now()
+                        }));
+                    } catch (err) {
+                        console.warn('Cache write error:', err);
+                    }
+                    
+                    console.log('📊 Fetched fresh idle dreamers:', count);
+                    return count;
+                }
+            } catch (err) {
+                console.error('Error fetching idle dreamers:', err);
+            }
+            
+            return null;
+        }
+
+        function updateCurrentEpoch() {
+            const currentEpoch = Math.floor(Date.now() / 1000);
+            const epochElement = document.getElementById('current-epoch');
+            if (epochElement) {
+                epochElement.textContent = currentEpoch;
+            }
+        }
+
+        // Update epoch every second
+        setInterval(updateCurrentEpoch, 1000);
+
+        async function fetchOperationsStatus() {
+            try {
+                const response = await fetch('/api/operations-status');
+                const status = await response.json();
+                
+                // Update PDS
+                const pdsText = document.getElementById('ops-pds-text');
+                const pdsLight = document.getElementById('ops-pds-light');
+                if (pdsText && pdsLight) {
+                    pdsText.textContent = status.pds?.active ? '(active)' : '(felled)';
+                    pdsLight.className = 'operations-light ' + (status.pds?.active ? 'active' : 'inactive');
+                }
+                
+                // Update Caddy
+                const caddyText = document.getElementById('ops-caddy-text');
+                const caddyLight = document.getElementById('ops-caddy-light');
+                if (caddyText && caddyLight) {
+                    caddyText.textContent = status.caddy?.active ? '(active)' : '(felled)';
+                    caddyLight.className = 'operations-light ' + (status.caddy?.active ? 'active' : 'inactive');
+                }
+                
+                // Update Firehose
+                const firehoseText = document.getElementById('ops-firehose-text');
+                const firehoseLight = document.getElementById('ops-firehose-light');
+                if (firehoseText && firehoseLight) {
+                    firehoseText.textContent = status.firehose?.active ? '(active)' : '(felled)';
+                    firehoseLight.className = 'operations-light ' + (status.firehose?.active ? 'active' : 'inactive');
+                }
+            } catch (error) {
+                console.warn('Could not fetch operations status:', error);
+            }
+        }
 
         async function loadAllData() {
             try {
@@ -202,6 +328,30 @@
                 const data = await response.json();
                 
                 allData = data.tables || {};
+                
+                // Fetch idle dreamers directly from external API with caching
+                const idleDreamers = await fetchIdleDreamers();
+                const idleElement = document.getElementById('idle-dreamers-count');
+                if (idleDreamers && idleElement) {
+                    idleElement.textContent = idleDreamers.toLocaleString();
+                } else if (idleElement) {
+                    idleElement.textContent = '???';
+                }
+                
+                // Update dreamweavers count (total users)
+                const dreamweaversElement = document.getElementById('dreamweavers-count');
+                if (dreamweaversElement && allData.dreamers) {
+                    dreamweaversElement.textContent = allData.dreamers.length.toLocaleString();
+                }
+                
+                // Update residents count (reverie.house server users)
+                const residentsElement = document.getElementById('residents-count');
+                if (residentsElement && allData.dreamers) {
+                    const residents = allData.dreamers.filter(d => 
+                        d.server && d.server.includes('reverie.house')
+                    ).length;
+                    residentsElement.textContent = residents.toLocaleString();
+                }
                 
                 // Enrich dreamers with souvenirs from awards table
                 if (allData.dreamers && allData.awards) {
@@ -238,257 +388,56 @@
                     console.log('💫 Enrichment complete');
                 }
                 
-                // Initialize dreamer hover widget after loading dreamers
-                if (allData.dreamers && typeof DreamerHoverWidget !== 'undefined') {
-                    dreamerHoverWidget = new DreamerHoverWidget(allData.dreamers);
-                    dreamerHoverWidget.init();
-                    console.log('✅ Dreamer hover widget initialized in database');
-                }
+                // Update current epoch (unix timestamp) and keep it live
+                updateCurrentEpoch();
                 
-                // Process library data: flatten books and chapters into rows with headers
-                if (allData.books && allData.chapters) {
-                    allData.library = [];
-                    
-                    // Sort books by release date (null/unreleased last)
-                    const sortedBooks = [...allData.books].sort((a, b) => {
-                        if (!a.release && !b.release) return 0;
-                        if (!a.release) return 1;
-                        if (!b.release) return -1;
-                        return a.release - b.release;
-                    });
-                    
-                    sortedBooks.forEach(book => {
-                        const bookChapters = allData.chapters
-                            .filter(ch => ch.book_id === book.id)
-                            .sort((a, b) => (a.chapter_order || 0) - (b.chapter_order || 0));
-                        
-                        // Add book data row (header row removed)
-                        allData.library.push({
-                            type: 'book',
-                            id: book.id,
-                            title: book.title,
-                            author: book.author,
-                            pages: book.pages,
-                            release: book.release,
-                            cover: book.cover,
-                            epub: book.epub,
-                            chapters_count: bookChapters.length
-                        });
-                        
-                        // Add chapter rows
-                        bookChapters.forEach((chapter, idx) => {
-                            allData.library.push({
-                                type: 'chapter',
-                                book_id: book.id,
-                                book_title: book.title,
-                                title: chapter.title,
-                                chapter_order: chapter.chapter_order || (idx + 1),
-                                chapter_file: chapter.file,
-                                author: null,
-                                pages: null,
-                                release: null,
-                                cover: null,
-                                epub: null
-                            });
-                        });
-                    });
-                }
-                
-                document.getElementById('last-updated').textContent = new Date().toLocaleString();
-                
-                // Calculate total records
+                // Update left column statistics
                 const stats = data.stats || {};
-                const total = Object.values(stats).reduce((sum, count) => sum + count, 0);
-                document.getElementById('total-records').textContent = total.toLocaleString();
+                document.getElementById('stat-events').textContent = (stats.events || 0).toLocaleString();
+                
+                // Calculate additional statistics from events data
+                if (allData.events) {
+                    const canonCount = allData.events.filter(e => e.canon === 1 || e.key === 'canon').length;
+                    const loreCount = allData.events.filter(e => e.type === 'lore').length;
+                    const souvenirCount = allData.events.filter(e => e.type === 'souvenir').length;
+                    
+                    // Count unique dream keys (not total dream events)
+                    const uniqueDreamKeys = new Set();
+                    allData.events.forEach(e => {
+                        if (e.type === 'dream' && e.key) {
+                            uniqueDreamKeys.add(e.key);
+                        }
+                    });
+                    const dreamCount = uniqueDreamKeys.size;
+                    
+                    document.getElementById('stat-canon').textContent = canonCount.toLocaleString();
+                    document.getElementById('stat-lore').textContent = loreCount.toLocaleString();
+                    document.getElementById('stat-souvenirs').textContent = souvenirCount.toLocaleString();
+                    document.getElementById('stat-dreams').textContent = dreamCount.toLocaleString();
+                }
+                
+                // Count active workers (working + retiring status)
+                if (allData.dreamers) {
+                    const activeWorkers = allData.dreamers.filter(d => 
+                        d.status === 'working' || d.status === 'retiring'
+                    ).length;
+                    document.getElementById('stat-workers').textContent = activeWorkers.toLocaleString();
+                }
+                
+                // Fetch and update operations status
+                fetchOperationsStatus();
                 
                 // Note: Table selection is now handled in DOMContentLoaded after await
                 
             } catch (error) {
                 console.error('Error loading data:', error);
                 showError('Unable to connect to database API.');
-                document.getElementById('total-records').textContent = '0';
             }
-        }
-        
-        async function viewSnapshotDetails(snapshotId) {
-            try {
-                const response = await fetch(`/api/database/snapshot/${snapshotId}`);
-                const snapshot = await response.json();
-                
-                if (!snapshot || !snapshot.data) {
-                    alert('Snapshot not found');
-                    return;
-                }
-                
-                const data = snapshot.data;
-                const stats = data.statistics || {};
-                
-                // Create modal content
-                const modal = document.createElement('div');
-                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
-                
-                const modalContent = document.createElement('div');
-                modalContent.style.cssText = 'background: white; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow: auto; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);';
-                
-                const timestamp = new Date(snapshot.epoch * 1000).toLocaleString();
-                const dreamerCount = data.total_dreamers || 0;
-                
-                modalContent.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
-                        <div>
-                            <h2 style="color: var(--primary); margin: 0 0 10px 0;">Spectrum Snapshot #${snapshotId}</h2>
-                            <div style="color: #666; font-size: 0.9rem;">
-                                <div><strong>Time:</strong> ${timestamp}</div>
-                                <div><strong>Operation:</strong> ${snapshot.operation}</div>
-                                <div><strong>Dreamers:</strong> ${dreamerCount} (${data.dreamers_with_spectrum} with spectrum)</div>
-                                <div><strong>Avg Distance from Origin:</strong> ${stats.avg_distance_from_origin || 0}</div>
-                                <div><strong>Total Distance Traveled:</strong> ${stats.total_distance_traveled || 0}</div>
-                            </div>
-                        </div>
-                        <button onclick="this.closest('[style*=fixed]').remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">Close</button>
-                    </div>
-                    
-                    <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; overflow: auto; max-height: 60vh;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                            <thead>
-                                <tr style="background: #e9ecef; font-weight: 600;">
-                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">Name</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Heading</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">X</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Y</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Z</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Dist</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">E</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">O</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">L</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">A</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">R</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">S</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.dreamers.map((d, idx) => {
-                                    const coords = d.coordinates || {};
-                                    const spectrum = d.spectrum || {};
-                                    const dist = d.distance_from_origin !== null ? d.distance_from_origin.toFixed(2) : '—';
-                                    return `
-                                    <tr style="border-bottom: 1px solid #dee2e6; ${idx % 2 === 0 ? 'background: white;' : ''}">
-                                        <td style="padding: 8px;">${d.name || '—'}</td>
-                                        <td style="padding: 8px; text-align: center; font-family: monospace; font-size: 0.75rem;">${d.heading || 'none'}</td>
-                                        <td style="padding: 8px; text-align: center; font-family: monospace;">${coords.x !== undefined ? coords.x.toFixed(1) : '—'}</td>
-                                        <td style="padding: 8px; text-align: center; font-family: monospace;">${coords.y !== undefined ? coords.y.toFixed(1) : '—'}</td>
-                                        <td style="padding: 8px; text-align: center; font-family: monospace;">${coords.z !== undefined ? coords.z.toFixed(1) : '—'}</td>
-                                        <td style="padding: 8px; text-align: center; font-family: monospace; font-weight: 600; color: var(--primary);">${dist}</td>
-                                        <td style="padding: 8px; text-align: center;">${spectrum.entropy !== undefined ? spectrum.entropy : '—'}</td>
-                                        <td style="padding: 8px; text-align: center;">${spectrum.oblivion !== undefined ? spectrum.oblivion : '—'}</td>
-                                        <td style="padding: 8px; text-align: center;">${spectrum.liberty !== undefined ? spectrum.liberty : '—'}</td>
-                                        <td style="padding: 8px; text-align: center;">${spectrum.authority !== undefined ? spectrum.authority : '—'}</td>
-                                        <td style="padding: 8px; text-align: center;">${spectrum.receptive !== undefined ? spectrum.receptive : '—'}</td>
-                                        <td style="padding: 8px; text-align: center;">${spectrum.skeptic !== undefined ? spectrum.skeptic : '—'}</td>
-                                    </tr>
-                                `}).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                
-                modal.appendChild(modalContent);
-                document.body.appendChild(modal);
-                
-                // Close on background click
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.remove();
-                    }
-                });
-                
-            } catch (error) {
-                console.error('Error loading snapshot:', error);
-                alert('Failed to load snapshot details');
-            }
-        }
-
-        function renderTableSelector() {
-            const selector = document.getElementById('table-selector');
-            selector.innerHTML = '';
-            
-            for (const [table, config] of Object.entries(tableConfig)) {
-                // Skip hidden tabs
-                if (config.hidden) continue;
-                
-                const btn = document.createElement('button');
-                btn.className = 'table-btn';
-                btn.innerHTML = `${config.icon} ${config.title}`;
-                btn.onclick = () => selectTable(table);
-                btn.dataset.table = table;
-                selector.appendChild(btn);
-            }
-        }
-
-        function selectTable(tableName) {
-            currentTable = tableName;
-            
-            // Save to sessionStorage for persistence across reloads
-            sessionStorage.setItem('databaseCurrentTable', tableName);
-            
-            // Clean up spectrum viewer when switching away from spectrum_snapshots
-            if (historicalSpectrum && tableName !== 'spectrum_snapshots') {
-                historicalSpectrum.stopAnimation();
-                historicalSpectrum = null;
-            }
-            
-            // Disable search input for spectrum_snapshots and mindscape (but keep visible)
-            const searchInput = document.getElementById('search');
-            if (searchInput) {
-                if (tableName === 'spectrum_snapshots' || tableName === 'mindscape') {
-                    searchInput.disabled = true;
-                    searchInput.value = ''; // Clear search
-                    searchInput.placeholder = tableName === 'spectrum_snapshots' ? 
-                        'Search not available for Spectrum' : 
-                        'Search not available for Mindscape';
-                    searchInput.style.opacity = '0.5';
-                    searchInput.style.cursor = 'not-allowed';
-                } else {
-                    searchInput.disabled = false;
-                    searchInput.placeholder = 'Search...';
-                    searchInput.style.opacity = '1';
-                    searchInput.style.cursor = 'text';
-                }
-            }
-            
-            // Update active button in tabs
-            document.querySelectorAll('.table-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.table === tableName);
-            });
-            
-            renderTable(tableName);
-        }
-
-        function renderTable(tableName) {
+        }        function renderTable(tableName) {
             const config = tableConfig[tableName];
             const data = allData[tableName] || [];
             
-            // Always show table title/count (including for spectrum_snapshots)
-            document.getElementById('current-table-title').textContent = 
-                `${config.icon} ${config.title}`;
-            document.getElementById('current-table-count').textContent = 
-                `${data.length} ${tableName === 'spectrum_snapshots' ? 'snapshots' : 'rows'}`;
-            document.getElementById('current-table-title').style.display = '';
-            document.getElementById('current-table-count').style.display = '';
-            
             const container = document.getElementById('rows-container');
-            
-            // Special rendering for spectrum_snapshots - show historical spectrum viewer
-            if (tableName === 'spectrum_snapshots') {
-                renderHistoricalSpectrum(data, container);
-                return;
-            }
-            
-            // Special rendering for mindscape - show world widget and canon
-            if (tableName === 'mindscape') {
-                renderMindscape(container);
-                return;
-            }
             
             if (data.length === 0) {
                 container.innerHTML = `
@@ -499,104 +448,36 @@
                 return;
             }
             
-            // Build data rows (header removed for cleaner view)
+            // Build data rows
             let html = '';
-            
-            // Helper function for column headers (kept for reference but not displayed)
-            function formatColumnHeader(col, table) {
-                // Special cases
-                if (col === 'avatar') return '';
-                if (col === 'cover') return '';
-                if (col === 'icon') return '🏅';
-                if (col === 'phanera') return '🎨';
-                if (col === 'did') return 'DID';
-                if (col === 'uri') return 'URI';
-                if (col === 'epoch' && table === 'canon') return 'TIME';
-                if (col === 'canon' && table === 'canon') return 'CANON';
-                if (col === 'chapters_count') return 'CHAPTERS';
-                if (col === 'epub') return 'DOWNLOAD';
-                if (col === 'title' && table === 'library') return 'BOOK / CHAPTER';
-                
-                // Dreamers specific headers
-                if (col === 'heading' && table === 'dreamers') return 'HEADING';
-                if (col === 'last_change') return 'LAST CHANGE';
-                
-                // Spectrum snapshots specific headers
-                if (col === 'epoch' && table === 'spectrum_snapshots') return 'TIME';
-                if (col === 'operation' && table === 'spectrum_snapshots') return 'OPERATION';
-                if (col === 'dreamer_count') return 'DREAMERS';
-                if (col === 'avg_distance_from_origin') return 'AVG DIST';
-                if (col === 'total_distance_traveled') return 'ΔTOTAL';
-                
-                // Default: capitalize first letter, replace underscores
-                return col.charAt(0).toUpperCase() + col.slice(1).replace(/_/g, ' ');
-            }
             
             // Build data rows
             data.forEach((row, idx) => {
                 // Filter: reactions are only shown beneath their parent event
                 if (tableName === 'events' && row.reaction_to) return;
                 
-                // Build color system classes for events table
+                // Use RowStyleRegistry to determine base styling for events table
                 let colorSystemClasses = '';
                 let colorSystemStyles = '';
                 
-                if (tableName === 'events') {
-                    const colorSource = row.color_source || 'none';
-                    const colorIntensity = row.color_intensity || 'none';
-                    const key = row.key || '';
+                if (tableName === 'events' && window.rowStyleEngine) {
+                    // Use RowStyleEngine to get both classes and inline styles (including --user-color)
+                    const engineClasses = window.rowStyleEngine.getRowClasses(row);
+                    const engineStyles = window.rowStyleEngine.getRowStyles(row);
                     
-                    // Add key-based class for all events (for direct styling by event type)
-                    if (key) {
-                        colorSystemClasses += ` event-key-${key}`;
+                    // Extract classes excluding 'row-entry' (already in rowClass)
+                    const classesToAdd = engineClasses.split(' ').filter(cls => cls !== 'row-entry' && cls !== '').join(' ');
+                    if (classesToAdd) {
+                        colorSystemClasses += ' ' + classesToAdd;
                     }
                     
-                    // Add color-source class
-                    if (colorSource !== 'none') {
-                        colorSystemClasses += ` color-${colorSource}`;
+                    // Store inline styles (will be added to style attribute later)
+                    if (engineStyles) {
+                        colorSystemStyles = engineStyles;
                     }
                     
-                    // Add intensity class
-                    if (colorIntensity !== 'none') {
-                        colorSystemClasses += ` intensity-${colorIntensity}`;
-                    }
-                    
-                    // Add role-specific class for work events
-                    if (colorSource === 'role' && key) {
-                        colorSystemClasses += ` role-${key}`;
-                    }
-                    
-                    // Add octant class for octant-colored events
-                    if (colorSource === 'octant') {
-                        // Use origin_octant for origin and name events, regular octant for others
-                        const octant = ((key === 'origin' || key === 'name') && row.origin_octant) ? row.origin_octant : row.octant;
-                        if (octant) {
-                            colorSystemClasses += ` octant-${octant}`;
-                        }
-                    }
-                    
-                    // Add souvenir-specific class for bespoke souvenir styling
-                    if (colorSource === 'souvenir' && key) {
-                        colorSystemClasses += ` souvenir-${key}`;
-                    }
-                    
-                    // Add nightmare class for nightmare prepare events
-                    if (key === 'prepare' && row.nightmare) {
-                        colorSystemClasses += ' nightmare-prepare';
-                    }
-                    
-                    // Add reactionary class for welcomed greeter events
-                    if (key === 'greeter' && row.reactionary) {
-                        colorSystemClasses += ' greeter-reactionary';
-                    }
-                    
-                    // Set user color CSS variable for user-colored events
-                    if (colorSource === 'user' && row.color_hex) {
-                        colorSystemStyles = `--user-color: ${row.color_hex};`;
-                    }
-                }
-                
-                // Apply user color styling to canon key rows (legacy - now handled by color system)
+                    console.log('Database row:', row.type, row.key, row.color_source, 'classes:', classesToAdd, 'styles:', engineStyles);
+                }                // Apply user color styling to canon key rows (legacy - now handled by color system)
                 let canonColorVars = '';
                 if (tableName === 'events' && row.key === 'canon' && row.color_hex) {
                     // Convert hex to rgba with multiple opacity levels for gradient
@@ -624,34 +505,40 @@
                                  isCanonRow ? 'row-entry canon-row' :
                                  isDreamRow ? `row-entry dream-row dream-${row.key || 'unknown'}` : 'row-entry';
                 
-                const finalRowClass = rowClass + colorSystemClasses;
+                const finalRowClass = rowClass + colorSystemClasses;                // Determine row click behavior via data attributes (no inline onclick)
+                // This enables clean event delegation without conflicts
+                let rowClickData = {};
                 
                 // Make souvenir rows clickable
-                const souvenirKey = (tableName === 'souvenirs' && row.key) ? row.key : null;
-                let rowOnClick = souvenirKey ? `window.location.href='/souvenirs?key=${encodeURIComponent(souvenirKey)}'` : '';
-                let bskyPostUrl = null;
+                if (tableName === 'souvenirs' && row.key) {
+                    rowClickData.action = 'navigate';
+                    rowClickData.url = `/souvenirs?key=${encodeURIComponent(row.key)}`;
+                }
                 
                 // Make events rows clickable to URL (if exists)
-                if (tableName === 'events' && row.url && !rowOnClick) {
+                if (tableName === 'events' && row.url && !rowClickData.action) {
                     if (row.url.includes('bsky.app')) {
                         // Check if it's a profile URL (arrival events) or post URL
                         if (row.url.includes('/profile/') && !row.url.includes('/post/')) {
                             // Profile URL - navigate to internal dreamer page
                             const didMatch = row.url.match(/profile\/(did:plc:[a-z0-9]+)/);
                             if (didMatch && didMatch[1]) {
-                                rowOnClick = `window.location.href='/dreamer?did=${encodeURIComponent(didMatch[1])}'`;
+                                rowClickData.action = 'navigate';
+                                rowClickData.url = `/dreamer?did=${encodeURIComponent(didMatch[1])}`;
                             }
                         } else {
                             // Post URL - use showPost popup
-                            bskyPostUrl = row.url;  // Store for data attribute
-                            rowOnClick = '';  // Will be handled by event delegation
+                            rowClickData.action = 'showpost';
+                            rowClickData.url = row.url;
                         }
                     } else if (row.url.startsWith('/')) {
                         // Internal URL (like /order or /work/mapper) - navigate directly
-                        rowOnClick = `window.location.href='${row.url}'`;
+                        rowClickData.action = 'navigate';
+                        rowClickData.url = row.url;
                     } else {
                         // External URL - open in new tab
-                        rowOnClick = `window.open('${row.url}', '_blank')`;
+                        rowClickData.action = 'external';
+                        rowClickData.url = row.url;
                     }
                 }
                 
@@ -664,7 +551,8 @@
                     const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
                     const chapterUrl = bookId ? `/books/${bookId}/${chapterNum}` : '';
                     if (chapterUrl) {
-                        rowOnClick = `window.location.href='${chapterUrl}'`;
+                        rowClickData.action = 'navigate';
+                        rowClickData.url = chapterUrl;
                     }
                 }
                 
@@ -674,13 +562,14 @@
                     if (bookId) {
                         // Convert book ID to the format expected by TOC.js
                         const tocBookId = bookId === 'seeker' ? 'seekers-reverie' : 'princes-reverie';
-                        rowOnClick = `if(window.booksWidget && window.booksWidget.toc){window.booksWidget.toc.show('${tocBookId}');}else{window.location.href='/library';}`;
+                        rowClickData.action = 'toc';
+                        rowClickData.bookId = tocBookId;
                     }
                 }
                 
                 // Build style attribute combining cursor, canon colors, dream colors, and color system
                 let rowStyles = [];
-                if (rowOnClick) rowStyles.push('cursor: pointer');
+                if (rowClickData.action) rowStyles.push('cursor: pointer');
                 if (canonColorVars) rowStyles.push(canonColorVars);
                 if (colorSystemStyles) rowStyles.push(colorSystemStyles);
                 
@@ -696,12 +585,20 @@
                 }
                 
                 const rowStyleAttr = rowStyles.length > 0 ? ` style="${rowStyles.join('; ')}"` : '';
-                const rowOnClickAttr = rowOnClick ? ` onclick="${rowOnClick}"` : '';
-                const bskyDataAttr = bskyPostUrl ? ` data-bsky-url="${bskyPostUrl.replace(/"/g, '&quot;')}"` : '';
                 
-                html += `<div class="${finalRowClass}"${rowOnClickAttr}${rowStyleAttr}${bskyDataAttr}>`;
+                // Build data attributes for click handling (event delegation)
+                let dataAttrs = '';
+                if (rowClickData.action) {
+                    dataAttrs += ` data-row-action="${rowClickData.action}"`;
+                    if (rowClickData.url) {
+                        dataAttrs += ` data-row-url="${rowClickData.url.replace(/"/g, '&quot;')}"`;
+                    }
+                    if (rowClickData.bookId) {
+                        dataAttrs += ` data-book-id="${rowClickData.bookId}"`;
+                    }
+                }
                 
-                // For chapter rows, render author (chapter #) first, then title
+                html += `<div class="${finalRowClass}"${rowStyleAttr}${dataAttrs}>`;                // For chapter rows, render author (chapter #) first, then title
                 if (isChapterRow && tableName === 'library') {
                     // Render chapter number first
                     const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
@@ -1138,8 +1035,40 @@
                         name: row.reaction_name,
                         avatar: row.reaction_avatar,
                         octant: row.reaction_octant,
-                        origin_octant: row.reaction_origin_octant
+                        origin_octant: row.reaction_origin_octant,
+                        color_source: row.reaction_color_source,
+                        color_intensity: row.reaction_color_intensity
                     };
+                    
+                    // Build color system classes for reaction row
+                    let reactionColorClasses = '';
+                    const reactionColorSource = reactionRow.color_source || 'none';
+                    const reactionColorIntensity = reactionRow.color_intensity || 'none';
+                    const reactionKey = reactionRow.key || '';
+                    
+                    if (reactionKey) {
+                        reactionColorClasses += ` event-key-${reactionKey}`;
+                    }
+                    if (reactionColorSource !== 'none') {
+                        reactionColorClasses += ` color-${reactionColorSource}`;
+                    }
+                    if (reactionColorIntensity !== 'none') {
+                        reactionColorClasses += ` intensity-${reactionColorIntensity}`;
+                    }
+                    if (reactionColorSource === 'role' && reactionKey) {
+                        reactionColorClasses += ` role-${reactionKey}`;
+                    }
+                    if (reactionColorSource === 'octant') {
+                        const octant = ((reactionKey === 'origin' || reactionKey === 'name') && reactionRow.origin_octant) 
+                            ? reactionRow.origin_octant 
+                            : reactionRow.octant;
+                        if (octant) {
+                            reactionColorClasses += ` octant-${octant}`;
+                        }
+                    }
+                    if (reactionColorSource === 'souvenir' && reactionKey) {
+                        reactionColorClasses += ` souvenir-${reactionKey}`;
+                    }
                     
                     let reactionClickAttr = '';
                     if (reactionRow.url) {
@@ -1150,8 +1079,8 @@
                             reactionClickAttr = `onclick="window.open('${reactionRow.url}', '_blank')" style="cursor: pointer;"`;
                         }
                     }
-                    const roleClass = reactionRow.key ? `reaction-${reactionRow.key}` : '';
-                    html += `<div class="row-entry reaction-row ${roleClass}" ${reactionClickAttr}>`;
+                    const roleClass = reactionRow.key ? `reaction-${reactionKey}` : '';
+                    html += `<div class="row-entry reaction-row ${roleClass}${reactionColorClasses}" ${reactionClickAttr}>`;
                     
                     config.columns.forEach(col => {
                         const value = reactionRow[col];
@@ -1183,7 +1112,7 @@
                                     `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(reactionRow.did)}" onclick="event.stopPropagation()"><img src="/assets/icon_face.png" class="avatar-img" alt="avatar" style="cursor: pointer;"></a>` :
                                     '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
                             }
-                            displayValue = `<span style="color: var(--primary); font-size: 1em; margin-right: 8px;">↳</span>${avatarHtml}`;
+                            displayValue = `<span style="position: absolute; left: -18px; color: var(--primary); font-size: 1em;">↳</span>${avatarHtml}`;
                         } else if (col === 'canon') {
                             const name = reactionRow.name || 'unknown';
                             const event = reactionRow.event || '';
@@ -1235,79 +1164,92 @@
                 }
             });
             
+            console.log('🔍 [Database] HTML generation complete, total HTML length:', html.length);
+            console.log('🔍 [Database] Setting container innerHTML');
+
             container.innerHTML = html;
-            
-            // Add event delegation for bsky post URLs (safer than inline onclick)
-            container.querySelectorAll('[data-bsky-url]').forEach(row => {
-                row.style.cursor = 'pointer';
+
+            console.log('🔍 [Database] Container updated, applying effects...');
+
+            // Apply effects using RowStyle engine FIRST (before attaching event listeners)
+            // This prevents DOM manipulation from interfering with click handlers
+            if (window.rowStyleEngine) {
+                console.log('🔍 [Database] Applying RowStyleEngine effects');
+                window.rowStyleEngine.applyEffects(container);
+                console.log('🔍 [Database] RowStyleEngine effects applied');
+            } else {
+                console.log('🔍 [Database] RowStyleEngine not available, applying legacy effects');
+                // Fallback to legacy method
+                applySnakeCharmerEffect();
+            }
+
+            console.log('🔍 [Database] Effects applied, attaching event listeners');
+
+            console.log('🔍 [Database] Effects applied, attaching event listeners');
+
+            // Add unified event delegation for all row clicks (safer than inline onclick)
+            // This must happen AFTER effects are applied to avoid interference
+            container.querySelectorAll('[data-row-action]').forEach(row => {
                 row.addEventListener('click', function(e) {
-                    const url = this.getAttribute('data-bsky-url');
-                    if (url) {
-                        console.log('[Database] Delegated click for bsky URL:', url);
-                        window.showPost(url);
+                    console.log('🔍 [Database] Row click detected:', {
+                        action: this.getAttribute('data-row-action'),
+                        url: this.getAttribute('data-row-url'),
+                        bookId: this.getAttribute('data-book-id'),
+                        rowClasses: this.className,
+                        rowStyles: this.style.cssText
+                    });
+
+                    logRowPositions('BEFORE_POPUP_CLICK');
+
+                    // Check if click originated from an actual interactive element
+                    // snake-word spans have pointer-events: none so they won't be targets
+                    const interactiveElement = e.target.closest('a[href], button');
+                    if (interactiveElement && interactiveElement !== this) {
+                        console.log('[Database] Click intercepted by nested element:', interactiveElement);
+                        return; // Let the nested element handle it
+                    }
+                    
+                    const action = this.getAttribute('data-row-action');
+                    const url = this.getAttribute('data-row-url');
+                    const bookId = this.getAttribute('data-book-id');
+                    
+                    console.log('[Database] Row click -', action, ':', url || bookId);
+                    
+                    switch (action) {
+                        case 'navigate':
+                            if (url) window.location.href = url;
+                            break;
+                        case 'external':
+                            if (url) window.open(url, '_blank');
+                            break;
+                        case 'showpost':
+                            if (url) {
+                                console.log('[Database] Calling showPost with:', url);
+                                if (window.showPost) {
+                                    window.showPost(url);
+                                    // Log positions after popup opens
+                                    setTimeout(() => logRowPositions('AFTER_POPUP_OPEN'), 100);
+                                } else {
+                                    console.error('[Database] window.showPost not available!');
+                                }
+                            }
+                            break;
+                        case 'toc':
+                            if (bookId) {
+                                if (window.booksWidget && window.booksWidget.toc) {
+                                    window.booksWidget.toc.show(bookId);
+                                } else {
+                                    window.location.href = '/library';
+                                }
+                            }
+                            break;
                     }
                 });
             });
             
-            // Apply snake charmer effect to strange souvenir rows
-            applySnakeCharmerEffect();
-            
             // Populate souvenir icons after render (for dreamers table)
             if (tableName === 'dreamers') {
                 populateSouvenirIcons();
-            }
-        }
-        
-        async function populateSouvenirIcons() {
-            try {
-                const response = await fetch('/api/souvenirs');
-                const rawSouvenirs = await response.json();
-                
-                console.log('📦 Souvenirs API data:', rawSouvenirs);
-                
-                // Find all placeholder elements
-                const placeholders = document.querySelectorAll('.souvenir-icons-placeholder');
-                console.log('📦 Found placeholders:', placeholders.length);
-                
-                placeholders.forEach(placeholder => {
-                    const did = decodeURIComponent(placeholder.dataset.did);
-                    const dreamer = allData.dreamers.find(d => d.did === did);
-                    
-                    if (!dreamer || !dreamer.souvenirs) {
-                        placeholder.innerHTML = '<span style="color: var(--text-dim);">—</span>';
-                        return;
-                    }
-                    
-                    console.log('📦 Dreamer souvenirs for', dreamer.name, ':', dreamer.souvenirs);
-                    
-                    const userFormKeys = Object.keys(dreamer.souvenirs);
-                    const souvenirIcons = [];
-                    
-                    userFormKeys.forEach(formKey => {
-                        // rawSouvenirs is keyed by souvenir key, each entry has a 'key' field
-                        for (const [souvenirKey, souvenirData] of Object.entries(rawSouvenirs)) {
-                            if (souvenirData.key === formKey) {
-                                souvenirIcons.push({
-                                    icon: souvenirData.icon,
-                                    name: souvenirData.name
-                                });
-                                break;
-                            }
-                        }
-                    });
-                    
-                    console.log('📦 Found icons for', dreamer.name, ':', souvenirIcons);
-                    
-                    if (souvenirIcons.length > 0) {
-                        placeholder.innerHTML = souvenirIcons.map(s => 
-                            `<img src="${s.icon}" alt="${s.name}" title="${s.name}" style="width: 20px; height: 20px; object-fit: contain; margin-right: 4px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));">`
-                        ).join('');
-                    } else {
-                        placeholder.innerHTML = '<span style="color: var(--text-dim);">—</span>';
-                    }
-                });
-            } catch (error) {
-                console.error('Error loading souvenirs:', error);
             }
         }
 
@@ -1360,45 +1302,6 @@
             });
         }
 
-        function formatValue(col, value) {
-            if (value === null || value === undefined) return '<span style="color: var(--text-dim);">null</span>';
-            
-            if (col.includes('epoch') && typeof value === 'number') {
-                const date = new Date(value * 1000);
-                return `<span title="${value}">${date.toLocaleString()}</span>`;
-            }
-            
-            if (col.includes('did')) {
-                return `<span class="truncate" title="${value}">${value}</span>`;
-            }
-            
-            if (col.includes('uri') && value) {
-                return `<a href="${value}" class="link" target="_blank">🔗</a>`;
-            }
-            
-            if (typeof value === 'string' && value.length > 100) {
-                return `<span class="truncate" title="${value}">${value}</span>`;
-            }
-            
-            return value;
-        }
-
-        function viewDetails(row) {
-            const modal = document.getElementById('detail-modal');
-            const body = document.getElementById('modal-body');
-            
-            body.innerHTML = `
-                <h2 style="margin-bottom: 20px; color: var(--primary);">Record Details</h2>
-                <div class="json-view">${JSON.stringify(row, null, 2)}</div>
-            `;
-            
-            modal.classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('detail-modal').classList.remove('active');
-        }
-
         function setupSearch() {
             const searchInput = document.getElementById('search');
             let searchTimeout;
@@ -1411,77 +1314,68 @@
             });
         }
 
-        function performSearch(query) {
-            // Don't search in spectrum_snapshots tab
-            if (currentTable === 'spectrum_snapshots') {
+        function applyFilters() {
+            const filterValue = document.getElementById('filter-type').value;
+            
+            if (filterValue === 'all') {
+                renderTable('events');
                 return;
             }
             
+            const rows = allData['events'] || [];
+            let filtered;
+            
+            // Parse filter format: "type:arrival" or "key:canon"
+            if (filterValue.includes(':')) {
+                const [field, value] = filterValue.split(':');
+                filtered = rows.filter(row => row[field] === value);
+            } else {
+                // Fallback for simple values (backwards compatibility)
+                filtered = rows.filter(row => row.type === filterValue || row.key === filterValue);
+            }
+            
+            const temp = allData['events'];
+            allData['events'] = filtered;
+            renderTable('events');
+            allData['events'] = temp;
+        }
+
+        function resetFilters() {
+            // Reset dropdown to "All Events"
+            document.getElementById('filter-type').value = 'all';
+            
+            // Clear search box
+            document.getElementById('search').value = '';
+            
+            // Reset filtered data and reload
+            filteredData = {};
+            loadAllData();
+        }
+
+        function performSearch(query) {
             if (!query.trim()) {
                 filteredData = {};
-                if (currentTable) renderTable(currentTable);
+                renderTable('events');
                 return;
             }
             
             query = query.toLowerCase();
             
-            // Search current table only
-            if (currentTable) {
-                const config = tableConfig[currentTable];
-                const rows = allData[currentTable] || [];
-                
-                filteredData[currentTable] = rows.filter(row => {
-                    return config.searchFields.some(field => {
-                        const value = row[field];
-                        return value && String(value).toLowerCase().includes(query);
-                    });
+            // Search events table only
+            const config = tableConfig['events'];
+            const rows = allData['events'] || [];
+            
+            filteredData['events'] = rows.filter(row => {
+                return config.searchFields.some(field => {
+                    const value = row[field];
+                    return value && String(value).toLowerCase().includes(query);
                 });
-                
-                const temp = allData[currentTable];
-                allData[currentTable] = filteredData[currentTable] || [];
-                renderTable(currentTable);
-                allData[currentTable] = temp;
-            }
-        }
-
-        function sortTable(column) {
-            if (!currentTable) return;
-            
-            const data = allData[currentTable];
-            if (!Array.isArray(data) || data.length === 0) return;
-            
-            const isAsc = data._sortedBy === column && data._sortOrder === 'asc';
-            
-            data.sort((a, b) => {
-                let valA = a[column];
-                let valB = b[column];
-                
-                if (valA === null || valA === undefined) return 1;
-                if (valB === null || valB === undefined) return -1;
-                
-                if (typeof valA === 'string') valA = valA.toLowerCase();
-                if (typeof valB === 'string') valB = valB.toLowerCase();
-                
-                if (valA < valB) return isAsc ? 1 : -1;
-                if (valA > valB) return isAsc ? -1 : 1;
-                return 0;
             });
             
-            data._sortedBy = column;
-            data._sortOrder = isAsc ? 'desc' : 'asc';
-            
-            renderTable(currentTable);
-        }
-
-        function exportData() {
-            const dataStr = JSON.stringify(allData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `reverie_database_${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
+            const temp = allData['events'];
+            allData['events'] = filteredData['events'] || [];
+            renderTable('events');
+            allData['events'] = temp;
         }
 
         function showError(message) {
@@ -1506,976 +1400,7 @@
             });
         }
 
-        function toggleChapters(bookId) {
-            // Find the book in library data
-            const book = allData.library?.find(b => b.id === bookId);
-            if (!book || !book.chapters || book.chapters.length === 0) {
-                return;
-            }
-
-            // Check if chapters are already shown
-            const existingChapters = document.getElementById(`chapters-${bookId}`);
-            if (existingChapters) {
-                existingChapters.remove();
-                return;
-            }
-
-            // Find the book row
-            const rows = document.querySelectorAll('.row-entry');
-            let bookRow = null;
-            rows.forEach(row => {
-                if (row.textContent.includes(book.title)) {
-                    bookRow = row;
-                }
-            });
-
-            if (!bookRow) return;
-
-            // Create chapters list
-            const chaptersDiv = document.createElement('div');
-            chaptersDiv.id = `chapters-${bookId}`;
-            chaptersDiv.style.cssText = 'background: var(--bg-secondary, #f8f9fa); padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid var(--primary);';
-            
-            let chaptersHtml = '<div style="font-weight: 600; margin-bottom: 10px; color: var(--primary);">📖 Chapters:</div>';
-            chaptersHtml += '<div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 0.9em;">';
-            
-            book.chapters.forEach((chapter, idx) => {
-                const chapterNum = String(idx + 1).padStart(2, '0');
-                chaptersHtml += `
-                    <div style="color: var(--text-dim); font-family: monospace;">${chapterNum}.</div>
-                    <div>
-                        <a href="/${chapter.file}" style="color: inherit; text-decoration: none;">
-                            ${chapter.title}
-                        </a>
-                    </div>
-                `;
-            });
-            
-            chaptersHtml += '</div>';
-            chaptersDiv.innerHTML = chaptersHtml;
-
-            // Insert after book row
-            bookRow.parentNode.insertBefore(chaptersDiv, bookRow.nextSibling);
-        }
-        
-        
-        // Mindscape Viewer (Canon Display)
-        async function renderMindscape(container) {
-            container.innerHTML = `
-                <div style="padding: 20px; background: white; max-width: 700px; margin: 0 auto;">
-                    <!-- World Widget Container -->
-                    <div class="world-widget" id="mindscape-world-widget">
-                        <!-- World widget content will be populated by world.js -->
-                    </div>
-                    <div class="world-status-header" style="margin-top: 24px; margin-bottom: 10px;">
-                        <h3 style="margin: 0; font-family: monospace; font-size: 1.4rem; font-weight: bold; color: #5a4a7a;">Canon</h3>
-                    </div>
-                    <div id="mindscape-log-content" style="margin-left: 10px;"></div>
-                    <div style="margin: 18px 0 0 0; margin-left: 10px;">
-                        <button id="mindscape-load-more-btn" style="
-                            display: none;
-                            width: 100%;
-                            font-family: monospace;
-                            font-size: 1.08rem;
-                            background: linear-gradient(90deg, #f8f6ff 0%, #e0d7f0 100%);
-                            color: #5a4a7a;
-                            border: 1.5px solid #d0c7f0;
-                            border-radius: 0;
-                            padding: 12px 0;
-                            margin: 0 auto 10px auto;
-                            box-shadow: 0 1px 4px rgba(115,75,161,0.04);
-                            cursor: pointer;
-                            transition: background 0.2s, color 0.2s;
-                            font-weight: 600;
-                            letter-spacing: 0.5px;
-                        " onmouseover="this.style.background='#e0d7f0';this.style.color='#372e42'" onmouseout="this.style.background='linear-gradient(90deg, #f8f6ff 0%, #e0d7f0 100%)';this.style.color='#5a4a7a'">Load More</button>
-                    </div>
-                    <!-- User listing box -->
-                    <div id="mindscape-user-listing-container" style="margin-top: 0; margin-left: 10px;">
-                        <div class="log-entry" style="background-color: #f5f5f5; text-align: center; border-top: 1px solid white; padding: 8px; margin-bottom: 10px;">
-                            <span><strong>our wild mindscape begins</strong><div id="mindscape-user-listing-content" style="margin: 3px 20px;"></div><strong>are first to explore</strong></span>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Initialize World widget manually for the dynamically created element
-            if (window.World) {
-                const worldWidget = new window.World();
-                const widgetContainer = document.getElementById('mindscape-world-widget');
-                if (widgetContainer) {
-                    worldWidget.container = widgetContainer;
-                    worldWidget.loadData();
-                    worldWidget.setupAutoRefresh();
-                }
-            }
-            
-            // Load canon data and render
-            try {
-                const [world, canonEntries, dreamers] = await Promise.all([
-                    fetch('/api/world').then(r => r.json()),
-                    fetch('/api/canon').then(r => r.json()),
-                    fetch('/api/dreamers').then(r => r.json())
-                ]);
-                
-                // Handle empty or invalid data gracefully
-                const validWorld = world || { epoch: Date.now() / 1000, keeper: "unknown", keeper_did: "", color: "#734ba1" };
-                const validCanonEntries = Array.isArray(canonEntries) ? canonEntries : [];
-                const validDreamers = Array.isArray(dreamers) ? dreamers : [];
-                
-                // Apply color to Load More button
-                const coreColor = validWorld.color || '#734ba1';
-                const mindscapeLoadMoreBtn = document.getElementById('mindscape-load-more-btn');
-                if (mindscapeLoadMoreBtn) {
-                    mindscapeLoadMoreBtn.style.background = `linear-gradient(90deg, ${coreColor}22 0%, ${coreColor}44 100%)`;
-                    mindscapeLoadMoreBtn.style.color = coreColor;
-                    mindscapeLoadMoreBtn.style.borderColor = `${coreColor}88`;
-                    
-                    mindscapeLoadMoreBtn.onmouseover = function() {
-                        this.style.background = `${coreColor}44`;
-                        this.style.color = '#fff';
-                    };
-                    mindscapeLoadMoreBtn.onmouseout = function() {
-                        this.style.background = `linear-gradient(90deg, ${coreColor}22 0%, ${coreColor}44 100%)`;
-                        this.style.color = coreColor;
-                    };
-                }
-                
-                const logContent = document.getElementById('mindscape-log-content');
-                const dreamerMap = validDreamers.reduce((acc, dreamer) => {
-                    acc[dreamer.did] = dreamer.name;
-                    return acc;
-                }, {});
-
-                // Group and process entries
-                const processedEntries = [];
-                const discoveryEntries = validCanonEntries.filter(entry => 
-                    entry.epoch === 0 && entry.event === "discovered our wild mindscape"
-                );
-                const otherEntries = validCanonEntries.filter(entry => 
-                    !(entry.epoch === 0 && entry.event === "discovered our wild mindscape")
-                );
-
-                // Add merged discovery entry if there are any
-                if (discoveryEntries.length > 0) {
-                    const discoverers = discoveryEntries.map(entry => 
-                        dreamerMap[entry.did] || "Unknown"
-                    ).filter((name, index, arr) => arr.indexOf(name) === index);
-                    
-                    processedEntries.push({
-                        event: "discovered our wild mindscape",
-                        discoverers: discoverers,
-                        epoch: 0,
-                        isGrouped: true
-                    });
-                }
-
-                // Add other entries
-                processedEntries.push(...otherEntries);
-
-                // Sort by epoch (descending)
-                processedEntries.sort((a, b) => b.epoch - a.epoch);
-
-                // Handle empty canon
-                if (processedEntries.length === 0) {
-                    logContent.innerHTML = '<div class="log-entry" style="text-align: center; font-style: italic; color: #999; padding: 20px; background: #f5f5f5; border: 1px solid #e8e8e8; margin-bottom: 10px;">No canon entries found.</div>';
-                    return;
-                }
-
-                // Pagination logic
-                let entriesShown = 15;
-                function renderLogEntries() {
-                    logContent.innerHTML = '';
-                    processedEntries.slice(0, entriesShown).forEach((entry, index) => {
-                        const logEntry = document.createElement('div');
-                        logEntry.className = 'log-entry';
-                        logEntry.style.backgroundColor = index % 2 === 0 ? '#f0f0f0' : '#ffffff';
-                        logEntry.style.padding = '3px 8px';
-                        logEntry.style.borderBottom = '1px solid #e8e8e8';
-                        logEntry.style.fontFamily = 'monospace';
-                        logEntry.style.fontSize = '0.85rem';
-                        logEntry.style.lineHeight = '1.3';
-                        logEntry.style.marginLeft = '8px';
-                        logEntry.style.textAlign = 'left';
-
-                        if (entry.isGrouped) {
-                            logEntry.style.backgroundColor = '#f5f5f5';
-                            logEntry.style.textAlign = 'center';
-                            logEntry.style.borderTop = '1px solid white';
-                            const discovererLinks = entry.discoverers.map(name => {
-                                const dreamer = validDreamers.find(d => d.name === name);
-                                const did = dreamer ? dreamer.did : '';
-                                return did ? `<a href="/dreamer?did=${encodeURIComponent(did)}">${name}</a>` : name;
-                            }).join(' ');
-                            logEntry.innerHTML = `<span><strong>our wild mindscape begins</strong><div style="margin: 3px 20px;">${discovererLinks}</div><strong>are first to explore</strong></span>`;
-                        } else {
-                            const name = dreamerMap[entry.did] || "Unknown";
-                            const did = entry.did || '';
-                            const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}">${name}</a>` : name;
-                            let eventLink = entry.event;
-                            if (entry.url && entry.url.trim()) {
-                                eventLink = `<a href="${entry.url}" target="_blank">${entry.event}</a>`;
-                            } else if (entry.uri && entry.uri.trim() && entry.uri.startsWith('/')) {
-                                eventLink = `<a href="${entry.uri}">${entry.event}</a>`;
-                            }
-                            let postIdElement = '';
-                            if (entry.uri && entry.uri.trim()) {
-                                if (entry.uri.startsWith('stripe:')) {
-                                    const sessionCode = entry.uri.substring(7);
-                                    const isMobile = window.innerWidth <= 600;
-                                    const postIdStyle = isMobile ?
-                                        'display: block; margin-top: 5px; text-align: right; font-family: monospace; font-size: 0.7em; color: #ccc; cursor: pointer; text-decoration: none;' :
-                                        'float: right; font-family: monospace; font-size: 0.8em; color: #ccc; cursor: pointer; text-decoration: none;';
-                                    
-                                    if (entry.url && entry.url.startsWith('/')) {
-                                        postIdElement = `<a href="${entry.url}" style="${postIdStyle}" onmouseover="this.style.color='#999'" onmouseout="this.style.color='#ccc'">${sessionCode}</a>`;
-                                    } else {
-                                        postIdElement = `<code style="${postIdStyle.replace('cursor: pointer;', 'cursor: default;')}">${sessionCode}</code>`;
-                                    }
-                                } else {
-                                    const uriParts = entry.uri.split('/');
-                                    const lastPart = uriParts[uriParts.length - 1];
-                                    if (lastPart) {
-                                        const atprotoUrl = `https://atproto-browser.vercel.app/at/${entry.uri}`;
-                                        const isMobile = window.innerWidth <= 600;
-                                        const postIdStyle = isMobile ?
-                                            'display: block; margin-top: 5px; text-align: right; font-family: monospace; font-size: 0.7em; color: #ccc; cursor: pointer; text-decoration: none;' :
-                                            'float: right; font-family: monospace; font-size: 0.8em; color: #ccc; cursor: pointer; text-decoration: none;';
-                                        postIdElement = `<code style="${postIdStyle}" onmouseover="this.style.color='#999'" onmouseout="this.style.color='#ccc'" onclick="window.open('${atprotoUrl}', '_blank')">${lastPart}</code>`;
-                                    }
-                                }
-                            }
-                            logEntry.innerHTML = `<span>${nameLink} ${eventLink}</span>${postIdElement}`;
-                        }
-                        logContent.appendChild(logEntry);
-                    });
-                    
-                    // Show/hide Load More button
-                    const btn = document.getElementById('mindscape-load-more-btn');
-                    if (btn) {
-                        if (processedEntries.length > entriesShown) {
-                            btn.style.display = 'inline-block';
-                        } else {
-                            btn.style.display = 'none';
-                        }
-                    }
-                }
-
-                renderLogEntries();
-                
-                // Load More button handler (reuse the button reference from above)
-                if (mindscapeLoadMoreBtn) {
-                    mindscapeLoadMoreBtn.onclick = function() {
-                        entriesShown += 15;
-                        renderLogEntries();
-                    };
-                }
-
-                // Populate user listing box
-                const userListingContent = document.getElementById('mindscape-user-listing-content');
-                const sortedDreamers = validDreamers
-                    .filter(dreamer => dreamer.name)
-                    .sort((a, b) => (b.arrival || 0) - (a.arrival || 0));
-                    
-                if (sortedDreamers.length > 0) {
-                    const userLinks = sortedDreamers.map(dreamer => {
-                        return `<a href="/dreamer?name=${encodeURIComponent(dreamer.name)}">${dreamer.name}</a>`;
-                    }).join(' ');
-                    userListingContent.innerHTML = userLinks;
-                } else {
-                    userListingContent.innerHTML = '<em style="color: #999;">No dreamers found</em>';
-                }
-            } catch (error) {
-                console.error('Error loading mindscape data:', error);
-                container.innerHTML = `
-                    <div style="text-align: center; color: #c00; padding: 40px;">
-                        Error loading mindscape data. Please try again.
-                    </div>
-                `;
-            }
-        }
-
-        // Historical Spectrum Viewer
-        let currentSnapshotIndex = 0;
-        let snapshotsData = [];
-        let snapshotCache = new Map(); // Cache loaded snapshot data
-        let totalSnapshotCount = 0;
-        let historicalSpectrum = null;
-        
-        async function renderHistoricalSpectrum(snapshots, container) {
-            // Don't clean up viewer here - it will be recreated if needed
-            // The viewer stays alive across snapshot changes
-            
-            if (snapshots.length === 0) {
-                // Clean up if no snapshots
-                if (historicalSpectrum) {
-                    historicalSpectrum.stopAnimation();
-                    historicalSpectrum = null;
-                }
-                container.innerHTML = `
-                    <div style="text-align: center; color: var(--text-dim); padding: 40px;">
-                        No spectrum snapshots available yet.
-                    </div>
-                `;
-                return;
-            }
-            
-            // Sort by epoch (oldest to newest) for consistent indexing
-            snapshotsData = snapshots.sort((a, b) => a.epoch - b.epoch);
-            totalSnapshotCount = snapshotsData.length;
-            
-            // Start at midpoint
-            const midpoint = Math.floor(totalSnapshotCount / 2);
-            currentSnapshotIndex = midpoint;
-            
-            // Clear cache when reloading
-            snapshotCache.clear();
-            
-            container.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 32px 20px; background: var(--bg-page);">
-                    <div style="width: 100%; max-width: 900px; background: white; border: 2px solid #d0c7f0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
-                        <!-- Spectrum Canvas Container -->
-                        <div style="padding: 24px; text-align: center; border-bottom: 1px solid #e8e6f5;">
-                            <h3 id="snapshotTitle" style="margin: 0 0 8px 0; color: var(--primary); font-size: 1.1rem; font-weight: 600;">Spectrum Records</h3>
-                            <div id="snapshotInfo" style="color: #666; font-size: 0.85rem;">
-                                <span id="snapshotTime"></span> | 
-                                <span id="snapshotDreamers"></span> | 
-                                <span id="snapshotAvgDist"></span>
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; justify-content: center; padding: 24px; background: #fafafa;">
-                            <canvas id="historicalSpectrumCanvas" width="600" height="600" 
-                                    style="border: 1px solid #e8e6f5; background: #faf7ff; cursor: grab;"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- Timeline Slider -->
-                    <div style="width: 100%; max-width: 900px; background: white; border: 2px solid #d0c7f0; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
-                        <!-- Overview Timeline (Full Range) -->
-                        <div style="margin-bottom: 20px;">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Timeline
-                            </div>
-                            <div style="position: relative; height: 40px; background: #fafafa; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
-                                <!-- Full timeline bar -->
-                                <canvas id="overviewCanvas" style="position: absolute; width: 100%; height: 100%; cursor: pointer;"></canvas>
-                                
-                                <!-- Draggable window selector -->
-                                <div id="timelineWindow" style="position: absolute; height: 100%; background: rgba(107, 79, 161, 0.2); border-left: 2px solid var(--primary); border-right: 2px solid var(--primary); cursor: grab;">
-                                    <!-- Current position indicator (hard post) - grabbable -->
-                                    <div id="currentPositionPost" style="position: absolute; top: 0; bottom: 0; width: 12px; background: var(--primary); cursor: grab; transform: translateX(-50%); z-index: 10;"></div>
-                                    
-                                    <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; background: rgba(107, 79, 161, 0.4);" class="resize-handle-left"></div>
-                                    <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; background: rgba(107, 79, 161, 0.4);" class="resize-handle-right"></div>
-                                </div>
-                            </div>
-                            <div id="overviewRange" style="margin-top: 5px; font-size: 0.7rem; color: #999; display: flex; justify-content: space-between;">
-                                <span id="overviewStart"></span>
-                                <span id="overviewEnd"></span>
-                            </div>
-                        </div>
-                        
-                        <!-- Detail Timeline (Windowed Range) -->
-                        <div>
-                            <div style="position: relative; padding: 10px 0;">
-                                <input type="range" id="detailSlider" min="0" max="100" 
-                                       value="100" 
-                                       style="width: 100%; cursor: pointer;" />
-                                <div id="detailNotches" style="display: flex; justify-content: space-between; margin-top: 5px; padding: 0 5px;">
-                                    <!-- Detail notches will be added dynamically -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Experimental Notice -->
-                    <div style="width: 100%; max-width: 900px; text-align: center; padding: 20px; color: #999; font-size: 0.75rem; font-style: italic;">
-                        This is an experimental feature for reviewing historical spectrum data.
-                    </div>
-                </div>
-            `;
-            
-            // Load spectrum-timeline.js library
-            console.log('📊 [Database] Loading spectrum-timeline.js...');
-            console.log('📊 [Database] window.SpectrumTimelineViewer exists?', typeof window.SpectrumTimelineViewer !== 'undefined');
-            
-            if (!window.SpectrumTimelineViewer) {
-                await loadScript('/js/widgets/spectrum-timeline.js');
-                console.log('📊 [Database] spectrum-timeline.js loaded, SpectrumTimelineViewer available?', typeof window.SpectrumTimelineViewer !== 'undefined');
-            }
-            
-            // Wait for next animation frame to ensure DOM is fully laid out
-            await new Promise(resolve => requestAnimationFrame(resolve));
-            
-            // Setup two-tiered timeline controls
-            const detailSlider = document.getElementById('detailSlider');
-            const overviewCanvas = document.getElementById('overviewCanvas');
-            const timelineWindow = document.getElementById('timelineWindow');
-            
-            // Window state: defines which subset of snapshots is visible in detail view
-            // Center the window around the midpoint (currentSnapshotIndex was set above)
-            const windowSizeDefault = Math.min(20, totalSnapshotCount);
-            let windowStart = Math.max(0, currentSnapshotIndex - Math.floor(windowSizeDefault / 2));
-            let windowSize = windowSizeDefault;
-            let windowEnd = Math.min(totalSnapshotCount - 1, windowStart + windowSize - 1);
-            
-            // Dragging state
-            let isDraggingWindow = false;
-            let isDraggingLeftHandle = false;
-            let isDraggingRightHandle = false;
-            let isDraggingPost = false;
-            let dragStartX = 0;
-            let dragStartWindowStart = 0;
-            let dragStartWindowEnd = 0;
-            let dragStartSnapshotIndex = 0;
-            
-            // Initialize overview canvas
-            const initOverviewCanvas = () => {
-                const container = overviewCanvas.parentElement;
-                const rect = container.getBoundingClientRect();
-                overviewCanvas.width = rect.width;
-                overviewCanvas.height = rect.height;
-                drawOverview();
-                updateWindowPosition();
-            };
-            
-            // Draw the overview timeline with activity visualization
-            const drawOverview = () => {
-                const ctx = overviewCanvas.getContext('2d');
-                const width = overviewCanvas.width;
-                const height = overviewCanvas.height;
-                
-                ctx.clearRect(0, 0, width, height);
-                
-                // Simple bar for each snapshot
-                const barWidth = Math.max(1, width / totalSnapshotCount);
-                
-                snapshotsData.forEach((snapshot, i) => {
-                    const x = (i / totalSnapshotCount) * width;
-                    const barHeight = 20;
-                    
-                    // Simple gray bars
-                    ctx.fillStyle = 'rgba(200, 200, 200, 0.6)';
-                    ctx.fillRect(x, (height - barHeight) / 2, barWidth, barHeight);
-                });
-            };
-            
-            // Update window position and size on overview
-            const updateWindowPosition = () => {
-                const container = overviewCanvas.parentElement;
-                const width = container.offsetWidth;
-                
-                const startPercent = (windowStart / totalSnapshotCount) * 100;
-                const endPercent = ((windowEnd + 1) / totalSnapshotCount) * 100; // +1 to make it inclusive
-                const widthPercent = endPercent - startPercent;
-                
-                timelineWindow.style.left = startPercent + '%';
-                timelineWindow.style.width = widthPercent + '%';
-                
-                // Update current position indicator (hard post)
-                const positionInWindow = (currentSnapshotIndex - windowStart) / (windowEnd - windowStart);
-                const postPosition = Math.max(0, Math.min(100, positionInWindow * 100));
-                document.getElementById('currentPositionPost').style.left = postPosition + '%';
-                
-                // Update overview range labels
-                const startDate = new Date(snapshotsData[windowStart].epoch * 1000);
-                const endDate = new Date(snapshotsData[windowEnd].epoch * 1000);
-                document.getElementById('overviewStart').textContent = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                document.getElementById('overviewEnd').textContent = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                
-                // Redraw notches for detail view
-                updateDetailNotches();
-            };
-            
-            // Update detail slider notches based on current window
-            const updateDetailNotches = () => {
-                const notchesContainer = document.getElementById('detailNotches');
-                if (!notchesContainer) return;
-                
-                notchesContainer.innerHTML = '';
-                
-                const windowSnapshots = windowEnd - windowStart + 1;
-                const maxNotches = Math.min(10, windowSnapshots);
-                const step = Math.max(1, Math.floor(windowSnapshots / maxNotches));
-                
-                for (let i = 0; i < windowSnapshots; i += step) {
-                    const actualIndex = windowStart + i;
-                    const snapshot = snapshotsData[actualIndex];
-                    const date = new Date(snapshot.epoch * 1000);
-                    
-                    // Adaptive formatting
-                    let dateStr;
-                    if (windowSnapshots <= 24) {
-                        // Show hour:minute for small windows
-                        dateStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    } else if (windowSnapshots <= 100) {
-                        // Show day/month
-                        dateStr = `${date.getDate()}/${date.getMonth() + 1}`;
-                    } else {
-                        // Show month/year
-                        dateStr = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                    }
-                    
-                    const notch = document.createElement('div');
-                    notch.style.cssText = 'display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; color: #999;';
-                    notch.innerHTML = `
-                        <div style="width: 2px; height: 8px; background: #999; margin-bottom: 2px;"></div>
-                        <div>${dateStr}</div>
-                    `;
-                    notchesContainer.appendChild(notch);
-                }
-            };
-            
-            // Map detail slider position to snapshot index within window
-            const detailPercentageToIndex = (percentage) => {
-                const position = percentage / 100;
-                const windowIndex = Math.round(position * (windowEnd - windowStart));
-                return windowStart + windowIndex;
-            };
-            
-            const indexToDetailPercentage = (index) => {
-                if (index < windowStart) index = windowStart;
-                if (index > windowEnd) index = windowEnd;
-                const windowIndex = index - windowStart;
-                const position = windowIndex / (windowEnd - windowStart);
-                return Math.round(position * 100);
-            };
-            
-            // Detail slider events - only update detail slider position, not the snapshot selection
-            detailSlider.addEventListener('input', (e) => {
-                const percentage = parseInt(e.target.value);
-                const index = detailPercentageToIndex(percentage);
-                
-                // Update current snapshot
-                currentSnapshotIndex = index;
-                
-                // Update the hard post position
-                updateWindowPosition();
-                
-                loadSnapshotAtIndex(currentSnapshotIndex);
-            });
-            
-            // Window dragging
-            timelineWindow.addEventListener('mousedown', (e) => {
-                if (e.target.classList.contains('resize-handle-left')) {
-                    isDraggingLeftHandle = true;
-                    dragStartX = e.clientX;
-                    dragStartWindowStart = windowStart;
-                    e.stopPropagation();
-                } else if (e.target.classList.contains('resize-handle-right')) {
-                    isDraggingRightHandle = true;
-                    dragStartX = e.clientX;
-                    dragStartWindowEnd = windowEnd;
-                    e.stopPropagation();
-                } else if (e.target.id === 'currentPositionPost') {
-                    isDraggingPost = true;
-                    dragStartX = e.clientX;
-                    dragStartWindowStart = windowStart;
-                    dragStartWindowEnd = windowEnd;
-                    dragStartSnapshotIndex = currentSnapshotIndex;
-                    e.target.style.cursor = 'grabbing';
-                    e.stopPropagation();
-                } else {
-                    isDraggingWindow = true;
-                    dragStartX = e.clientX;
-                    dragStartWindowStart = windowStart;
-                    dragStartWindowEnd = windowEnd;
-                    timelineWindow.style.cursor = 'grabbing';
-                }
-            });
-            
-            document.addEventListener('mousemove', (e) => {
-                if (!isDraggingWindow && !isDraggingLeftHandle && !isDraggingRightHandle && !isDraggingPost) return;
-                
-                const container = overviewCanvas.parentElement;
-                const containerWidth = container.offsetWidth;
-                const deltaX = e.clientX - dragStartX;
-                const deltaIndex = Math.round((deltaX / containerWidth) * totalSnapshotCount);
-                
-                if (isDraggingWindow) {
-                    // Calculate proposed new window position
-                    const windowWidth = dragStartWindowEnd - dragStartWindowStart;
-                    let newStart = dragStartWindowStart + deltaIndex;
-                    let newEnd = dragStartWindowEnd + deltaIndex;
-                    
-                    // Hard constraint: don't allow window to move past current position
-                    // The "hard post" stays fixed relative to the absolute timeline
-                    if (currentSnapshotIndex < newStart) {
-                        // Window trying to move past post on the left - clamp it
-                        newStart = currentSnapshotIndex;
-                        newEnd = newStart + windowWidth;
-                    } else if (currentSnapshotIndex > newEnd) {
-                        // Window trying to move past post on the right - clamp it
-                        newEnd = currentSnapshotIndex;
-                        newStart = newEnd - windowWidth;
-                    }
-                    
-                    // Clamp to valid range
-                    if (newStart < 0) {
-                        newStart = 0;
-                        newEnd = windowWidth;
-                    }
-                    if (newEnd >= totalSnapshotCount) {
-                        newEnd = totalSnapshotCount - 1;
-                        newStart = newEnd - windowWidth;
-                    }
-                    
-                    windowStart = newStart;
-                    windowEnd = newEnd;
-                    
-                    // Update detail slider position to reflect current position within new window
-                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
-                    
-                } else if (isDraggingLeftHandle) {
-                    // Resize from left - don't allow resizing past current position
-                    let newStart = Math.max(0, Math.min(currentSnapshotIndex, dragStartWindowStart + deltaIndex));
-                    
-                    // Minimum window size of 2
-                    if (windowEnd - newStart < 1) {
-                        newStart = windowEnd - 1;
-                    }
-                    
-                    windowStart = newStart;
-                    windowSize = windowEnd - windowStart + 1;
-                    
-                    // Update detail slider position
-                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
-                    
-                } else if (isDraggingRightHandle) {
-                    // Resize from right - don't allow resizing past current position
-                    let newEnd = Math.max(currentSnapshotIndex, Math.min(totalSnapshotCount - 1, dragStartWindowEnd + deltaIndex));
-                    
-                    // Minimum window size of 2
-                    if (newEnd - windowStart < 1) {
-                        newEnd = windowStart + 1;
-                    }
-                    
-                    windowEnd = newEnd;
-                    windowSize = windowEnd - windowStart + 1;
-                    
-                    // Update detail slider position
-                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
-                    
-                } else if (isDraggingPost) {
-                    // Dragging the post moves both the window and the current position together
-                    // Keep window width constant
-                    const windowWidth = dragStartWindowEnd - dragStartWindowStart;
-                    let newSnapshotIndex = dragStartSnapshotIndex + deltaIndex;
-                    
-                    // Clamp to valid range
-                    newSnapshotIndex = Math.max(0, Math.min(totalSnapshotCount - 1, newSnapshotIndex));
-                    
-                    // Calculate window position to keep same relative position of post
-                    const relativePostPosition = (dragStartSnapshotIndex - dragStartWindowStart) / windowWidth;
-                    let newStart = Math.round(newSnapshotIndex - (relativePostPosition * windowWidth));
-                    let newEnd = newStart + windowWidth;
-                    
-                    // Adjust if we hit boundaries while maintaining window width
-                    if (newStart < 0) {
-                        newStart = 0;
-                        newEnd = windowWidth;
-                    }
-                    if (newEnd >= totalSnapshotCount) {
-                        newEnd = totalSnapshotCount - 1;
-                        newStart = newEnd - windowWidth;
-                    }
-                    
-                    windowStart = newStart;
-                    windowEnd = newEnd;
-                    currentSnapshotIndex = newSnapshotIndex;
-                    
-                    // Update detail slider position
-                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
-                    
-                    // Load the new snapshot
-                    loadSnapshotAtIndex(currentSnapshotIndex);
-                }
-                
-                updateWindowPosition();
-            });
-            
-            document.addEventListener('mouseup', () => {
-                isDraggingWindow = false;
-                isDraggingLeftHandle = false;
-                isDraggingRightHandle = false;
-                isDraggingPost = false;
-                timelineWindow.style.cursor = 'grab';
-                document.getElementById('currentPositionPost').style.cursor = 'grab';
-            });
-            
-            // Click on overview to jump window
-            overviewCanvas.addEventListener('click', (e) => {
-                if (isDraggingWindow || isDraggingLeftHandle || isDraggingRightHandle || isDraggingPost) return;
-                
-                const rect = overviewCanvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const clickPercent = x / rect.width;
-                const clickIndex = Math.round(clickPercent * (totalSnapshotCount - 1));
-                
-                // Center window on clicked position
-                const halfWindow = Math.floor(windowSize / 2);
-                windowStart = Math.max(0, Math.min(totalSnapshotCount - windowSize, clickIndex - halfWindow));
-                windowEnd = windowStart + windowSize - 1;
-                
-                // Jump to that snapshot
-                currentSnapshotIndex = clickIndex;
-                detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
-                
-                updateWindowPosition();
-                loadSnapshotAtIndex(currentSnapshotIndex);
-            });
-            
-            // Keyboard navigation
-            document.addEventListener('keydown', (e) => {
-                if (currentTable !== 'spectrum_snapshots') return;
-                
-                if (e.key === 'ArrowLeft' && currentSnapshotIndex > 0) {
-                    e.preventDefault();
-                    currentSnapshotIndex--;
-                    
-                    // Auto-scroll window if we move outside current window
-                    if (currentSnapshotIndex < windowStart) {
-                        windowEnd = windowStart;
-                        windowStart = Math.max(0, windowStart - windowSize);
-                        windowEnd = windowStart + windowSize - 1;
-                        updateWindowPosition();
-                    }
-                    
-                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
-                    loadSnapshotAtIndex(currentSnapshotIndex);
-                } else if (e.key === 'ArrowRight' && currentSnapshotIndex < totalSnapshotCount - 1) {
-                    e.preventDefault();
-                    currentSnapshotIndex++;
-                    
-                    // Auto-scroll window if we move outside current window
-                    if (currentSnapshotIndex > windowEnd) {
-                        windowStart = windowEnd;
-                        windowEnd = Math.min(totalSnapshotCount - 1, windowEnd + windowSize);
-                        windowStart = windowEnd - windowSize + 1;
-                        updateWindowPosition();
-                    }
-                    
-                    detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
-                    loadSnapshotAtIndex(currentSnapshotIndex);
-                }
-            });
-            
-            // Initialize
-            initOverviewCanvas();
-            window.addEventListener('resize', () => {
-                initOverviewCanvas();
-            });
-            
-            // Add timeline notches (show every 10th or proportional)
-            updateDetailNotches();
-            
-            // Load initial snapshot at midpoint
-            currentSnapshotIndex = Math.floor(totalSnapshotCount / 2);
-            detailSlider.value = indexToDetailPercentage(currentSnapshotIndex);
-            loadSnapshotAtIndex(currentSnapshotIndex);
-        }
-        
-        function addTimelineNotches() {
-            // This function is replaced by updateDetailNotches in two-tier system
-            // Keeping for compatibility but it does nothing
-        }
-        
-        async function loadSnapshotAtIndex(index) {
-            const snapshot = snapshotsData[index];
-            if (!snapshot) return;
-            
-            // Check cache first for instant loading
-            if (snapshotCache.has(snapshot.id)) {
-                const cachedData = snapshotCache.get(snapshot.id);
-                renderCachedSnapshot(snapshot, cachedData);
-                return;
-            }
-            
-            // Show loading state
-            document.getElementById('snapshotTitle').textContent = `Spectrum Records`;
-            
-            // Fetch full snapshot data
-            try {
-                const response = await fetch(`/api/database/snapshot/${snapshot.id}`);
-                const fullSnapshot = await response.json();
-                
-                if (!fullSnapshot || !fullSnapshot.data) {
-                    console.error('Failed to load snapshot data');
-                    return;
-                }
-                
-                // Cache the loaded data
-                snapshotCache.set(snapshot.id, fullSnapshot);
-                
-                // Render
-                renderCachedSnapshot(snapshot, fullSnapshot);
-                
-                // Preload adjacent snapshots for smoother navigation
-                preloadAdjacentSnapshots(index);
-                
-            } catch (error) {
-                console.error('Error loading snapshot:', error);
-                document.getElementById('snapshotTitle').textContent = `Error loading snapshot #${snapshot.id}`;
-            }
-        }
-        
-        function renderCachedSnapshot(snapshot, fullSnapshot) {
-            const data = fullSnapshot.data;
-            const stats = data.statistics || {};
-            
-            // Update info with cleaner formatting
-            const date = new Date(fullSnapshot.epoch * 1000);
-            const dateStr = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-            const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
-            
-            document.getElementById('snapshotTitle').textContent = `Spectrum Records`;
-            document.getElementById('snapshotTime').textContent = `${dateStr}, ${timeStr}`;
-            document.getElementById('snapshotDreamers').textContent = `${data.total_dreamers} dreamers`;
-            document.getElementById('snapshotAvgDist').textContent = `Avg distance: ${stats.avg_distance_from_origin?.toFixed(2) || 0}`;
-            
-            // Render spectrum
-            renderHistoricalSpectrumCanvas(data.dreamers);
-        }
-        
-        async function preloadAdjacentSnapshots(currentIndex) {
-            // Preload previous and next snapshots for instant navigation
-            const toPreload = [];
-            
-            if (currentIndex > 0) {
-                const prev = snapshotsData[currentIndex - 1];
-                if (prev && !snapshotCache.has(prev.id)) {
-                    toPreload.push(prev.id);
-                }
-            }
-            
-            if (currentIndex < totalSnapshotCount - 1) {
-                const next = snapshotsData[currentIndex + 1];
-                if (next && !snapshotCache.has(next.id)) {
-                    toPreload.push(next.id);
-                }
-            }
-            
-            // Load in background
-            for (const id of toPreload) {
-                try {
-                    const response = await fetch(`/api/database/snapshot/${id}`);
-                    const fullSnapshot = await response.json();
-                    if (fullSnapshot && fullSnapshot.data) {
-                        snapshotCache.set(id, fullSnapshot);
-                    }
-                } catch (error) {
-                    // Silently fail preload
-                }
-            }
-            
-            // Limit cache size to prevent memory issues
-            if (snapshotCache.size > 50) {
-                // Remove oldest entries (simple LRU approximation)
-                const keys = Array.from(snapshotCache.keys());
-                for (let i = 0; i < 20; i++) {
-                    snapshotCache.delete(keys[i]);
-                }
-            }
-        }
-        
-        async function renderHistoricalSpectrumCanvas(dreamers) {
-            const canvas = document.getElementById('historicalSpectrumCanvas');
-            if (!canvas) {
-                console.error('❌ Historical spectrum canvas not found');
-                return;
-            }
-            
-            // Ensure canvas has proper dimensions before initializing
-            // Check both internal dimensions and computed style
-            const computedStyle = window.getComputedStyle(canvas);
-            const displayWidth = parseInt(computedStyle.width) || 600;
-            const displayHeight = parseInt(computedStyle.height) || 600;
-            
-            if (canvas.width === 0 || canvas.height === 0 || displayWidth === 0 || displayHeight === 0) {
-                console.log('📐 Setting canvas dimensions...');
-                canvas.width = 600;
-                canvas.height = 600;
-            }
-            
-            console.log('📐 Canvas ready:', canvas.width, 'x', canvas.height, 'Display:', displayWidth, 'x', displayHeight);
-            
-            // Convert dreamers data to format expected by SpectrumTimelineViewer
-            const spectrumData = dreamers.map(d => {
-                if (!d.coordinates || !d.spectrum) return null;
-                
-                return {
-                    did: d.did,
-                    handle: d.handle,
-                    name: d.name,
-                    x: d.coordinates.x,
-                    y: d.coordinates.y,
-                    z: d.coordinates.z,
-                    spectrum: {
-                        entropy: d.spectrum.entropy,
-                        oblivion: d.spectrum.oblivion,
-                        liberty: d.spectrum.liberty,
-                        authority: d.spectrum.authority,
-                        receptive: d.spectrum.receptive,
-                        skeptic: d.spectrum.skeptic
-                    },
-                    heading: d.heading
-                };
-            }).filter(d => d !== null);
-            
-            console.log('📊 Spectrum data ready:', spectrumData.length, 'dreamers');
-            
-            // Initialize or update spectrum visualization
-            // Check if we need to create a new viewer (no viewer exists OR canvas has changed)
-            const needsNewViewer = !historicalSpectrum || !historicalSpectrum.canvas || historicalSpectrum.canvas !== canvas;
-            
-            if (needsNewViewer) {
-                console.log('🎨 Creating new SpectrumTimelineViewer...');
-                
-                // Clean up old viewer if it exists
-                if (historicalSpectrum) {
-                    console.log('🧹 Cleaning up old viewer first');
-                    historicalSpectrum.stopAnimation();
-                }
-                
-                // Wait for canvas to be fully rendered in layout
-                await new Promise(resolve => requestAnimationFrame(() => {
-                    requestAnimationFrame(resolve);
-                }));
-                
-                try {
-                    historicalSpectrum = new window.SpectrumTimelineViewer(canvas, {
-                        showLabels: true,
-                        showAllNames: false,
-                        initialZoom: 1.5,
-                        showControls: false
-                    });
-                    console.log('✅ SpectrumTimelineViewer created successfully');
-                } catch (error) {
-                    console.error('❌ Failed to create SpectrumTimelineViewer:', error);
-                    return;
-                }
-            } else {
-                console.log('♻️ Reusing existing SpectrumTimelineViewer');
-            }
-            
-            // Load the snapshot data
-            console.log('📥 Loading snapshot data into viewer...');
-            historicalSpectrum.loadSnapshot(spectrumData);
-            console.log('✅ Snapshot loaded');
-        }
-        
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        }
     </script>
 
 </body>
 </html>
-

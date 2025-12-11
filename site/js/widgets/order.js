@@ -257,7 +257,13 @@ class OrderWidget {
                     showType: false
                 });
                 container.innerHTML = eventsHTML;
-                this.applySnakeCharmerEffect(container);
+                
+                // Apply effects using RowStyle engine
+                if (window.rowStyleEngine) {
+                    window.rowStyleEngine.applyEffects(container);
+                } else {
+                    this.applySnakeCharmerEffect(container);
+                }
             }
             
             // Render in full list (bottom right)
@@ -279,7 +285,12 @@ class OrderWidget {
                     `;
                     const recentList = fullContainer.querySelector('.recent-orders-list');
                     if (recentList) {
-                        this.applySnakeCharmerEffect(recentList);
+                        // Apply effects using RowStyle engine
+                        if (window.rowStyleEngine) {
+                            window.rowStyleEngine.applyEffects(recentList);
+                        } else {
+                            this.applySnakeCharmerEffect(recentList);
+                        }
                     }
                 }
             }

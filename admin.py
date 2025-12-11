@@ -1086,6 +1086,8 @@ def get_all_database_data():
                             r.uri as reaction_uri,
                             r.url as reaction_url,
                             r.epoch as reaction_epoch,
+                            r.color_source as reaction_color_source,
+                            r.color_intensity as reaction_color_intensity,
                             rd.name as reaction_name,
                             rd.avatar as reaction_avatar,
                             rs.octant as reaction_octant,
@@ -1626,6 +1628,24 @@ def get_world():
         return jsonify({
             'success': False,
             'error': str(e)
+        }), 500
+
+
+@app.route('/api/bsky-stats')
+def get_bsky_stats():
+    """Proxy for Bluesky user count stats to avoid CORS issues"""
+    try:
+        import urllib.request
+        import json
+        
+        with urllib.request.urlopen('https://bsky-users.theo.io/api/stats', timeout=5) as response:
+            data = json.loads(response.read().decode())
+            return jsonify(data)
+    except Exception as e:
+        print(f"Error fetching Bluesky stats: {e}")
+        return jsonify({
+            'error': 'Failed to fetch stats',
+            'last_user_count': None
         }), 500
 
 

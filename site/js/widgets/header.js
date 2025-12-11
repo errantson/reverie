@@ -3,11 +3,14 @@ class Header {
         this.coreColor = '#734ba1';
         this.loginsEnabled = false;
         this.mobileMenuOpen = false;
-        this.loadCoreColor().then(() => {
-            this.loadStyles();
-            this.render();
-            this.initialize();
-        });
+        
+        // Render immediately for fast display
+        this.loadStyles();
+        this.render();
+        this.initialize();
+        
+        // Load colors asynchronously (won't block rendering)
+        this.loadCoreColor();
     }
     async loadCoreColor() {
         try {
@@ -17,7 +20,7 @@ class Header {
                 this.coreColor = window.colorManager.getColor();
                 console.log('🎨 Header: Color loaded from color manager:', this.coreColor);
                 
-                // Apply color immediately to DOM before rendering
+                // Apply color to DOM
                 document.documentElement.style.setProperty('--reverie-core-color', this.coreColor);
                 document.documentElement.style.setProperty('--user-color', this.coreColor);
             }
@@ -1125,7 +1128,9 @@ class Header {
     initializeMobileMenu() {
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const mobileMenu = document.getElementById('mobile-menu');
+        
         if (!hamburgerBtn || !mobileMenu) return;
+        
         hamburgerBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.mobileMenuOpen = !this.mobileMenuOpen;

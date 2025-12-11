@@ -17,6 +17,19 @@ class Shadowbox {
      * Create and show the shadowbox
      */
     create() {
+        // Prevent body scroll and layout shifts
+        this.originalBodyOverflow = document.body.style.overflow || '';
+        this.originalBodyWidth = document.body.style.width || '';
+        this.originalHtmlOverflow = document.documentElement.style.overflow || '';
+        this.originalHtmlWidth = document.documentElement.style.width || '';
+        
+        // Set body and html width to current width to prevent layout shift when scrollbar disappears
+        const currentWidth = document.body.offsetWidth;
+        document.body.style.width = currentWidth + 'px';
+        document.documentElement.style.width = currentWidth + 'px';
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+
         // Create overlay
         this.overlay = document.createElement('div');
         this.overlay.className = 'shadowbox-overlay';
@@ -79,8 +92,7 @@ class Shadowbox {
         }
 
         this.overlay.appendChild(this.contentContainer);
-        document.body.appendChild(this.overlay);
-
+        
         // Allow click-outside to close (always enabled)
         // Check for clicks on both overlay and contentContainer
         const handleOutsideClick = (e) => {
@@ -92,6 +104,8 @@ class Shadowbox {
         
         this.overlay.addEventListener('click', handleOutsideClick);
         this.contentContainer.addEventListener('click', handleOutsideClick);
+
+        document.body.appendChild(this.overlay);
 
         return this;
     }
@@ -223,6 +237,36 @@ class Shadowbox {
         }
 
         if (this.overlay) {
+            // Restore body and html scroll and width
+            if (this.originalBodyOverflow !== undefined) {
+                if (this.originalBodyOverflow === '') {
+                    document.body.style.removeProperty('overflow');
+                } else {
+                    document.body.style.overflow = this.originalBodyOverflow;
+                }
+            }
+            if (this.originalBodyWidth !== undefined) {
+                if (this.originalBodyWidth === '') {
+                    document.body.style.removeProperty('width');
+                } else {
+                    document.body.style.width = this.originalBodyWidth;
+                }
+            }
+            if (this.originalHtmlOverflow !== undefined) {
+                if (this.originalHtmlOverflow === '') {
+                    document.documentElement.style.removeProperty('overflow');
+                } else {
+                    document.documentElement.style.overflow = this.originalHtmlOverflow;
+                }
+            }
+            if (this.originalHtmlWidth !== undefined) {
+                if (this.originalHtmlWidth === '') {
+                    document.documentElement.style.removeProperty('width');
+                } else {
+                    document.documentElement.style.width = this.originalHtmlWidth;
+                }
+            }
+            
             // Quick fade out
             this.overlay.style.transition = 'opacity 0.15s ease-out';
             this.overlay.style.opacity = '0';

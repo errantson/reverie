@@ -82,11 +82,6 @@ export function renderEventRow(event, options = {}) {
         rowClasses.push(`souvenir-${key}`);
     }
     
-    // Add nightmare class for nightmare prepare events
-    if (key === 'prepare' && event.nightmare) {
-        rowClasses.push('nightmare-prepare');
-    }
-    
     // Add reactionary class for welcomed greeter events
     if (key === 'greeter' && event.reactionary) {
         rowClasses.push('greeter-reactionary');

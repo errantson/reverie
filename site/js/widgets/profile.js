@@ -71,6 +71,7 @@ class Profile {
         // Load JavaScript dependencies in order with promises
         // Core utilities first
         this.dependencyPromises.push(
+            loadScript('/js/core/rowstyle-registry.js'),
             loadScript('/js/utils/num_nom.js'),
             loadScript('/js/utils/user-status.js', 'UserStatus'),
             loadScript('/js/utils/atproto-interactions.js'),
@@ -881,8 +882,13 @@ class Profile {
             const html = this.renderEventRows(dreamerEvents, allDreamers, dreamer);
             eventsContent.innerHTML = html;
             
-            // Apply snake charmer effect to strange souvenir rows
-            this.applySnakeCharmerEffect(eventsContent);
+            // Apply effects using RowStyle engine
+            if (window.rowStyleEngine) {
+                window.rowStyleEngine.applyEffects(eventsContent);
+            } else {
+                // Fallback to legacy method
+                this.applySnakeCharmerEffect(eventsContent);
+            }
             
         } catch (error) {
             console.error('Error loading events:', error);
@@ -963,12 +969,58 @@ class Profile {
                     avatar: row.reaction_avatar,
                     octant: row.reaction_octant,
                     origin_octant: row.reaction_origin_octant,
+                    color_source: row.reaction_color_source,
+                    color_intensity: row.reaction_color_intensity,
                     color_hex: row.reaction_color_hex
                 };
                 
+                // Build color system classes for reaction row
+                let reactionColorClasses = '';
+                const reactionColorSource = reactionRow.color_source || 'none';
+                const reactionColorIntensity = reactionRow.color_intensity || 'none';
+                const reactionKey = reactionRow.key || '';
+                const reactionType = reactionRow.type || '';
+                
+                // Add type-based class for special event types (nightmare, dissipate, etc.)
+                if (reactionType) {
+                    reactionColorClasses += ` event-type-${reactionType}`;
+                }
+                
+                if (reactionKey) {
+                    reactionColorClasses += ` event-key-${reactionKey}`;
+                }
+                
+                if (reactionColorSource !== 'none') {
+                    reactionColorClasses += ` color-${reactionColorSource}`;
+                }
+                
+                if (reactionColorIntensity !== 'none') {
+                    reactionColorClasses += ` intensity-${reactionColorIntensity}`;
+                }
+                
+                if (reactionColorSource === 'role' && reactionKey) {
+                    reactionColorClasses += ` role-${reactionKey}`;
+                } else if (reactionType === 'welcome' && (reactionKey === 'greeter' || reactionKey === 'mapper' || reactionKey === 'cogitarian')) {
+                    // Reactionary welcome events should also get role styling
+                    reactionColorClasses += ` color-role role-${reactionKey} intensity-highlight`;
+                }
+                
+                if (reactionColorSource === 'octant') {
+                    const octant = ((reactionKey === 'origin' || reactionKey === 'name') && reactionRow.origin_octant) 
+                        ? reactionRow.origin_octant 
+                        : reactionRow.octant;
+                    if (octant) {
+                        reactionColorClasses += ` octant-${octant}`;
+                    }
+                }
+                
+                if (reactionColorSource === 'souvenir' && reactionKey) {
+                    reactionColorClasses += ` souvenir-${reactionKey}`;
+                }
+                
                 const reactionClickAttr = reactionRow.url ? `onclick="window.open('${reactionRow.url}', '_blank')" style="cursor: pointer;"` : '';
                 const roleClass = reactionRow.key ? `reaction-parent-${reactionRow.key}` : '';
-                html += `<div class="row-entry reaction-parent-row ${roleClass}" ${reactionClickAttr}>`;
+                html += `<div class="row-entry reaction-parent-row ${roleClass}${reactionColorClasses}" ${reactionClickAttr}>`;
                 
                 columns.forEach(col => {
                     const value = reactionRow[col];
@@ -1054,6 +1106,12 @@ class Profile {
             const colorSource = row.color_source || 'none';
             const colorIntensity = row.color_intensity || 'none';
             const key = row.key || '';
+            const eventType = row.type || '';
+            
+            // Add type-based class for special event types (nightmare, dissipate, etc.)
+            if (eventType) {
+                colorSystemClasses += ` event-type-${eventType}`;
+            }
             
             // Add key-based class for all events (for direct styling by event type)
             if (key) {
@@ -1070,9 +1128,12 @@ class Profile {
                 colorSystemClasses += ` intensity-${colorIntensity}`;
             }
             
-            // Add role-specific class for work events
-            if (colorSource === 'role' && key) {
-                colorSystemClasses += ` role-${key}`;
+            // Use RowStyleRegistry to determine base styling
+            const styleName = window.computeRowStyle(row);
+            if (styleName && window.RowStyleRegistry && window.RowStyleRegistry[styleName]) {
+                const rowStyle = window.RowStyleRegistry[styleName];
+                // Add the CSS classes from the registry, excluding 'row-entry' since it's already in rowClass
+                colorSystemClasses += ' ' + rowStyle.rendering.cssClasses.filter(cls => cls !== 'row-entry').join(' ');
             }
             
             // Add octant class for octant-colored events
@@ -1089,10 +1150,6 @@ class Profile {
                 colorSystemClasses += ` souvenir-${key}`;
             }
             
-            // Add nightmare class for nightmare prepare events
-            if (key === 'prepare' && row.nightmare) {
-                colorSystemClasses += ' nightmare-prepare';
-            }
             
             // Add reactionary class for welcomed greeter events
             if (key === 'greeter' && row.reactionary) {
@@ -1281,7 +1338,10 @@ class Profile {
                     displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
                 } else if (col === 'key') {
                     // Apply appropriate coloring based on event type
-                    if (value === 'greeter') {
+                    // Skip inline styling for nightmare/dissipate - let CSS handle it
+                    if (eventType === 'nightmare' || eventType === 'dissipate') {
+                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
+                    } else if (value === 'greeter') {
                         displayValue = `<span style="color: var(--role-greeter); font-weight: 600;">${value}</span>`;
                     } else if (value === 'mapper') {
                         displayValue = `<span style="color: var(--role-mapper); font-weight: 600;">${value}</span>`;

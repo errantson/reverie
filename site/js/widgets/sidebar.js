@@ -225,9 +225,9 @@ class Sidebar {
                 activeRoles = await rolesResponse.json();
             }
             
-            // Match dreamers with their active roles
+            // Match dreamers with their active roles (working or retiring)
             const workersWithRoles = activeRoles
-                .filter(role => role.status === 'active')
+                .filter(role => ['active', 'retiring'].includes(role.status))
                 .map(role => {
                     const dreamer = allDreamers.find(d => d.did === role.did);
                     return dreamer ? { ...dreamer, role: role.role } : null;

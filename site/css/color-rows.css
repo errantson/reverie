@@ -21,17 +21,25 @@
    FALLBACK / DEFAULT STYLES
    ============================================================================ */
 
-/* Faded intensity with no color source - generic grey fade */
-.row-entry.intensity-faded:not(.color-user):not(.color-role):not(.color-octant):not(.color-souvenir) {
-    background: linear-gradient(
-        to right,
-        rgba(128, 128, 128, 0.05) 0%,
-        transparent 100%
-    ) !important;
-    border-left: 1px solid rgba(128, 128, 128, 0.3);
-    color: #999;
-    opacity: 0.7;
-    font-style: italic;
+/* Default row backgrounds (when no special coloring) */
+.row-entry {
+    background: #f0f0f0;
+    border-left: 4px solid transparent;
+    color: #333;
+}
+
+.row-entry:nth-child(even) {
+    background: var(--bg-white, #ffffff);
+}
+
+/* Hover effect - subtle overlay that works with any row color */
+.row-entry:hover {
+    filter: brightness(0.97);
+}
+
+/* Default rows with no color source - explicit black text */
+.row-entry:not(.color-user):not(.color-role):not(.color-octant):not(.color-souvenir) {
+    color: #333;
 }
 
 /* ============================================================================
@@ -44,26 +52,15 @@
     color: color-mix(in srgb, var(--user-color, #8b7355) 60%, #333);
 }
 
-/* Faded intensity - very subtle, 50% transparency */
-.row-entry.color-user.intensity-faded {
-    background: linear-gradient(
-        to right,
-        color-mix(in srgb, var(--user-color, #8b7355) 4%, transparent) 0%,
-        transparent 100%
-    ) !important;
-    border-left: 1px solid color-mix(in srgb, var(--user-color, #8b7355) 50%, transparent);
-    color: color-mix(in srgb, var(--user-color, #8b7355) 40%, #666);
-    opacity: 0.7;
-}
-
 /* Highlight intensity - subtle background tint */
 .row-entry.color-user.intensity-highlight {
     background: linear-gradient(
         to right,
         color-mix(in srgb, var(--user-color, #8b7355) 15%, transparent) 0%,
         color-mix(in srgb, var(--user-color, #8b7355) 3%, transparent) 100%
-    ) !important;
+    );
     border-left: 2px solid var(--user-color, #8b7355);
+    border-right: none;
     color: color-mix(in srgb, var(--user-color, #8b7355) 85%, #000);
 }
 
@@ -73,8 +70,9 @@
         to right,
         color-mix(in srgb, var(--user-color, #8b7355) 30%, transparent) 0%,
         color-mix(in srgb, var(--user-color, #8b7355) 8%, transparent) 100%
-    ) !important;
+    );
     border-left: 4px solid var(--user-color, #8b7355);
+    border-right: none;
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 35%, transparent);
     color: color-mix(in srgb, var(--user-color, #8b7355) 92%, #000);
     font-weight: 600;
@@ -82,12 +80,6 @@
 
 /* Fallback for browsers that don't support color-mix */
 @supports not (background: color-mix(in srgb, red, blue)) {
-    .color-user.intensity-faded {
-        background: rgba(139, 115, 85, 0.02);
-        border-left: 1px solid rgba(139, 115, 85, 0.3);
-        color: #8b7355;
-    }
-    
     .color-user.intensity-highlight {
         background: rgba(139, 115, 85, 0.1);
         color: #6b5945;
@@ -111,8 +103,9 @@
             to right,
             color-mix(in srgb, var(--user-color, #8b7355) 35%, transparent) 0%,
             color-mix(in srgb, var(--user-color, #8b7355) 10%, transparent) 100%
-        ) !important;
+        );
     border-left: 4px solid var(--user-color, #8b7355);
+    border-right: none;
     box-shadow: 
         inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 40%, transparent),
         0 0 8px color-mix(in srgb, var(--user-color, #8b7355) 25%, transparent);
@@ -135,6 +128,15 @@
     }
 }
 
+/* Override for "ventured a strange dream" - use default styling */
+.row-entry.event-key-dream.souvenir-strange {
+    background: none;
+    border-left: 4px solid transparent;
+    box-shadow: none;
+    animation: none;
+    font-weight: normal;
+}
+
 /* Fallback for browsers without color-mix */
 @supports not (background: color-mix(in srgb, red, blue)) {
     .event-key-dream.color-user.intensity-special {
@@ -149,10 +151,129 @@
 }
 
 /* ============================================================================
+   NIGHTMARE STYLE - Dark smokey animated for "prepares for the ending"
+   ============================================================================ */
+
+.row-entry.event-type-nightmare.intensity-special {
+    background:
+        repeating-linear-gradient(
+            90deg,
+            rgba(45, 45, 55, 0.65) 0px,
+            rgba(60, 60, 70, 0.75) 25px,
+            rgba(50, 50, 60, 0.65) 50px,
+            rgba(60, 60, 70, 0.75) 75px,
+            rgba(45, 45, 55, 0.65) 100px
+        ),
+        radial-gradient(
+            ellipse at 30% 50%,
+            rgba(80, 80, 95, 0.45) 0%,
+            transparent 60%
+        ),
+        radial-gradient(
+            ellipse at 70% 50%,
+            rgba(70, 70, 85, 0.4) 0%,
+            transparent 60%
+        ),
+        linear-gradient(
+            to right,
+            rgba(50, 50, 60, 0.7) 0%,
+            rgba(65, 65, 75, 0.8) 50%,
+            rgba(50, 50, 60, 0.7) 100%
+        );
+    background-size: 200% 100%, 100% 100%, 100% 100%, 100% 100%;
+    border-left: 3px solid #3a3a45;
+    border-right: none;
+    box-shadow:
+        inset 0 0 50px rgba(0, 0, 0, 0.3),
+        inset 0 1px 1px rgba(255, 255, 255, 0.08),
+        0 2px 6px rgba(0, 0, 0, 0.25);
+    color: #ffffff;
+    position: relative;
+    animation: nightmareSmoke 20s linear infinite;
+    font-weight: 500;
+}
+
+/* Force white text on all elements including key/uri cells */
+.row-entry.event-type-nightmare.intensity-special,
+.row-entry.event-type-nightmare.intensity-special .cell,
+.row-entry.event-type-nightmare.intensity-special .cell.key,
+.row-entry.event-type-nightmare.intensity-special .cell.uri,
+.row-entry.event-type-nightmare.intensity-special .cell *,
+.row-entry.event-type-nightmare.intensity-special a,
+.row-entry.event-type-nightmare.intensity-special span {
+    color: #ffffff;
+}
+
+@keyframes nightmareSmoke {
+    0% {
+        background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+    100% {
+        background-position: 100% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+}
+
+/* Floating smoke particles effect */
+.row-entry.event-type-nightmare.intensity-special::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(220, 220, 235, 0.15) 0%, transparent 5%),
+        radial-gradient(circle at 60% 70%, rgba(220, 220, 235, 0.12) 0%, transparent 4%),
+        radial-gradient(circle at 85% 40%, rgba(220, 220, 235, 0.14) 0%, transparent 6%),
+        radial-gradient(circle at 35% 80%, rgba(220, 220, 235, 0.11) 0%, transparent 4%);
+    background-size: 100% 100%;
+    pointer-events: none;
+    opacity: 0.6;
+    animation: smokeParticles 15s ease-in-out infinite;
+}
+
+@keyframes smokeParticles {
+    0%, 100% {
+        opacity: 0.3;
+        transform: translateY(0);
+    }
+    50% {
+        opacity: 0.5;
+        transform: translateY(-2px);
+    }
+}
+
+/* ============================================================================
+   DISSIPATE STYLE - Faded grey mist for departed dreamers
+   ============================================================================ */
+
+.row-entry.event-type-dissipate.intensity-faded {
+    background: linear-gradient(
+        to right,
+        rgba(160, 160, 165, 0.12) 0%,
+        rgba(180, 180, 185, 0.06) 50%,
+        transparent 100%
+    );
+    border-left: 2px solid rgba(140, 140, 145, 0.4);
+    border-right: none;
+    color: #999;
+    opacity: 0.5;
+    filter: grayscale(0.8);
+}
+
+/* Force grey text on child elements */
+.row-entry.event-type-dissipate.intensity-faded .cell,
+.row-entry.event-type-dissipate.intensity-faded .cell *,
+.row-entry.event-type-dissipate.intensity-faded a,
+.row-entry.event-type-dissipate.intensity-faded span {
+    color: #999;
+}
+
+/* ============================================================================
    ROLE COLOR SYSTEM (Worker roles: greeter, mapper, cogitarian)
    ============================================================================ */
 
-/* Greeter - Blue tones */
+/* Greeter - Calm cyan tones */
 .row-entry.color-role.role-greeter.intensity-none {
     border-left: 2px solid var(--role-greeter);
     color: color-mix(in srgb, var(--role-greeter) 80%, #333);
@@ -161,11 +282,13 @@
 .row-entry.color-role.role-greeter.intensity-highlight {
     background: linear-gradient(
         to right,
-        var(--role-greeter-light) 0%,
+        var(--role-greeter-medium) 0%,
+        var(--role-greeter-light) 50%,
         transparent 100%
-    ) !important;
-    border-left: 2px solid var(--role-greeter);
-    color: color-mix(in srgb, var(--role-greeter) 95%, #000);
+    );
+    border-left: 3px solid var(--role-greeter);
+    border-right: none;
+    color: var(--role-greeter-dark);
 }
 
 .row-entry.color-role.role-greeter.intensity-special {
@@ -173,43 +296,59 @@
         to right,
         var(--role-greeter-medium) 0%,
         var(--role-greeter-light) 100%
-    ) !important;
-    border-left: 3px solid var(--role-greeter);
+    );
+    border-left: 4px solid var(--role-greeter);
+    border-right: none;
     box-shadow: inset 0 0 0 1px var(--role-greeter-light);
-    color: color-mix(in srgb, var(--role-greeter) 90%, #000);
-    font-weight: 500;
+    color: var(--role-greeter-dark);
+    font-weight: 600;
 }
 
-/* Mapper - Green tones */
+/* Force greeter color on child elements */
+.row-entry.color-role.role-greeter .cell,
+.row-entry.color-role.role-greeter .cell *,
+.row-entry.color-role.role-greeter a,
+.row-entry.color-role.role-greeter span {
+    color: var(--role-greeter-dark);
+}
+
+/* Mapper - Natural lime tones */
 .row-entry.color-role.role-mapper.intensity-none {
     border-left: 2px solid var(--role-mapper);
     color: color-mix(in srgb, var(--role-mapper) 80%, #333);
 }
 
-.row-entry.color-role.role-mapper.intensity-highlight,
-.row-entry.color-role.role-mapper.intensity-highlight:nth-child(even),
-.row-entry.color-role.role-mapper.intensity-highlight:hover {
+.row-entry.color-role.role-mapper.intensity-highlight {
     background: linear-gradient(
         to right,
-        var(--role-mapper-light) 0%,
+        var(--role-mapper-medium) 0%,
+        var(--role-mapper-light) 50%,
         transparent 100%
-    ) !important;
-    border-left: 2px solid var(--role-mapper);
-    color: color-mix(in srgb, var(--role-mapper) 95%, #000);
+    );
+    border-left: 3px solid var(--role-mapper);
+    border-right: none;
+    color: var(--role-mapper-dark);
 }
 
-.row-entry.color-role.role-mapper.intensity-special,
-.row-entry.color-role.role-mapper.intensity-special:nth-child(even),
-.row-entry.color-role.role-mapper.intensity-special:hover {
+.row-entry.color-role.role-mapper.intensity-special {
     background: linear-gradient(
         to right,
         var(--role-mapper-medium) 0%,
         var(--role-mapper-light) 100%
-    ) !important;
-    border-left: 3px solid var(--role-mapper);
+    );
+    border-left: 4px solid var(--role-mapper);
+    border-right: none;
     box-shadow: inset 0 0 0 1px var(--role-mapper-light);
-    color: color-mix(in srgb, var(--role-mapper) 90%, #000);
-    font-weight: 500;
+    color: var(--role-mapper-dark);
+    font-weight: 600;
+}
+
+/* Force mapper color on child elements */
+.row-entry.color-role.role-mapper .cell,
+.row-entry.color-role.role-mapper .cell *,
+.row-entry.color-role.role-mapper a,
+.row-entry.color-role.role-mapper span {
+    color: var(--role-mapper-dark);
 }
 
 /* Cogitarian - Orange-red tones */
@@ -223,8 +362,9 @@
         to right,
         var(--role-cogitarian-light) 0%,
         transparent 100%
-    ) !important;
+    );
     border-left: 2px solid var(--role-cogitarian);
+    border-right: none;
     color: color-mix(in srgb, var(--role-cogitarian) 95%, #000);
 }
 
@@ -233,8 +373,9 @@
         to right,
         var(--role-cogitarian-medium) 0%,
         var(--role-cogitarian-light) 100%
-    ) !important;
+    );
     border-left: 3px solid var(--role-cogitarian);
+    border-right: none;
     box-shadow: inset 0 0 0 1px var(--role-cogitarian-light);
     color: color-mix(in srgb, var(--role-cogitarian) 90%, #000);
     font-weight: 500;
@@ -259,6 +400,7 @@
         transparent 100%
     );
     border-left: 2px solid var(--octant-color, #888);
+    border-right: none;
     color: color-mix(in srgb, var(--octant-color, #888) 90%, #000);
 }
 
@@ -270,6 +412,7 @@
         color-mix(in srgb, var(--octant-color, #888) 5%, transparent) 100%
     );
     border-left: 3px solid var(--octant-color, #888);
+    border-right: none;
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--octant-color, #888) 25%, transparent);
     color: color-mix(in srgb, var(--octant-color, #888) 95%, #000);
     font-weight: 500;
@@ -310,13 +453,6 @@
     /* No special coloring, uses default table row styling */
 }
 
-/* Faded intensity for default color - very subtle gray tint */
-.intensity-faded {
-    background: rgba(128, 128, 128, 0.03);
-    opacity: 0.6;
-    font-style: italic;
-}
-
 /* ============================================================================
    HELPER UTILITIES
    ============================================================================ */
@@ -347,6 +483,8 @@
 
 /* Hover states for colored rows */
 .color-user:hover,
-.color-role:hover {
-    filter: brightness(0.98);
+.color-role:hover,
+.color-octant:hover {
+    filter: brightness(0.95) saturate(1.1);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }

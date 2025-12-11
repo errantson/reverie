@@ -6,32 +6,227 @@
  */
 
 /* ============================================================================
-   STRANGE SOUVENIR - Ethereal purple shimmer for recalls, plain for ventured
+   STRANGE SOUVENIR - Reality-bending, unsettling, icon-face inspired
+   Like the strange dream icon: distorted, fractured, otherworldly
    ============================================================================ */
 
 .souvenir-strange {
-    --strange-purple: #b08fd9;
-    --strange-bright: #d4c5f9;
+    --strange-purple: #7B5A9E;
+    --strange-dark: #4A2D5F;
+    --strange-bright: #B08FD9;
+    --strange-glow: rgba(123, 90, 158, 0.35);
 }
 
-/* Special intensity styling for "recalls a strange dream" events */
-.row-entry.color-souvenir.souvenir-strange.intensity-special {
-    background: linear-gradient(
-        135deg,
-        rgba(176, 143, 217, 0.12) 0%,
-        rgba(212, 197, 249, 0.08) 50%,
-        rgba(176, 143, 217, 0.12) 100%
-    );
+/* Highlight intensity - smooth psychedelic pattern with hue-shifting pastels */
+.row-entry.color-souvenir.souvenir-strange.intensity-highlight {
+    background:
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 15px,
+            rgba(176, 143, 217, 0.12) 15px,
+            rgba(176, 143, 217, 0.12) 30px
+        ),
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 15px,
+            rgba(200, 150, 255, 0.10) 15px,
+            rgba(200, 150, 255, 0.10) 30px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(255, 200, 240, 0.08) 0%,
+            rgba(200, 180, 255, 0.08) 50%,
+            rgba(255, 200, 240, 0.08) 100%
+        );
+    background-size: 300% 300%, 300% 300%, 100% 100%;
     border-left: 3px solid var(--strange-purple);
-    animation: strangeShimmer 12s ease-in-out infinite;
+    box-shadow:
+        inset 0 0 25px rgba(176, 143, 217, 0.08),
+        0 2px 4px rgba(74, 45, 95, 0.15);
+    color: var(--strange-dark);
+    position: relative;
+    animation: strangeRoll 45s linear infinite, strangeHueShift 36s ease-in-out infinite;
 }
 
-@keyframes strangeShimmer {
+/* Smooth rolling pattern animation */
+@keyframes strangeRoll {
+    0% {
+        background-position: 0% 0%, 0% 0%, 0% 0%;
+    }
+    100% {
+        background-position: 100% 100%, -100% -100%, 0% 0%;
+    }
+}
+
+/* Gentle hue-shifting pastel colors (blue-purple-pink) */
+@keyframes strangeHueShift {
     0%, 100% {
-        filter: hue-rotate(-15deg) saturate(1.0) brightness(1.0);
+        filter: hue-rotate(0deg) saturate(1.1) brightness(1);
+    }
+    33% {
+        filter: hue-rotate(-25deg) saturate(1.15) brightness(1.02);
+    }
+    66% {
+        filter: hue-rotate(25deg) saturate(1.12) brightness(1.01);
+    }
+}
+
+/* Scanline overlay for mystical effect */
+.row-entry.color-souvenir.souvenir-strange.intensity-highlight::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 12px,
+        rgba(176, 143, 217, 0.05) 12px,
+        rgba(176, 143, 217, 0.05) 13px
+    );
+    pointer-events: none;
+    animation: scanlines 18s linear infinite;
+}
+
+@keyframes scanlines {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(13px);
+    }
+}
+
+/* Left border glow accent */
+.row-entry.color-souvenir.souvenir-strange.intensity-highlight::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(
+        to bottom,
+        var(--strange-bright) 0%,
+        var(--strange-purple) 50%,
+        var(--strange-bright) 100%
+    );
+    opacity: 0.4;
+}
+
+/* Snake charmer word animation - each word sways independently */
+.snake-word {
+    display: inline-block;
+    animation: snakeCharm 6s ease-in-out infinite;
+    transform-origin: center center;
+    vertical-align: baseline;
+    margin: 0 0.15em 0 0;
+    white-space: nowrap;
+    pointer-events: none; /* Pass clicks through to parent row */
+}
+
+.snake-word:first-child {
+    margin-left: 0;
+}
+
+.snake-word:last-child {
+    margin-right: 0;
+}
+
+@keyframes snakeCharm {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg) scale(1);
     }
     25% {
-        filter: hue-rotate(15deg) saturate(1.15) brightness(1.01);
+        transform: translateY(-3px) rotate(2deg) scale(1.02);
+    }
+    50% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    75% {
+        transform: translateY(-3px) rotate(-2deg) scale(1.02);
+    }
+}
+
+/* Special intensity uses more dramatic animation */
+.color-souvenir.souvenir-strange.intensity-special .snake-word {
+    animation: snakeCharmIntense 3.5s ease-in-out infinite;
+}
+
+@keyframes snakeCharmIntense {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        text-shadow: 0 0 0 transparent;
+    }
+    20% {
+        transform: translateY(-5px) rotate(3deg) scale(1.04);
+        text-shadow: 0 2px 4px rgba(123, 90, 158, 0.3);
+    }
+    50% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        text-shadow: 0 0 0 transparent;
+    }
+    70% {
+        transform: translateY(-5px) rotate(-3deg) scale(1.04);
+        text-shadow: 0 2px 4px rgba(176, 143, 217, 0.3);
+    }
+}
+
+/* Special intensity - enhanced smooth psychedelic pattern */
+.color-souvenir.souvenir-strange.intensity-special {
+    background:
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 12px,
+            rgba(176, 143, 217, 0.18) 12px,
+            rgba(176, 143, 217, 0.18) 24px
+        ),
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 12px,
+            rgba(200, 150, 255, 0.15) 12px,
+            rgba(200, 150, 255, 0.15) 24px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(255, 200, 240, 0.12) 0%,
+            rgba(200, 180, 255, 0.12) 50%,
+            rgba(255, 200, 240, 0.12) 100%
+        );
+    background-size: 300% 300%, 300% 300%, 100% 100%;
+    border-left: 4px solid var(--strange-purple);
+    border-right: 1px solid rgba(176, 143, 217, 0.4);
+    box-shadow: 
+        inset 0 0 35px rgba(176, 143, 217, 0.15),
+        0 0 25px rgba(123, 90, 158, 0.25),
+        0 3px 10px rgba(74, 45, 95, 0.30);
+    color: var(--strange-purple);
+    font-weight: 500;
+    position: relative;
+    animation: strangeRollIntense 24s linear infinite, strangeHueShiftIntense 18s ease-in-out infinite;
+}
+
+@keyframes strangeRollIntense {
+    0% {
+        background-position: 0% 0%, 0% 0%, 0% 0%;
+    }
+    100% {
+        background-position: 100% 100%, -100% -100%, 0% 0%;
+    }
+}
+
+@keyframes strangeHueShiftIntense {
+    0%, 100% {
+        filter: hue-rotate(0deg) saturate(1.15) brightness(1);
+    }
+    25% {
+        filter: hue-rotate(-30deg) saturate(1.25) brightness(1.03);
     }
     50% {
         filter: hue-rotate(0deg) saturate(1.1) brightness(0.99);
@@ -41,7 +236,7 @@
     }
 }
 
-/* Scanline effect for special intensity */
+/* Stronger scanline effect */
 .row-entry.color-souvenir.souvenir-strange.intensity-special::before {
     content: '';
     position: absolute;
@@ -60,15 +255,6 @@
     animation: scanlines 8s linear infinite reverse;
 }
 
-@keyframes scanlines {
-    0% {
-        transform: translateY(0);
-    }
-    100% {
-        transform: translateY(-9px);
-    }
-}
-
 /* Border glow for special intensity */
 .row-entry.color-souvenir.souvenir-strange.intensity-special::after {
     content: '';
@@ -83,12 +269,17 @@
         var(--strange-purple) 50%,
         var(--strange-bright) 100%
     );
-    opacity: 0.6;
+    opacity: 0.3;
+    animation: borderPulse 6s ease-in-out infinite;
 }
 
-/* Highlight intensity - plain default styling for "ventured" */
-.row-entry.color-souvenir.souvenir-strange.intensity-highlight {
-    /* Uses default row styling - no special effects */
+@keyframes borderPulse {
+    0%, 100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.6;
+    }
 }
 
 /* ============================================================================
@@ -146,17 +337,16 @@
     --residence-lapis: #2b5b9e;
     --residence-ultra: #4169b3;
     --residence-bright: #5d8ed6;
-    --residence-white: #ffffff;
+    --residence-gold: #ebd08b;
 }
 
-/* Highlight intensity - animated lapis to white gradient */
+/* Highlight intensity - animated lapis gradient with gold text */
 .row-entry.color-souvenir.souvenir-residence.intensity-highlight {
     background:
         linear-gradient(135deg,
             var(--residence-lapis) 0%,
-            var(--residence-ultra) 30%,
-            var(--residence-bright) 60%,
-            var(--residence-white) 100%
+            var(--residence-ultra) 50%,
+            var(--residence-bright) 100%
         );
     background-size: 200% 200%;
     position: relative;
@@ -164,11 +354,45 @@
     border-right: 1px solid rgba(43, 91, 158, 0.3);
     animation: residenceGradientShift 8s ease-in-out infinite;
     overflow: hidden;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    color: var(--residence-gold);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* Ensure cell content appears above bubbles */
+/* Rolling lightness wave in background */
+.row-entry.color-souvenir.souvenir-residence.intensity-highlight::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.15) 50%,
+        transparent 100%
+    );
+    background-size: 50% 100%;
+    pointer-events: none;
+    animation: residenceRollingLight 4s linear infinite;
+    z-index: 0;
+}
+
+.row-entry.color-souvenir.souvenir-residence.intensity-highlight .cell {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes residenceRollingLight {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+/* Ensure cell content appears above effects */
 .color-souvenir.souvenir-residence .cell {
     position: relative;
     z-index: 1;
@@ -193,47 +417,13 @@
     }
 }
 
-/* Floating wave highlight instead of bubbles */
-.row-entry.color-souvenir.souvenir-residence.intensity-highlight::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.15) 25%,
-        rgba(255, 255, 255, 0.25) 50%,
-        rgba(255, 255, 255, 0.15) 75%,
-        transparent 100%
-    );
-    background-size: 200% 100%;
-    pointer-events: none;
-    animation: residenceWave 6s ease-in-out infinite;
-    z-index: 0;
-}
-
-@keyframes residenceWave {
-    0%, 100% {
-        background-position: -100% 0;
-        opacity: 0.3;
-    }
-    50% {
-        background-position: 200% 0;
-        opacity: 0.6;
-    }
-}
-
 /* Special intensity - more dramatic gradient shift */
 .color-souvenir.souvenir-residence.intensity-special {
     background:
         linear-gradient(135deg,
             var(--residence-lapis) 0%,
-            var(--residence-ultra) 25%,
-            var(--residence-bright) 50%,
-            var(--residence-white) 100%
+            var(--residence-ultra) 50%,
+            var(--residence-bright) 100%
         );
     background-size: 250% 250%;
     position: relative;
@@ -242,8 +432,8 @@
     font-weight: 500;
     animation: residenceGradientShiftIntense 6s ease-in-out infinite;
     overflow: hidden;
-    color: white;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    color: var(--residence-gold);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 /* Intense gradient shifting */

@@ -71,14 +71,46 @@ class EventStack {
         const rowsHtml = this.filteredEvents.map(event => this.buildEventRow(event)).join('');
         this.container.innerHTML = rowsHtml;
         
-        // Add click handlers for bsky URLs
-        this.container.querySelectorAll('[data-bsky-url]').forEach(row => {
-            const url = row.getAttribute('data-bsky-url');
-            row.addEventListener('click', () => {
-                if (this.options.onRowClick) {
+        // Apply effects using RowStyle engine
+        if (window.rowStyleEngine) {
+            window.rowStyleEngine.applyEffects(this.container);
+        } else {
+            // Fallback to legacy method
+            this.applySnakeCharmerEffect(this.container);
+        }
+        
+        // Add unified click handlers for all interactive rows
+        this.container.querySelectorAll('[data-row-action]').forEach(row => {
+            row.addEventListener('click', (e) => {
+                // Check if click originated from an actual interactive element
+                // snake-word spans have pointer-events: none so they won't be targets
+                const interactiveElement = e.target.closest('a[href], button');
+                if (interactiveElement && interactiveElement !== row) {
+                    return;
+                }
+                
+                const action = row.getAttribute('data-row-action');
+                const url = row.getAttribute('data-row-url');
+                
+                // Custom handler takes precedence
+                if (action === 'custom' && this.options.onRowClick) {
                     this.options.onRowClick(url);
-                } else if (window.showPost) {
-                    window.showPost(url);
+                    return;
+                }
+                
+                // Standard actions
+                switch (action) {
+                    case 'navigate':
+                        if (url) window.location.href = url;
+                        break;
+                    case 'external':
+                        if (url) window.open(url, '_blank');
+                        break;
+                    case 'showpost':
+                        if (url && window.showPost) {
+                            window.showPost(url);
+                        }
+                        break;
                 }
             });
         });
@@ -185,44 +217,55 @@ class EventStack {
         }
         const finalRowClass = rowClass + colorSystemClasses;
         
-        // Handle clickability
-        let rowOnClick = '';
-        let bskyDataAttr = '';
+        // Determine row click behavior via data attributes (no inline onclick)
+        let rowClickData = {};
         
-        if (url) {
+        if (url && !this.options.onRowClick) {
             if (url.includes('bsky.app')) {
                 if (url.includes('/profile/') && !url.includes('/post/')) {
                     // Profile URL - navigate to dreamer page
                     const didMatch = url.match(/profile\/(did:plc:[a-z0-9]+)/);
                     if (didMatch && didMatch[1]) {
-                        rowOnClick = `window.location.href='/dreamer?did=${encodeURIComponent(didMatch[1])}'`;
+                        rowClickData.action = 'navigate';
+                        rowClickData.url = `/dreamer?did=${encodeURIComponent(didMatch[1])}`;
                     }
                 } else {
                     // Post URL - use showPost
-                    bskyDataAttr = ` data-bsky-url="${url.replace(/"/g, '&quot;')}"`;
+                    rowClickData.action = 'showpost';
+                    rowClickData.url = url;
                 }
             } else if (url.startsWith('/')) {
-                rowOnClick = `window.location.href='${url}'`;
+                rowClickData.action = 'navigate';
+                rowClickData.url = url;
             } else {
-                rowOnClick = `window.open('${url}', '_blank')`;
+                rowClickData.action = 'external';
+                rowClickData.url = url;
             }
         }
         
-        // Custom click handler override
+        // Custom click handler - will use onRowClick option
         if (this.options.onRowClick) {
-            rowOnClick = '';  // Will be handled by event delegation
+            rowClickData.action = 'custom';
+            rowClickData.url = url;
         }
         
         // Build style attribute
         let rowStyles = [];
-        if (rowOnClick) rowStyles.push('cursor: pointer');
+        if (rowClickData.action) rowStyles.push('cursor: pointer');
         if (colorSystemStyles) rowStyles.push(colorSystemStyles);
         
         const rowStyleAttr = rowStyles.length > 0 ? ` style="${rowStyles.join('; ')}"` : '';
-        const rowOnClickAttr = rowOnClick ? ` onclick="${rowOnClick}"` : '';
+        // Build data attributes for click handling
+        let dataAttrs = '';
+        if (rowClickData.action) {
+            dataAttrs += ` data-row-action="${rowClickData.action}"`;
+            if (rowClickData.url) {
+                dataAttrs += ` data-row-url="${rowClickData.url.replace(/"/g, '&quot;')}"`;
+            }
+        }
         
         // Build the row HTML
-        let html = `<div class="${finalRowClass}"${rowOnClickAttr}${rowStyleAttr}${bskyDataAttr}>`;
+        let html = `<div class="${finalRowClass}"${rowStyleAttr}${dataAttrs}>`;
         
         // Epoch cell
         html += `<div class="cell epoch">${dateStr}</div>`;
@@ -407,10 +450,6 @@ class EventStack {
             classes += ` souvenir-${colorConfig.key}`;
         }
         
-        // Special cases
-        if (key === 'prepare' && event.nightmare) {
-            classes += ' nightmare-prepare';
-        }
         
         if (key === 'greeter' && event.reactionary) {
             classes += ' greeter-reactionary';
@@ -418,61 +457,60 @@ class EventStack {
         
         return classes;
     }
+    
+    /**
+     * Apply snake charmer word animation to strange souvenir rows
+     */
+    applySnakeCharmerEffect(container) {
+        // Find all strange souvenir rows within the container
+        const strangeRows = container.querySelectorAll('.souvenir-strange.intensity-highlight, .souvenir-strange.intensity-special');
+        
+        strangeRows.forEach(row => {
+            // Get all cells in the row (including key cell for wobble)
+            const cells = row.querySelectorAll('.cell');
+            
+            cells.forEach((cell, cellIndex) => {
+                // Skip if cell only contains images or empty content
+                const hasOnlyImages = cell.querySelectorAll('img').length > 0 && !cell.textContent.trim();
+                if (hasOnlyImages) return;
+                
+                let wordIndex = 0;
+                
+                // Recursively process all text nodes within the cell
+                function processNode(node) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent;
+                        const wordParts = text.split(/(\s+)/);
+                        const fragment = document.createDocumentFragment();
+                        
+                        wordParts.forEach(part => {
+                            if (part.trim()) {
+                                const wordSpan = document.createElement('span');
+                                wordSpan.textContent = part;
+                                wordSpan.className = 'snake-word';
+                                const totalDelay = (cellIndex * 8 + wordIndex * 2) * 0.1;
+                                wordSpan.style.animationDelay = `${totalDelay}s`;
+                                fragment.appendChild(wordSpan);
+                                wordIndex++;
+                            } else if (part) {
+                                fragment.appendChild(document.createTextNode(part));
+                            }
+                        });
+                        
+                        node.parentNode.replaceChild(fragment, node);
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Recursively process child nodes
+                        Array.from(node.childNodes).forEach(child => processNode(child));
+                    }
+                }
+                
+                // Start processing from the cell
+                Array.from(cell.childNodes).forEach(child => processNode(child));
+            });
+        });
+    }
 }
 
 // Make globally available
 window.EventStack = EventStack;
 console.log('✅ [EventStack] Widget loaded');
-
-/**
- * USAGE EXAMPLES:
- * 
- * // Souvenir page - show events for specific souvenir with bespoke styling
- * eventStack.render(events, container, {
- *     colorMode: 'souvenir',
- *     colorKey: 'residence',
- *     colorIntensity: 'highlight'
- * });
- * 
- * // Profile page - show all user events with user color
- * eventStack.render(allEvents, container, {
- *     colorMode: 'user',
- *     filter: { did: 'did:plc:abc123' }
- * });
- * 
- * // Role page - show work events for a specific role
- * eventStack.render(events, container, {
- *     colorMode: 'role',
- *     colorKey: 'greeter',
- *     filter: { types: 'work' }
- * });
- * 
- * // Timeline - show events in date range with octant coloring
- * eventStack.render(events, container, {
- *     colorMode: 'octant',
- *     filter: {
- *         dateRange: { start: 1701388800, end: 1709251200 }
- *     }
- * });
- * 
- * // Multi-souvenir view - auto-detect colors from event data
- * eventStack.render(events, container, {
- *     colorMode: 'auto',
- *     filter: {
- *         keys: ['residence', 'wanderer', 'devotion']
- *     }
- * });
- * 
- * // Limited event count with custom empty message
- * eventStack.render(events, container, {
- *     colorMode: 'auto',
- *     limit: 10,
- *     emptyMessage: 'No recent activity'
- * });
- * 
- * // Show reactions beneath parent events
- * eventStack.render(events, container, {
- *     colorMode: 'auto',
- *     showReactions: true
- * });
- */

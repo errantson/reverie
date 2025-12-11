@@ -58,7 +58,7 @@
     --octant-guarded: rgb(169, 85, 214);
     --octant-guarded-light: rgb(210, 180, 230);
     --octant-guarded-dark: rgb(100, 50, 130);
-    --octant-guarded-darker: rgb(75, 40, 100);
+    --octant-guarded-darker: rgb(70, 35, 95);
     
     /* Equilibrium - Balanced center point (all three axes balanced) */
     --octant-equilibrium: rgb(200, 200, 200);
@@ -70,7 +70,7 @@
     --octant-confused: #7F7D69;
     --octant-confused-light: rgb(210, 209, 200);
     --octant-confused-dark: #7F7D69;
-    --octant-confused-darker: #5a594f;
+    --octant-confused-darker: #4a4840;
     
     /* Singling - Balanced on two axes */
     --octant-singling: rgb(200, 180, 180);

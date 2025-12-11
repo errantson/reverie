@@ -336,7 +336,7 @@
 }
 
 .profile-events-content .reaction-row {
-    background-color: rgba(0, 0, 0, 0.02);
+    /* Background handled by color-rows.css */
     border-left: 2px solid var(--text-dim);
     margin-left: 4px;
 }
@@ -354,30 +354,13 @@
     margin-right: 2px;
 }
 
-/* Dream row styling - similar to canon but with dream-specific colors */
+/* Dream row styling - handled by color-rows.css */
 .profile-events-content .row-entry.dream-row {
-    background: linear-gradient(
-        to right,
-        rgba(var(--dream-color-rgb), 0.20) 0%,
-        rgba(var(--dream-color-rgb), 0.12) 30%,
-        rgba(var(--dream-color-rgb), 0.06) 70%,
-        rgba(var(--dream-color-rgb), 0.02) 100%
-    ) !important;
-    border-left: 3px solid var(--dream-color) !important;
-    border-top: 1px solid rgba(var(--dream-color-rgb), 0.25) !important;
-    border-bottom: 1px solid rgba(var(--dream-color-rgb), 0.25) !important;
-    box-shadow: inset 0 0 6px rgba(var(--dream-color-rgb), 0.12), 
-                0 1px 2px rgba(var(--dream-color-rgb), 0.15);
+    /* All styling handled by color-rows.css event-key-dream */
 }
 
 .profile-events-content .row-entry.dream-row:hover {
-    background: linear-gradient(
-        to right,
-        rgba(var(--dream-color-rgb), 0.30) 0%,
-        rgba(var(--dream-color-rgb), 0.18) 30%,
-        rgba(var(--dream-color-rgb), 0.09) 70%,
-        rgba(var(--dream-color-rgb), 0.03) 100%
-    ) !important;
+    /* Hover handled by color-rows.css */
     box-shadow: inset 0 0 10px rgba(var(--dream-color-rgb), 0.18),
                 0 2px 3px rgba(var(--dream-color-rgb), 0.2);
 }
@@ -3321,7 +3304,7 @@
 
 /* Canon row styling from database.html - uses custom properties set inline per row */
 .row-entry {
-    border-left: 4px solid transparent;
+    /* border-left handled by color-rows.css */
     padding: 6px 10px;
     margin: 2px 0;
     display: flex;
@@ -3332,51 +3315,19 @@
 }
 
 .row-entry.canon-row {
-    background: linear-gradient(
-        to right,
-        rgba(var(--canon-color-rgb), 0.25) 0%,
-        rgba(var(--canon-color-rgb), 0.15) 30%,
-        rgba(var(--canon-color-rgb), 0.08) 70%,
-        rgba(var(--canon-color-rgb), 0.03) 100%
-    ) !important;
-    border-left: 4px solid var(--canon-color) !important;
-    border-top: 1px solid rgba(var(--canon-color-rgb), 0.3) !important;
-    border-bottom: 1px solid rgba(var(--canon-color-rgb), 0.3) !important;
-    box-shadow: inset 0 0 8px rgba(var(--canon-color-rgb), 0.15), 
-                0 1px 3px rgba(var(--canon-color-rgb), 0.2);
-    color: var(--canon-color) !important;
+    /* All canon styling handled by color-rows.css */
 }
 
 .row-entry.canon-row:hover {
-    background: linear-gradient(
-        to right,
-        rgba(var(--canon-color-rgb), 0.35) 0%,
-        rgba(var(--canon-color-rgb), 0.22) 30%,
-        rgba(var(--canon-color-rgb), 0.12) 70%,
-        rgba(var(--canon-color-rgb), 0.05) 100%
-    ) !important;
-    box-shadow: inset 0 0 12px rgba(var(--canon-color-rgb), 0.2),
-                0 2px 4px rgba(var(--canon-color-rgb), 0.3);
+    /* Hover handled by color-rows.css */
 }
 
 .row-entry.canon-row:nth-child(even) {
-    background: linear-gradient(
-        to right,
-        rgba(var(--canon-color-rgb), 0.28) 0%,
-        rgba(var(--canon-color-rgb), 0.18) 30%,
-        rgba(var(--canon-color-rgb), 0.10) 70%,
-        rgba(var(--canon-color-rgb), 0.04) 100%
-    ) !important;
+    /* Alternating handled by color-rows.css */
 }
 
 .row-entry.canon-row:nth-child(even):hover {
-    background: linear-gradient(
-        to right,
-        rgba(var(--canon-color-rgb), 0.38) 0%,
-        rgba(var(--canon-color-rgb), 0.25) 30%,
-        rgba(var(--canon-color-rgb), 0.14) 70%,
-        rgba(var(--canon-color-rgb), 0.06) 100%
-    ) !important;
+    /* Hover handled by color-rows.css */
 }
 
 .canon-text {
@@ -3560,17 +3511,13 @@
     background: rgba(200, 180, 180, 0.12) !important;
 }
 
-/* Reactionary row styling - subtle background for reactions */
+/* Reactionary row styling - colors handled by color-rows.css */
 .row-entry.reaction-row {
-    background: rgba(var(--primary-rgb, 107, 79, 161), 0.03) !important;
+    /* Background handled by color-rows.css */
     opacity: 0.95;
 }
 
 .row-entry.reaction-row:hover {
-    background: var(--bg-light, #f5f5f5) !important;
+    /* Hover handled by color-rows.css */
     opacity: 1;
-}
-
-.row-entry.reaction-row:nth-child(even) {
-    background: rgba(var(--primary-rgb, 107, 79, 161), 0.05) !important;
 }

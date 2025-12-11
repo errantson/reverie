@@ -33,12 +33,26 @@ class ColorManager {
     }
 
     async waitForOAuthManager() {
+        // Quick check - if oauth-manager.js isn't even loaded, don't wait
+        const hasOAuthScript = document.querySelector('script[src*="oauth-manager"]');
+        if (!hasOAuthScript && !window.oauthManager) {
+            console.log('🎨 Color Manager: No OAuth manager script detected, skipping');
+            return;
+        }
+        
         return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 20; // 1 second max wait (20 * 50ms)
+            
             const checkOAuth = () => {
                 if (window.oauthManager) {
                     console.log('🎨 Color Manager: OAuth manager found');
                     resolve();
+                } else if (attempts >= maxAttempts) {
+                    console.log('🎨 Color Manager: OAuth manager not found after 1s, continuing without it');
+                    resolve(); // Continue anyway
                 } else {
+                    attempts++;
                     setTimeout(checkOAuth, 50);
                 }
             };
@@ -96,10 +110,15 @@ class ColorManager {
 
     async loadWorldColor() {
         try {
-            const config = await window.worldConfigCache.fetch();
-            const worldColor = config.color || this.currentColor;
-            console.log('🎨 Color Manager: Loaded world color', worldColor);
-            this.setColor(worldColor, 'world');
+            if (window.worldConfigCache) {
+                const config = await window.worldConfigCache.fetch();
+                const worldColor = config.color || this.currentColor;
+                console.log('🎨 Color Manager: Loaded world color', worldColor);
+                this.setColor(worldColor, 'world');
+            } else {
+                console.log('🎨 Color Manager: No worldConfigCache, using default color');
+                this.setColor(this.currentColor, 'default');
+            }
         } catch (error) {
             console.error('❌ Color Manager: Failed to load world color', error);
             this.setColor(this.currentColor, 'default');
