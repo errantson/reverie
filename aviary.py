@@ -202,9 +202,10 @@ class AviaryRunner:
                 if triggered:
                     # Evaluate additional conditions
                     if self.evaluate_conditions(pigeon, user_did):
-                        self.debug("DELIVERY", f"Delivering pigeon '{pigeon['name']}' to user",
-                                  {"pigeon_id": pigeon_id, "user_did": user_did, "trigger_data": trigger_data})
-                        self.deliver_message(pigeon, user_did, trigger_data)
+                        if self.should_deliver(pigeon_id, user_did):
+                            self.debug("DELIVERY", f"Delivering pigeon '{pigeon['name']}' to user",
+                                      {"pigeon_id": pigeon_id, "user_did": user_did, "trigger_data": trigger_data})
+                            self.deliver_message(pigeon, user_did, trigger_data)
         
         self.last_checks['canon_changes'] = now
     
@@ -219,7 +220,7 @@ class AviaryRunner:
                    conditions, condition_operator, priority, repeating
             FROM pigeons
             WHERE status = 'active' 
-              AND trigger_type IN ('role_granted', 'role_revoked', 'gained_role', 'lost_role')
+              AND trigger_type IN ('role_granted', 'role_revoked')
         ''')
         
         pigeons = list(cursor.fetchall())
@@ -248,16 +249,6 @@ class AviaryRunner:
                       {"pigeon_id": pigeon_id, "trigger_type": pigeon['trigger_type']})
             
             for user_did in users:
-                # Check if already delivered (if non-repeating)
-                if not pigeon['repeating']:
-                    delivered = self.db.execute('''
-                        SELECT 1 FROM pigeon_deliveries 
-                        WHERE pigeon_id = %s AND user_did = %s
-                    ''', (pigeon_id, user_did)).fetchone()
-                    
-                    if delivered:
-                        continue
-                
                 # Get user's roles from user_roles table
                 roles_rows = self.db.execute('''
                     SELECT role FROM user_roles 
@@ -270,22 +261,21 @@ class AviaryRunner:
                 triggered = False
                 trigger_data = {"role": target_role}
                 
-                # Support both 'role_granted' and 'gained_role' for compatibility
-                if (pigeon['trigger_type'] in ('role_granted', 'gained_role')) and has_role:
+                if pigeon['trigger_type'] == 'role_granted' and has_role:
                     triggered = True
                     self.debug("ROLE_GRANTED", f"User has role '{target_role}'",
                               {"user_did": user_did, "all_roles": user_roles})
-                # Support both 'role_revoked' and 'lost_role' for compatibility
-                elif (pigeon['trigger_type'] in ('role_revoked', 'lost_role')) and not has_role:
+                elif pigeon['trigger_type'] == 'role_revoked' and not has_role:
                     triggered = True
                     self.debug("ROLE_REVOKED", f"User missing role '{target_role}'",
                               {"user_did": user_did, "all_roles": user_roles})
                 
                 if triggered:
                     if self.evaluate_conditions(pigeon, user_did):
-                        self.debug("DELIVERY", f"Delivering pigeon '{pigeon['name']}' to user",
-                                  {"pigeon_id": pigeon_id, "user_did": user_did, "trigger_data": trigger_data})
-                        self.deliver_message(pigeon, user_did, trigger_data)
+                        if self.should_deliver(pigeon_id, user_did):
+                            self.debug("DELIVERY", f"Delivering pigeon '{pigeon['name']}' to user",
+                                      {"pigeon_id": pigeon_id, "user_did": user_did, "trigger_data": trigger_data})
+                            self.deliver_message(pigeon, user_did, trigger_data)
         
         self.last_checks['role_changes'] = now
     
@@ -776,7 +766,7 @@ class AviaryRunner:
                     INSERT INTO pigeon_deliveries (
                         pigeon_id, user_did, message_id, trigger_data, delivered_at
                     ) VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (pigeon_id, user_did) DO NOTHING
+                    ON CONFLICT (pigeon_id, user_did) WHERE pigeon_id IS NOT NULL DO NOTHING
                 ''', (pigeon_id, user_did, message_id, json.dumps(trigger_data), now))
                 
                 # Note: DatabaseManager auto-commits, no need to call commit()

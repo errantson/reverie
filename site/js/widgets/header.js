@@ -71,7 +71,7 @@ class Header {
             { href: '/dreamers', icon: randomDreamerIcon, title: 'The Dreamweavers', isDreamerIcon: true },
             { href: '/work', icon: '🤝', title: 'Open Workshop' },
             { href: '/spectrum', icon: '🌌', title: 'Reverie Spectrum', hideOnMobile: true },
-            { href: '/database', icon: '🔮', title: 'Archival Records', hideOnMobile: true },
+            { href: '/database', icon: '🔮', title: 'Living Witness', hideOnMobile: true },
             { href: '/order', icon: '📦', title: 'Special Orders' }
         ];
         

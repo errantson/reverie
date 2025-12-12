@@ -420,7 +420,49 @@ def get_trigger_types():
             'config_fields': ['role']
         },
         
+        # Quest Events - Experimental (infrastructure in place)
+        {
+            'type': 'quest_started',
+            'name': 'Quest Started',
+            'category': 'Quest Events',
+            'description': 'When user starts a specific quest',
+            'status': 'experimental',
+            'config_fields': ['quest_key']
+        },
+        {
+            'type': 'quest_completed',
+            'name': 'Quest Completed',
+            'category': 'Quest Events',
+            'description': 'When user completes a specific quest',
+            'status': 'experimental',
+            'config_fields': ['quest_key']
+        },
+        {
+            'type': 'quest_abandoned',
+            'name': 'Quest Abandoned',
+            'category': 'Quest Events',
+            'description': 'When user abandons a specific quest',
+            'status': 'experimental',
+            'config_fields': ['quest_key']
+        },
+        
         # User Activity - Fully Stable
+        {
+            'type': 'first_login',
+            'name': 'First Login',
+            'category': 'User Activity',
+            'description': 'When user logs in for the first time',
+            'status': 'stable',
+            'config_fields': []
+        },
+        {
+            'type': 'user_login',
+            'name': 'User Login',
+            'category': 'User Activity',
+            'description': 'When user logs in (triggers every login)',
+            'status': 'stable',
+            'config_fields': []
+        },
         {
             'type': 'return_visit',
             'name': 'Return Visit',
@@ -437,13 +479,15 @@ def get_trigger_types():
             'status': 'stable',
             'config_fields': ['days']
         },
+        
+        # Time-Based - Experimental (infrastructure in place)
         {
-            'type': 'user_login',
-            'name': 'User Login',
-            'category': 'User Activity',
-            'description': 'When user logs in (triggers every login)',
-            'status': 'stable',
-            'config_fields': []
+            'type': 'time_based',
+            'name': 'Time-Based / Scheduled',
+            'category': 'Time-Based',
+            'description': 'Triggers at specific times or intervals',
+            'status': 'experimental',
+            'config_fields': ['schedule']
         },
         
         # Admin - Fully Stable

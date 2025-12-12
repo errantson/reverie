@@ -1,97 +1,76 @@
 /* Spectrum Preview Widget Styles */
 
 .spectrum-preview-widget {
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid rgba(139, 115, 85, 0.3);
-    padding: 1rem;
     margin: 1rem 0;
     transition: all 0.3s ease;
+    display: flex;
+    justify-content: center; /* center the whole widget in its container */
 }
 
 .spectrum-preview-widget.disabled {
-    background: rgba(200, 200, 200, 0.3);
-    border-color: rgba(150, 150, 150, 0.3);
     opacity: 0.6;
 }
 
-.spectrum-preview-header {
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-.spectrum-preview-title {
-    font-family: 'Courier New', monospace;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #8b7355;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.spectrum-preview-widget.disabled .spectrum-preview-title {
-    color: #999;
-}
-
-.spectrum-preview-body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    align-items: start;
+.spectrum-preview-layout {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 640px; /* constrain layout so controls don't stretch too wide */
+    box-sizing: border-box;
 }
 
 .spectrum-preview-left {
+    width: 100%;
+    max-width: 420px; /* keep the input/button comfortable on larger screens */
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    align-items: center;
-    justify-content: center;
-}
-
-.spectrum-preview-right {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.spectrum-preview-display-name {
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #2c1810;
+    align-items: stretch; /* make children fill available width */
     text-align: center;
+    box-sizing: border-box;
+    padding: 0 0.5rem;
 }
 
-.spectrum-preview-widget.disabled .spectrum-preview-display-name {
-    color: #999;
-}
-
-.spectrum-preview-input-group {
+.spectrum-preview-controls {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* stack input and button vertically */
     gap: 0.5rem;
+    align-items: stretch;
     width: 100%;
-    max-width: 280px;
-    align-items: center;
+}
+
+.spectrum-preview-octant {
+    width: 100%;
 }
 
 .spectrum-preview-input {
-    width: 100%;
-    padding: 0.65rem;
-    border: 2px solid rgba(139, 115, 85, 0.3);
-    background: white;
+    flex: 1 1 auto; /* allow input to take remaining space */
+    padding: 0.8rem 0.9rem;
+    border: 2px solid var(--role-mapper-light);
+    background: linear-gradient(180deg, #fff, #faf7fb);
     font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: #2c1810;
-    transition: all 0.2s ease;
+    transition: box-shadow 0.18s ease, transform 0.12s ease, border-color 0.18s ease;
     text-align: center;
+    box-sizing: border-box;
+    min-width: 0; /* prevent overflow in flex containers */
+    box-shadow: inset 0 -6px 18px rgba(115,75,161,0.04), 0 6px 18px rgba(115,75,161,0.08);
+    font-weight: 700;
+    border-width: 2.5px;
+    border-style: solid;
+    border-color: rgba(115,75,161,0.18);
+    transition: box-shadow 0.18s ease, transform 0.12s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
 .spectrum-preview-input:focus {
     outline: none;
-    border-color: #8b7355;
-    box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.1);
+    border-color: var(--role-mapper);
+    box-shadow: 0 0 0 6px rgba(115,75,161,0.14), inset 0 -8px 22px rgba(115,75,161,0.045), 0 10px 30px rgba(115,75,161,0.06);
+    transform: translateY(-2px) scale(1.01);
+    background: linear-gradient(180deg, #fff, #f6f1fb);
+    border-color: var(--role-mapper);
 }
 
 .spectrum-preview-input:disabled {
@@ -101,29 +80,31 @@
 }
 
 .spectrum-preview-input::placeholder {
-    color: #999;
+    color: #8c7b8f;
     font-style: italic;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
 }
 
 .spectrum-preview-calculate-btn {
-    padding: 0.65rem 1rem;
-    background: #8b7355;
+    padding: 0.65rem 0.9rem;
+    background: var(--role-mapper);
     color: white;
-    border: 2px solid #8b7355;
-    font-weight: 600;
-    font-size: 0.85rem;
+    border: 2px solid var(--role-mapper);
+    font-weight: 700;
+    font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
     width: 100%;
+    box-sizing: border-box;
+    /* keep square corners per design */
 }
 
 .spectrum-preview-calculate-btn:hover:not(:disabled) {
-    background: #6d5a43;
-    border-color: #6d5a43;
+    background: var(--role-mapper-dark);
+    border-color: var(--role-mapper-dark);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(139, 115, 85, 0.3);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .spectrum-preview-calculate-btn:active:not(:disabled) {
@@ -135,18 +116,6 @@
     border-color: #ccc;
     cursor: not-allowed;
     opacity: 0.6;
-}
-
-.spectrum-preview-helper-text {
-    font-size: 0.85rem;
-    color: #666;
-    text-align: center;
-    margin: 0.5rem 0 1rem 0;
-    padding: 0 1rem;
-}
-
-.spectrum-preview-widget.disabled .spectrum-preview-helper-text {
-    color: #999;
 }
 
 .spectrum-preview-results {
@@ -209,13 +178,119 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .spectrum-preview-body {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+    .spectrum-preview-layout {
+        padding: 0 0.5rem;
     }
-    
-    .spectrum-preview-right {
-        min-height: auto;
+
+    /* Stack controls vertically on small screens */
+    .spectrum-preview-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .spectrum-preview-calculate-btn {
+        width: 100%;
+        min-width: 0;
     }
 }
+
+/* Mapper two-column layout rules (left: 40%, right: 60%) */
+.mapper-columns {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.mapper-column-left {
+    flex: 0 0 40%;
+    box-sizing: border-box;
+}
+.mapper-column-right {
+    flex: 0 0 60%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+    .mapper-columns {
+        flex-direction: column;
+    }
+    .mapper-column-left, .mapper-column-right {
+        flex: 1 1 100%;
+    }
+}
+
+/* Origin preview box (right column) */
+.origin-preview-box {
+    margin-top: 25px; /* drop the box down slightly (+5px) */
+    border: 3px solid rgba(115,75,161,0.14);
+    padding: 0; /* no internal padding so media can fill the area */
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.01));
+    display: flex;
+    align-items: stretch; /* allow media to stretch full height */
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 0; /* square corners */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    aspect-ratio: 16 / 9; /* widescreen preview */
+    max-height: 520px;
+    transform: translateX(-4px); /* shift left slightly */
+}
+.origin-preview-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+}
+.origin-preview-label {
+    display: none; /* title removed per user's preference */
+}
+.origin-preview-media {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.origin-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* fill the container without internal gaps */
+    display: block;
+    margin: 0;
+    border: none;
+    max-width: none;
+    max-height: none;
+}
+
+.origin-preview-empty {
+    color: #bdbdbd;
+    font-style: italic;
+    font-size: 0.95rem;
+    padding: 0; /* no padding so empty text sits centered inside the box */
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+}
+
+.origin-preview-box.placeholder {
+    opacity: 0.98;
+}
+
+/* Hover and interaction when image is loaded */
+.origin-preview-box.has-image {
+    transition: transform 0.18s ease, border-color 0.15s ease;
+}
+.origin-preview-box.has-image:hover {
+    /* minimal hover — no shadow or overlay, only preserve left shift */
+    transform: translateX(-4px);
+    border-color: rgba(115,75,161,0.18);
+}
+.origin-preview-box.has-image a { display: block; width:100%; height:100%; }
+.origin-preview-box.has-image .origin-preview-media { cursor: pointer; }
+
+.origin-preview-wrapper { position: relative; width:100%; height:100%; }
 

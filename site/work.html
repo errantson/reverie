@@ -26,10 +26,14 @@
     
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/pages/work.css">
+    <link rel="stylesheet" href="/css/pages/database.css">
     <link rel="stylesheet" href="/css/widgets/login.css">
     <link rel="stylesheet" href="/css/widgets/createdreamer.css">
     <link rel="stylesheet" href="/css/widgets/dialogue.css">
     <link rel="stylesheet" href="/css/widgets/dreamer-hover.css">
+    <link rel="stylesheet" href="/css/color-rows.css">
+    <link rel="stylesheet" href="/css/roles.css">
+    <link rel="stylesheet" href="/css/souvenirs.css">
     
     <!-- Favicon and Icons -->
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
@@ -39,6 +43,8 @@
     <!-- Core utilities -->
     <script src="/js/core/world-config-cache.js"></script>
     <script src="/js/core/color-manager.js"></script>
+    <script src="/js/core/rowstyle-registry.js"></script>
+    <script src="/js/core/rowstyle-engine.js"></script>
     <script src="/js/utils/shadowbox.js"></script>
     <script src="/js/widgets/background.js"></script>
     <script src="/js/widgets/bubble.js"></script>
@@ -48,7 +54,10 @@
     <script src="/js/utils/work-events.js"></script>
     
     <!-- Work widgets -->
-        <script type="module" src="/js/widgets/spectrumpreview.js?v=1763454411"></script>    <!-- Header and drawer widgets -->
+    <script type="module" src="/js/widgets/spectrumpreview.js?v=1763454411"></script>
+    <script src="/js/widgets/eventstack.js"></script>
+    
+    <!-- Header and drawer widgets -->
     <script src="/js/widgets/header.js" defer></script>
     <script type="module" src="/js/widgets/oauth-manager.js"></script>
     <script src="/js/widgets/login.js" defer></script>
@@ -59,221 +68,319 @@
     <script src="/js/widgets/wink.js" defer></script>
     <script src="/js/widgets/stepdown.js" defer></script>
     <script src="/js/widgets/upload_avatar.js" defer onerror="console.error('Failed to load upload_avatar.js')"></script>
+    <script src="/js/widgets/apppassreq.js" defer></script>
 </head>
 <body>
     <div id="header-container"></div>
 
-    <!-- Full-Screen Background Scene (matches homepage structure) -->
+    <!-- Full-Screen Background Scene -->
     <div class="fullscreen-background">
         <div class="scene-background">
             <img src="souvenirs/residence/phanera.png" alt="Phanera Residence" class="scene-layer background-layer">
         </div>
     </div>
 
-    <!-- Main Content (positioned above background) -->
-    <div class="page-container">
-        <div class="bulletin-board">
-
-        <div class="posting-content">
-            <!-- Two-column layout: Logo/Work/Do on left, Description on right -->
-            <div class="work-header-layout">
-                <!-- Left: Header -->
-                <div class="posting-header">
-                    <img src="/assets/logo.png" alt="Reverie House Logo" class="logo">
-                    <div class="title-row">
-                        <img src="/assets/icon.png" alt="" class="header-icon">
-                        <h1 class="posting-title">WORK</h1>
-                        <img src="/assets/icon_face.png" alt="" class="header-icon">
-                    </div>
-                    <p class="subtitle">Do those for which you care.</p>
+    <!-- Main Content -->
+    <div class="work-page-container">
+        <!-- Left Sidebar -->
+        <div class="work-sidebar">
+            <!-- Header Section -->
+            <div class="sidebar-header">
+                <img src="/assets/logo.png" alt="Reverie House Logo" class="sidebar-logo">
+                <div class="sidebar-title">
+                    <img src="/assets/icon.png" alt="" class="title-icon">
+                    <h1>WORKSHOP</h1>
+                    <img src="/assets/icon_face.png" alt="" class="title-icon">
                 </div>
-                
-                <!-- Right: Work System Description -->
-                <div class="work-description-box">
-                    <p>
-                        There are no jobs, no managers, no orders.<br>
-                        Yet, there are always things needing done.
-                    </p>
-                    <p>
-                        Work is self-assigned and voluntary.<br>
-                        You may step down or retire as you please.
-                    </p>
-                    <p>
-                        Our wild mindscape is bettered by your efforts.
-                    </p>
+                <p class="sidebar-subtitle">Do those for which you care.</p>
+            </div>
+
+            <!-- User Status Section -->
+            <div id="sidebar-user-section" class="sidebar-user-section">
+                <!-- Loading State -->
+                <div id="sidebar-loading" class="sidebar-loading">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Checking session...</div>
+                </div>
+
+                <!-- Guest State -->
+                <div id="sidebar-guest" class="sidebar-guest" style="display: none;">
+                    <div class="guest-message">
+                        <p>Login to volunteer for work</p>
+                    </div>
+                    <button class="sidebar-login-btn" onclick="triggerLogin()">
+                        Dreamweaver Login
+                    </button>
+                </div>
+
+                <!-- User Logged In -->
+                <div id="sidebar-user" class="sidebar-user" style="display: none;">
+                    <div class="sidebar-avatar-container">
+                        <img id="sidebar-avatar" src="/assets/icon_face.png" alt="Avatar" class="sidebar-avatar">
+                    </div>
+                    <div class="sidebar-user-info">
+                        <div id="sidebar-user-name" class="sidebar-user-name">Loading...</div>
+                        <div id="sidebar-user-handle" class="sidebar-user-handle">@...</div>
+                    </div>
+                    
+                    <!-- User Work Status -->
+                    <div id="sidebar-work-status" class="sidebar-work-status">
+                        <div class="status-label">YOUR STATUS</div>
+                        <div id="sidebar-status-content" class="status-content">
+                            <span id="loading-state-text" class="status-badge not-working">Not Working</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Available Roles -->
-                    <div class="available-roles">
-                        <!-- Desktop: Tab buttons -->
-                        <div class="role-buttons">
-                            <button class="role-button active" data-role="greeter" onclick="selectRole('greeter')">
-                                <span class="role-name">Greeter</span>
-                            </button>
-                            <button class="role-button" data-role="mapper" onclick="selectRole('mapper')">
-                                <span class="role-name">Mapper</span>
-                            </button>
-                            <button class="role-button" data-role="cogitarian" onclick="selectRole('cogitarian')">
-                                <span class="role-name">Cogitarian</span>
-                            </button>
+
+            <!-- Work Philosophy -->
+            <div class="sidebar-philosophy">
+                <p>There are no jobs, no managers, no orders.</p>
+                <p>Yet, there are always things needing done.</p>
+                <p>Work is self-assigned and voluntary.</p>
+                <p>You may step down or retire as you please.</p>
+            </div>
+        </div>
+
+        <!-- Right Content Area -->
+        <div class="work-content">
+            <!-- Role Content Card -->
+            <div class="role-card">
+                <!-- Role Tabs (moved inside card) -->
+                <div class="role-tabs">
+                    <button class="role-tab active" data-role="greeter" onclick="selectRole('greeter')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                        <span class="role-tab-name">Greeter</span>
+                    </button>
+                    <button class="role-tab" data-role="mapper" onclick="selectRole('mapper')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                        </svg>
+                        <span class="role-tab-name">Mapper</span>
+                    </button>
+                    <button class="role-tab" data-role="cogitarian" onclick="selectRole('cogitarian')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                            <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path>
+                            <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path>
+                        </svg>
+                        <span class="role-tab-name">Cogitarian</span>
+                    </button>
+                </div>
+
+                <!-- Mobile Role Selector -->
+                <div class="role-selector-mobile">
+                    <select id="role-selector-mobile" onchange="selectRole(this.value)">
+                        <option value="greeter" selected>Greeter</option>
+                        <option value="mapper">Mapper</option>
+                        <option value="cogitarian">Cogitarian</option>
+                    </select>
+                </div>
+
+                <!-- Role Card Body -->
+                <div class="role-card-body">
+                    <!-- Left: Role Title & Description -->
+                    <div class="role-main-section">
+                        <h2 class="role-title" id="role-title">Greeter of Reveries</h2>
+                        
+                        <!-- Greeter Description (default) -->
+                        <div id="greeter-description" class="role-desc-content">
+                            <p class="role-description">
+                                Newcomers to <b>Reverie House</b> often need someone to show them the way, and a <b>Greeter</b> is usually the one to do it. It doesn't take much, but when someone new arrives they'll have <u><span id="you-link">you</span></u> to introduce and guide them.
+                            </p>
+                            <p class="role-description">
+                                As <b>Greeter</b> you will automatically provide newcomers with their name, and offer them a friendly human hand to help them, should they need one.
+                            </p>
+                        </div>
+
+                        <!-- Cogitarian Description -->
+                        <div id="cogitarian-description" class="role-desc-content" style="display: none;">
+                            <p class="role-description">
+                                Our <b>Cogitarian</b> is a humanizing authority who helps codify human elements within our shared technical foundation and help deter dehumanizations.
+                            </p>
+                            <p class="role-description">
+                                You will work closely with the current <b>Keeper(s)</b> to take responsibility for defining the immutably human aspects of our environment, in effort to keep our wild mindscape a more dependable place for real <span onclick="window.wink && window.wink(event)" style="cursor: pointer;">dreamrs</span>.
+                            </p>
                         </div>
                         
-                        <!-- Mobile: Dropdown selector -->
-                        <div class="role-selector-dropdown">
-                            <select id="role-selector-mobile" onchange="selectRole(this.value)">
-                                <option value="greeter" selected>Greeter</option>
-                                <option value="mapper">Mapper</option>
-                                <option value="cogitarian">Cogitarian</option>
-                            </select>
+                        <!-- Mapper Description -->
+                        <div id="mapper-description" class="role-desc-content" style="display: none;">
+                            <p class="role-description">
+                                Every dream exists somewhere on a complex spectrum that can be measured. Knowing these coordinates can be incredibly helpful for dreamweavers looking to find (or avoid) particular reveries and nightmares.
+                            </p>
+                            <p class="role-description">
+                                As <b>Spectrum Mapper</b> you will automatically reply the origin coordinates for all dreamers who reveal their beginnings within our wild mindscape.
+                            </p>
                         </div>
                     </div>
 
-                    <div id="role-description">
-                            <h3 id="role-title">Greeter of Reveries</h3>
-
-                            <!-- Greeter Description (default) -->
-                            <div id="greeter-description" class="role-desc-content">
-                                <p class="role-description">
-                                    Newcomers to <b>Reverie House</b> often need someone to show them the way, and a <b>Greeter</b> is usually the one to do it. It doesn't take much, but when someone new arrives they'll have <u><span id="you-link">you</span></u> to introduce and guide them.
-                                </p>
-                                <br>
-                                <p class="role-description">
-                                    As <b>Greeter</b> you will automatically provide newcomers with their name, and offer them a friendly human hand to help them, should they need one.
-                                </p>
-                                <br>
-                                <div class="example-post-preview" style="background: rgba(139, 115, 85, 0.05); border: 2px solid rgba(139, 115, 85, 0.2); padding: 1rem; margin-top: 1rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-                                    <div class="example-header" style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.75rem;">
-                                        <button class="example-nav-btn" onclick="previousExample(); event.stopPropagation();" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #8b7355; padding: 0.25rem 0.5rem;">‹</button>
-                                        <div class="example-label" style="font-family: 'Courier New', monospace; font-size: 0.85rem; font-weight: 600; color: #8b7355;">Welcome Greetings</div>
-                                        <button class="example-nav-btn" onclick="nextExample(); event.stopPropagation();" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #8b7355; padding: 0.25rem 0.5rem;">›</button>
+                    <!-- Right: Current Worker Card -->
+                    <div class="role-worker-card">
+                        <div class="worker-card-header">
+                            <span class="worker-label" id="worker-label">CURRENT HOLDER</span>
+                        </div>
+                        <div id="worker-display" class="worker-details">
+                            <span style="color: #999; font-style: italic; font-size: 0.8rem;">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Role Separator -->
+                <hr class="role-separator">
+                
+                <!-- Mapper Content Section -->
+                <div id="mapper-content-section" class="mapper-content-container" style="display: none;">
+                    <!-- Two-column mapper layout: left (40%) with calculator, right (60%) empty reserved column -->
+                    <div class="mapper-columns">
+                        <div class="mapper-column-left">
+                            <!-- Origin Calculator -->
+                            <div id="spectrum-preview-container"></div>
+                        </div>
+                        <div class="mapper-column-right">
+                            <!-- Reserved empty column for future controls / form -->
+                            <!-- Persistent preview frame (empty until image is generated) -->
+                            <div class="origin-preview-box placeholder">
+                                <div class="origin-preview-inner">
+                                        <div class="origin-preview-media">
+                                            <div class="origin-preview-empty">No preview yet</div>
+                                        </div>
                                     </div>
-                                    <div class="example-post" id="example-post-greeter" style="font-family: 'Courier New', monospace; font-size: 0.9rem; line-height: 1.6; color: #2c1810; padding: 0.75rem; background: white; border-left: 3px solid #8b7355;">
-                                        <!-- Content will be populated by JS -->
-                                    </div>
-                                </div>
                             </div>
-                            <!-- Cogitarian Description -->
-                            <div id="cogitarian-description" class="role-desc-content" style="display: none;">
-                                <p class="role-description">
-                                    Our <b>Cogitarian</b> is a humanizing authority who helps codify human elements within our shared technical foundation and help deter dehumanizations.
-                                </p>
-                                <br>
-                                <p class="role-description">
-                                    You will work closely with the current <b>Keeper(s)</b> to take responsibility for defining the immutably human aspects of our environment, in effort to keep our wild mindscape a more dependable place for real <span onclick="window.wink && window.wink(event)" style="cursor: pointer;">dreamrs</span>.
-                                </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Role-specific content area -->
+                <div class="role-content-area">
+                    <!-- Greeter Event Stack Section -->
+                    <div id="greeter-eventstack-section" class="greeter-eventstack-container">
+                        <div class="greeter-content-grid">
+                            <!-- Left: Event Stack -->
+                            <div class="greeter-eventstack-section">
+                                <h3 class="eventstack-title">Greeter's Guestbook</h3>
+                                <div id="greeter-eventstack" class="greeter-eventstack"></div>
                             </div>
                             
-                            <!-- Mapper Description -->
-                            <div id="mapper-description" class="role-desc-content" style="display: none;">
-                                <p class="role-description">
-                                    All dreamers who reach <b>Reverie House</b> have a calculable origin, where their dreaming first led them into our wild mindscape. Knowing this position can be very helpful, and thus our <b>Spectrum Mapper</b> assists in deducing and informing dreamers of their origins when available.
-                                </p>
-                                <br>
-                                <p class="role-description">
-                                    As <b>Spectrum Mapper</b> you will automatically reply the origin coordinates for all dreamers who reveal their beginnings within our wild mindscape.
-                                </p>
-                                <br>
-                                <div class="example-post-preview" style="background: rgba(139, 115, 85, 0.05); border: 2px solid rgba(139, 115, 85, 0.2); padding: 1rem; margin-top: 1rem; max-width: 400px; margin-left: auto; margin-right: auto;">
-                                    <div class="example-label" style="font-family: 'Courier New', monospace; font-size: 0.85rem; font-weight: 600; color: #8b7355; text-align: center; margin-bottom: 0.75rem;">ORIGIN COORDINATE EXAMPLE</div>
-                                    <div class="example-post" id="origin-coordinate-example" style="font-family: 'Courier New', monospace; font-size: 1rem; line-height: 1.6; color: #2c1810; padding: 0.75rem; background: white; border-left: 3px solid #8b7355; text-align: center; letter-spacing: 2px; font-weight: 600;">
-                                        O22 A11 S05 R88 L63 E71
+                            <!-- Right: Greetings and Intro -->
+                            <div class="greeter-right-section">
+                                <!-- Current Greetings -->
+                                <div class="greeter-examples-carousel">
+                                    <div class="example-nav">
+                                        <button class="example-nav-btn" onclick="previousGreeting()">‹</button>
+                                        <div class="example-label">Current Greetings</div>
+                                        <button class="example-nav-btn" onclick="nextGreeting()">›</button>
                                     </div>
+                                    <div id="greeter-greetings-display" class="greetings-display">
+                                        <div class="greeting-text">Loading greetings...</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Introduce Yourself Section -->
+                                <div class="introduce-section">
+                                    <div class="introduce-header">
+                                        Are you a dreamweaver?
+                                    </div>
+                                    <button class="introduce-btn" onclick="window.open('https://bsky.app/profile/reverie.house/post/3lljjzcydwc25', '_blank')">Introduce Yourself</button>
                                 </div>
                             </div>
                         </div>
-
-                    <!-- Current Worker Display -->
-                    <div class="current-worker" id="current-worker">
-                        <span class="worker-label" id="worker-label">CURRENT GREETER:</span>
-                        <div id="worker-display" style="display: flex; align-items: center; gap: 0.75rem;">
-                            <span style="color: #999; font-style: italic;">Loading...</span>
-                        </div>
                     </div>
-
-                    <!-- Spectrum Preview Widget (Mapper Tool) -->
-                    <div id="spectrum-preview-container" style="display: none;"></div>
-
-                    <!-- Actions (shown based on login state) -->
-                    <div class="action-section">
-                        <!-- Loading State -->
-                        <div id="loading-state" style="display: block; text-align: center; padding: 2rem;">
-                            <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(139, 115, 85, 0.3); border-top: 4px solid #8b7355; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem;"></div>
-                            <div style="color: #666; font-size: 0.9rem; font-style: italic;">
-                                <span id="loading-state-text">Checking session...</span>
+                </div>
+                
+                <!-- Cogitarian Content Section -->
+                <div id="cogitarian-content-section" class="cogitarian-content-container" style="display: none;">
+                    <div class="cogitarian-content-grid">
+                        <!-- Left: Repo Card -->
+                        <div class="repo-card">
+                            <div class="repo-card-header">
+                                <div class="repo-card-title">Keeper's Repository</div>
+                            </div>
+                            <div class="repo-card-actions">
+                                <a href="https://github.com/errantson/reverie" target="_blank" class="repo-action-btn repo-btn-primary">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                                    </svg>
+                                    View Repository
+                                </a>
+                                <a href="https://github.com/errantson/reverie/issues" target="_blank" class="repo-action-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    Issues
+                                </a>
+                                <a href="https://github.com/errantson/reverie/pulls" target="_blank" class="repo-action-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="18" cy="18" r="3"></circle>
+                                        <circle cx="6" cy="6" r="3"></circle>
+                                        <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                                        <line x1="6" y1="9" x2="6" y2="21"></line>
+                                    </svg>
+                                    Pull Requests
+                                </a>
+                                <a href="https://github.com/errantson/reverie/fork" target="_blank" class="repo-action-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="18" r="3"></circle>
+                                        <circle cx="6" cy="6" r="3"></circle>
+                                        <circle cx="18" cy="6" r="3"></circle>
+                                        <path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"></path>
+                                        <path d="M12 12v3"></path>
+                                    </svg>
+                                    Fork
+                                </a>
+                            </div>
+                            <div id="repo-info" class="repo-info">
+                                <div class="repo-info-item">
+                                    <span class="repo-info-label">Languages:</span>
+                                    <span class="repo-info-value">Loading...</span>
+                                </div>
+                                <div class="repo-info-item">
+                                    <span class="repo-info-label">Last Updated:</span>
+                                    <span class="repo-info-value">Loading...</span>
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- User Status (integrated into action section) -->
-                        <div id="user-status" style="display: none;"></div>
-                        
-                        <div id="guest-prompt" style="display: none;">
-                            <button class="action-button login-button" onclick="triggerLogin()">
-                                Dreamweaver Login
-                            </button>
+                        <!-- Right: Commit History -->
+                        <div class="repo-data-box">
+                            <h3 class="repo-data-header">History of Improvement</h3>
+                            <div id="repo-data-content" class="repo-data-content">
+                                <div class="commits-section">
+                                    <div class="commit-row loading-placeholder">
+                                        <span class="commit-message">Loading...</span>
+                                        <span class="commit-meta">...</span>
+                                    </div>
+                                    <div class="commit-row loading-placeholder">
+                                        <span class="commit-message">Loading...</span>
+                                        <span class="commit-meta">...</span>
+                                    </div>
+                                    <div class="commit-row loading-placeholder">
+                                        <span class="commit-message">Loading...</span>
+                                        <span class="commit-meta">...</span>
+                                    </div>
+                                    <div class="commit-row loading-placeholder">
+                                        <span class="commit-message">Loading...</span>
+                                        <span class="commit-meta">...</span>
+                                    </div>
+                                    <div class="commit-row loading-placeholder">
+                                        <span class="commit-message">Loading...</span>
+                                        <span class="commit-meta">...</span>
+                                    </div>
+                                </div>
+                                <div class="contributors-section">
+                                    <div class="contributors-label">Contributors</div>
+                                    <div class="contributors-list">...</div>
+                                </div>
+                            </div>
                         </div>
-                        <div id="user-actions" style="display: none;">
-                            <button id="activate-btn" class="action-button" onclick="openWorkerModal('greeter')">
-                                Volunteer Now
-                    </button>
-                    <button id="deactivate-btn" class="action-button secondary" onclick="deactivateGreeter()" style="display: none;">
-                        Step Down
-                    </button>
-                    <button id="set-retiring-btn" class="action-button secondary" onclick="setRetiring()" style="display: none;">
-                        Ready to Retire
-                    </button>
-                    <button id="set-working-btn" class="action-button" onclick="setWorking()" style="display: none;">
-                        Continue Working
-                    </button>
+                    </div>
                 </div>
-            </div>
             </div>
         </div>
     </div>
-    </div>
-
-    <!-- Authorization Modal -->
-    <div id="auth-modal" class="modal" onclick="closeModalOnOutsideClick(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-intro">
-                <strong id="modal-role-title">Become Worker</strong><br>
-                <div id="modal-role-description" style="max-width: 500px; margin: 0.5rem auto 0 auto; font-size: 10pt;">
-                    <!-- Role-specific description will be inserted here -->
-                </div>
-            </div>
-            <div class="modal-body">
-                
-                <!-- Example Post Preview (shown for roles that need it) -->
-                <div class="example-post-preview" id="modal-example-preview" style="display: none; margin-top: 0.5rem;">
-                    <div class="example-header">
-                        <button class="example-nav-btn" onclick="previousExample()">‹</button>
-                        <div class="example-label" id="modal-example-label">Examples</div>
-                        <button class="example-nav-btn" onclick="nextExample()">›</button>
-                    </div>
-                    <div class="example-post" id="example-post">
-                        <!-- Content will be populated by JS -->
-                    </div>
-                </div>
-                
-                <p style="margin-top: 1rem;"><strong>Worker roles need permission to post on your behalf:</strong></p>
-                <ol>
-                    <li>Go to <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener noreferrer">Bluesky Settings → App Passwords</a></li>
-                    <li>Create a new password named "Reverie House"</li>
-                    <li>Copy and paste it below</li>
-                </ol>
-                
-                <div class="form-group">
-                    <label for="app-password">App Password <span id="modal-password-purpose">(for posting on your behalf)</span>:</label>
-                    <input type="text" id="app-password" placeholder="xxxx-xxxx-xxxx-xxxx" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-                    <p class="small-note">This allows the <span id="modal-role-name-lower">worker</span> to post on your behalf. You can revoke this anytime in your <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener noreferrer">Bluesky settings</a>.</p>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="action-button authorize-btn" id="modal-submit-btn" onclick="submitWorkerActivation()">BECOME WORKER</button>
-                <div class="appreciation-text">we appreciate your authority in this matter</div>
-            </div>
-        </div>
-    </div> 
 
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
@@ -283,53 +390,8 @@
         </div>
     </div>
 
-    <style>
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            backdrop-filter: blur(4px);
-        }
-
-        .loading-content {
-            text-align: center;
-            color: white;
-            font-family: 'Courier New', monospace;
-        }
-
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #fff;
-            border-radius: 50%;
-            margin: 0 auto 1.5rem auto;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            font-size: 1.1rem;
-            letter-spacing: 0.05em;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-    </style>
+    <!-- Work sidebar extension script -->
+    <script src="/js/pages/work.js" defer></script>
 
     <script>
         let currentSession = null;
@@ -355,14 +417,17 @@
         function selectRole(role) {
             currentRole = role;
             
+            // Set data attribute on body for CSS role-specific styling
+            document.body.setAttribute('data-current-role', role);
+            
             // Save current role to localStorage
             localStorage.setItem('work_current_tab', role);
             
-            // Update button states (desktop tabs)
-            document.querySelectorAll('.role-button').forEach(btn => {
+            // Update tab button states
+            document.querySelectorAll('.role-tab').forEach(btn => {
                 btn.classList.remove('active');
             });
-            const activeButton = document.querySelector(`[data-role="${role}"]`);
+            const activeButton = document.querySelector(`.role-tab[data-role="${role}"]`);
             if (activeButton) {
                 activeButton.classList.add('active');
             }
@@ -373,17 +438,6 @@
                 mobileSelector.value = role;
             }
             
-            // Check if user currently has a different role
-            const userHasRole = (roleStatuses.greeter && roleStatuses.greeter.is_worker) || 
-                              (roleStatuses.mapper && roleStatuses.mapper.is_worker) ||
-                              (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker);
-            
-            // Determine which role the user currently has
-            let userCurrentRole = null;
-            if (roleStatuses.greeter && roleStatuses.greeter.is_worker) userCurrentRole = 'greeter';
-            else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) userCurrentRole = 'mapper';
-            else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
-            
             // Update role content with context-aware descriptions
             document.querySelectorAll('.role-desc-content').forEach(desc => {
                 desc.style.display = 'none';
@@ -391,29 +445,6 @@
             
             const descriptionDiv = document.getElementById(`${role}-description`);
             descriptionDiv.style.display = 'block';
-            
-            // If user is viewing a different role than their current one, show switching message
-            if (userHasRole && userCurrentRole && role !== userCurrentRole) {
-                const switchMessage = document.createElement('div');
-                switchMessage.className = 'role-switch-notice';
-                switchMessage.style.cssText = 'background: #fff9e6; border-left: 4px solid #ffcc00; padding: 0.75rem; margin-top: 1rem; font-family: "Courier New", monospace; font-size: 0.85rem; color: #856404; line-height: 1.5;';
-                
-                // Get role title from config
-                const userRoleConfig = roleConfigs[userCurrentRole];
-                const roleTitle = userRoleConfig ? userRoleConfig.title : userCurrentRole;
-                switchMessage.innerHTML = `You are currently working as the ${roleTitle} and may only hold one role at a time. To take on a new role, you must first step down.`;
-                
-                // Remove any existing switch notice
-                const existingNotice = descriptionDiv.querySelector('.role-switch-notice');
-                if (existingNotice) existingNotice.remove();
-                
-                // Add the notice at the bottom
-                descriptionDiv.appendChild(switchMessage);
-            } else {
-                // Remove switch notice if viewing own role
-                const existingNotice = descriptionDiv.querySelector('.role-switch-notice');
-                if (existingNotice) existingNotice.remove();
-            }
             
             // Update title
             // Update title from roleConfigs
@@ -434,6 +465,12 @@
                 loadRoleStatus(role);
                 // Hide spectrum preview widget for cogitarian
                 hideSpectrumPreview();
+                // Hide eventstack for cogitarian
+                hideEventStack();
+                // Hide mapper content for cogitarian
+                hideMapperContent();
+                // Show cogitarian content
+                showCogitarianContent();
             } else if (role === 'mapper') {
                 // Load role status for mapper and THEN update spectrum preview
                 loadRoleStatus(role).then(() => {
@@ -442,11 +479,32 @@
                 });
                 // Generate random origin coordinates
                 updateOriginCoordinateExample();
+                // Hide eventstack for mapper
+                hideEventStack();
+                // Hide cogitarian content for mapper
+                hideCogitarianContent();
+                // Show mapper content
+                showMapperContent();
+            } else if (role === 'greeter') {
+                // Load role status for greeter
+                loadRoleStatus(role);
+                // Load greeting events for eventstack
+                loadGreetingEvents();
+                // Show eventstack for greeter
+                showEventStack();
+                // Hide spectrum preview widget for greeter
+                hideSpectrumPreview();
+                // Hide mapper content for greeter
+                hideMapperContent();
+                // Hide cogitarian content for greeter
+                hideCogitarianContent();
             } else {
                 // Load role status for the selected role
                 loadRoleStatus(role);
                 // Hide spectrum preview widget for non-mapper roles
                 hideSpectrumPreview();
+                // Hide eventstack for other roles
+                hideEventStack();
             }
             
             // Update modal and actions based on role
@@ -478,17 +536,13 @@
             }
             
             const container = document.getElementById('spectrum-preview-container');
+            const mapperSection = document.getElementById('mapper-content-section');
             if (!container) return;
             
-            // Check if ANY mapper exists (not just if current user is mapper)
-            // The calculator should be enabled if there's an active mapper in the system
-            const hasActiveMapper = roleStatuses.mapper && 
-                                   roleStatuses.mapper.role_info && 
-                                   roleStatuses.mapper.role_info.workers && 
-                                   roleStatuses.mapper.role_info.workers.length > 0;
+            // Always enable the calculator (removed mapper check)
+            const hasActiveMapper = true;
             
             console.log('🔍 [SPECTRUM] updateSpectrumPreview called');
-            console.log('🔍 [SPECTRUM] roleStatuses.mapper:', roleStatuses.mapper);
             console.log('🔍 [SPECTRUM] hasActiveMapper:', hasActiveMapper);
             
             // Initialize widget if not already created
@@ -505,12 +559,58 @@
                 return;
             }
             
-            // Show the container
-            container.style.display = 'block';
+            // Show the mapper content section
+            if (mapperSection) {
+                mapperSection.style.display = 'block';
+            }
         }
         
         function hideSpectrumPreview() {
-            const container = document.getElementById('spectrum-preview-container');
+            const mapperSection = document.getElementById('mapper-content-section');
+            if (mapperSection) {
+                mapperSection.style.display = 'none';
+            }
+        }
+        
+        function showEventStack() {
+            const container = document.getElementById('greeter-eventstack-section');
+            if (container) {
+                container.style.display = 'block';
+            }
+        }
+        
+        function hideEventStack() {
+            const container = document.getElementById('greeter-eventstack-section');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        function showMapperContent() {
+            const container = document.getElementById('mapper-content-section');
+            if (container) {
+                container.style.display = 'block';
+            }
+        }
+        
+        function hideMapperContent() {
+            const container = document.getElementById('mapper-content-section');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        function showCogitarianContent() {
+            const container = document.getElementById('cogitarian-content-section');
+            if (container) {
+                container.style.display = 'block';
+                // Load repo data when showing
+                loadRepoData();
+            }
+        }
+        
+        function hideCogitarianContent() {
+            const container = document.getElementById('cogitarian-content-section');
             if (container) {
                 container.style.display = 'none';
             }
@@ -680,6 +780,9 @@
                 }
                 // Update the role display
                 selectRole(initialTab);
+            } else {
+                // Set default role if none specified
+                document.body.setAttribute('data-current-role', currentRole);
             }
             
             // Load greeting templates immediately
@@ -693,6 +796,9 @@
             loadRoleStatus('greeter');
             loadRoleStatus('mapper');
             loadRoleStatus('cogitarian');
+            
+            // Load greeting events for greeter tab
+            loadGreetingEvents();
             
             // Setup work event listeners for cross-page synchronization
             const setupWorkEvents = () => {
@@ -757,28 +863,6 @@
                     }
                 }, 300); // Increased to 300ms to reduce frequency
             });
-            
-            // App password auto-formatting (add dashes as user types)
-            const appPasswordInput = document.getElementById('app-password');
-            if (appPasswordInput) {
-                appPasswordInput.addEventListener('input', (e) => {
-                    let value = e.target.value.replace(/-/g, ''); // Remove existing dashes
-                    if (value.length > 16) {
-                        value = value.slice(0, 16); // Limit to 16 chars
-                    }
-                    
-                    // Add dashes every 4 characters
-                    let formatted = '';
-                    for (let i = 0; i < value.length; i++) {
-                        if (i > 0 && i % 4 === 0) {
-                            formatted += '-';
-                        }
-                        formatted += value[i];
-                    }
-                    
-                    e.target.value = formatted;
-                });
-            }
             
             const checkInterval = setInterval(async () => {
                 attempts++;
@@ -878,12 +962,20 @@
                 }
             }
 
+            // Check if we're using the old work.html structure or new work.html structure
+            // work.html doesn't have these elements, so skip if they don't exist
+            if (!loadingState || !userStatus || !guestPrompt) {
+                console.log('ℹ️ [updateUI] Using work.html sidebar structure, skipping legacy UI updates');
+                return;
+            }
+
             // Show loading state if session check not complete
             if (!sessionCheckComplete) {
                 loadingState.style.display = 'block';
-                document.getElementById('loading-state-text').textContent = 'Checking session...';
+                const loadingText = document.getElementById('loading-state-text');
+                if (loadingText) loadingText.textContent = 'Checking session...';
                 userStatus.style.display = 'none';
-                userActions.style.display = 'none';
+                if (userActions) userActions.style.display = 'none';
                 guestPrompt.style.display = 'none';
                 return;
             }
@@ -891,9 +983,10 @@
             // If we have a session but profile not loaded yet
             if (currentSession && !profileLoaded) {
                 loadingState.style.display = 'block';
-                document.getElementById('loading-state-text').textContent = 'Loading your profile...';
+                const loadingText = document.getElementById('loading-state-text');
+                if (loadingText) loadingText.textContent = 'Loading your profile...';
                 userStatus.style.display = 'none';
-                userActions.style.display = 'none';
+                if (userActions) userActions.style.display = 'none';
                 guestPrompt.style.display = 'none';
                 return;
             }
@@ -904,13 +997,13 @@
             // Don't show guest prompt until we've completed session check
             if (!currentSession || !profileLoaded) {
                 userStatus.style.display = 'none';
-                userActions.style.display = 'none';
+                if (userActions) userActions.style.display = 'none';
                 guestPrompt.style.display = 'block';
                 return;
             }
 
             guestPrompt.style.display = 'none';
-            userActions.style.display = 'block';
+            if (userActions) userActions.style.display = 'block';
 
             // Get handle from session - ensure we have valid data
             const userHandle = currentSession.profile?.handle || currentSession.handle;
@@ -918,7 +1011,8 @@
                 // Profile data not ready yet, wait for it
                 console.warn('⚠️ Profile data not ready, waiting...');
                 loadingState.style.display = 'block';
-                document.getElementById('loading-state-text').textContent = 'Loading profile data...';
+                const loadingText = document.getElementById('loading-state-text');
+                if (loadingText) loadingText.textContent = 'Loading profile data...';
                 return;
             }
 
@@ -960,6 +1054,13 @@
             // Show worker status card ONLY if viewing own role
             if (isWorkerForSelectedRole && viewingOwnRole) {
                 console.log('✅ [UI] Showing worker status card for', currentRole);
+                
+                // Skip if elements don't exist (work.html uses different structure)
+                if (!userStatus || !activateBtn) {
+                    console.log('ℹ️ [UI] Using work.html structure - worker UI managed by sidebar');
+                    return;
+                }
+                
                 const displayName = currentSession.profile?.displayName || userHandle;
                 const avatar = currentSession.profile?.avatar || '/assets/icon.png';
                 
@@ -1018,6 +1119,13 @@
                 setWorkingBtn.style.display = 'none';
             } else {
                 // Not volunteering for THIS role - show integrated profile + volunteer card
+                
+                // Skip if elements don't exist (work.html uses different structure)
+                if (!userStatus || !activateBtn) {
+                    console.log('ℹ️ [UI] Using work.html structure - non-worker UI managed by sidebar');
+                    return;
+                }
+                
                 const displayName = currentSession.profile?.displayName || userHandle;
                 const avatar = currentSession.profile?.avatar || '/assets/icon.png';
                 const isReverieHouse = userHandle.endsWith('.reverie.house');
@@ -1297,7 +1405,48 @@
             
             if (!roleInfo.workers || roleInfo.workers.length === 0) {
                 console.log('⚠️ Work: No workers found in role_info');
-                workerDisplay.innerHTML = '<span style="color: #666;">None</span>';
+                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : 'Cogitarian';
+                
+                // Reset worker card borders to default when no worker
+                const workerCard = document.querySelector('.role-worker-card');
+                const workerCardHeader = document.querySelector('.worker-card-header');
+                if (workerCard) {
+                    workerCard.style.borderColor = '';
+                }
+                if (workerCardHeader) {
+                    workerCardHeader.style.borderColor = '';
+                }
+                
+                // Get role color for button
+                const roleColors = {
+                    'greeter': 'var(--role-greeter)',
+                    'mapper': 'var(--role-mapper)',
+                    'cogitarian': 'var(--role-cogitarian)'
+                };
+                const roleColor = roleColors[role] || 'var(--role-greeter)';
+                
+                workerDisplay.innerHTML = `
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5" style="margin: 0 auto; display: block;">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="10" r="3" />
+                        <path d="M6.168 18.849A4 4 0 0 1 10 16h4a4 4 0 0 1 3.834 2.855" />
+                    </svg>
+                    <div style="text-align: center; margin-top: 0.5rem;">
+                        <span style="color: #999; font-size: 0.75rem; display: block; margin-bottom: 0.5rem;">No Current Worker</span>
+                        <button class="become-role-btn" onclick="openWorkerModal('${role}')" style="
+                            background: ${roleColor};
+                            color: white;
+                            border: none;
+                            padding: 0.4rem 0.8rem;
+                            font-size: 0.75rem;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        ">Become ${roleTitle}</button>
+                    </div>
+                `;
                 return;
             }
 
@@ -1315,20 +1464,31 @@
                 if (dreamerResponse.ok) {
                     const dreamer = await dreamerResponse.json();
                     console.log('✅ Work: Dreamer info received:', dreamer);
-                    const statusText = worker.status === 'retiring' ? ' (Retiring)' : '';
+                    const userColor = dreamer.color_hex || '#8b7355';
+                    const statusText = worker.status === 'retiring' ? ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(retiring)</span>` : worker.status === 'working' ? ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(working)</span>` : '';
                     const handle = dreamer.handle || 'unknown';
                     const displayName = dreamer.display_name || handle;
                     const avatar = dreamer.avatar || '/assets/default-avatar.png';
+                    
+                    // Apply worker color to the worker card border
+                    const workerCard = document.querySelector('.role-worker-card');
+                    const workerCardHeader = document.querySelector('.worker-card-header');
+                    if (workerCard) {
+                        workerCard.style.borderColor = userColor;
+                    }
+                    if (workerCardHeader) {
+                        workerCardHeader.style.borderColor = userColor;
+                    }
                     
                     workerDisplay.innerHTML = `
                         <img src="${avatar}" 
                              alt="${handle}" 
                              class="greeter-avatar"
-                             style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #8b7355; object-fit: cover;">
+                             style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid ${userColor}; object-fit: cover;">
                         <a href="/dreamer.html?did=${worker.did}" 
                            class="worker-link dreamer-link" 
                            data-did="${worker.did}"
-                           style="font-size: 1.1rem; font-weight: 600; color: #8b7355; text-decoration: none;">
+                           style="font-size: 1.1rem; font-weight: 600; color: ${userColor}; text-decoration: none;">
                             ${displayName} <span style="color: #999; font-weight: 400;">@${handle}</span>${statusText}
                         </a>
                     `;
@@ -1386,30 +1546,6 @@
         // LEGACY: Wrapper for mapper
         async function activateMapperWithExistingCredentials() {
             await activateWorkerWithExistingCredentials('mapper');
-        }
-
-        function closeAuthModal() {
-            const modal = document.getElementById('auth-modal');
-            const appPasswordInput = document.getElementById('app-password');
-            
-            if (appPasswordInput) {
-                appPasswordInput.value = '';
-            }
-            
-            if (modal) {
-                modal.classList.remove('active');
-                setTimeout(() => modal.style.display = 'none', 300);
-            }
-            
-            currentModalRole = null;
-            currentExampleIndex = 0;
-            updateExamplePost();
-        }
-
-        function closeModalOnOutsideClick(event) {
-            if (event.target.id === 'auth-modal') {
-                closeAuthModal();
-            }
         }
 
         // Loading overlay helpers
@@ -1471,7 +1607,7 @@
             },
             cogitarian: {
                 title: 'Cogitarian (Prime)',
-                description: 'You are one who wishes to nurture thoughtful discourse in our wild mindscape, fostering the kinds of conversations that deepen understanding.<br><br>As Cogitarian you will help guide dreamers toward more contemplative dialogue.',
+                description: 'Our Cogitarian is a humanizing authority who helps codify human elements within our shared technical foundation and help deter dehumanizations.<br><br>You will work closely with the current Keeper(s) to take responsibility for defining the immutably human aspects of our environment, in effort to keep our wild mindscape a more dependable place for real dreamrs.',
                 exampleLabel: 'Discourse Examples',
                 appPasswordName: 'Cogitarian (Prime)',
                 passwordPurpose: 'for fostering discourse',
@@ -1486,53 +1622,250 @@
             }
         };
 
-        // Load greeting templates from API
+        // Store greeting templates for carousel
+        let greetingTemplates = [];
+        let currentGreetingIndex = 0;
+
+        // Load greeting templates from API for the carousel
         async function loadGreetingTemplates() {
             try {
                 const response = await fetch('/api/work/greeter/templates');
                 if (response.ok) {
                     const data = await response.json();
                     if (data.templates && data.templates.length > 0) {
-                        // Convert templates to example format with placeholder handle
+                        // Convert templates to display format with placeholder handle
+                        greetingTemplates = data.templates.map(template => 
+                            template.replace(/@\{handle\}/g, '<a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>')
+                                    .replace(/\n/g, '<br>')
+                        );
+                        
+                        // Also populate greetingExamples for modal compatibility
                         greetingExamples = data.templates.map(template => ({
                             text: template.replace(/@\{handle\}/g, '<a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>')
                                          .replace(/\n/g, '<br>')
                         }));
-                        // Update the display after loading templates
+                        
+                        // Update both displays after loading templates
+                        updateGreetingsDisplay();
                         updateExamplePost();
                     } else {
                         // Fallback templates if API fails
-                        useFallbackTemplates();
+                        useGreetingFallbackTemplates();
                     }
                 } else {
-                    useFallbackTemplates();
+                    useGreetingFallbackTemplates();
                 }
             } catch (error) {
                 console.error('Failed to load greeting templates:', error);
-                useFallbackTemplates();
+                useGreetingFallbackTemplates();
             }
         }
 
-        function useFallbackTemplates() {
-            greetingExamples = [
-                {
-                    text: 'Welcome to Reverie House, <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>!<br><br>I\'m here to help if you have any questions.'
-                },
-                {
-                    text: 'Hello <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>, welcome to our wild mindscape!<br><br>Feel free to reach out if you need guidance.'
-                },
-                {
-                    text: 'Welcome, <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>! We\'re glad you found your way here.<br><br>Let me know if you have questions.'
-                },
-                {
-                    text: 'Greetings <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>!<br><br>Welcome to Reverie House. Happy to help you settle in.'
-                },
-                {
-                    text: 'Welcome to the mindscape, <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>!<br><br>Let me know if you have any questions.'
-                }
+        function useGreetingFallbackTemplates() {
+            greetingTemplates = [
+                'Welcome to Reverie House, <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>!<br><br>I\'m here to help if you have any questions.',
+                'Hello <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>, glad to meet you.<br><br>Feel free to ask for anything if you need it.',
+                'Welcome, <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>! Glad you found your way.<br><br>Let me know if you have questions?',
+                'Greetings <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>! Welcome to Reverie House.<br><br>I\'m here to help you settle in.',
+                'Welcome to Reverie House <a href="/dreamer.html?handle=dreamer.reverie.house" class="mention-link">@dreamer.reverie.house</a>!<br><br>Let me know if you have any questions?'
             ];
-            // Update the display after setting fallback templates
+            
+            greetingExamples = greetingTemplates.map(text => ({ text }));
+            updateGreetingsDisplay();
             updateExamplePost();
+        }
+
+        // Load greeting events for eventstack display
+        async function loadGreetingEvents() {
+            try {
+                const response = await fetch('/api/canon');
+                if (response.ok) {
+                    const allEvents = await response.json();
+                    
+                    // Group events: parent events with their reactions embedded
+                    // First, separate reactions from parent events
+                    const parentEvents = [];
+                    const reactions = {};
+                    
+                    allEvents.forEach(event => {
+                        if (event.key === 'name' || event.key === 'greeter') {
+                            if (event.reaction_to) {
+                                // This is a reaction - group by parent URI
+                                if (!reactions[event.reaction_to]) {
+                                    reactions[event.reaction_to] = [];
+                                }
+                                reactions[event.reaction_to].push(event);
+                            } else {
+                                // This is a parent event
+                                parentEvents.push(event);
+                            }
+                        }
+                    });
+                    
+                    // Attach reactions to their parent events
+                    parentEvents.forEach(parent => {
+                        if (parent.uri && reactions[parent.uri]) {
+                            parent.reactions = reactions[parent.uri];
+                        }
+                    });
+                    
+                    console.log(`[Work] Found ${parentEvents.length} greeting events with reactions`);
+                    
+                    // Render with EventStack (auto mode uses database color_source and color_hex)
+                    if (window.EventStack) {
+                        const eventStack = new EventStack();
+                        eventStack.render(parentEvents, document.getElementById('greeter-eventstack'), {
+                            colorMode: 'auto',
+                            colorIntensity: 'highlight',
+                            limit: 20,
+                            sortOrder: 'desc',
+                            emptyMessage: 'No greeting events yet',
+                            showReactions: true
+                        });
+                    } else {
+                        console.warn('[Work] EventStack not available yet');
+                    }
+                } else {
+                    console.error('Failed to load events:', response.status);
+                }
+            } catch (error) {
+                console.error('Failed to load greeting events:', error);
+            }
+        }
+
+        // Load repository data from GitHub
+        async function loadRepoData() {
+            const contentDiv = document.getElementById('repo-data-content');
+            const repoInfoDiv = document.getElementById('repo-info');
+            if (!contentDiv) return;
+            
+            try {
+                // Fetch repo info for languages
+                const repoResponse = await fetch('https://api.github.com/repos/errantson/reverie');
+                const repoData = await repoResponse.json();
+                
+                // Fetch languages
+                const languagesResponse = await fetch('https://api.github.com/repos/errantson/reverie/languages');
+                const languagesData = await languagesResponse.json();
+                const topLanguages = Object.keys(languagesData).slice(0, 3).map(lang => {
+                    // Change JavaScript to JS for display
+                    return lang === 'JavaScript' ? 'JS' : lang;
+                }).join(', ');
+                const lastUpdated = new Date(repoData.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                // Update repo info if available
+                if (repoInfoDiv) {
+                    repoInfoDiv.innerHTML = `
+                        <div class="repo-info-item">
+                            <span class="repo-info-label">Languages:</span>
+                            <span class="repo-info-value">${topLanguages || 'N/A'}</span>
+                        </div>
+                        <div class="repo-info-item">
+                            <span class="repo-info-label">Last Updated:</span>
+                            <span class="repo-info-value">${lastUpdated || 'N/A'}</span>
+                        </div>
+                    `;
+                }
+                
+                // Fetch all commits (max 100 per page, fetch multiple pages)
+                let allCommits = [];
+                let page = 1;
+                let hasMore = true;
+                
+                while (hasMore && page <= 3) { // Limit to 3 pages (300 commits) for performance
+                    const commitsResponse = await fetch(`https://api.github.com/repos/errantson/reverie/commits?per_page=100&page=${page}`);
+                    if (!commitsResponse.ok) throw new Error('Failed to fetch commits');
+                    const commits = await commitsResponse.json();
+                    
+                    if (commits.length === 0) {
+                        hasMore = false;
+                    } else {
+                        allCommits = allCommits.concat(commits);
+                        page++;
+                    }
+                }
+                
+                // Fetch contributors
+                const contributorsResponse = await fetch('https://api.github.com/repos/errantson/reverie/contributors');
+                if (!contributorsResponse.ok) throw new Error('Failed to fetch contributors');
+                const contributors = await contributorsResponse.json();
+                
+                // Format commit rows
+                const commitRows = allCommits.map(commit => {
+                    const date = new Date(commit.commit.committer.date);
+                    const timeAgo = formatTimeAgo(date);
+                    const message = commit.commit.message.split('\n')[0];
+                    const commitUrl = commit.html_url;
+                    
+                    return `
+                        <a href="${commitUrl}" target="_blank" class="commit-row">
+                            <span class="commit-message">${message}</span>
+                            <span class="commit-meta">${timeAgo}</span>
+                        </a>
+                    `;
+                }).join('');
+                
+                // Format contributors
+                const contributorsList = contributors.slice(0, 5).map(contrib => `
+                    <a href="${contrib.html_url}" target="_blank" class="contributor-link" title="${contrib.login} - ${contrib.contributions} contributions">
+                        <img src="${contrib.avatar_url}" alt="${contrib.login}" class="contributor-avatar">
+                    </a>
+                `).join('');
+                
+                contentDiv.innerHTML = `
+                    <div class="commits-section">
+                        ${commitRows}
+                    </div>
+                    <div class="contributors-section">
+                        <div class="contributors-label">Contributors</div>
+                        <div class="contributors-list">
+                            ${contributorsList}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to load repo data:', error);
+                contentDiv.innerHTML = '<div class="repo-error">Failed to load repository data</div>';
+            }
+        }
+        
+        // Format time ago helper
+        function formatTimeAgo(date) {
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+            
+            if (seconds < 60) return 'just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+            if (seconds < 2592000) return `${Math.floor(seconds / 604800)}w ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Update greetings carousel display
+        function updateGreetingsDisplay() {
+            const greetingsDisplay = document.getElementById('greeter-greetings-display');
+            if (!greetingsDisplay) return;
+            
+            if (greetingTemplates.length === 0) {
+                greetingsDisplay.innerHTML = '<div class="greeting-text" style="color: #999; font-style: italic;">Loading templates...</div>';
+                return;
+            }
+            
+            const template = greetingTemplates[currentGreetingIndex];
+            greetingsDisplay.innerHTML = `<div class="greeting-text">${template}</div>`;
+        }
+
+        function nextGreeting() {
+            if (greetingTemplates.length === 0) return;
+            currentGreetingIndex = (currentGreetingIndex + 1) % greetingTemplates.length;
+            updateGreetingsDisplay();
+        }
+
+        function previousGreeting() {
+            if (greetingTemplates.length === 0) return;
+            currentGreetingIndex = (currentGreetingIndex - 1 + greetingTemplates.length) % greetingTemplates.length;
+            updateGreetingsDisplay();
         }
 
         let currentExampleIndex = 0;
@@ -1554,6 +1887,16 @@
             const examplePostGreeter = document.getElementById('example-post-greeter');
             if (examplePostGreeter && greetingExamples.length > 0) {
                 examplePostGreeter.innerHTML = `<div class="post-text">${greetingExamples[currentExampleIndex].text}</div>`;
+            }
+            
+            // Update greeter carousel example
+            const greeterExampleDisplay = document.getElementById('greeter-example-display');
+            if (greeterExampleDisplay) {
+                if (greetingExamples.length > 0) {
+                    greeterExampleDisplay.innerHTML = `<div class="example-text">${greetingExamples[currentExampleIndex].text}</div>`;
+                } else {
+                    greeterExampleDisplay.innerHTML = `<div class="example-text" style="color: #999; font-style: italic;">Loading examples...</div>`;
+                }
             }
         }
 
@@ -1637,9 +1980,8 @@
             }
             
             if (!token) {
-                console.warn('⚠️ No token available for credentials check - showing password modal');
-                // No token means we can't verify - just show the modal
-                // User will enter password and it will be validated then
+                console.warn('⚠️ No token available for credentials check - showing password widget');
+                // No token means we can't verify - show the widget to collect password
             } else {
                 const headers = {};
                 headers['Authorization'] = `Bearer ${token}`;
@@ -1670,49 +2012,29 @@
                     }
                 } catch (error) {
                     console.error('❌ Credentials check exception:', error);
-                    // Continue to show the modal even if the check fails
+                    // Continue to show the widget even if the check fails
                 }
             }
             
-            // Populate modal with role-specific content
-            document.getElementById('modal-role-title').textContent = config.title;
-            document.getElementById('modal-role-description').innerHTML = config.description;
-            document.getElementById('modal-example-label').textContent = config.exampleLabel;
-            document.getElementById('modal-password-purpose').textContent = config.passwordPurpose;
-            document.getElementById('modal-role-name-lower').textContent = config.roleNameLower;
-            document.getElementById('modal-submit-btn').textContent = config.buttonText;
-            
-            // Show/hide examples based on role config
-            const examplePreview = document.getElementById('modal-example-preview');
-            if (config.showExamples) {
-                examplePreview.style.display = 'block';
-                const examples = config.getExamples();
-                if (examples.length > 0) {
-                    currentExampleIndex = 0;
-                    updateExamplePost();
-                    
-                    // Hide navigation arrows if only one example
-                    const navButtons = examplePreview.querySelectorAll('.example-nav-btn');
-                    navButtons.forEach(btn => {
-                        btn.style.display = examples.length > 1 ? 'block' : 'none';
-                    });
-                }
-            } else {
-                examplePreview.style.display = 'none';
+            // Show AppPasswordRequest widget with role-specific configuration
+            if (!window.appPasswordRequest) {
+                console.error('❌ AppPasswordRequest widget not loaded');
+                showCelebration('Widget not loaded - please refresh the page', 'error');
+                return;
             }
             
-            // Clear password input
-            const appPasswordInput = document.getElementById('app-password');
-            if (appPasswordInput) {
-                appPasswordInput.value = '';
-            }
-            
-            // Show modal
-            const modal = document.getElementById('auth-modal');
-            if (modal) {
-                modal.style.display = 'flex';
-                setTimeout(() => modal.classList.add('active'), 10);
-            }
+            window.appPasswordRequest.show({
+                title: config.title,
+                description: config.description,
+                featureName: config.roleNameLower,
+                roleColor: role  // Pass role for color theming
+            }, async (appPassword) => {
+                // Callback receives validated 16-char app password
+                console.log('🔑 App password received from widget');
+                
+                // Show confirmation popup before activating
+                showWorkerConfirmation(role, () => performWorkerActivation(role, appPassword, null));
+            });
         }
 
         async function activateWorkerWithExistingCredentials(role) {
@@ -1762,39 +2084,7 @@
             }
         }
 
-        // Universal worker activation submission
-        async function submitWorkerActivation() {
-            const appPasswordInput = document.getElementById('app-password');
-            const submitBtn = document.getElementById('modal-submit-btn');
-            
-            if (!currentSession) {
-                showCelebration('Please log in first', 'error');
-                return;
-            }
-            
-            if (!currentModalRole) {
-                showCelebration('Invalid role', 'error');
-                return;
-            }
-            
-            const config = roleConfigs[currentModalRole];
-            const appPassword = appPasswordInput ? appPasswordInput.value.replace(/-/g, '').trim() : '';
-            
-            // Validate app password is provided
-            if (!appPassword || appPassword.length !== 16) {
-                showCelebration('Please provide a valid 16-character app password', 'error');
-                if (appPasswordInput) {
-                    appPasswordInput.focus();
-                    appPasswordInput.parentElement.classList.add('error-shake');
-                    setTimeout(() => appPasswordInput.parentElement.classList.remove('error-shake'), 500);
-                }
-                return;
-            }
-
-            // Show confirmation popup before activating
-            showWorkerConfirmation(currentModalRole, () => performWorkerActivation(currentModalRole, appPassword, submitBtn));
-        }
-        
+        // Worker confirmation popup (called from AppPasswordRequest widget callback)
         function showWorkerConfirmation(role, onConfirm) {
             const config = roleConfigs[role];
             
@@ -2215,8 +2505,7 @@
                     if (contentType && contentType.includes('application/json')) {
                         greeterStatus = await response.json();
                         
-                        // Close modal and show loading overlay
-                        closeAuthModal();
+                        // Show loading overlay
                         showLoadingOverlay('Confirming your status...');
                         
                         // Refresh UI
@@ -2239,7 +2528,6 @@
                     } else {
                         const text = await response.text();
                         console.error('⚠️ Work: Non-JSON response:', text);
-                        closeAuthModal();
                         showLoadingOverlay('Confirming your status...');
                         await loadGreeterStatus();
                         updateUI();
@@ -2884,6 +3172,15 @@
                     }, (randomDuration + randomDelay) * 1000);
                 }, i * 100);
             }
+        }
+
+        // Open introduce yourself modal
+        function openIntroduceModal() {
+            showCelebration(
+                'Introduce yourself feature coming soon!\\n\\nThis will allow new dreamers to share their story with the community.',
+                'info',
+                'UNDERSTOOD'
+            );
         }
     </script>
 </body>

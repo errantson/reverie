@@ -86,17 +86,13 @@ class SpectrumPreview {
         
         this.container.innerHTML = `
             <div class="spectrum-preview-widget ${disabledClass}">
-                <div class="spectrum-preview-header">
-                    <div class="spectrum-preview-title">Spectrum Calculator</div>
-                </div>
-                
-                <div class="spectrum-preview-helper-text">
-                    Enter a dreamer's handle or id to deduce their spectrum origin.
-                </div>
-                
-                <div class="spectrum-preview-body">
+                <div class="spectrum-preview-layout">
                     <div class="spectrum-preview-left">
-                        <div class="spectrum-preview-input-group">
+                        <div class="spectrum-preview-helper-text">
+                            Enter a dreamer's handle to begin:
+                        </div>
+                        
+                        <div class="spectrum-preview-controls">
                             <input 
                                 type="text" 
                                 id="spectrum-handle-input"
@@ -112,10 +108,8 @@ class SpectrumPreview {
                                 Calculate Origin
                             </button>
                         </div>
-                    </div>
-                    
-                    <div class="spectrum-preview-right">
-                        <div class="spectrum-preview-results" id="spectrum-preview-results">
+                        
+                        <div class="spectrum-preview-octant" id="spectrum-preview-results">
                             <!-- Octant display will be initialized here -->
                         </div>
                     </div>
@@ -188,8 +182,22 @@ class SpectrumPreview {
                         console.log('🚪 [Button] Closing spectrum calculator modal');
                         this.options.parentModal.close();
                     }
-                    
-                    // Compose and post the origin declaration
+                    // If an image was already generated, open the Bluesky compose flow in a new tab
+                    if (this.currentSpectrumImageUrl) {
+                        try {
+                            // Build a friendly compose text
+                            const mention = '@' + (this.currentHandle || 'dreamer');
+                            const originUrl = `https://${window.location.hostname}/origin/${this.currentHandle}`;
+                            const composeText = `Welcome to Reverie House, ${mention}\n\nWhat kind of dreamweaver are you?\n${originUrl}`;
+                            const composeUrl = createBlueskyComposeUrl(composeText);
+                            window.open(composeUrl, '_blank', 'noopener');
+                            console.log('🔗 [Button] Opened Bluesky compose in new tab:', composeUrl);
+                        } catch (e) {
+                            console.warn('🔗 [Button] Failed to open Bluesky compose:', e);
+                        }
+                    }
+
+                    // Still proceed with local compose/post flow so modal shows here as well
                     await this.composeOriginPost(this.currentHandle);
                 } else if (!this.isLoading) {
                     console.log('🔄 [Button] Entering CALCULATE mode - fetching spectrum');
@@ -294,6 +302,8 @@ class SpectrumPreview {
             
             // Generate and upload the origin image immediately in the background
             calculateBtn.textContent = 'Generating image...';
+            // Clear any previous preview while generating
+            this.clearOriginPreview();
             try {
                 const imageResult = await this.generateAndUploadOriginImage(
                     spectrumData.handle,
@@ -304,6 +314,8 @@ class SpectrumPreview {
                 
                 if (imageResult.success) {
                     this.currentSpectrumImageUrl = imageResult.url;
+                    // Render preview into the right-hand mapper column
+                    this.renderOriginPreview(imageResult.url);
                     console.log('✅ [Calculate] Image generated and uploaded:', imageResult.url);
                     calculateBtn.textContent = 'Ready ✓';
                 } else {
@@ -354,6 +366,72 @@ class SpectrumPreview {
                 setTimeout(() => this.displayResults(data), 500);
             }
         }
+    }
+
+    // Render the origin image preview into the mapper right column
+    renderOriginPreview(url) {
+        try {
+            const rightCol = document.querySelector('.mapper-column-right');
+            if (!rightCol) return;
+
+            // Create or update preview box
+            let box = rightCol.querySelector('.origin-preview-box');
+            if (!box) {
+                box = document.createElement('div');
+                box.className = 'origin-preview-box';
+                box.innerHTML = `
+                    <div class="origin-preview-inner">
+                        <div class="origin-preview-media"></div>
+                    </div>
+                `;
+                rightCol.appendChild(box);
+            }
+
+            const media = box.querySelector('.origin-preview-media');
+            media.innerHTML = '';
+
+            // Create wrapper so overlay can be positioned
+            const wrapper = document.createElement('div');
+            wrapper.className = 'origin-preview-wrapper';
+
+            // Use an <img> tag for server URLs; if blob or data URL, img works too
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Origin image preview';
+            img.className = 'origin-preview-image';
+            img.style.display = 'block';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+
+            // If we have a handle, wrap image in an anchor to the origin page (same-window navigation)
+            let anchor = null;
+            const handle = this.currentHandle || (this.currentDid ? this.currentDid : null);
+            if (handle) {
+                const originPath = `/origin/${handle}`;
+                anchor = document.createElement('a');
+                anchor.href = originPath;
+                // same-window navigation (no target) so users land on the origin page when clicking image
+                anchor.appendChild(img);
+                wrapper.appendChild(anchor);
+            } else {
+                wrapper.appendChild(img);
+            }
+
+            media.appendChild(wrapper);
+
+            // Mark box as having an image (allows hover effects)
+            box.classList.add('has-image');
+        } catch (e) {
+            console.warn('Failed to render origin preview:', e);
+        }
+    }
+
+    clearOriginPreview() {
+        const rightCol = document.querySelector('.mapper-column-right');
+        if (!rightCol) return;
+        const box = rightCol.querySelector('.origin-preview-box');
+        if (box) rightCol.removeChild(box);
     }
     
     async composeOriginPost(handle) {
@@ -428,6 +506,11 @@ class SpectrumPreview {
             setTimeout(() => {
                 this.hideProgressModal();
                 this.showPostInstructions(handle, coordinateText, octantName, dataUrl, blob);
+                // Also render the image preview into the mapper right column
+                if (dataUrl) {
+                    // dataUrl may be a blob URL or a server URL
+                    this.renderOriginPreview(dataUrl);
+                }
             }, 300);
             
             calculateBtn.textContent = `Invite @${handle}`;

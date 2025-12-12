@@ -20,8 +20,8 @@
     
     /* Cogitarian - Orange-red tones (wisdom, knowledge) */
     --role-cogitarian: rgb(210, 95, 50);
-    --role-cogitarian-light: rgba(210, 95, 50, 0.05);
-    --role-cogitarian-medium: rgba(210, 95, 50, 0.15);
+    --role-cogitarian-light: rgba(210, 95, 50, 0.12);
+    --role-cogitarian-medium: rgba(210, 95, 50, 0.25);
     --role-cogitarian-dark: rgb(160, 70, 35);
 }
 
@@ -33,3 +33,10 @@
 .role-text-greeter { color: var(--role-greeter) !important; }
 .role-text-mapper { color: var(--role-mapper) !important; }
 .role-text-cogitarian { color: var(--role-cogitarian) !important; }
+
+/* Spectrum preview helper text styling moved here so role color tokens are available */
+.spectrum-preview-helper-text {
+    font-size: 0.85rem;
+    color: var(--role-mapper-dark);
+    font-weight: 600;
+}

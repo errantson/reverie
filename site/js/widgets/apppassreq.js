@@ -18,8 +18,7 @@ class AppPasswordRequest {
      * @param {string} config.title - Modal title
      * @param {string} config.description - Purpose description (HTML allowed)
      * @param {string} config.featureName - The specific feature being accessed (e.g., "biblio.bond", "greeter role")
-     * @param {Array} [config.examples] - Optional array of example objects with {text: "..."}
-     * @param {string} [config.exampleLabel] - Label for examples section
+     * @param {string} [config.roleColor] - Optional role color (e.g., "greeter", "mapper", "cogitarian")
      * @param {Function} onSubmitCallback - Called with (appPassword) when submitted
      */
     show(config, onSubmitCallback) {
@@ -42,40 +41,28 @@ class AppPasswordRequest {
             }
         };
 
-        const showExamples = this.config.examples && this.config.examples.length > 0;
-        const exampleHTML = showExamples ? `
-            <div class="example-post-preview" id="modal-example-preview">
-                <div class="example-header">
-                    <button class="example-nav-btn" onclick="window.appPasswordRequest.previousExample()">‹</button>
-                    <div class="example-label">${this.config.exampleLabel || 'Examples'}</div>
-                    <button class="example-nav-btn" onclick="window.appPasswordRequest.nextExample()">›</button>
-                </div>
-                <div class="example-post" id="example-post">
-                    <div class="post-text">${this.config.examples[0].text}</div>
-                </div>
-            </div>
-        ` : '';
+        // Apply role color class if provided
+        const roleClass = this.config.roleColor ? `role-${this.config.roleColor}` : '';
 
         this.modal.innerHTML = `
-            <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-content ${roleClass}" onclick="event.stopPropagation()">
                 <div class="modal-intro">
-                    <strong>${this.config.title}</strong><br>
-                    <div style="max-width: 500px; margin: 0.5rem auto 0 auto; font-size: 10pt;">
+                    <strong class="modal-title">${this.config.title}</strong>
+                    <div class="modal-description">
                         ${this.config.description}
                     </div>
                 </div>
                 <div class="modal-body">
-                    ${exampleHTML}
                     
-                    <p style="margin-top: 1rem;"><strong>Reverie House requires permission to act on your behalf:</strong></p>
+                    <p style="margin-top: 0.25rem;"><strong>Reverie House requires permission to act on your behalf:</strong></p>
                     <ol>
                         <li>Go to <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener noreferrer">Bluesky Settings → App Passwords</a></li>
-                        <li>Create a new password named "reverie-house"</li>
+                        <li>Create a new password named "reverie"</li>
                         <li>Copy and paste it below</li>
                     </ol>
                     
                     <div class="form-group">
-                        <label for="app-password-request-input">App Password <span>for ${this.config.featureName}</span>:</label>
+                        <label for="app-password-request-input">App Password for ${this.config.title}:</label>
                         <input type="text" 
                                id="app-password-request-input" 
                                placeholder="xxxx-xxxx-xxxx-xxxx" 
@@ -83,12 +70,11 @@ class AppPasswordRequest {
                                autocorrect="off" 
                                autocapitalize="off" 
                                spellcheck="false">
-                        <p class="small-note">This grants Reverie House authority to work on your behalf. Once connected, you'll have access to the full suite of features. You can revoke this anytime in your <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener noreferrer">Bluesky settings</a>.</p>
+                        <p class="simple-note">This grants authority to work on your behalf. Revoke anytime in <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener noreferrer">Bluesky settings</a>.</p>
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button class="action-button authorize-btn" id="app-password-request-submit">GRANT AUTHORITY</button>
-                    <div class="appreciation-text">we appreciate your authority in this matter</div>
+                    <button class="action-button authorize-btn" id="app-password-request-submit">BECOME ${this.config.title.toUpperCase()}</button>
                 </div>
             </div>
         `;
@@ -107,15 +93,6 @@ class AppPasswordRequest {
         // Focus input
         const input = document.getElementById('app-password-request-input');
         if (input) input.focus();
-
-        // Initialize example index
-        this.currentExampleIndex = 0;
-
-        // Hide nav buttons if only one example
-        if (showExamples && this.config.examples.length <= 1) {
-            const navBtns = this.modal.querySelectorAll('.example-nav-btn');
-            navBtns.forEach(btn => btn.style.display = 'none');
-        }
     }
 
     injectStyles() {
@@ -145,7 +122,7 @@ class AppPasswordRequest {
                 background: #f8f5e6;
                 border: 3px solid #8b7355;
                 padding: 1.25rem 2rem;
-                max-width: 550px;
+                max-width: 520px;
                 width: 90%;
                 max-height: 80vh;
                 overflow-y: auto;
@@ -154,20 +131,58 @@ class AppPasswordRequest {
                 z-index: 1000000;
             }
             
+            /* Role-specific border colors */
+            #app-password-request-modal .modal-content.role-greeter {
+                border-color: var(--role-greeter);
+            }
+            
+            #app-password-request-modal .modal-content.role-mapper {
+                border-color: var(--role-mapper);
+            }
+            
+            #app-password-request-modal .modal-content.role-cogitarian {
+                border-color: var(--role-cogitarian);
+            }
+            
             .modal-intro {
                 text-align: center;
                 color: #555;
-                line-height: 1.4;
+                line-height: 1.6;
                 margin-bottom: 1rem;
+                padding-bottom: 0.75rem;
+                border-bottom: 2px solid #e0d5c5;
             }
             
-            .modal-intro strong {
-                font-size: 1.1rem;
+            .modal-title {
+                display: block;
+                font-size: 1.2rem;
                 color: #5d4a37;
+                margin-bottom: 0.5rem;
+            }
+            
+            /* Role-specific title colors */
+            .modal-content.role-greeter .modal-title {
+                color: var(--role-greeter-dark);
+            }
+            
+            .modal-content.role-mapper .modal-title {
+                color: var(--role-mapper-dark);
+            }
+            
+            .modal-content.role-cogitarian .modal-title {
+                color: var(--role-cogitarian-dark);
+            }
+            
+            .modal-description {
+                max-width: 460px;
+                margin: 0 auto;
+                font-size: 0.85rem;
+                color: #555;
+                line-height: 1.4;
             }
             
             .modal-body {
-                margin-bottom: 0.25rem;
+                margin-bottom: 0;
                 line-height: 1.5;
                 color: #2c1810;
             }
@@ -187,17 +202,17 @@ class AppPasswordRequest {
                 padding-left: 2rem;
                 text-align: left;
                 max-width: 380px;
-                margin: 0.5rem auto;
+                margin: 0.35rem auto;
                 display: inline-block;
             }
             
             .modal-body li {
-                margin-bottom: 0.35rem;
+                margin-bottom: 0.25rem;
             }
             
             .modal-body p {
                 text-align: center;
-                margin: 0.5rem 0;
+                margin: 0.35rem 0;
             }
             
             .modal-body p strong {
@@ -206,13 +221,13 @@ class AppPasswordRequest {
             }
             
             .form-group {
-                margin: 1rem 0;
+                margin: 0.75rem 0;
                 text-align: center;
             }
             
             .form-group label {
                 display: block;
-                margin-bottom: 0.5rem;
+                margin-bottom: 0.4rem;
                 font-weight: 600;
                 color: #2c1810;
             }
@@ -220,7 +235,7 @@ class AppPasswordRequest {
             .form-group input {
                 width: 100%;
                 max-width: 300px;
-                padding: 0.75rem;
+                padding: 0.6rem;
                 border: 2px solid #8b7355;
                 background: white;
                 font-family: 'Courier New', monospace;
@@ -233,8 +248,27 @@ class AppPasswordRequest {
                 border-color: #5d4a37;
             }
             
+            /* Role-specific input focus colors */
+            .modal-content.role-greeter .form-group input:focus {
+                border-color: var(--role-greeter);
+            }
+            
+            .modal-content.role-mapper .form-group input:focus {
+                border-color: var(--role-mapper);
+            }
+            
+            .modal-content.role-cogitarian .form-group input:focus {
+                border-color: var(--role-cogitarian);
+            }
+            
             .small-note {
                 font-size: 0.85rem;
+                color: #666;
+                margin-top: 0.5rem;
+            }
+            
+            .simple-note {
+                font-size: 0.8rem;
                 color: #666;
                 margin-top: 0.5rem;
             }
@@ -244,8 +278,8 @@ class AppPasswordRequest {
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                margin-top: 0.25rem;
-                gap: 0.35rem;
+                margin-top: 0;
+                gap: 0.25rem;
             }
             
             .action-button {
@@ -265,95 +299,46 @@ class AppPasswordRequest {
                 background: #5d4a37;
             }
             
+            /* Role-specific button colors */
+            .modal-content.role-greeter .action-button {
+                background: var(--role-greeter);
+            }
+            
+            .modal-content.role-greeter .action-button:hover:not(:disabled) {
+                background: var(--role-greeter-dark);
+            }
+            
+            .modal-content.role-mapper .action-button {
+                background: var(--role-mapper);
+            }
+            
+            .modal-content.role-mapper .action-button:hover:not(:disabled) {
+                background: var(--role-mapper-dark);
+            }
+            
+            .modal-content.role-cogitarian .action-button {
+                background: var(--role-cogitarian);
+            }
+            
+            .modal-content.role-cogitarian .action-button:hover:not(:disabled) {
+                background: var(--role-cogitarian-dark);
+            }
+            
             .action-button:disabled {
                 opacity: 0.6;
                 cursor: not-allowed;
             }
             
             .authorize-btn {
-                min-width: 280px;
-                padding: 0.85rem 2rem !important;
+                min-width: 320px;
+                padding: 0.7rem 2rem !important;
             }
             
             .appreciation-text {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
                 font-style: italic;
                 color: #666;
                 text-align: center;
-            }
-            
-            .example-post-preview {
-                margin: 1rem 0;
-                padding: 0.85rem;
-                background: white;
-                border: 2px solid #8b7355;
-                border-radius: 0;
-            }
-            
-            .example-header {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 1rem;
-                margin-bottom: 0.5rem;
-            }
-            
-            .example-nav-btn {
-                background: #8b7355;
-                color: white;
-                border: none;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                cursor: pointer;
-                font-size: 1.3rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.2s;
-                padding: 0;
-                line-height: 1;
-                font-weight: bold;
-            }
-            
-            .example-nav-btn:hover {
-                background: #5d4a37;
-                transform: scale(1.1);
-            }
-            
-            .example-nav-btn:active {
-                transform: scale(0.95);
-            }
-            
-            .example-label {
-                font-size: 0.85rem;
-                font-weight: 700;
-                color: #8b7355;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                text-align: center;
-                flex: 1;
-            }
-            
-            .example-post {
-                background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
-                border: 1px solid #e0e0e0;
-                border-radius: 0;
-                padding: 0.75rem;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                min-height: 50px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            .post-text {
-                font-size: 0.9rem;
-                line-height: 1.4;
-                color: #1a1a1a;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-                text-align: left;
-                width: 100%;
             }
             
             @media (max-width: 600px) {
@@ -414,27 +399,6 @@ class AppPasswordRequest {
                 submitBtn.disabled = false;
                 submitBtn.textContent = this.config.buttonText;
             }
-        }
-    }
-
-    nextExample() {
-        if (!this.config.examples || this.config.examples.length === 0) return;
-        
-        this.currentExampleIndex = (this.currentExampleIndex + 1) % this.config.examples.length;
-        this.updateExample();
-    }
-
-    previousExample() {
-        if (!this.config.examples || this.config.examples.length === 0) return;
-        
-        this.currentExampleIndex = (this.currentExampleIndex - 1 + this.config.examples.length) % this.config.examples.length;
-        this.updateExample();
-    }
-
-    updateExample() {
-        const examplePost = document.getElementById('example-post');
-        if (examplePost && this.config.examples && this.config.examples[this.currentExampleIndex]) {
-            examplePost.innerHTML = `<div class="post-text">${this.config.examples[this.currentExampleIndex].text}</div>`;
         }
     }
 
