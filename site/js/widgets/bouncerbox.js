@@ -62,7 +62,7 @@ class BouncerBox {
 
         // Build HTML structure
         this.container.innerHTML = `
-            <div class="souvenirs-physics-container" style="border-color: ${this.options.userColor};">
+            <div class="souvenirs-physics-container" style="border-color: ${this.options.userColor}; height: ${this.options.height}px; min-height: ${this.options.height}px;">
                 <canvas class="souvenirs-physics-canvas"></canvas>
                 ${this.options.showWidget ? '<div class="souvenirs-mini-widget"></div>' : ''}
             </div>
@@ -87,20 +87,29 @@ class BouncerBox {
         console.log('[BouncerBox] Loading souvenirs data...', this.options);
 
         try {
-            // Fetch souvenirs and dreamers data
-            const [souvenirsResponse, dreamersResponse] = await Promise.all([
-                fetch('/api/souvenirs'),
-                fetch('/api/dreamers')
-            ]);
-
+            // Fetch souvenirs data
+            const souvenirsResponse = await fetch('/api/souvenirs');
             const allSouvenirs = await souvenirsResponse.json();
-            const allDreamers = await dreamersResponse.json();
 
-            // Filter by user if specified
-            let dreamers = allDreamers;
-            if (this.options.userDID) {
-                const dreamer = allDreamers.find(d => d.did === this.options.userDID);
-                dreamers = dreamer ? [dreamer] : [];
+            let allDreamers = [];
+            let dreamers = [];
+
+            // Only fetch dreamers data if we need user-specific filtering
+            if (this.options.userDID || this.options.displayMode === 'all') {
+                try {
+                    const dreamersResponse = await fetch('/api/dreamers');
+                    allDreamers = await dreamersResponse.json();
+                    
+                    // Filter by user if specified
+                    dreamers = allDreamers;
+                    if (this.options.userDID) {
+                        const dreamer = allDreamers.find(d => d.did === this.options.userDID);
+                        dreamers = dreamer ? [dreamer] : [];
+                    }
+                } catch (error) {
+                    console.warn('[BouncerBox] Could not fetch dreamers data, continuing with souvenirs only:', error);
+                    // Continue without dreamers data
+                }
             }
 
             // Build souvenir instances from user data
@@ -241,7 +250,7 @@ class BouncerBox {
     createBubbles(souvenirInstances) {
         const widgetWidth = this.options.showWidget ? 280 : 0;
         const widgetHeight = this.options.showWidget ? 150 : 0;
-        const widgetMargin = 12;
+        const widgetMargin = this.options.showWidget ? 12 : 0;
 
         souvenirInstances.forEach((souvenir, index) => {
             const minSize = 55;

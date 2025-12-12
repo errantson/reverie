@@ -1,3 +1,15 @@
+/* Fix BouncerBox vertical alignment in Explore More tab */
+.souvenir-bouncer-face {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    height: 272px;
+    min-height: 272px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    box-sizing: border-box;
+}
 /* Souvenir Page - Full Splash with Floating Desktop Elements */
 
 /* Fullscreen Background with Breathing Animation */
