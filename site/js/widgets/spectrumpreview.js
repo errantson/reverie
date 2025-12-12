@@ -21,7 +21,6 @@ import {
 } from '../utils/spectrum-utils.js';
 
 import { 
-    calculateFacets as calculateBlueskyFacets,
     createBlueskyComposeUrl,
     proxyImageUrl
 } from '../utils/bluesky-utils.js';
@@ -185,10 +184,67 @@ class SpectrumPreview {
                     // If an image was already generated, open the Bluesky compose flow in a new tab
                     if (this.currentSpectrumImageUrl) {
                         try {
-                            // Build a friendly compose text
+                            // Build a friendly compose text with octant-specific message
                             const mention = '@' + (this.currentHandle || 'dreamer');
                             const originUrl = `https://${window.location.hostname}/origin/${this.currentHandle}`;
-                            const composeText = `Welcome to Reverie House, ${mention}\n\nWhat kind of dreamweaver are you?\n${originUrl}`;
+                            
+                            // Get octant information for custom message
+                            const octantData = this.octantDisplay?.dreamer?.spectrum;
+                            const octantName = octantData?.octant || 'equilibrium';
+                            
+                            let octantMessage = '';
+                            switch(octantName) {
+                                case 'adaptive':
+                                    octantMessage = 'Your adaptive nature helps you to prolong freedom through embracing change.';
+                                    break;
+                                case 'chaotic':
+                                    octantMessage = 'Your chaotic spirit helps you to unlock momentum through increasing possibility.';
+                                    break;
+                                case 'prepared':
+                                    octantMessage = 'Your prepared mindset helps you to avert disaster through contemplative foresight.';
+                                    break;
+                                case 'intended':
+                                    octantMessage = 'Your intended approach helps you to deliver results through independent action.';
+                                    break;
+                                case 'contented':
+                                    octantMessage = 'Your contented soul helps you beget peace through relentless acceptance.';
+                                    break;
+                                case 'assertive':
+                                    octantMessage = 'Your assertive character helps you solve doubt through outbound query.';
+                                    break;
+                                case 'ordered':
+                                    octantMessage = 'Your ordered perspective helps you build structure through disciplined governance.';
+                                    break;
+                                case 'guarded':
+                                    octantMessage = 'Your guarded stance helps you avert malinfluence through protective rejection.';
+                                    break;
+                                case 'equilibrium':
+                                    octantMessage = 'You exist in perfect equilibrium, centered only to self.';
+                                    break;
+                                case 'confused':
+                                    octantMessage = 'Your confusion stems from an evenly split perspective.';
+                                    break;
+                                case 'singling':
+                                    octantMessage = 'You are dominated by one axis, one force, one drive.';
+                                    break;
+                                default:
+                                    octantMessage = `You are ${octantName}.`;
+                            }
+                            
+                            // Get coordinates from octant data
+                            const spectrum = octantData;
+                            const pad = (num) => String(Math.round(num)).padStart(2, '0');
+                            const coordinates = `O${pad(spectrum.oblivion)} A${pad(spectrum.authority)} S${pad(spectrum.skeptic)} R${pad(spectrum.receptive)} L${pad(spectrum.liberty)} E${pad(spectrum.entropy)}`;
+                            
+                            const composeText = `Welcome to Reverie House, ${mention}
+
+Your dreaming began at these coordinates:
+${coordinates} — ${octantName.charAt(0).toUpperCase() + octantName.slice(1)}
+
+${octantMessage}
+
+What kind of dreamer are you?
+${originUrl}`;
                             const composeUrl = createBlueskyComposeUrl(composeText);
                             window.open(composeUrl, '_blank', 'noopener');
                             console.log('🔗 [Button] Opened Bluesky compose in new tab:', composeUrl);
@@ -1021,11 +1077,6 @@ class SpectrumPreview {
         return `O${pad(spectrum.oblivion)} A${pad(spectrum.authority)} S${pad(spectrum.skeptic)} R${pad(spectrum.receptive)} L${pad(spectrum.liberty)} E${pad(spectrum.entropy)}`;
     }
     
-    async calculateFacets(text, handle) {
-        // Use the utility function from bluesky-utils.js
-        return await calculateBlueskyFacets(text);
-    }
-    
     async showPostInstructions(handle, coordinateText, octantName, imageDataUrl, imageBlob) {
         // Add CSS for spin animation
         if (!document.getElementById('spectrum-spin-style')) {
@@ -1050,11 +1101,59 @@ class SpectrumPreview {
         // Create shorter dynamic URL: reverie.house/origin/{full.handle}
         const originUrl = `https://reverie.house/origin/${cleanHandle}`;
         
-        // Simple post text with @mention
+        // Get octant information for custom message
+        const octantInfo = getOctantInfo(octantName);
+        
+        // Build custom text based on octant with personality
+        let octantMessage = '';
+        switch(octantName) {
+            case 'adaptive':
+                octantMessage = 'Your adaptive nature helps you to prolong freedom through embracing change.';
+                break;
+            case 'chaotic':
+                octantMessage = 'Your chaotic spirit helps you to unlock momentum through increasing possibility.';
+                break;
+            case 'prepared':
+                octantMessage = 'Your prepared mindset helps you to avert disaster through contemplative foresight.';
+                break;
+            case 'intended':
+                octantMessage = 'Your intended approach helps you to deliver results through independent action.';
+                break;
+            case 'contented':
+                octantMessage = 'Your contented soul helps you beget peace through relentless acceptance.';
+                break;
+            case 'assertive':
+                octantMessage = 'Your assertive character helps you solve doubt through outbound query.';
+                break;
+            case 'ordered':
+                octantMessage = 'Your ordered perspective helps you build structure through disciplined governance.';
+                break;
+            case 'guarded':
+                octantMessage = 'Your guarded stance helps you avert malinfluence through protective rejection.';
+                break;
+            case 'equilibrium':
+                octantMessage = 'You exist in perfect equilibrium, centered only to self.';
+                break;
+            case 'confused':
+                octantMessage = 'Your confusion stems from an evenly split perspective.';
+                break;
+            case 'singling':
+                octantMessage = 'You are dominated by one axis, one force, one drive.';
+                break;
+            default:
+                octantMessage = `You are ${octantName}.`;
+        }
+        
+        // Post text with @mention, coordinates, and octant-specific message
         // Bluesky will auto-detect and linkify the @mention when posted
         const postText = `Welcome to Reverie House, @${mentionHandle}
 
-What kind of dreamweaver are you?
+Your dreaming began at these coordinates:
+${coordinateText} — ${octantName.charAt(0).toUpperCase() + octantName.slice(1)}
+
+${octantMessage}
+
+What kind of dreamer are you?
 ${originUrl}`;
         
         console.log('📝 [Post] Generated post text:', postText);
@@ -1157,29 +1256,9 @@ ${originUrl}`;
                     
                     const { imageUrl } = await saveResponse.json();
                     
-                    // Calculate facets using server-side API (more reliable)
-                    console.log('📝 [Bluesky] Generating facets using server API...');
-                    const facetsResponse = await fetch('/api/spectrum/generate-facets', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ text: postText })
-                    });
-                    
-                    let facets = [];
-                    if (facetsResponse.ok) {
-                        const facetsData = await facetsResponse.json();
-                        facets = facetsData.facets || [];
-                        console.log('✅ [Bluesky] Server-generated facets:', facets);
-                        console.log(`   Found ${facets.length} facet(s)`);
-                    } else {
-                        console.warn('⚠️ [Bluesky] Failed to generate facets from server, mentions may not be linked');
-                    }
-                    
                     // Open Bluesky compose URL
-                    // Note: The intent URL doesn't support facets, but Bluesky's composer
-                    // will auto-detect and linkify the @mentions when the user posts
+                    // Note: Bluesky's web interface will auto-detect and linkify @mentions
+                    // when the text is in the format @username.bsky.social
                     const composeUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(postText)}`;
                     window.open(composeUrl, '_blank');
                     

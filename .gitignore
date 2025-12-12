@@ -105,6 +105,10 @@ data/
 data-runtime/
 backups/
 
+# Spectrum images (generated dynamically)
+site/spectrum/
+site/spectrum/*.png
+
 # Documentation (internal notes, experiments, planning)
 docs/
 
