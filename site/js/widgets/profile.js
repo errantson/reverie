@@ -72,6 +72,7 @@ class Profile {
         // Core utilities first
         this.dependencyPromises.push(
             loadScript('/js/core/rowstyle-registry.js'),
+            loadScript('/js/core/rowstyle-engine.js', 'RowStyleEngine'),
             loadScript('/js/utils/num_nom.js'),
             loadScript('/js/utils/user-status.js', 'UserStatus'),
             loadScript('/js/utils/atproto-interactions.js'),
@@ -85,7 +86,8 @@ class Profile {
             loadScript('/js/widgets/dreamer-hover.js', 'DreamerHoverWidget'),
             loadScript('/js/widgets/octantshowcase.js', 'OctantShowcase'),
             loadScript('/js/widgets/octantdisplay.js', 'OctantDisplay'),
-            loadScript('/js/widgets/spectrum.js', 'SpectrumVisualizer')
+            loadScript('/js/widgets/spectrum.js', 'SpectrumVisualizer'),
+            loadScript('/js/widgets/eventstack.js', 'EventStack')
         );
     }
     
@@ -853,524 +855,45 @@ class Profile {
         if (!eventsContent) return;
         
         try {
-            // Fetch canon data and dreamers for avatar/name lookups
-            const [canonResponse, dreamersResponse] = await Promise.all([
-                fetch('/api/canon'),
-                fetch('/api/dreamers')
-            ]);
-            
+            // Fetch canon data
+            const canonResponse = await fetch('/api/canon');
             if (!canonResponse.ok) throw new Error('Failed to load canon');
-            if (!dreamersResponse.ok) throw new Error('Failed to load dreamers');
-            
             const allCanon = await canonResponse.json();
-            const allDreamers = await dreamersResponse.json();
             
-            // Filter to this dreamer's events
-            const dreamerEvents = allCanon.filter(entry => 
-                entry.did?.toLowerCase() === dreamer.did.toLowerCase()
-            );
+            // Filter to this dreamer's events AND events they reacted to
+            const dreamerEvents = allCanon.filter(entry => {
+                // Include events created by this dreamer
+                const isOwnEvent = entry.did?.toLowerCase() === dreamer.did.toLowerCase();
+                
+                // Include events that this dreamer reacted to (events where reaction_did matches)
+                const isReactedTo = entry.reaction_did?.toLowerCase() === dreamer.did.toLowerCase();
+                
+                return isOwnEvent || isReactedTo;
+            });
             
-            // Sort by epoch descending (newest first)
-            dreamerEvents.sort((a, b) => b.epoch - a.epoch);
-            
-            if (dreamerEvents.length === 0) {
-                eventsContent.innerHTML = '<div class="activity-empty">No events recorded</div>';
-                return;
+            // Remove duplicates (in case an event has multiple reactions from the same user)
+            const uniqueEvents = [];
+            const seenIds = new Set();
+            for (const event of dreamerEvents) {
+                if (!seenIds.has(event.id)) {
+                    seenIds.add(event.id);
+                    uniqueEvents.push(event);
+                }
             }
             
-            // Render rows using database.html style rendering
-            const html = this.renderEventRows(dreamerEvents, allDreamers, dreamer);
-            eventsContent.innerHTML = html;
-            
-            // Apply effects using RowStyle engine
-            if (window.rowStyleEngine) {
-                window.rowStyleEngine.applyEffects(eventsContent);
+            // Use EventStack to render events (same as database.html)
+            if (window.EventStack) {
+                const eventStack = new EventStack();
+                eventStack.render(uniqueEvents, eventsContent);
             } else {
-                // Fallback to legacy method
-                this.applySnakeCharmerEffect(eventsContent);
+                console.error('EventStack not loaded');
+                eventsContent.innerHTML = '<div class="activity-empty">Unable to load events</div>';
             }
             
         } catch (error) {
             console.error('Error loading events:', error);
             eventsContent.innerHTML = '<div class="activity-empty">Unable to load events</div>';
         }
-    }
-
-    applySnakeCharmerEffect(container) {
-        // Find all strange souvenir rows within the container
-        const strangeRows = container.querySelectorAll('.souvenir-strange.intensity-highlight, .souvenir-strange.intensity-special');
-        
-        strangeRows.forEach(row => {
-            // Get all cells in the row (including key cell for wobble)
-            const cells = row.querySelectorAll('.cell');
-            
-            cells.forEach((cell, cellIndex) => {
-                // Skip if cell only contains images or empty content
-                const hasOnlyImages = cell.querySelectorAll('img').length > 0 && !cell.textContent.trim();
-                if (hasOnlyImages) return;
-                
-                let wordIndex = 0;
-                
-                // Recursively process all text nodes within the cell
-                function processNode(node) {
-                    if (node.nodeType === Node.TEXT_NODE) {
-                        const text = node.textContent;
-                        const wordParts = text.split(/(\s+)/);
-                        const fragment = document.createDocumentFragment();
-                        
-                        wordParts.forEach(part => {
-                            if (part.trim()) {
-                                const wordSpan = document.createElement('span');
-                                wordSpan.textContent = part;
-                                wordSpan.className = 'snake-word';
-                                const totalDelay = (cellIndex * 8 + wordIndex * 2) * 0.1;
-                                wordSpan.style.animationDelay = `${totalDelay}s`;
-                                fragment.appendChild(wordSpan);
-                                wordIndex++;
-                            } else if (part) {
-                                fragment.appendChild(document.createTextNode(part));
-                            }
-                        });
-                        
-                        node.parentNode.replaceChild(fragment, node);
-                    } else if (node.nodeType === Node.ELEMENT_NODE) {
-                        // Recursively process child nodes
-                        Array.from(node.childNodes).forEach(child => processNode(child));
-                    }
-                }
-                
-                // Process all child nodes of the cell
-                Array.from(cell.childNodes).forEach(node => processNode(node));
-            });
-        });
-    }
-
-    renderEventRows(events, allDreamers, currentDreamer) {
-        // Table configuration for events
-        const columns = ['epoch', 'type', 'avatar', 'canon', 'key', 'uri'];
-        let html = '';
-        
-        events.forEach((row, idx) => {
-            // Filter: reactions are only shown beneath their parent event
-            if (row.reaction_to) return;
-            
-            // If this row has a reaction, render the reaction post ABOVE it first
-            if (row.reaction_id) {
-                const reactionRow = {
-                    id: row.reaction_id,
-                    did: row.reaction_did,
-                    event: row.reaction_event,
-                    type: row.reaction_type,
-                    key: row.reaction_key,
-                    uri: row.reaction_uri,
-                    url: row.reaction_url,
-                    epoch: row.reaction_epoch || null,
-                    name: row.reaction_name,
-                    avatar: row.reaction_avatar,
-                    octant: row.reaction_octant,
-                    origin_octant: row.reaction_origin_octant,
-                    color_source: row.reaction_color_source,
-                    color_intensity: row.reaction_color_intensity,
-                    color_hex: row.reaction_color_hex
-                };
-                
-                // Build color system classes for reaction row
-                let reactionColorClasses = '';
-                const reactionColorSource = reactionRow.color_source || 'none';
-                const reactionColorIntensity = reactionRow.color_intensity || 'none';
-                const reactionKey = reactionRow.key || '';
-                const reactionType = reactionRow.type || '';
-                
-                // Add type-based class for special event types (nightmare, dissipate, etc.)
-                if (reactionType) {
-                    reactionColorClasses += ` event-type-${reactionType}`;
-                }
-                
-                if (reactionKey) {
-                    reactionColorClasses += ` event-key-${reactionKey}`;
-                }
-                
-                if (reactionColorSource !== 'none') {
-                    reactionColorClasses += ` color-${reactionColorSource}`;
-                }
-                
-                if (reactionColorIntensity !== 'none') {
-                    reactionColorClasses += ` intensity-${reactionColorIntensity}`;
-                }
-                
-                if (reactionColorSource === 'role' && reactionKey) {
-                    reactionColorClasses += ` role-${reactionKey}`;
-                } else if (reactionType === 'welcome' && (reactionKey === 'greeter' || reactionKey === 'mapper' || reactionKey === 'cogitarian')) {
-                    // Reactionary welcome events should also get role styling
-                    reactionColorClasses += ` color-role role-${reactionKey} intensity-highlight`;
-                }
-                
-                if (reactionColorSource === 'octant') {
-                    const octant = ((reactionKey === 'origin' || reactionKey === 'name') && reactionRow.origin_octant) 
-                        ? reactionRow.origin_octant 
-                        : reactionRow.octant;
-                    if (octant) {
-                        reactionColorClasses += ` octant-${octant}`;
-                    }
-                }
-                
-                if (reactionColorSource === 'souvenir' && reactionKey) {
-                    reactionColorClasses += ` souvenir-${reactionKey}`;
-                }
-                
-                const reactionClickAttr = reactionRow.url ? `onclick="window.open('${reactionRow.url}', '_blank')" style="cursor: pointer;"` : '';
-                const roleClass = reactionRow.key ? `reaction-parent-${reactionRow.key}` : '';
-                html += `<div class="row-entry reaction-parent-row ${roleClass}${reactionColorClasses}" ${reactionClickAttr}>`;
-                
-                columns.forEach(col => {
-                    const value = reactionRow[col];
-                    let displayValue = '';
-                    
-                    if (col === 'epoch') {
-                        if (value) {
-                            const date = new Date(value * 1000);
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                            const year = String(date.getFullYear()).slice(-2);
-                            const hours = String(date.getHours()).padStart(2, '0');
-                            const minutes = String(date.getMinutes()).padStart(2, '0');
-                            displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'type') {
-                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
-                    } else if (col === 'avatar') {
-                        const dreamerLink = reactionRow.did ? `/dreamer?did=${encodeURIComponent(reactionRow.did)}` : '#';
-                        if (value) {
-                            displayValue = reactionRow.did ? 
-                                `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(reactionRow.did)}" onclick="event.stopPropagation()"><img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>` :
-                                `<img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
-                        } else {
-                            displayValue = reactionRow.did ?
-                                `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(reactionRow.did)}" onclick="event.stopPropagation()"><img src="/assets/icon_face.png" class="avatar-img" alt="avatar" style="cursor: pointer;"></a>` :
-                                '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
-                        }
-                    } else if (col === 'canon') {
-                        const name = reactionRow.name || 'unknown';
-                        const event = reactionRow.event || '';
-                        const did = reactionRow.did || '';
-                        const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
-                        const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;
-                        displayValue = `<span style="white-space: normal;">${nameLink} ${eventText}</span>`;
-                    } else if (col === 'key') {
-                        if (value === 'greeter') {
-                            displayValue = `<span style="color: var(--role-greeter); font-weight: 600;">${value}</span>`;
-                        } else if (value === 'mapper') {
-                            displayValue = `<span style="color: var(--role-mapper); font-weight: 600;">${value}</span>`;
-                        } else if (value === 'cogitarian') {
-                            displayValue = `<span style="color: var(--role-cogitarian); font-weight: 600;">${value}</span>`;
-                        } else if (value === 'origin' && reactionRow.origin_octant) {
-                            const octantColor = `var(--octant-${reactionRow.origin_octant}-dark)`;
-                            displayValue = `<span style="color: ${octantColor}; font-weight: 600;">${value}</span>`;
-                        } else if (value === 'canon' && reactionRow.color_hex) {
-                            displayValue = `<span style="color: ${reactionRow.color_hex}; font-weight: 600;">${value}</span>`;
-                        } else {
-                            displayValue = value || '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'uri') {
-                        if (value) {
-                            const parts = value.split('/');
-                            const endpoint = parts[parts.length - 1] || value;
-                            if (value.startsWith('at://') || reactionRow.url) {
-                                displayValue = reactionRow.url ? 
-                                    `<a href="${reactionRow.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>` :
-                                    `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
-                            } else {
-                                displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
-                            }
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (value === null || value === undefined) {
-                        displayValue = '<span style="color: var(--text-dim);">—</span>';
-                    } else {
-                        displayValue = value;
-                    }
-                    
-                    html += `<div class="cell ${col}">${displayValue}</div>`;
-                });
-                
-                html += '</div>';
-            }
-            
-            // Build color system classes for events table
-            let colorSystemClasses = '';
-            let colorSystemStyles = '';
-            
-            const colorSource = row.color_source || 'none';
-            const colorIntensity = row.color_intensity || 'none';
-            const key = row.key || '';
-            const eventType = row.type || '';
-            
-            // Add type-based class for special event types (nightmare, dissipate, etc.)
-            if (eventType) {
-                colorSystemClasses += ` event-type-${eventType}`;
-            }
-            
-            // Add key-based class for all events (for direct styling by event type)
-            if (key) {
-                colorSystemClasses += ` event-key-${key}`;
-            }
-            
-            // Add color-source class
-            if (colorSource !== 'none') {
-                colorSystemClasses += ` color-${colorSource}`;
-            }
-            
-            // Add intensity class
-            if (colorIntensity !== 'none') {
-                colorSystemClasses += ` intensity-${colorIntensity}`;
-            }
-            
-            // Use RowStyleRegistry to determine base styling
-            const styleName = window.computeRowStyle(row);
-            if (styleName && window.RowStyleRegistry && window.RowStyleRegistry[styleName]) {
-                const rowStyle = window.RowStyleRegistry[styleName];
-                // Add the CSS classes from the registry, excluding 'row-entry' since it's already in rowClass
-                colorSystemClasses += ' ' + rowStyle.rendering.cssClasses.filter(cls => cls !== 'row-entry').join(' ');
-            }
-            
-            // Add octant class for octant-colored events
-            if (colorSource === 'octant') {
-                // Use origin_octant for origin and name events, regular octant for others
-                const octant = ((key === 'origin' || key === 'name') && row.origin_octant) ? row.origin_octant : row.octant;
-                if (octant) {
-                    colorSystemClasses += ` octant-${octant}`;
-                }
-            }
-            
-            // Add souvenir-specific class for bespoke souvenir styling
-            if (colorSource === 'souvenir' && key) {
-                colorSystemClasses += ` souvenir-${key}`;
-            }
-            
-            
-            // Add reactionary class for welcomed greeter events
-            if (key === 'greeter' && row.reactionary) {
-                colorSystemClasses += ' greeter-reactionary';
-            }
-            
-            // Set user color CSS variable for user-colored events
-            if (colorSource === 'user' && row.color_hex) {
-                colorSystemStyles = `--user-color: ${row.color_hex};`;
-            }
-            
-            // Apply user color styling to canon key rows
-            let canonColorVars = '';
-            if (row.key === 'canon' && row.color_hex) {
-                // Convert hex to rgba with multiple opacity levels for gradient
-                const hex = row.color_hex.replace('#', '');
-                const r = parseInt(hex.substr(0, 2), 16);
-                const g = parseInt(hex.substr(2, 2), 16);
-                const b = parseInt(hex.substr(4, 2), 16);
-                canonColorVars = `--canon-color: ${row.color_hex}; --canon-color-rgb: ${r}, ${g}, ${b};`;
-            }
-            
-            // Check if this is a canon row or a reaction row or a dream row
-            const isCanonRow = row.key === 'canon';
-            const isReactionRow = row.reaction_id !== null && row.reaction_id !== undefined;
-            const isDreamRow = row.type === 'dream';
-            let rowClass = 'row-entry';
-            if (isCanonRow) rowClass += ' canon-row';
-            if (isReactionRow) rowClass += ' reaction-row';
-            if (isDreamRow) {
-                rowClass += ' dream-row';
-                // Add dream-specific class
-                if (row.key) rowClass += ` dream-${row.key}`;
-            }
-            const finalRowClass = rowClass + colorSystemClasses;
-            
-            // Make events rows clickable to URL (if exists)
-            let rowOnClick = '';
-            let bskyPostUrl = null;
-            if (row.url) {
-                if (row.url.includes('bsky.app')) {
-                    // Check if it's a profile URL (arrival events) or post URL
-                    if (row.url.includes('/profile/') && !row.url.includes('/post/')) {
-                        // Profile URL - navigate to internal dreamer page
-                        const didMatch = row.url.match(/profile\/(did:plc:[a-z0-9]+)/);
-                        if (didMatch && didMatch[1]) {
-                            // Don't make clickable if it's their own profile (arrival event)
-                            const isOwnProfile = didMatch[1] === currentDreamer.did;
-                            if (!isOwnProfile) {
-                                rowOnClick = `window.location.href='/dreamer?did=${encodeURIComponent(didMatch[1])}'`;
-                            }
-                        }
-                    } else {
-                        // Post URL - use showPost popup
-                        bskyPostUrl = row.url;
-                        rowOnClick = `window.showPost('${row.url.replace(/'/g, "\\'")}')`;
-                    }
-                } else if (row.url.startsWith('/')) {
-                    // Internal URL (like /order or /work#mapper) - navigate directly
-                    rowOnClick = `window.location.href='${row.url}'`;
-                } else {
-                    // External URL - open in new tab
-                    rowOnClick = `window.open('${row.url}', '_blank')`;
-                }
-            }
-            
-            // Build style attribute combining cursor, canon colors, dream colors, and color system
-            let rowStyles = [];
-            if (rowOnClick) rowStyles.push('cursor: pointer');
-            if (canonColorVars) rowStyles.push(canonColorVars);
-            if (colorSystemStyles) rowStyles.push(colorSystemStyles);
-            
-            // Add dream color vars for dream rows
-            if (isDreamRow && row.key) {
-                // Define dream colors per type
-                const dreamColors = {
-                    'flawed': { hex: '#454545', rgb: '69, 69, 69' }
-                };
-                const dreamColor = dreamColors[row.key];
-                if (dreamColor) {
-                    rowStyles.push(`--dream-color: ${dreamColor.hex}; --dream-color-rgb: ${dreamColor.rgb};`);
-                }
-            }
-            
-            const rowStyleAttr = rowStyles.length > 0 ? ` style="${rowStyles.join('; ')}"` : '';
-            const rowOnClickAttr = rowOnClick ? ` onclick="${rowOnClick}"` : '';
-            
-            html += `<div class="${finalRowClass}"${rowOnClickAttr}${rowStyleAttr}>`;
-            
-            // Render columns
-            columns.forEach(col => {
-                const value = row[col];
-                let displayValue = '';
-                
-                // Handle synthetic 'canon' column first (before null check)
-                if (col === 'canon') {
-                    // Display unified "name event" for canon table with links
-                    const name = row.name || 'unknown';
-                    const event = row.event || 'an event occurred';
-                    const did = row.did || '';
-                    
-                    // Name links to dreamer page (stop propagation to prevent row click)
-                    const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
-                    
-                    // Event text is non-clickable (row click will open URL)
-                    const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;
-                    
-                    displayValue = `<span style="white-space: normal;">${nameLink} ${eventText}</span>`;
-                } else if (value === null || value === undefined) {
-                    if (col === 'avatar') {
-                        // Show default icon face for missing avatar
-                        displayValue = '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
-                    } else {
-                        displayValue = '<span style="color: var(--text-dim);">—</span>';
-                    }
-                } else if (col === 'avatar') {
-                    // Display avatar image or default icon - clickable to dreamer page with dreamer-link class
-                    const dreamerLink = row.did ? `/dreamer?did=${encodeURIComponent(row.did)}` : '#';
-                    if (value) {
-                        displayValue = row.did ? 
-                            `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()"><img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>` :
-                            `<img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
-                    } else {
-                        displayValue = row.did ?
-                            `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()"><img src="/assets/icon_face.png" class="avatar-img" alt="avatar" style="cursor: pointer;"></a>` :
-                            '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
-                    }
-                } else if (col === 'event') {
-                    // Display event with larger text, no truncation
-                    displayValue = value || '<span style="color: var(--text-dim);">—</span>';
-                } else if (col === 'uri') {
-                    // Display URI - link to URL if available, otherwise convert to web link
-                    if (value) {
-                        if (value.startsWith('stripe:')) {
-                            // Stripe session code - link to order page if URL available
-                            const sessionCode = value.substring(7); // Remove "stripe:" prefix
-                            if (row.url && row.url.startsWith('/')) {
-                                // Link to internal URL (e.g., /order)
-                                displayValue = `<a href="${row.url}" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${sessionCode}</a>`;
-                            } else {
-                                // No URL, display as non-clickable text
-                                displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${sessionCode}</span>`;
-                            }
-                        } else if (value.startsWith('at://')) {
-                            // AT Protocol URI - convert to Bluesky web link
-                            const parts = value.split('/');
-                            const endpoint = parts[parts.length - 1] || value;
-                            
-                            // Parse AT URI: at://did:plc:xxx/app.bsky.feed.post/rkey
-                            const match = value.match(/^at:\/\/(did:[^\/]+)\/app\.bsky\.feed\.post\/(.+)$/);
-                            if (match) {
-                                const did = match[1];
-                                const rkey = match[2];
-                                const webUrl = `https://bsky.app/profile/${did}/post/${rkey}`;
-                                displayValue = `<a href="${webUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
-                            } else {
-                                // Other AT URIs (like profile/self) - display as text or use row.url if available
-                                if (row.url) {
-                                    displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
-                                } else {
-                                    displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
-                                }
-                            }
-                        } else if (row.url) {
-                            // URL field exists - link to it directly
-                            const parts = value.split('/');
-                            const endpoint = parts[parts.length - 1] || value;
-                            displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
-                        } else {
-                            // Other URIs - display as non-clickable text
-                            const parts = value.split('/');
-                            const endpoint = parts[parts.length - 1] || value;
-                            displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
-                        }
-                    } else {
-                        displayValue = '<span style="color: var(--text-dim);">—</span>';
-                    }
-                } else if (col.includes('epoch') && typeof value === 'number') {
-                    // Format epoch timestamps
-                    const date = new Date(value * 1000);
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const year = String(date.getFullYear()).slice(-2);
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
-                } else if (col === 'key') {
-                    // Apply appropriate coloring based on event type
-                    // Skip inline styling for nightmare/dissipate - let CSS handle it
-                    if (eventType === 'nightmare' || eventType === 'dissipate') {
-                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
-                    } else if (value === 'greeter') {
-                        displayValue = `<span style="color: var(--role-greeter); font-weight: 600;">${value}</span>`;
-                    } else if (value === 'mapper') {
-                        displayValue = `<span style="color: var(--role-mapper); font-weight: 600;">${value}</span>`;
-                    } else if (value === 'cogitarian') {
-                        displayValue = `<span style="color: var(--role-cogitarian); font-weight: 600;">${value}</span>`;
-                    } else if (value === 'origin' && row.origin_octant) {
-                        // For origin events, use the origin_octant color
-                        const octantColor = `var(--octant-${row.origin_octant}-dark)`;
-                        displayValue = `<span style="color: ${octantColor}; font-weight: 600;">${value}</span>`;
-                    } else if (value === 'canon' && row.color_hex) {
-                        // Canon rows use user color
-                        displayValue = `<span style="color: ${row.color_hex}; font-weight: 600;">${value}</span>`;
-                    } else {
-                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
-                    }
-                } else if (col === 'type') {
-                    displayValue = value || '<span style="color: var(--text-dim);">—</span>';
-                } else {
-                    displayValue = value;
-                }
-                
-                const extraClass = ` ${col}`;
-                html += `<div class="cell${extraClass}">${displayValue}</div>`;
-            });
-            
-            html += '</div>';
-        });
-        
-        return html;
     }
 
     async updateIdentityFace(dreamer) {

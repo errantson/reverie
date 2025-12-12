@@ -867,6 +867,20 @@ td {
     text-align: center;
     justify-content: center;
 }
+.row-header .cell.thread-arrow,
+.row-entry .cell.thread-arrow {
+    flex: 0 0 16px;
+    max-width: 16px;
+    min-width: 16px;
+    text-align: center;
+    justify-content: center;
+    padding: 0;
+}
+.row-entry .cell.thread-arrow .thread-arrow-icon {
+    color: var(--primary);
+    font-size: 0.8em;
+    opacity: 0.7;
+}
 .row-header .cell.type,
 .row-entry .cell.type {
     flex: 0 0 100px;

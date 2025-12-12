@@ -21,8 +21,18 @@
    FALLBACK / DEFAULT STYLES
    ============================================================================ */
 
-/* Default row backgrounds (when no special coloring) */
+/* Default row layout and backgrounds (when no special coloring) */
 .row-entry {
+    display: flex;
+    padding: 6px 0 6px 4px;
+    border-bottom: 1px solid var(--border, #d0c7f0);
+    font-family: monospace;
+    font-size: 0.9em;
+    line-height: 1.2;
+    transition: background 0.15s;
+    width: 100%;
+    align-items: center;
+    min-height: 32px;
     background: #f0f0f0;
     border-left: 4px solid transparent;
     color: #333;
@@ -35,6 +45,84 @@
 /* Hover effect - subtle overlay that works with any row color */
 .row-entry:hover {
     filter: brightness(0.97);
+}
+
+/* Cell layout */
+.row-entry .cell {
+    padding: 0 1px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.row-entry .cell:first-child {
+    padding-left: 32px;
+}
+
+.row-entry .cell:last-child {
+    padding-right: 32px;
+}
+
+/* Column-specific widths (matching database.css) */
+.row-entry .cell.epoch {
+    flex: 0 0 110px;
+    justify-content: flex-start;
+}
+
+.row-entry .cell.thread-arrow {
+    flex: 0 0 16px;
+    justify-content: flex-start;
+    padding: 0;
+}
+
+.row-entry .cell.avatar {
+    flex: 0 0 24px;
+    justify-content: center;
+    padding: 0;
+}
+
+.row-entry .cell.type {
+    flex: 0 0 100px;
+    justify-content: flex-start;
+}
+
+.row-entry .cell.canon {
+    flex: 1 1 250px;
+    justify-content: flex-start;
+    text-align: left;
+    padding-left: 8px;
+}
+
+.row-entry .cell.key {
+    flex: 0 0 110px;
+    justify-content: flex-start;
+}
+
+.row-entry .cell.uri {
+    flex: 0 0 95px;
+    justify-content: flex-start;
+}
+
+/* Avatar image sizing */
+.row-entry .avatar-img {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: block;
+}
+
+/* Thread arrow styling for reactions */
+.row-entry .cell.thread-arrow .thread-arrow-icon {
+    color: var(--primary);
+    font-size: 1.4em;
+    opacity: 0.8;
+    position: relative;
+    top: -3px;
 }
 
 /* Default rows with no color source - explicit black text */
@@ -156,44 +244,84 @@
 
 .row-entry.event-type-nightmare.intensity-special {
     background:
+        /* Primary smoke layers with animated stripes */
         repeating-linear-gradient(
             90deg,
-            rgba(45, 45, 55, 0.65) 0px,
-            rgba(60, 60, 70, 0.75) 25px,
-            rgba(50, 50, 60, 0.65) 50px,
-            rgba(60, 60, 70, 0.75) 75px,
-            rgba(45, 45, 55, 0.65) 100px
+            rgba(35, 35, 45, 0.8) 0px,
+            rgba(50, 50, 60, 0.85) 20px,
+            rgba(40, 40, 50, 0.8) 40px,
+            rgba(55, 55, 65, 0.85) 60px,
+            rgba(35, 35, 45, 0.8) 80px
+        ),
+        /* Deep atmospheric gradients */
+        radial-gradient(
+            ellipse at 20% 30%,
+            rgba(70, 70, 85, 0.6) 0%,
+            rgba(50, 50, 65, 0.4) 40%,
+            transparent 70%
         ),
         radial-gradient(
-            ellipse at 30% 50%,
-            rgba(80, 80, 95, 0.45) 0%,
-            transparent 60%
+            ellipse at 80% 70%,
+            rgba(60, 60, 75, 0.5) 0%,
+            rgba(45, 45, 60, 0.3) 50%,
+            transparent 80%
         ),
-        radial-gradient(
-            ellipse at 70% 50%,
-            rgba(70, 70, 85, 0.4) 0%,
-            transparent 60%
-        ),
+        /* Base dark gradient */
         linear-gradient(
             to right,
-            rgba(50, 50, 60, 0.7) 0%,
-            rgba(65, 65, 75, 0.8) 50%,
-            rgba(50, 50, 60, 0.7) 100%
+            rgba(40, 40, 50, 0.9) 0%,
+            rgba(55, 55, 65, 0.95) 40%,
+            rgba(50, 50, 60, 0.9) 60%,
+            rgba(40, 40, 50, 0.9) 100%
         );
-    background-size: 200% 100%, 100% 100%, 100% 100%, 100% 100%;
-    border-left: 3px solid #3a3a45;
+    background-size: 300% 100%, 120% 120%, 140% 140%, 100% 100%;
+    border-left: 3px solid #2a2a35;
     border-right: none;
     box-shadow:
-        inset 0 0 50px rgba(0, 0, 0, 0.3),
-        inset 0 1px 1px rgba(255, 255, 255, 0.08),
-        0 2px 6px rgba(0, 0, 0, 0.25);
+        inset 0 0 60px rgba(0, 0, 0, 0.4),
+        inset 0 2px 2px rgba(255, 255, 255, 0.06),
+        inset -2px 0 4px rgba(0, 0, 0, 0.2),
+        0 3px 8px rgba(0, 0, 0, 0.3);
     color: #ffffff;
     position: relative;
-    animation: nightmareSmoke 20s linear infinite;
+    animation:
+        nightmareSmoke 25s linear infinite,
+        nightmarePulse 8s ease-in-out infinite;
     font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
 }
 
-/* Force white text on all elements including key/uri cells */
+/* Enhanced smoke animation with multiple layers */
+@keyframes nightmareSmoke {
+    0% {
+        background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+    25% {
+        background-position: 25% 5%, -5% -3%, 8% 2%, 0% 0%;
+    }
+    50% {
+        background-position: 50% -5%, -10% 5%, -5% -8%, 0% 0%;
+    }
+    75% {
+        background-position: 75% 3%, 5% -2%, 12% 5%, 0% 0%;
+    }
+    100% {
+        background-position: 100% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+}
+
+/* Subtle pulsing effect for added tension */
+@keyframes nightmarePulse {
+    0%, 100% {
+        filter: brightness(1) contrast(1);
+    }
+    50% {
+        filter: brightness(1.05) contrast(1.02);
+    }
+}
+
+/* Force white text on all elements with enhanced contrast and proper layering */
 .row-entry.event-type-nightmare.intensity-special,
 .row-entry.event-type-nightmare.intensity-special .cell,
 .row-entry.event-type-nightmare.intensity-special .cell.key,
@@ -202,18 +330,12 @@
 .row-entry.event-type-nightmare.intensity-special a,
 .row-entry.event-type-nightmare.intensity-special span {
     color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    position: relative;
+    z-index: 1;
 }
 
-@keyframes nightmareSmoke {
-    0% {
-        background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
-    }
-    100% {
-        background-position: 100% 0%, 0% 0%, 0% 0%, 0% 0%;
-    }
-}
-
-/* Floating smoke particles effect */
+/* Enhanced floating smoke particles with proper layering */
 .row-entry.event-type-nightmare.intensity-special::before {
     content: '';
     position: absolute;
@@ -221,13 +343,41 @@
     top: 0;
     bottom: 0;
     width: 100%;
-    background: 
-        radial-gradient(circle at 20% 30%, rgba(220, 220, 235, 0.15) 0%, transparent 5%),
-        radial-gradient(circle at 60% 70%, rgba(220, 220, 235, 0.12) 0%, transparent 4%),
-        radial-gradient(circle at 85% 40%, rgba(220, 220, 235, 0.14) 0%, transparent 6%),
-        radial-gradient(circle at 35% 80%, rgba(220, 220, 235, 0.11) 0%, transparent 4%);
+    background:
+        /* Primary smoke wisps */
+        radial-gradient(circle at 15% 25%, rgba(220, 220, 235, 0.18) 0%, transparent 8%),
+        radial-gradient(circle at 45% 75%, rgba(210, 210, 225, 0.15) 0%, transparent 6%),
+        radial-gradient(circle at 75% 35%, rgba(225, 225, 240, 0.16) 0%, transparent 7%),
+        radial-gradient(circle at 85% 85%, rgba(215, 215, 230, 0.14) 0%, transparent 5%),
+        /* Secondary finer particles */
+        radial-gradient(circle at 35% 50%, rgba(230, 230, 245, 0.08) 0%, transparent 3%),
+        radial-gradient(circle at 65% 15%, rgba(235, 235, 250, 0.06) 0%, transparent 4%),
+        radial-gradient(circle at 5% 65%, rgba(225, 225, 240, 0.07) 0%, transparent 3%);
     background-size: 100% 100%;
     pointer-events: none;
+    animation: smokeParticles 18s ease-in-out infinite;
+    z-index: 0;
+}
+
+/* Independent particle animation */
+@keyframes smokeParticles {
+    0%, 100% {
+        opacity: 0.6;
+        transform: translateX(0px) translateY(0px);
+    }
+    25% {
+        opacity: 0.8;
+        transform: translateX(2px) translateY(-1px);
+    }
+    50% {
+        opacity: 0.5;
+        transform: translateX(-1px) translateY(1px);
+    }
+    75% {
+        opacity: 0.7;
+        transform: translateX(1px) translateY(-0.5px);
+    }
+}
     opacity: 0.6;
     animation: smokeParticles 15s ease-in-out infinite;
 }
@@ -248,25 +398,85 @@
    ============================================================================ */
 
 .row-entry.event-type-dissipate.intensity-faded {
-    background: linear-gradient(
-        to right,
-        rgba(160, 160, 165, 0.12) 0%,
-        rgba(180, 180, 185, 0.06) 50%,
-        transparent 100%
-    );
-    border-left: 2px solid rgba(140, 140, 145, 0.4);
+    background:
+        /* Base misty gradient */
+        linear-gradient(
+            to right,
+            rgba(160, 160, 165, 0.08) 0%,
+            rgba(180, 180, 185, 0.04) 30%,
+            rgba(170, 170, 175, 0.06) 60%,
+            transparent 100%
+        ),
+        /* Subtle mist particles */
+        radial-gradient(
+            circle at 25% 40%,
+            rgba(200, 200, 210, 0.03) 0%,
+            transparent 8%
+        ),
+        radial-gradient(
+            circle at 75% 60%,
+            rgba(190, 190, 200, 0.02) 0%,
+            transparent 6%
+        );
+    background-size: 100% 100%, 100% 100%, 100% 100%;
+    border-left: 2px solid rgba(140, 140, 145, 0.3);
     border-right: none;
-    color: #999;
-    opacity: 0.5;
-    filter: grayscale(0.8);
+    color: #888;
+    opacity: 0.6;
+    filter: grayscale(0.9) blur(0.3px);
+    position: relative;
+    animation: dissipateDrift 45s ease-in-out infinite;
+    overflow: hidden;
 }
 
-/* Force grey text on child elements */
+/* Subtle drifting animation for the mist */
+@keyframes dissipateDrift {
+    0%, 100% {
+        background-position: 0% 0%, 0% 0%, 0% 0%;
+        opacity: 0.6;
+    }
+    25% {
+        background-position: 5% 2%, -2% 1%, 3% -1%;
+        opacity: 0.55;
+    }
+    50% {
+        background-position: -3% -2%, 4% -1%, -1% 2%;
+        opacity: 0.5;
+    }
+    75% {
+        background-position: 2% -3%, -4% 2%, 1% 1%;
+        opacity: 0.55;
+    }
+}
+
+/* Force muted grey text on child elements with proper layering */
 .row-entry.event-type-dissipate.intensity-faded .cell,
 .row-entry.event-type-dissipate.intensity-faded .cell *,
 .row-entry.event-type-dissipate.intensity-faded a,
 .row-entry.event-type-dissipate.intensity-faded span {
-    color: #999;
+    color: #888;
+    text-shadow: none;
+    position: relative;
+    z-index: 1;
+}
+
+/* Subtle border fade effect */
+.row-entry.event-type-dissipate.intensity-faded::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(160, 160, 165, 0.05) 20%,
+        rgba(160, 160, 165, 0.02) 80%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* ============================================================================
@@ -487,4 +697,28 @@
 .color-octant:hover {
     filter: brightness(0.95) saturate(1.1);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   THREAD LEVEL STYLES (for reaction threading)
+   ============================================================================ */
+
+/* Thread level 1 (reactions) */
+.thread-level-1 {
+    background: rgba(0, 0, 0, 0.03);
+    border-left: 4px solid rgba(0, 123, 255, 0.3);
+    opacity: 0.9;
+}
+
+/* Thread level 2+ (nested reactions) */
+.thread-level-2 {
+    background: rgba(0, 0, 0, 0.02);
+    border-left: 4px solid rgba(0, 123, 255, 0.2);
+    opacity: 0.8;
+}
+
+.thread-level-3 {
+    background: rgba(0, 0, 0, 0.01);
+    border-left: 4px solid rgba(0, 123, 255, 0.1);
+    opacity: 0.7;
 }

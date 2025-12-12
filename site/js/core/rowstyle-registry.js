@@ -130,7 +130,7 @@ const RowStyleRegistry = {
     
     nightmare: {
         name: "nightmare",
-        description: "Dark smokey animated nightmare for preparation events",
+        description: "Enhanced dark smokey animated nightmare with pulsing tension for preparation events",
         category: "special",
         rendering: {
             cssClasses: ['row-entry', 'event-type-nightmare', 'intensity-special'],
@@ -138,11 +138,11 @@ const RowStyleRegistry = {
             cssVariables: [],
             effects: [],
             appearance: {
-                background: 'Near-black smokey animated gradient with repeating stripes',
-                border: '3px solid dark grey (#3a3a45)',
-                color: 'White (#ffffff)',
-                animation: 'Slow rolling smoke (20s) + floating smoke particles (15s)',
-                special: 'Multiple layered gradients creating smoke effect'
+                background: 'Multi-layered animated smoke gradients with atmospheric depth',
+                border: '3px solid dark charcoal (#2a2a35)',
+                color: 'White (#ffffff) with text shadow',
+                animation: 'Complex smoke drift (25s) + tension pulse (8s) + particle float (18s)',
+                special: 'Enhanced smoke particles, pulsing brightness, multiple gradient layers'
             }
         },
         matches: (event) => {
@@ -157,7 +157,7 @@ const RowStyleRegistry = {
     
     dissipate: {
         name: "dissipate",
-        description: "Faded grey mist for departed dreamers",
+        description: "Enhanced faded grey mist with subtle particles and gentle drift for departed dreamers",
         category: "special",
         rendering: {
             cssClasses: ['row-entry', 'event-type-dissipate', 'intensity-faded'],
@@ -165,11 +165,11 @@ const RowStyleRegistry = {
             cssVariables: [],
             effects: [],
             appearance: {
-                background: 'Very subtle grey gradient fading to transparent',
-                border: '2px solid faded grey',
-                color: 'Muted grey (#999)',
-                animation: 'None',
-                special: 'Ghostly faded appearance with 50% opacity, greyscale filter'
+                background: 'Layered misty gradients with floating particles and subtle opacity',
+                border: '2px solid faded grey with transparency',
+                color: 'Muted grey (#888) with blur filter',
+                animation: 'Gentle mist drift (45s) with opacity variation',
+                special: 'Multiple particle gradients, greyscale filter, border fade overlay'
             }
         },
         matches: (event) => {

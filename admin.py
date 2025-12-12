@@ -1257,15 +1257,32 @@ def get_canon():
         
         db = DatabaseManager()
         
-        # Get all canon entries with dreamer names and avatars, sorted by epoch descending
+        # Get all canon entries with dreamer names and avatars, plus reactions (like /api/database/all)
         cursor = db.execute("""
             SELECT c.id, c.epoch, c.did, c.event, c.url, c.uri, c.type, c.key, c.created_at, 
-                   c.color_source, c.color_intensity,
+                   c.color_source, c.color_intensity, c.reaction_to,
                    d.name, d.avatar, d.color_hex,
-                   s.octant, s.origin_octant
+                   s.octant, s.origin_octant,
+                   r.id as reaction_id,
+                   r.did as reaction_did,
+                   r.event as reaction_event,
+                   r.type as reaction_type,
+                   r.key as reaction_key,
+                   r.uri as reaction_uri,
+                   r.url as reaction_url,
+                   r.epoch as reaction_epoch,
+                   r.color_source as reaction_color_source,
+                   r.color_intensity as reaction_color_intensity,
+                   rd.name as reaction_name,
+                   rd.avatar as reaction_avatar,
+                   rs.octant as reaction_octant,
+                   rs.origin_octant as reaction_origin_octant
             FROM events c
             LEFT JOIN dreamers d ON c.did = d.did
             LEFT JOIN spectrum s ON c.did = s.did
+            LEFT JOIN events r ON r.reaction_to = c.id
+            LEFT JOIN dreamers rd ON r.did = rd.did
+            LEFT JOIN spectrum rs ON r.did = rs.did
             ORDER BY c.epoch DESC
         """)
         canon_entries = cursor.fetchall()
@@ -1288,7 +1305,23 @@ def get_canon():
                 'color_source': entry['color_source'] or 'none',
                 'color_intensity': entry['color_intensity'] or 'none',
                 'octant': entry['octant'] or '',
-                'origin_octant': entry['origin_octant'] or ''
+                'origin_octant': entry['origin_octant'] or '',
+                'reaction_to': entry['reaction_to'],
+                # Include reaction data if present
+                'reaction_id': entry['reaction_id'],
+                'reaction_did': entry['reaction_did'],
+                'reaction_event': entry['reaction_event'],
+                'reaction_type': entry['reaction_type'],
+                'reaction_key': entry['reaction_key'],
+                'reaction_uri': entry['reaction_uri'],
+                'reaction_url': entry['reaction_url'],
+                'reaction_epoch': entry['reaction_epoch'],
+                'reaction_color_source': entry['reaction_color_source'],
+                'reaction_color_intensity': entry['reaction_color_intensity'],
+                'reaction_name': entry['reaction_name'],
+                'reaction_avatar': entry['reaction_avatar'],
+                'reaction_octant': entry['reaction_octant'],
+                'reaction_origin_octant': entry['reaction_origin_octant']
             }
             result.append(canon_dict)
         

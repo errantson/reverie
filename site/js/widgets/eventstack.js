@@ -35,21 +35,26 @@ class EventStack {
      */
     render(events, targetElement, options = {}) {
         console.log('📜 [EventStack] Rendering', events?.length || 0, 'events with options:', options);
-        console.log('📜 [EventStack] Rendering', events?.length || 0, 'events with options:', options);
         
         this.container = targetElement;
         this.options = {
             colorMode: 'auto',
             colorIntensity: 'highlight',
-            showReactions: false,
+            showReactions: true, // Enable reactions by default
             sortOrder: 'desc',
             emptyMessage: 'No events recorded yet',
             ...options
         };
         this.allEvents = events || [];
         
-        // Apply filtering
-        this.filteredEvents = this.filterEvents(this.allEvents);
+        // Build reaction map for efficient lookup
+        this.reactionMap = this.buildReactionMap(this.allEvents);
+        
+        // Apply filtering (exclude reactions from main filter - they'll be added back)
+        this.filteredEvents = this.filterEvents(this.allEvents.filter(e => !e.reaction_to));
+        
+        // Add relevant reactions to filtered events
+        this.addReactionsToFilteredEvents();
         
         // Apply sorting
         this.sortEvents(this.filteredEvents);
@@ -68,7 +73,8 @@ class EventStack {
             return;
         }
         
-        const rowsHtml = this.filteredEvents.map(event => this.buildEventRow(event)).join('');
+        // Render events with proper threading
+        const rowsHtml = this.renderThreadedEvents(this.filteredEvents);
         this.container.innerHTML = rowsHtml;
         
         // Apply effects using RowStyle engine
@@ -120,9 +126,15 @@ class EventStack {
      * Filter events based on options.filter criteria
      */
     filterEvents(events) {
-        if (!this.options.filter) return events;
-        
         return events.filter(event => {
+            // Always filter out events that are reactions - they'll be shown beneath their parent
+            if (event.reaction_to) {
+                return false;
+            }
+            
+            // If no additional filters specified, include this event
+            if (!this.options.filter) return true;
+            
             const filter = this.options.filter;
             
             // Filter by DID
@@ -157,11 +169,6 @@ class EventStack {
                 }
             }
             
-            // Filter out reactions if requested
-            if (filter.excludeReactions && event.reaction_to) {
-                return false;
-            }
-            
             return true;
         });
     }
@@ -182,7 +189,7 @@ class EventStack {
      * @param {Object} event - Event data from API
      * @returns {string} HTML string for the row
      */
-    buildEventRow(event) {
+    buildEventRow(event, level = 0) {
         // Format timestamp exactly like database.html
         const epoch = event.epoch || event.created_at || 0;
         const date = new Date(epoch * 1000);
@@ -205,14 +212,19 @@ class EventStack {
         // Determine color system intelligently
         const colorConfig = this.determineColorSystem(event);
         const colorSystemClasses = this.buildColorClasses(colorConfig, event);
-        const colorSystemStyles = colorConfig.customStyles || '';
+        let colorSystemStyles = colorConfig.customStyles || '';
+        
+        // Use RowStyle engine for inline styles if using rowstyle system
+        if (colorConfig.source === 'rowstyle' && window.rowStyleEngine) {
+            colorSystemStyles = window.rowStyleEngine.getRowStyles(event);
+        }
         
         // Base row class
         let rowClass = 'row-entry';
         
-        // Add special row classes
-        if (event.reaction_to) {
-            rowClass += ' reaction-row';
+        // Add thread level classes for background/border styling
+        if (level > 0) {
+            rowClass += ` thread-level-${level}`;
             if (key) rowClass += ` reaction-${key}`;
         }
         const finalRowClass = rowClass + colorSystemClasses;
@@ -267,15 +279,22 @@ class EventStack {
         // Build the row HTML
         let html = `<div class="${finalRowClass}"${rowStyleAttr}${dataAttrs}>`;
         
-        // Epoch cell
+        // Epoch cell (always in same position)
         html += `<div class="cell epoch">${dateStr}</div>`;
         
-        // Avatar cell with reaction indicator
-        const dreamerLink = did ? `/dreamer?did=${encodeURIComponent(did)}` : '#';
-        html += `<div class="cell avatar">`;
-        if (event.reaction_to) {
-            html += `<span style="color: var(--primary); font-size: 1em; margin-right: 8px;">↳</span>`;
+        // Thread arrow for reactions (positioned before avatar)
+        const threadArrowStyle = level > 0 ? ` style="margin-left: ${level * 20}px;"` : '';
+        if (level > 0) {
+            html += `<div class="cell thread-arrow"${threadArrowStyle}><span class="thread-arrow-icon">↳</span></div>`;
+        } else {
+            html += `<div class="cell thread-arrow"${threadArrowStyle}></div>`; // Empty spacer for alignment
         }
+        
+        // Avatar cell (no margin for threaded items to group with arrow)
+        const avatarMargin = level > 0 ? 0 : 12;
+        const avatarStyle = ` style="margin-left: ${avatarMargin}px;"`;
+        const dreamerLink = did ? `/dreamer?did=${encodeURIComponent(did)}` : '#';
+        html += `<div class="cell avatar"${avatarStyle}>`;
         if (did) {
             html += `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()"><img src="${avatar}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>`;
         } else {
@@ -283,11 +302,12 @@ class EventStack {
         }
         html += `</div>`;
         
-        // Canon cell - unified "name event" display
+        // Canon cell (keep normal padding, indent is handled by thread-arrow)
+        const canonPadding = level > 0 ? 8 : 12;
+        const canonStyle = ` style="padding-left: ${canonPadding}px;"`;
         const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
         const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
-        const reactionPadding = event.reaction_to ? 'padding-left: 4px;' : '';
-        html += `<div class="cell canon"><span style="white-space: normal; ${reactionPadding}">${nameLink} ${eventSpan}</span></div>`;
+        html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} ${eventSpan}</span></div>`;
         
         html += `</div>`;
         
@@ -299,6 +319,18 @@ class EventStack {
      * Returns {source, intensity, key, customStyles}
      */
     determineColorSystem(event) {
+        // Use the RowStyle system instead of the old color system
+        if (window.getRowStyle) {
+            const rowstyle = window.getRowStyle(event);
+            return {
+                source: 'rowstyle',
+                rowstyle: rowstyle,
+                intensity: 'auto', // RowStyle handles its own intensity
+                key: ''
+            };
+        }
+        
+        // Fallback to old system if RowStyle not available
         const mode = this.options.colorMode;
         const key = event.key || '';
         const type = event.type || '';
@@ -419,6 +451,12 @@ class EventStack {
      * Build CSS classes from color configuration
      */
     buildColorClasses(colorConfig, event) {
+        // Use RowStyle system if available
+        if (colorConfig.source === 'rowstyle' && colorConfig.rowstyle && window.rowStyleEngine) {
+            return ' ' + window.rowStyleEngine.getRowClasses(event).replace('row-entry', '').trim();
+        }
+        
+        // Fallback to old color system
         let classes = '';
         const key = event.key || '';
         
@@ -456,6 +494,102 @@ class EventStack {
         }
         
         return classes;
+    }
+    
+    /**
+     * Build a map of reactions grouped by their parent event ID
+     * @param {Array} events - All events including reactions
+     * @returns {Map} Map of parentId -> [reaction events]
+     */
+    buildReactionMap(events) {
+        const reactionMap = new Map();
+        
+        events.forEach(event => {
+            // Direct reactions (from separate reaction events)
+            if (event.reaction_to) {
+                if (!reactionMap.has(event.reaction_to)) {
+                    reactionMap.set(event.reaction_to, []);
+                }
+                // Avoid duplicates
+                if (!reactionMap.get(event.reaction_to).find(r => r.id === event.id)) {
+                    reactionMap.get(event.reaction_to).push(event);
+                }
+            }
+            
+            // Reactions from joined data (single reaction per event from API)
+            if (event.reaction_id) {
+                const reactionEvent = {
+                    id: event.reaction_id,
+                    did: event.reaction_did,
+                    event: event.reaction_event,
+                    type: event.reaction_type,
+                    key: event.reaction_key,
+                    uri: event.reaction_uri,
+                    url: event.reaction_url,
+                    epoch: event.reaction_epoch || null,
+                    name: event.reaction_name,
+                    avatar: event.reaction_avatar,
+                    octant: event.reaction_octant,
+                    origin_octant: event.reaction_origin_octant,
+                    color_source: event.reaction_color_source,
+                    color_intensity: event.reaction_color_intensity,
+                    reaction_to: event.id // Mark this as a reaction
+                };
+                
+                if (!reactionMap.has(event.id)) {
+                    reactionMap.set(event.id, []);
+                }
+                // Avoid duplicates
+                if (!reactionMap.get(event.id).find(r => r.id === reactionEvent.id)) {
+                    reactionMap.get(event.id).push(reactionEvent);
+                }
+            }
+        });
+        
+        // Sort reactions by epoch for each parent
+        reactionMap.forEach(reactions => {
+            reactions.sort((a, b) => (a.epoch || 0) - (b.epoch || 0));
+        });
+        
+        return reactionMap;
+    }
+    
+    /**
+     * Add relevant reactions to filtered events based on showReactions option
+     */
+    addReactionsToFilteredEvents() {
+        if (!this.options.showReactions) return;
+        
+        // For each filtered event, add its reactions
+        this.filteredEvents.forEach(event => {
+            if (this.reactionMap.has(event.id)) {
+                // Add reactions to the event for rendering
+                event._reactions = this.reactionMap.get(event.id);
+            }
+        });
+    }
+    
+    /**
+     * Render events with proper threading (reactions indented beneath parents)
+     * @param {Array} events - Events to render (may include reaction data)
+     * @returns {string} HTML string
+     */
+    renderThreadedEvents(events) {
+        let html = '';
+        
+        events.forEach(event => {
+            // Render the main event
+            html += this.buildEventRow(event, 0); // Level 0 = top level
+            
+            // Render reactions if they exist and showReactions is enabled
+            if (this.options.showReactions && event._reactions) {
+                event._reactions.forEach(reaction => {
+                    html += this.buildEventRow(reaction, 1); // Level 1 = reaction level
+                });
+            }
+        });
+        
+        return html;
     }
     
     /**
