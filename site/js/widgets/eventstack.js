@@ -529,6 +529,7 @@ class EventStack {
                     epoch: event.reaction_epoch || null,
                     name: event.reaction_name,
                     avatar: event.reaction_avatar,
+                    color_hex: event.reaction_color_hex,
                     octant: event.reaction_octant,
                     origin_octant: event.reaction_origin_octant,
                     color_source: event.reaction_color_source,

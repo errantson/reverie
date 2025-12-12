@@ -1275,6 +1275,7 @@ def get_canon():
                    r.color_intensity as reaction_color_intensity,
                    rd.name as reaction_name,
                    rd.avatar as reaction_avatar,
+                   rd.color_hex as reaction_color_hex,
                    rs.octant as reaction_octant,
                    rs.origin_octant as reaction_origin_octant
             FROM events c
@@ -1296,7 +1297,7 @@ def get_canon():
                 'did': entry['did'],
                 'name': entry['name'] or 'unknown',
                 'avatar': entry['avatar'] or '',
-                'color_hex': entry['color_hex'] or '#8b7355',
+                'color_hex': entry['color_hex'] or '#734ba1',
                 'event': entry['event'],
                 'url': entry['url'] or '',
                 'uri': entry['uri'] or '',
@@ -1320,6 +1321,7 @@ def get_canon():
                 'reaction_color_intensity': entry['reaction_color_intensity'],
                 'reaction_name': entry['reaction_name'],
                 'reaction_avatar': entry['reaction_avatar'],
+                'reaction_color_hex': entry['reaction_color_hex'],
                 'reaction_octant': entry['reaction_octant'],
                 'reaction_origin_octant': entry['reaction_origin_octant']
             }

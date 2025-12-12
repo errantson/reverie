@@ -500,7 +500,7 @@ h1 {
 }
 .table-btn:first-child {
     border-left: none;
-    margin-left: 32px;
+    margin-left: 52px;
 }
 .table-btn:last-child {
     margin-right: 32px;
@@ -516,6 +516,7 @@ h1 {
 }
 .table-container {
     background: var(--bg-white);
+    padding-left: 10px;
 }
 .table-header {
     padding: 10px 32px;
@@ -630,7 +631,7 @@ td {
     white-space: nowrap;
 }
 .row-entry .cell:first-child {
-    padding-left: 32px;
+    padding-left: 52px;
 }
 .row-entry .cell:last-child {
     padding-right: 32px;
@@ -667,7 +668,7 @@ td {
     background: var(--bg-page);
 }
 .row-header .cell:first-child {
-    padding-left: 32px;
+    padding-left: 52px;
 }
 .row-header .cell:last-child {
     padding-right: 32px;
@@ -686,7 +687,7 @@ td {
     padding: 4px 1px;
     text-align: center;
     justify-content: center;
-    margin-left: 12px;
+    margin-left: 32px;
 }
 .row-header .cell.name,
 .row-entry .cell.name {
@@ -851,7 +852,7 @@ td {
     max-width: none;
     min-width: 300px;
     justify-content: flex-start;
-    padding-left: 12px;
+    padding-left: 32px;
 }
 .row-header .cell.event,
 .row-entry .cell.event {
@@ -1425,7 +1426,7 @@ td {
     padding: 4px;
     text-align: center;
     justify-content: center;
-    margin-left: 12px;
+    margin-left: 32px;
 }
 
 .row-entry .cell.cover img {
@@ -1440,7 +1441,7 @@ td {
 .row-entry.chapter-row .cell.title {
     flex: 1;
     max-width: none;
-    padding-left: 15px;
+    padding-left: 35px;
     font-size: 0.9em;
     justify-content: flex-start;
 }
@@ -1448,7 +1449,7 @@ td {
     flex: 0 0 60px;
     max-width: 60px;
     min-width: 60px;
-    padding-left: 20px;
+    padding-left: 40px;
     font-weight: 600; 
     color: #333; 
     font-size: 0.9em; 
@@ -1621,7 +1622,7 @@ td {
 
 /* Add left padding to reaction row's epoch cell for indentation */
 .row-entry.reaction-row .cell.epoch {
-    padding-left: 20px;
+    padding-left: 40px;
 }
 
 /* Canon row styling - uses custom properties set inline per row */
