@@ -78,7 +78,7 @@
     margin-bottom: 0;
 }
 .order-row-flex .price-breakdown {
-    flex: 0 0 270px;
+    flex: 0 0 260px;
     margin-bottom: 0;
 }
 
@@ -155,7 +155,7 @@
 
 /* Adjust EventStack row layout for order page */
 #recent-history .row-entry .cell.epoch {
-    flex: 0 0 90px;
+    flex: 0 0 85px;
     padding-left: 2px;
 }
 
@@ -165,11 +165,11 @@
 
 
 #recent-history .row-entry .cell.avatar {
-    flex: 0 0 28px;
+    flex: 0 0 20px;
     margin-left: 0;
     padding: 0;
-    max-width: 28px;
-    min-width: 28px;
+    max-width: 20px;
+    min-width: 20px;
     justify-content: center;
 }
 
@@ -281,10 +281,11 @@
     display: block;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     transition: transform 0.3s ease;
+    cursor: pointer;
 }
 
 .hero-cover-img:hover {
-    transform: translateY(-4px);
+    transform: translateY(-4px) scale(1.02);
 }
 
 .title-synopsis {
@@ -642,23 +643,19 @@
     background: white;
     border: 1px solid #e8e6f5;
     padding: 0;
-    max-height: 320px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden; /* Container itself doesn't scroll, inner element does */
 }
 
-
-
 /* Custom scrollbar for order history */
-.order-history-preview::-webkit-scrollbar {
+.order-history-recent::-webkit-scrollbar {
     width: 8px;
 }
 
-.order-history-preview::-webkit-scrollbar-track {
+.order-history-recent::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.order-history-preview::-webkit-scrollbar-thumb {
+.order-history-recent::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.15);
     border-radius: 4px;
     border: 2px solid transparent;
@@ -666,17 +663,10 @@
     transition: background 0.2s ease;
 }
 
-
-.order-history-preview::-webkit-scrollbar-thumb:hover {
+.order-history-recent::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.3);
     border: 2px solid transparent;
     background-clip: padding-box;
-}
-
-/* Firefox scrollbar */
-.order-history-preview {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
 /* Make event rows behave like the Work page EventStack */
@@ -688,12 +678,13 @@
 }
 
 .order-history-recent .row-entry {
-    cursor: pointer;
+    cursor: default; /* Not clickable on order page */
     width: 100% !important;
     min-width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
+    pointer-events: none; /* Disable all click interactions */
 }
 
 .order-history-recent .cell {
@@ -703,12 +694,12 @@
 
 /* Column sizing to match Work page EventStack */
 .order-history-recent .cell.epoch {
-    flex: 0 0 90px;
-    max-width: 90px;
-    min-width: 90px;
+    flex: 0 0 85px;
+    max-width: 85px;
+    min-width: 85px;
     font-size: 0.85em;
     text-align: right;
-    padding-right: 8px;
+    padding-right: 6px;
     /* Align content to end so timestamp isn't centered and truncated */
     justify-content: flex-end;
     white-space: nowrap;
@@ -722,19 +713,19 @@
 /* Slightly larger avatars within the order preview for clarity */
 .order-history-recent .avatar-img,
 .order-history-preview .avatar-img {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
 }
 
 /* Avatar cell sizing and spacing */
 .order-history-recent .cell.avatar,
 .order-history-preview .cell.avatar {
-    flex: 0 0 40px;
-    max-width: 40px;
-    min-width: 40px;
+    flex: 0 0 28px;
+    max-width: 28px;
+    min-width: 28px;
     justify-content: center;
-    padding: 0 6px;
+    padding: 0 2px;
 }
 
 /* Ensure canon column has some left padding and readable alignment */
@@ -747,13 +738,17 @@
 .order-history-recent {
     /* Minimal container: define box and allow EventStack rows to flow from the top */
     background: white;
-    border: 1px solid #ddd;
-    height: 240px; /* same as greeter-eventstack */
-    overflow-y: auto;
+    border: none; /* Remove border since parent has it */
+    height: 100%; /* Take full height of parent container */
+    max-height: 100%; /* Ensure it doesn't exceed parent */
+    overflow-y: auto; /* Enable vertical scrolling */
     overflow-x: hidden;
     margin: 0; /* no extra spacing above rows */
     padding: 0; /* rows control their own padding */
     display: block;
+    /* Firefox scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
     display: flex;

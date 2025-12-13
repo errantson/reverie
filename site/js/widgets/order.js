@@ -42,7 +42,7 @@ class OrderWidget {
             author: "errantson",
             authorDid: "errantson",
             coverImage: "/books/seeker/seekers_reverie.png",
-            synopsis: "After falling from his nightmare into the place between dreams, our lost dreamer finds our wild mindscape and Reverie House.<br><br>When an unending nightmare threatens to consume this strange new home, Seeker must quickly master the art of dreamweaving before everything is lost to oblivion.",
+            synopsis: "After falling from his nightmare into the place between dreams, one lost dreamer finds our wild mindscape and Reverie House.<br><br>When an unending nightmare threatens to consume this strange but welcoming new home, Seeker must quickly master the art of dreamweaving before everything is lost to oblivion.",
             stats: {
                 genre: "Fantasy",
                 length: "155 pages",
@@ -57,6 +57,8 @@ class OrderWidget {
         };
         
         this.isProcessingOrder = false;
+        this.carouselAutoRotate = null;
+        this.carouselAutoRotateEnabled = true;
     }
 
     init() {
@@ -102,6 +104,9 @@ class OrderWidget {
         
         // Enable the order button on initial render
         this.updatePriceDisplay();
+        
+        // Start carousel auto-rotation
+        this.startCarouselAutoRotate();
     }
 
     renderHeroCover() {
@@ -110,7 +115,8 @@ class OrderWidget {
             <div class="hero-cover">
                 <img src="${coverImage}" 
                      alt="${title}" 
-                     class="hero-cover-img">
+                     class="hero-cover-img"
+                     onclick="orderWidget.openTableOfContents()">
                 <button class="kindle-btn" onclick="orderWidget.handleKindleClick()">Read on Kindle</button>
             </div>
         `;
@@ -130,40 +136,56 @@ class OrderWidget {
                 <div class="book-info-carousel-container">
                     <div class="book-info-carousel">
                         <div class="carousel-slide active" data-slide="0">
-                            <div class="book-info-grid">
-                                <span class="info-label">Author:</span><span>${author}</span>
-                                <span class="info-label">Genre:</span><span>${stats.genre}</span>
-                                <span class="info-label">Binding:</span><span>${stats.binding}</span>
-                                <span class="info-label">Length:</span><span>${stats.length}</span>
-                                <span class="info-label">Published:</span><span>${stats.published}</span>
-                                <span class="info-label">Ages:</span><span>${stats.ages}</span>
-                                <span class="info-label">ISBN:</span><span>${stats.isbn}</span>
-                                <span class="info-label">ASIN:</span><span>${stats.asin}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="carousel-slide" data-slide="1">
                             <div class="patronage-message">
-                                <p>Readers, scholars, and vendors support Reverie House by ordering books for their favourite shops, clubs, and people directly from our press.</p>
+                                <p style="font-weight: 700; font-size: 0.85rem; color: #734ba1; margin-bottom: 10px; letter-spacing: 0.5px; text-transform: uppercase;">Reverie House Press</p>
+                                <p>Readers, scholars, and vendors support Reverie House by ordering books for their favourite shops, clubs, and people directly.</p>
                                 <p>We recognize and appreciate the value of your patronage.</p>
                                 <p>Please contact <a href="mailto:books@reverie.house">books@reverie.house</a> for any special requests.</p>
                             </div>
                         </div>
                         
-                        <button class="carousel-rotate-btn" onclick="orderWidget.nextSlide()" aria-label="Next slide">›</button>
+                        <div class="carousel-slide" data-slide="1">
+                            <div class="carousel-stats-container">
+                                <div class="shipping-notice-header">
+                                    <div class="edition-text">First Print Edition</div>
+                                    <div class="shipping-text">FREE WORLDWIDE SHIPPING</div>
+                                </div>
+                                <div class="book-info-grid">
+                                    <span class="info-label">Author:</span><span>${author}</span>
+                                    <span class="info-label">Genre:</span><span>${stats.genre}</span>
+                                    <span class="info-label">Binding:</span><span>${stats.binding}</span>
+                                    <span class="info-label">Length:</span><span>${stats.length}</span>
+                                    <span class="info-label">Published:</span><span>${stats.published}</span>
+                                    <span class="info-label">Ages:</span><span>${stats.ages}</span>
+                                    <span class="info-label">ISBN:</span><span>${stats.isbn}</span>
+                                    <span class="info-label">ASIN:</span><span>${stats.asin}</span>
+                                </div>
+                            </div>
+                        </div>
                         
-                        <div class="carousel-indicators">
-                            <button class="indicator active" onclick="orderWidget.goToSlide(0)" aria-label="Slide 1"></button>
-                            <button class="indicator" onclick="orderWidget.goToSlide(1)" aria-label="Slide 2"></button>
+                        <div class="carousel-slide" data-slide="2">
+                            <div class="residence-bonus-panel">
+                                <div class="bonus-header"></div>
+                                <div class="bonus-content">
+                                    <img src="/souvenirs/residence/icon.png" alt="Residence Key" class="residence-key-icon">
+                                    <div class="bonus-text">
+                                        <div class="bonus-title">Become a Resident Dreamweaver</div>
+                                        <div class="bonus-description">Every copy of <b>Seeker's Reverie</b> ordered directly from our press includes a unique invitation to claim residence at <b>Reverie House</b></div>
+                                        <div class="bonus-description" style="margin-top: 4px;">Use it to begin your journey through our wild mindscape, or to adopt a new dreamweaver persona and explore.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="carousel-panel-indicators">
+                            <span class="panel-indicator active" data-panel="0"></span>
+                            <span class="panel-indicator" data-panel="1"></span>
+                            <span class="panel-indicator" data-panel="2"></span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="quantity-section">
-                    <div class="shipping-notice-header">
-                        <div class="edition-text">First Print Edition</div>
-                        <div class="shipping-text">FREE WORLDWIDE SHIPPING</div>
-                    </div>
                     <label for="quantity-slider" class="quantity-label">
                         <span id="quantity-display">1</span> 
                         <span id="copies-label">Copy</span>
@@ -193,7 +215,6 @@ class OrderWidget {
             <div class="order-row-2">
                 <div class="order-row-flex">
                     <div class="order-history-preview" id="order-history-preview">
-                        <div class="order-history-user-entry" id="user-entry"></div>
                         <div class="order-history-recent" id="recent-history"></div>
                     </div>
                     <div class="price-breakdown">
@@ -227,7 +248,6 @@ class OrderWidget {
     
     async loadRecentOrders() {
         const container = document.getElementById('recent-history');
-        const fullContainer = document.getElementById('recent-orders');
         
         try {
             const response = await fetch('/api/canon');
@@ -235,120 +255,157 @@ class OrderWidget {
             
             const canon = await response.json();
             
-            // Filter for all seeker (book order) events - max 4 recent (user entry will make 5 total)
+            // Filter for all seeker (book order) events - max 4 recent
             const bookOrders = canon.filter(e => 
                 e.key === 'seeker'
             ).slice(0, 4);
             
-            // Get user color or default
-            const session = window.oauthManager?.getSession();
-            const userColor = session?.color || '#734ba1';
-            
-            // Import and use event renderer for both containers
-            const { renderEventRows } = await import('/js/utils/event-renderer.js');
-            
-            // Render in history preview (left side, compact)
-            if (container && bookOrders.length > 0) {
-                const eventsHTML = renderEventRows(bookOrders, {
-                    colorHex: userColor,
-                    showAvatar: true,
-                    showKey: false,
-                    showUri: false,
-                    showType: false
+            // Render in history preview using EventStack
+            if (container && window.EventStack) {
+                const eventStack = new EventStack();
+                eventStack.render(bookOrders, container, {
+                    colorMode: 'auto',
+                    colorIntensity: 'highlight',
+                    showReactions: false,
+                    limit: 4,
+                    sortOrder: 'desc',
+                    emptyMessage: 'No orders yet. Be the first!'
                 });
-                container.innerHTML = eventsHTML;
-                
-                // Apply effects using RowStyle engine
-                if (window.rowStyleEngine) {
-                    window.rowStyleEngine.applyEffects(container);
-                } else {
-                    this.applySnakeCharmerEffect(container);
-                }
-            }
-            
-            // Render in full list (bottom right)
-            if (fullContainer) {
-                if (bookOrders.length === 0) {
-                    fullContainer.innerHTML = '<div class=\"recent-orders-empty\">No orders yet. Be the first!</div>';
-                } else {
-                    const eventsHTML = renderEventRows(bookOrders, {
-                        colorHex: userColor,
-                        showAvatar: true,
-                        showKey: false,
-                        showUri: false,
-                        showType: false
-                    });
+
+                // Inject a prospective (live) row at the top showing the current user and time
+                try {
+                    const session = window.oauthManager?.getSession();
+                    const checkbox = document.getElementById('anonymize-order');
+                    const isAnonymous = !session || checkbox?.checked;
+                    const dreamerDid = 'did:plc:zdxbourfcbv66iq2xfpb233q';
+                    const dreamerAvatar = 'https://cdn.bsky.app/img/avatar/plain/did:plc:zdxbourfcbv66iq2xfpb233q/bafkreihoe46uedehpa2ngkmvku72giztmsqac4fblx5bklxwngfczdzrzm@jpeg';
+
+                    // Fetch user's dreamer record to get actual name and color
+                    let dreamer = null;
+                    let dreamerRecord = null;
                     
-                    fullContainer.innerHTML = `
-                        <h3 class=\"recent-orders-title\">📚 Recent Support</h3>
-                        <div class=\"recent-orders-list\">${eventsHTML}</div>
-                    `;
-                    const recentList = fullContainer.querySelector('.recent-orders-list');
-                    if (recentList) {
-                        // Apply effects using RowStyle engine
-                        if (window.rowStyleEngine) {
-                            window.rowStyleEngine.applyEffects(recentList);
-                        } else {
-                            this.applySnakeCharmerEffect(recentList);
+                    // If anonymous, fetch dreamer.reverie.house record
+                    if (isAnonymous) {
+                        try {
+                            const dreamersResponse = await fetch('/api/dreamers');
+                            if (dreamersResponse.ok) {
+                                const dreamers = await dreamersResponse.json();
+                                dreamerRecord = dreamers.find(d => d.did === dreamerDid);
+                            }
+                        } catch (err) {
+                            console.warn('[Order] Failed to fetch dreamer.reverie.house data:', err);
+                        }
+                    } else if (session && session.did) {
+                        try {
+                            const dreamersResponse = await fetch('/api/dreamers');
+                            if (dreamersResponse.ok) {
+                                const dreamers = await dreamersResponse.json();
+                                dreamer = dreamers.find(d => d.did === session.did);
+                            }
+                        } catch (err) {
+                            console.warn('[Order] Failed to fetch dreamer data:', err);
                         }
                     }
+
+                    // Use dreamer record if available, otherwise fall back to session/defaults
+                    const name = isAnonymous ? (dreamerRecord?.name || 'dreamer') : (dreamer?.name || session?.handle || 'Dreamer');
+                    const avatar = isAnonymous ? (dreamerRecord?.avatar || dreamerAvatar) : (dreamer?.avatar || session?.avatar || dreamerAvatar);
+                    const did = isAnonymous ? dreamerDid : (session?.did || '');
+                    const userColor = isAnonymous ? (dreamerRecord?.color_hex || '#734ba1') : (dreamer?.color_hex || window.colorManager?.color || '#734ba1');
+
+                    // Format quantity using NumNom if available ("num_nom" style)
+                    const qty = Number.isInteger(this.quantity) ? this.quantity : parseInt(this.quantity, 10) || 1;
+                    // Prefer global NumNom.numberToWord when available; otherwise use a small fallback map
+                    let qtyWord;
+                    if (window.NumNom && typeof window.NumNom.numberToWord === 'function') {
+                        qtyWord = window.NumNom.numberToWord(qty);
+                    } else {
+                        const smallNums = {
+                            0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+                            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
+                            11: 'eleven', 12: 'twelve', 13: 'thirteen', 14: 'fourteen', 15: 'fifteen',
+                            16: 'sixteen', 17: 'seventeen', 18: 'eighteen', 19: 'nineteen', 20: 'twenty'
+                        };
+                        if (qty in smallNums) {
+                            qtyWord = smallNums[qty];
+                        } else if (qty < 100) {
+                            const tens = Math.floor(qty / 10) * 10;
+                            const ones = qty % 10;
+                            const tensMap = {20:'twenty',30:'thirty',40:'forty',50:'fifty',60:'sixty',70:'seventy',80:'eighty',90:'ninety'};
+                            qtyWord = tensMap[tens] ? (ones ? `${tensMap[tens]}-${smallNums[ones]}` : tensMap[tens]) : String(qty);
+                        } else {
+                            qtyWord = String(qty);
+                        }
+                    }
+
+                    const plural = qty === 1 ? 'book' : 'books';
+                    const eventText = `realizes ${qtyWord} ${plural}`;
+
+                    // Build synthetic event matching exact API structure from /api/canon
+                    const syntheticEvent = {
+                        id: 'live',
+                        epoch: Math.floor(Date.now() / 1000),
+                        did: did,
+                        name: name,
+                        avatar: avatar,
+                        color_hex: userColor,
+                        event: eventText,
+                        url: '',
+                        uri: '',
+                        type: 'order',
+                        key: 'seeker',  // Match real order events
+                        color_source: 'user',
+                        color_intensity: 'none',
+                        octant: '',
+                        origin_octant: '',
+                        reaction_to: null
+                    };
+
+                    console.log('[Order] Synthetic event:', syntheticEvent);
+
+                    // Build HTML using EventStack's builder so markup matches exactly
+                    const liveRowHtml = eventStack.buildEventRow(syntheticEvent, 0);
+                    
+                    console.log('[Order] Generated row HTML:', liveRowHtml);
+
+                    // Prepend to container so it appears above recent events
+                    container.insertAdjacentHTML('afterbegin', liveRowHtml);
+                    
+                    // Apply special styling to the live row
+                    const liveRow = container.querySelector('.row-entry');
+                    if (liveRow) {
+                        liveRow.classList.add('order-live-row');
+                        liveRow.style.setProperty('--user-color', userColor);
+                        // Make the event text bold AND italic
+                        const canonCell = liveRow.querySelector('.cell.canon');
+                        if (canonCell) {
+                            const eventSpan = canonCell.querySelector('span[style*="italic"]');
+                            if (eventSpan) {
+                                eventSpan.style.fontWeight = '700';
+                                eventSpan.style.fontStyle = 'italic';
+                            }
+                        }
+                    }
+
+                    // Re-apply RowStyle effects so the injected row gets snakecharmer, etc.
+                    if (window.rowStyleEngine) {
+                        // Clear previously-applied effects so they run again
+                        if (typeof window.rowStyleEngine.clearEffects === 'function') {
+                            window.rowStyleEngine.clearEffects(container);
+                        }
+                        window.rowStyleEngine.applyEffects(container);
+                    }
+                } catch (err) {
+                    console.warn('[Order] Failed to inject live row', err);
                 }
+            } else if (!window.EventStack) {
+                console.warn('[Order] EventStack not available yet');
             }
             
         } catch (error) {
             console.error('Error loading recent orders:', error);
-            if (container) container.innerHTML = '';
-            if (fullContainer) fullContainer.innerHTML = '<div class=\"recent-orders-error\">Unable to load recent orders</div>';
+            if (container) container.innerHTML = '<div style="text-align: center; padding: 1rem; font-style: italic; color: #999;">Unable to load recent orders</div>';
         }
-    }
-
-    applySnakeCharmerEffect(container) {
-        // Find all strange souvenir rows within the container
-        const strangeRows = container.querySelectorAll('.souvenir-strange.intensity-highlight, .souvenir-strange.intensity-special');
-        
-        strangeRows.forEach(row => {
-            // Get all cells in the row (including key cell for wobble)
-            const cells = row.querySelectorAll('.cell');
-            
-            cells.forEach((cell, cellIndex) => {
-                // Skip if cell only contains images or empty content
-                const hasOnlyImages = cell.querySelectorAll('img').length > 0 && !cell.textContent.trim();
-                if (hasOnlyImages) return;
-                
-                let wordIndex = 0;
-                
-                // Recursively process all text nodes within the cell
-                function processNode(node) {
-                    if (node.nodeType === Node.TEXT_NODE) {
-                        const text = node.textContent;
-                        const wordParts = text.split(/(\s+)/);
-                        const fragment = document.createDocumentFragment();
-                        
-                        wordParts.forEach(part => {
-                            if (part.trim()) {
-                                const wordSpan = document.createElement('span');
-                                wordSpan.textContent = part;
-                                wordSpan.className = 'snake-word';
-                                const totalDelay = (cellIndex * 8 + wordIndex * 2) * 0.1;
-                                wordSpan.style.animationDelay = `${totalDelay}s`;
-                                fragment.appendChild(wordSpan);
-                                wordIndex++;
-                            } else if (part) {
-                                fragment.appendChild(document.createTextNode(part));
-                            }
-                        });
-                        
-                        node.parentNode.replaceChild(fragment, node);
-                    } else if (node.nodeType === Node.ELEMENT_NODE) {
-                        // Recursively process child nodes
-                        Array.from(node.childNodes).forEach(child => processNode(child));
-                    }
-                }
-                
-                // Process all child nodes of the cell
-                Array.from(cell.childNodes).forEach(node => processNode(node));
-            });
-        });
     }
 
     renderSliderNotches() {
@@ -386,7 +443,25 @@ class OrderWidget {
         // Anonymize checkbox
         const checkbox = document.getElementById('anonymize-order');
         if (checkbox) {
-            checkbox.addEventListener('change', () => this.updateOrderHistory());
+            checkbox.addEventListener('change', () => {
+                this.updateOrderHistory();
+                this.updateLiveRow();
+            });
+        }
+
+        // Carousel click to rotate (but not on links)
+        const carousel = document.querySelector('.book-info-carousel');
+        if (carousel) {
+            carousel.addEventListener('click', (e) => {
+                // Don't rotate if clicking on a link
+                if (e.target.tagName === 'A' || e.target.closest('a')) {
+                    return;
+                }
+                this.stopCarouselAutoRotate();
+                this.nextSlide();
+            });
+            // Add cursor pointer to indicate it's clickable
+            carousel.style.cursor = 'pointer';
         }
     }
 
@@ -413,6 +488,7 @@ class OrderWidget {
 
         this.updatePriceDisplay();
         this.updateOrderHistory();
+        this.updateLiveRow();
     }
 
     updatePriceDisplay() {
@@ -450,6 +526,110 @@ class OrderWidget {
         }
         if (btnText) btnText.style.display = loading ? 'none' : 'inline';
         if (loadingText) loadingText.style.display = loading ? 'inline' : 'none';
+    }
+
+    async updateLiveRow() {
+        const container = document.getElementById('recent-history');
+        const liveRow = container?.querySelector('.order-live-row');
+        if (!liveRow) return;
+
+        // Check if anonymous mode is enabled
+        const session = window.oauthManager?.getSession();
+        const checkbox = document.getElementById('anonymize-order');
+        const isAnonymous = !session || checkbox?.checked;
+        const dreamerDid = 'did:plc:zdxbourfcbv66iq2xfpb233q';
+        const dreamerAvatar = 'https://cdn.bsky.app/img/avatar/plain/did:plc:zdxbourfcbv66iq2xfpb233q/bafkreihoe46uedehpa2ngkmvku72giztmsqac4fblx5bklxwngfczdzrzm@jpeg';
+
+        // Fetch the appropriate dreamer record
+        let dreamer = null;
+        let dreamerRecord = null;
+        
+        if (isAnonymous) {
+            try {
+                const dreamersResponse = await fetch('/api/dreamers');
+                if (dreamersResponse.ok) {
+                    const dreamers = await dreamersResponse.json();
+                    dreamerRecord = dreamers.find(d => d.did === dreamerDid);
+                }
+            } catch (err) {
+                console.warn('[Order] Failed to fetch dreamer.reverie.house data:', err);
+            }
+        } else if (session && session.did) {
+            try {
+                const dreamersResponse = await fetch('/api/dreamers');
+                if (dreamersResponse.ok) {
+                    const dreamers = await dreamersResponse.json();
+                    dreamer = dreamers.find(d => d.did === session.did);
+                }
+            } catch (err) {
+                console.warn('[Order] Failed to fetch dreamer data:', err);
+            }
+        }
+
+        // Determine user data based on anonymous mode
+        const name = isAnonymous ? (dreamerRecord?.name || 'dreamer') : (dreamer?.name || session?.handle || 'Dreamer');
+        const avatar = isAnonymous ? (dreamerRecord?.avatar || dreamerAvatar) : (dreamer?.avatar || session?.avatar || dreamerAvatar);
+        const userColor = isAnonymous ? (dreamerRecord?.color_hex || '#734ba1') : (dreamer?.color_hex || window.colorManager?.color || '#734ba1');
+
+        // Format quantity using NumNom
+        const qty = this.quantity;
+        let qtyWord;
+        if (window.NumNom && typeof window.NumNom.numberToWord === 'function') {
+            qtyWord = window.NumNom.numberToWord(qty);
+        } else {
+            const smallNums = {
+                0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+                6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
+                11: 'eleven', 12: 'twelve', 13: 'thirteen', 14: 'fourteen', 15: 'fifteen',
+                16: 'sixteen', 17: 'seventeen', 18: 'eighteen', 19: 'nineteen', 20: 'twenty'
+            };
+            if (qty in smallNums) {
+                qtyWord = smallNums[qty];
+            } else if (qty < 100) {
+                const tens = Math.floor(qty / 10) * 10;
+                const ones = qty % 10;
+                const tensMap = {20:'twenty',30:'thirty',40:'forty',50:'fifty',60:'sixty',70:'seventy',80:'eighty',90:'ninety'};
+                qtyWord = tensMap[tens] ? (ones ? `${tensMap[tens]}-${smallNums[ones]}` : tensMap[tens]) : String(qty);
+            } else {
+                qtyWord = String(qty);
+            }
+        }
+
+        const plural = qty === 1 ? 'book' : 'books';
+        const eventText = `realizes ${qtyWord} ${plural}`;
+
+        // Update the avatar
+        const avatarCell = liveRow.querySelector('.cell.avatar');
+        if (avatarCell) {
+            const avatarImg = avatarCell.querySelector('.avatar-img');
+            if (avatarImg) {
+                avatarImg.src = avatar;
+            }
+        }
+
+        // Update the name and event text in the canon cell
+        const canonCell = liveRow.querySelector('.cell.canon');
+        if (canonCell) {
+            const nameLink = canonCell.querySelector('a') || canonCell.querySelector('.dreamer-name');
+            if (nameLink) {
+                nameLink.textContent = name;
+            }
+            const eventSpan = canonCell.querySelector('span[style*="italic"]');
+            if (eventSpan) {
+                eventSpan.textContent = eventText;
+            }
+        }
+
+        // Update the row color
+        liveRow.style.setProperty('--user-color', userColor);
+        
+        // Re-apply RowStyle if available
+        if (window.rowStyleEngine) {
+            if (typeof window.rowStyleEngine.clearEffects === 'function') {
+                window.rowStyleEngine.clearEffects(container);
+            }
+            window.rowStyleEngine.applyEffects(container);
+        }
     }
 
     animatePrice(element) {
@@ -502,73 +682,15 @@ class OrderWidget {
 
     updateOrderHistory() {
         const userEntryContainer = document.getElementById('user-entry');
-        if (!userEntryContainer) return;
+        // If the user-entry container exists, clear it so only real events are shown
+        if (userEntryContainer) {
+            userEntryContainer.innerHTML = '';
+        }
 
         const session = window.oauthManager?.getSession();
         const checkbox = document.getElementById('anonymize-order');
-        const isAnonymous = !session || checkbox?.checked;
 
-        // When anonymous, show as dreamer.reverie.house
-        const dreamerDid = 'did:plc:zdxbourfcbv66iq2xfpb233q';
-        const dreamerAvatar = 'https://cdn.bsky.app/img/avatar/plain/did:plc:zdxbourfcbv66iq2xfpb233q/bafkreihoe46uedehpa2ngkmvku72giztmsqac4fblx5bklxwngfczdzrzm@jpeg';
-        const dreamerColor = '#BE8F8F';
-
-        // Get user details - use dreamer.reverie.house when anonymous
-        const userColor = isAnonymous ? dreamerColor : (session?.color || '#734ba1');
-        const avatar = isAnonymous ? dreamerAvatar : (session?.avatar || '/assets/icon_face.png');
-        const name = isAnonymous ? 'dreamer' : (session?.name || session?.handle || 'Dreamer');
-        const did = isAnonymous ? dreamerDid : (session?.did || '');
-        
-        // Format quantity text
-        const numberWords = {
-            1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
-            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
-            15: 'fifteen', 20: 'twenty', 25: 'twenty five',
-            50: 'fifty', 75: 'seventy five', 100: 'one hundred'
-        };
-        const quantityText = numberWords[this.quantity] || this.quantity;
-        const copiesText = this.quantity === 1 ? 'book' : 'books';
-        
-        // Cache RGB calculation
-        let rgbValues = this.userColorCache.get(userColor);
-        if (!rgbValues) {
-            const r = parseInt(userColor.substr(1, 2), 16);
-            const g = parseInt(userColor.substr(3, 2), 16);
-            const b = parseInt(userColor.substr(5, 2), 16);
-            rgbValues = { r, g, b };
-            this.userColorCache.set(userColor, rgbValues);
-        }
-        const { r, g, b } = rgbValues;
-        
-        // Format current time and date to match epoch format (DD/MM/YY HH:MM)
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const year = String(now.getFullYear()).slice(-2);
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const formattedTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-        
-        // Create the user's theoretical entry
-        const userEntry = `
-            <div class="row-entry canon-row" style="--canon-color: ${userColor}; --canon-color-rgb: ${r}, ${g}, ${b};">
-                <div class="cell epoch" id="live-epoch">${formattedTime}</div>
-                <div class="cell avatar">
-                    <img src="${avatar}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">
-                </div>
-                <div class="cell canon">
-                    ${did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-name">${name}</a>` : `<span class="dreamer-name">${name}</span>`}
-                    <span class="event-text">realizes ${quantityText} ${copiesText}</span>
-                </div>
-            </div>
-        `;
-        
-        userEntryContainer.innerHTML = userEntry;
-        
-        // Start live clock update
-        this.startLiveClock();
-        
-        // Update checkbox state
+        // Update checkbox state (keep default anonymous when no session)
         if (!session && checkbox) {
             checkbox.checked = true;
             checkbox.disabled = true;
@@ -713,7 +835,7 @@ class OrderWidget {
     // Carousel navigation methods
     nextSlide() {
         const slides = document.querySelectorAll('.carousel-slide');
-        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        const indicators = document.querySelectorAll('.panel-indicator');
         const current = document.querySelector('.carousel-slide.active');
         const currentIndex = parseInt(current.dataset.slide);
         const nextIndex = (currentIndex + 1) % slides.length;
@@ -726,9 +848,27 @@ class OrderWidget {
         });
     }
     
+    startCarouselAutoRotate() {
+        // Auto-rotate carousel every 4 seconds
+        if (this.carouselAutoRotateEnabled) {
+            this.carouselAutoRotate = setInterval(() => {
+                this.nextSlide();
+            }, 4000);
+        }
+    }
+    
+    stopCarouselAutoRotate() {
+        // Stop auto-rotation when user manually interacts
+        if (this.carouselAutoRotate) {
+            clearInterval(this.carouselAutoRotate);
+            this.carouselAutoRotate = null;
+            this.carouselAutoRotateEnabled = false;
+        }
+    }
+    
     previousSlide() {
         const slides = document.querySelectorAll('.carousel-slide');
-        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        const indicators = document.querySelectorAll('.panel-indicator');
         const current = document.querySelector('.carousel-slide.active');
         const currentIndex = parseInt(current.dataset.slide);
         const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
@@ -743,7 +883,7 @@ class OrderWidget {
     
     goToSlide(index) {
         const slides = document.querySelectorAll('.carousel-slide');
-        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        const indicators = document.querySelectorAll('.panel-indicator');
         
         slides.forEach(slide => slide.classList.remove('active'));
         indicators.forEach(ind => ind.classList.remove('active'));
@@ -755,6 +895,29 @@ class OrderWidget {
     async handleKindleClick() {
         const link = await (window.getRegionalAmazonLink?.() || 'https://amazon.com');
         window.open(link, '_blank');
+    }
+
+    openTableOfContents() {
+        const coverImg = document.querySelector('.hero-cover-img');
+        if (!coverImg) return;
+        
+        // Juke animation effect (same as TOC cover)
+        coverImg.style.transition = 'transform 0.1s ease';
+        coverImg.style.transform = 'scale(1.05) rotate(2deg)';
+        
+        setTimeout(() => {
+            coverImg.style.transform = 'scale(0.95) rotate(-2deg)';
+        }, 100);
+        
+        setTimeout(() => {
+            coverImg.style.transform = 'scale(1) rotate(0)';
+        }, 200);
+        
+        setTimeout(() => {
+            // Navigate to preface after animation
+            const url = '/books/seeker/00';
+            window.location.href = url;
+        }, 300);
     }
 
     async showSuccessMessage(sessionId) {
