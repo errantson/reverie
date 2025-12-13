@@ -31,6 +31,7 @@
     <link rel="stylesheet" href="/css/widgets/createdreamer.css">
     <link rel="stylesheet" href="/css/widgets/dialogue.css">
     <link rel="stylesheet" href="/css/widgets/dreamer-hover.css">
+    <link rel="stylesheet" href="/css/widgets/showdreamer.css">
     <link rel="stylesheet" href="/css/color-rows.css">
     <link rel="stylesheet" href="/css/roles.css">
     <link rel="stylesheet" href="/css/souvenirs.css">
@@ -46,6 +47,8 @@
     <script src="/js/core/rowstyle-registry.js"></script>
     <script src="/js/core/rowstyle-engine.js"></script>
     <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/widgets/showdreamer.js"></script>
+    <script src="/js/widgets/showpost.js"></script>
     <script src="/js/widgets/background.js"></script>
     <script src="/js/widgets/bubble.js"></script>
     
@@ -799,6 +802,53 @@
             
             // Load greeting events for greeter tab
             loadGreetingEvents();
+            
+            // Add global click handler for dreamer-link elements to show Bluesky profile popups
+            // Use capture phase to intercept clicks before EventStack row handlers
+            document.addEventListener('click', (e) => {
+                const dreamerLink = e.target.closest('.dreamer-link');
+                if (dreamerLink) {
+                    console.log('🔍 [Work] Dreamer link clicked:', {
+                        element: dreamerLink,
+                        dataset: dreamerLink.dataset,
+                        'data-dreamer-did': dreamerLink.getAttribute('data-dreamer-did'),
+                        'data-did': dreamerLink.getAttribute('data-did'),
+                        href: dreamerLink.getAttribute('href'),
+                        showDreamer: !!window.showDreamer
+                    });
+                    
+                    // Try both data-dreamer-did and data-did attributes
+                    const did = dreamerLink.dataset.dreamerDid || dreamerLink.dataset.did;
+                    
+                    if (!did) {
+                        console.warn('[Work] Dreamer link has no DID attribute');
+                        return;
+                    }
+                    
+                    // Check if the link has a bsky.app href (external profile link)
+                    const href = dreamerLink.getAttribute('href');
+                    if (href && href.includes('bsky.app/profile')) {
+                        console.log('[Work] External bsky link, allowing default navigation');
+                        // Don't prevent default for external bsky links
+                        return;
+                    }
+                    
+                    // Prevent default navigation to /dreamer page
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log(`✨ [Work] Showing dreamer popup for DID: ${did}`);
+                    
+                    // Show dreamer popup
+                    if (window.showDreamer) {
+                        window.showDreamer(did);
+                    } else {
+                        console.warn('[Work] showDreamer not available, falling back to navigation');
+                        window.location.href = `/dreamer?did=${encodeURIComponent(did)}`;
+                    }
+                }
+            }, true); // USE CAPTURE PHASE to intercept before row handlers
+            
             
             // Setup work event listeners for cross-page synchronization
             const setupWorkEvents = () => {
