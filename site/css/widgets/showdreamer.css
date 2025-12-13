@@ -1,0 +1,206 @@
+/**
+ * ShowDreamer Widget Styles
+ * Popup overlay for showing dreamer/Bluesky profiles
+ */
+
+.showdreamer-container {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* Header Section */
+.dreamer-popup-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(var(--user-color-rgb, 208, 199, 240), 0.05), transparent);
+}
+
+.dreamer-popup-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--user-color, #d0c7f0);
+    object-fit: cover;
+}
+
+.dreamer-popup-identity {
+    flex: 1;
+}
+
+.dreamer-popup-name {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.dreamer-popup-handle {
+    font-size: 0.95em;
+    color: #666;
+    font-weight: 500;
+}
+
+/* Description */
+.dreamer-popup-description {
+    padding: 20px 24px;
+    color: #555;
+    font-size: 0.95em;
+    line-height: 1.5;
+    border-bottom: 1px solid #e8e6f5;
+}
+
+/* Stats */
+.dreamer-popup-stats {
+    padding: 16px 24px;
+    border-bottom: 1px solid #e8e6f5;
+}
+
+.dreamer-popup-stat {
+    text-align: center;
+}
+
+.dreamer-popup-stat-value {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.dreamer-popup-stat-label {
+    font-size: 0.85em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Souvenirs */
+.dreamer-popup-souvenirs {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e8e6f5;
+}
+
+.dreamer-popup-souvenirs-label {
+    font-size: 0.85em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.dreamer-popup-souvenirs-icons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dreamer-popup-souvenir-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+.dreamer-popup-souvenir-icon:hover {
+    transform: scale(1.1);
+}
+
+/* Activity */
+.dreamer-popup-activity {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e8e6f5;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dreamer-popup-activity-label {
+    font-size: 0.85em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.dreamer-popup-activity-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #f9f8fc;
+    border-radius: 4px;
+    border-left: 3px solid var(--user-color, #d0c7f0);
+}
+
+.dreamer-popup-activity-time {
+    font-size: 0.8em;
+    color: #999;
+    margin-bottom: 6px;
+}
+
+.dreamer-popup-activity-text {
+    font-size: 0.9em;
+    color: #555;
+    line-height: 1.4;
+}
+
+/* Actions */
+.dreamer-popup-actions {
+    padding: 20px 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.dreamer-popup-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9em;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-block;
+    text-align: center;
+}
+
+.dreamer-popup-btn-primary {
+    background: var(--user-color, #734ba1);
+    color: white;
+    border: 2px solid var(--user-color, #734ba1);
+}
+
+.dreamer-popup-btn-primary:hover {
+    background: white;
+    color: var(--user-color, #734ba1);
+}
+
+.dreamer-popup-btn-secondary {
+    background: white;
+    color: var(--user-color, #734ba1);
+    border: 2px solid var(--user-color, #734ba1);
+}
+
+.dreamer-popup-btn-secondary:hover {
+    background: var(--user-color, #734ba1);
+    color: white;
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+    .dreamer-popup-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .dreamer-popup-avatar {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .dreamer-popup-actions {
+        flex-direction: column;
+    }
+    
+    .dreamer-popup-btn {
+        width: 100%;
+    }
+}

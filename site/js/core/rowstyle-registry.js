@@ -257,6 +257,32 @@ const RowStyleRegistry = {
     },
     
     // =========================================================================
+    // SOUVENIR STYLES - BELL
+    // =========================================================================
+    
+    bell: {
+        name: "bell",
+        description: "Burgundy with animated audio waveform signal",
+        category: "souvenir",
+        rendering: {
+            cssClasses: ['row-entry', 'color-souvenir', 'souvenir-bell', 'intensity-highlight'],
+            cssFiles: ['souvenirs.css'],
+            cssVariables: [],
+            effects: [],
+            appearance: {
+                background: 'Deep burgundy to burnt orange gradient with animated audio waveform',
+                border: '3px solid burgundy (#8B1538)',
+                color: 'Warm cream (#F5E6D3)',
+                animation: 'Audio waveform pulse (2.5s infinite ease-in-out)',
+                special: 'Animated sound wave pattern through center, burgundy/deep orange palette'
+            }
+        },
+        matches: (event) => {
+            return event.color_source === 'souvenir' && event.key === 'bell';
+        }
+    },
+    
+    // =========================================================================
     // SOUVENIR STYLES - RESIDENCE
     // =========================================================================
     
@@ -493,7 +519,12 @@ function getRowStyle(input) {
         styleName = input;
     } else if (typeof input === 'object') {
         // Event object - compute or use explicit rowstyle
-        styleName = input.rowstyle || computeRowStyle(input);
+        // Special case: rowstyle="octant" means use the user's actual octant
+        if (input.rowstyle === 'octant' && input.octant) {
+            styleName = input.octant;
+        } else {
+            styleName = input.rowstyle || computeRowStyle(input);
+        }
     }
     
     const style = RowStyleRegistry[styleName];

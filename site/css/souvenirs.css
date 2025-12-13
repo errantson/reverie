@@ -329,6 +329,74 @@
 }
 
 /* ============================================================================
+   BELL SOUVENIR - Burgundy with animated audio waveform
+   Deep burgundy/orange palette with pulsing sound wave visualization
+   ============================================================================ */
+
+.souvenir-bell {
+    --bell-burgundy: #8B1538;
+    --bell-burgundy-dark: #6B0F2A;
+    --bell-orange: #C85A28;
+    --bell-orange-bright: #E87545;
+    --bell-cream: #F5E6D3;
+}
+
+/* Highlight intensity - animated audio waveform */
+.row-entry.color-souvenir.souvenir-bell.intensity-highlight {
+    background:
+        /* Base gradient */
+        linear-gradient(
+            to right,
+            var(--bell-burgundy-dark) 0%,
+            var(--bell-burgundy) 40%,
+            var(--bell-orange) 100%
+        );
+    border-left: 3px solid var(--bell-burgundy);
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+}
+}
+
+/* Bell: simple static gradient, white text, no animations or overlays */
+.row-entry.color-souvenir.souvenir-bell.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--bell-burgundy-dark) 0%,
+        var(--bell-burgundy) 40%,
+        var(--bell-orange) 100%
+    );
+    border-left: 3px solid var(--bell-burgundy);
+    color: #ffffff;
+    position: relative;
+}
+
+.row-entry.color-souvenir.souvenir-bell.intensity-highlight .cell,
+.color-souvenir.souvenir-bell.intensity-highlight .cell {
+    position: relative;
+    z-index: 1;
+}
+
+.color-souvenir.souvenir-bell.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--bell-burgundy-dark) 0%,
+        var(--bell-burgundy) 30%,
+        var(--bell-orange-bright) 100%
+    );
+    border-left: 4px solid var(--bell-burgundy);
+    color: #ffffff;
+    font-weight: 600;
+    position: relative;
+}
+
+.color-souvenir.souvenir-bell.intensity-special .cell,
+.row-entry.color-souvenir.souvenir-bell.intensity-special .cell {
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================================================
    RESIDENCE SOUVENIR - Lapis/ultramarine animated gradient
    Shifting gradient with floating bubbles
    ============================================================================ */
@@ -494,6 +562,9 @@
     }
 }
 
+/* Bell waveform animations removed per request. */
+/* No line animations applied to `souvenir-bell` now. */
+
 /* ============================================================================
    FALLBACKS
    ============================================================================ */
@@ -505,7 +576,7 @@
 }
 
 /* Generic souvenir highlight (if no specific class) */
-.color-souvenir.intensity-highlight:not(.souvenir-strange):not(.souvenir-residence):not(.souvenir-arrival) {
+.color-souvenir.intensity-highlight:not(.souvenir-strange):not(.souvenir-residence):not(.souvenir-arrival):not(.souvenir-bell) {
     background: linear-gradient(
         to right,
         rgba(120, 100, 140, 0.08) 0%,
@@ -516,7 +587,7 @@
 }
 
 /* Generic souvenir special (if no specific class) */
-.color-souvenir.intensity-special:not(.souvenir-strange):not(.souvenir-residence):not(.souvenir-arrival) {
+.color-souvenir.intensity-special:not(.souvenir-strange):not(.souvenir-residence):not(.souvenir-arrival):not(.souvenir-bell) {
     background: linear-gradient(
         to right,
         rgba(120, 100, 140, 0.15) 0%,

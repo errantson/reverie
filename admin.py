@@ -3252,6 +3252,7 @@ def update_quest(title):
         quest_manager = QuestManager()
         
         print(f"Updating quest with:")
+        print(f"  - new_title: {data.get('new_title')}")
         print(f"  - uri: {data.get('uri')}")
         print(f"  - trigger_type: {data.get('trigger_type')}")
         print(f"  - trigger_config: {data.get('trigger_config')}")
@@ -3264,6 +3265,7 @@ def update_quest(title):
         # Update the quest
         success = quest_manager.update_quest(
             title=title,
+            new_title=data.get('new_title'),
             uri=data.get('uri'),
             trigger_type=data.get('trigger_type'),
             trigger_config=data.get('trigger_config'),
@@ -3278,7 +3280,17 @@ def update_quest(title):
         
         if success:
             print("✅ Quest updated successfully")
-            return jsonify({'success': True, 'message': 'Quest updated successfully'})
+            
+            # Fetch and return the updated quest
+            updated_title = data.get('new_title') or title
+            updated_quest = quest_manager.get_quest(updated_title)
+            
+            if updated_quest:
+                print(f"✅ Returning updated quest: {updated_quest.get('title')}")
+                return jsonify({'success': True, 'message': 'Quest updated successfully', 'quest': updated_quest})
+            else:
+                print("⚠️ Quest updated but not found for return")
+                return jsonify({'success': True, 'message': 'Quest updated successfully'})
         else:
             print("❌ Quest not found or update failed")
             return jsonify({'error': 'Quest not found or update failed'}), 404
@@ -3341,7 +3353,16 @@ def create_quest():
                 user_agent=request.headers.get('User-Agent')
             )
             
-            return jsonify({'success': True, 'message': f'Quest "{title}" created successfully'})
+            # Fetch and return the created quest
+            created_quest = quest_manager.get_quest(title)
+            if created_quest:
+                return jsonify({
+                    'success': True, 
+                    'message': f'Quest "{title}" created successfully',
+                    'quest': created_quest
+                })
+            else:
+                return jsonify({'success': True, 'message': f'Quest "{title}" created successfully'})
         else:
             return jsonify({'error': 'Failed to create quest (title may already exist)'}), 400
             

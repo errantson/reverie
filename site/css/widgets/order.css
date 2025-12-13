@@ -82,6 +82,107 @@
     margin-bottom: 0;
 }
 
+/* Live prospective order row styling */
+.order-live-row {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--user-color, #734ba1) 35%, transparent) 0%,
+        color-mix(in srgb, var(--user-color, #734ba1) 12%, transparent) 100%
+    ) !important;
+    border-left: 5px solid var(--user-color, #734ba1) !important;
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--user-color, #734ba1) 25%, transparent),
+                inset 3px 0 8px color-mix(in srgb, var(--user-color, #734ba1) 8%, transparent),
+                0 2px 8px rgba(0, 0, 0, 0.12),
+                0 0 0 1px color-mix(in srgb, var(--user-color, #734ba1) 10%, transparent) !important;
+    font-weight: 500;
+    position: relative;
+    animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+.order-live-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--user-color, #734ba1) 8%, transparent) 0%,
+        transparent 50%
+    );
+    pointer-events: none;
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { 
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--user-color, #734ba1) 25%, transparent),
+                    inset 3px 0 8px color-mix(in srgb, var(--user-color, #734ba1) 8%, transparent),
+                    0 2px 8px rgba(0, 0, 0, 0.12),
+                    0 0 0 1px color-mix(in srgb, var(--user-color, #734ba1) 10%, transparent);
+    }
+    50% { 
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--user-color, #734ba1) 40%, transparent),
+                    inset 3px 0 12px color-mix(in srgb, var(--user-color, #734ba1) 15%, transparent),
+                    0 3px 12px color-mix(in srgb, var(--user-color, #734ba1) 20%, transparent),
+                    0 0 0 1px color-mix(in srgb, var(--user-color, #734ba1) 15%, transparent);
+    }
+}
+
+@keyframes shimmer {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (background: color-mix(in srgb, red, blue)) {
+    .order-live-row {
+        background: rgba(115, 75, 161, 0.22) !important;
+        box-shadow: inset 0 0 0 1.5px rgba(115, 75, 161, 0.25),
+                    inset 3px 0 8px rgba(115, 75, 161, 0.1),
+                    0 2px 8px rgba(0, 0, 0, 0.12),
+                    0 0 0 1px rgba(115, 75, 161, 0.15) !important;
+    }
+    .order-live-row::before {
+        background: linear-gradient(
+            90deg,
+            rgba(115, 75, 161, 0.12) 0%,
+            transparent 50%
+        );
+    }
+}
+
+/* Adjust EventStack row layout for order page */
+#recent-history .row-entry .cell.epoch {
+    flex: 0 0 90px;
+    padding-left: 2px;
+}
+
+#recent-history .row-entry .cell.thread-arrow {
+    display: none;
+}
+
+
+#recent-history .row-entry .cell.avatar {
+    flex: 0 0 28px;
+    margin-left: 0;
+    padding: 0;
+    max-width: 28px;
+    min-width: 28px;
+    justify-content: center;
+}
+
+#recent-history .row-entry .cell.canon {
+    flex: 1 1 300px;
+    padding-left: 0;
+    margin-left: 0;
+}
+
+#recent-history .row-entry .cell:first-child {
+    padding-left: 8px;
+}
+
 @media (max-width: 1024px) {
     .order-row-flex {
         flex-direction: column;
@@ -194,21 +295,26 @@
 }
 
 .order-main-synopsis {
-    padding: 16px;
-    background: linear-gradient(135deg, #fdfcfe 0%, #f9f8fc 100%);
+    padding: 18px 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #fdfcfe 100%);
     border: 2px solid #734ba1;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.15);
+    border-radius: 0;
+    box-shadow: 
+        0 2px 8px rgba(115, 75, 161, 0.15),
+        0 4px 16px rgba(115, 75, 161, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
     margin-bottom: 12px;
 }
 
 .order-main-title {
-    font-size: 2rem;
+    font-size: 2.1rem;
     font-weight: 700;
     color: #734ba1;
-    margin: 0 0 6px 0;
-    line-height: 1.2;
-    text-shadow: 1px 1px 2px rgba(115, 75, 161, 0.1);
+    margin: 0 0 8px 0;
+    line-height: 1.15;
+    text-shadow: 
+        0 1px 2px rgba(115, 75, 161, 0.1),
+        0 2px 4px rgba(115, 75, 161, 0.05);
     letter-spacing: -0.5px;
 }
 
@@ -267,7 +373,7 @@
 /* Book Info Carousel */
 .book-info-carousel-container {
     position: relative;
-    margin-bottom: 8px;
+    margin-bottom: 0;
 }
 
 .book-info-carousel {
@@ -275,40 +381,35 @@
     overflow: hidden;
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid rgba(0, 0, 0, 0.1);
-    min-height: 100px;
-    height: 100px;
+    height: 160px;
     display: flex;
-    align-items: center;
+    /* Align to top so header text doesn't appear vertically centered */
+    align-items: flex-start;
     justify-content: center;
 }
 
-.carousel-rotate-btn {
+.carousel-panel-indicators {
     position: absolute;
     bottom: 6px;
-    right: 6px;
-    width: 20px;
-    height: 20px;
-    background: rgba(115, 75, 161, 0.9);
-    color: white;
-    border: none;
-    font-size: 14px;
-    line-height: 1;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
+    gap: 8px;
     z-index: 20;
+    pointer-events: none;
 }
 
-.carousel-rotate-btn:hover {
-    background: rgba(115, 75, 161, 1);
-    transform: scale(1.1);
+.panel-indicator {
+    width: 24px;
+    height: 3px;
+    background: rgba(115, 75, 161, 0.3);
+    border-radius: 2px;
+    transition: all 0.3s ease;
 }
 
-.carousel-rotate-btn:active {
-    transform: scale(0.95);
+.panel-indicator.active {
+    background: rgba(115, 75, 161, 0.9);
+    box-shadow: 0 0 8px rgba(115, 75, 161, 0.4);
 }
 
 .carousel-slide {
@@ -321,7 +422,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
+    padding: 0;
 }
 
 .carousel-slide.active {
@@ -333,19 +434,53 @@
 .carousel-slide .book-info-grid {
     width: 100%;
     margin-bottom: 0;
+    padding: 0 16px 12px 16px;
+}
+
+.carousel-stats-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 0 0 0;
+}
+
+.carousel-stats-container .shipping-notice-header {
+    text-align: center;
+    margin: 0;
+    padding: 6px 0 6px 0;
+    border-bottom: 2px solid #d4c5e0;
+    background: linear-gradient(135deg, #fdfcfe 0%, #f9f7fb 100%);
+}
+
+.carousel-stats-container .edition-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #734ba1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.carousel-stats-container .shipping-text {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .patronage-message {
     text-align: center;
     color: #1a1a2e;
-    max-width: 600px;
-    padding: 0 8px;
+    max-width: 100%;
+    padding: 16px 18px 20px 18px;
 }
 
 .patronage-message p {
-    margin: 0 0 4px 0;
-    font-size: 0.65rem;
-    line-height: 1.25;
+    margin: 0 0 8px 0;
+    font-size: 0.75rem;
+    line-height: 1.5;
 }
 
 .patronage-message p:last-child {
@@ -362,55 +497,108 @@
     text-decoration: underline;
 }
 
-
-
-.carousel-indicators {
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
+/* Residence Bonus Panel */
+.residence-bonus-panel {
+    width: 100%;
+    height: 100%;
+    padding: 8px 16px 16px 16px;
     display: flex;
-    gap: 4px;
-    z-index: 20;
+    flex-direction: column;
+    gap: 10px;
+    background: linear-gradient(135deg, #fdfcfe 0%, #f9f7fb 100%);
 }
 
-.carousel-indicators .indicator {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    border: 2px solid rgba(115, 75, 161, 0.5);
-    background: transparent;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    padding: 0;
+.bonus-header {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #734ba1;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding-bottom: 8px;
 }
 
-.carousel-indicators .indicator.active {
-    background: rgba(115, 75, 161, 1);
-    border-color: rgba(115, 75, 161, 1);
+.bonus-content {
+    display: flex;
+    gap: 12px;
+    align-items: center;
 }
 
-.carousel-indicators .indicator:hover {
-    border-color: rgba(115, 75, 161, 1);
+.residence-key-icon {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 6px rgba(115, 75, 161, 0.25));
+    transition: transform 0.3s ease;
 }
+
+.residence-bonus-panel:hover .residence-key-icon {
+    transform: scale(1.05);
+}
+
+.bonus-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.bonus-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #734ba1;
+    letter-spacing: 0.3px;
+}
+
+.bonus-description {
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: #555;
+}
+
+
 
 @media (max-width: 768px) {
     .book-info-carousel {
-        min-height: 110px;
-        height: 110px;
+        height: 180px;
     }
     
-    .carousel-slide {
-        padding: 6px;
-    }
-    
-    .carousel-rotate-btn {
-        width: 18px;
-        height: 18px;
-        font-size: 13px;
+    .patronage-message {
+        padding: 12px 16px;
     }
     
     .patronage-message p {
-        font-size: 0.6rem;
+        font-size: 0.7rem;
+    }
+    
+    .carousel-stats-container .edition-text {
+        font-size: 0.65rem;
+    }
+    
+    .carousel-stats-container .shipping-text {
+        font-size: 0.75rem;
+    }
+    
+    .residence-bonus-panel {
+        padding: 10px 12px;
+    }
+    
+    .bonus-header {
+        font-size: 0.7rem;
+    }
+    
+    .residence-key-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .bonus-title {
+        font-size: 0.8rem;
+    }
+    
+    .bonus-description {
+        font-size: 0.65rem;
     }
 }
 
@@ -459,52 +647,128 @@
     overflow-x: hidden;
 }
 
-.order-history-user-entry {
-    border-bottom: 2px solid #d0c7f0;
+
+
+/* Custom scrollbar for order history */
+.order-history-preview::-webkit-scrollbar {
+    width: 8px;
 }
 
-.order-history-recent {
-    flex: 1;
+.order-history-preview::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-/* Event row styles from database.html/profile.css - compact and contained */
-.order-history-preview .row-entry,
-.recent-orders-list .row-entry {
-    display: flex;
-    padding: 6px 0 6px 4px;
-    border-bottom: 1px solid var(--border, #d0c7f0);
-    border-left: 4px solid transparent;
-    font-family: monospace;
-    font-size: 0.85em;
-    line-height: 1.1;
-    background: #f0f0f0;
-    transition: background 0.15s;
-    width: 100%;
-    align-items: center;
-    min-height: 32px;
+.order-history-preview::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s ease;
 }
 
-.order-history-preview .row-entry:nth-child(even),
-.recent-orders-list .row-entry:nth-child(even) {
-    background: white;
+
+.order-history-preview::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    background-clip: padding-box;
 }
 
-.order-history-preview .row-entry:hover,
-.recent-orders-list .row-entry:hover {
-    background: #f8f6ff;
+/* Firefox scrollbar */
+.order-history-preview {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
-.order-history-preview .row-entry .cell,
-.recent-orders-list .row-entry .cell {
-    padding: 0 4px;
-    flex: 1;
-    min-width: 0;
+/* Make event rows behave like the Work page EventStack */
+.order-history-recent,
+.order-history-recent * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.order-history-recent .row-entry {
+    cursor: pointer;
+    width: 100% !important;
+    min-width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.order-history-recent .cell {
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Column sizing to match Work page EventStack */
+.order-history-recent .cell.epoch {
+    flex: 0 0 90px;
+    max-width: 90px;
+    min-width: 90px;
+    font-size: 0.85em;
+    text-align: right;
+    padding-right: 8px;
+    /* Align content to end so timestamp isn't centered and truncated */
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+.order-history-recent .cell.canon {
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+/* Slightly larger avatars within the order preview for clarity */
+.order-history-recent .avatar-img,
+.order-history-preview .avatar-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+/* Avatar cell sizing and spacing */
+.order-history-recent .cell.avatar,
+.order-history-preview .cell.avatar {
+    flex: 0 0 40px;
+    max-width: 40px;
+    min-width: 40px;
+    justify-content: center;
+    padding: 0 6px;
+}
+
+/* Ensure canon column has some left padding and readable alignment */
+.order-history-recent .cell.canon {
+    text-align: left;
+    padding-left: 8px;
+}
+
+/* Make the recent history visually match the Database/EventStack single-row design */
+.order-history-recent {
+    /* Minimal container: define box and allow EventStack rows to flow from the top */
+    background: white;
+    border: 1px solid #ddd;
+    height: 240px; /* same as greeter-eventstack */
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin: 0; /* no extra spacing above rows */
+    padding: 0; /* rows control their own padding */
+    display: block;
+}
+
     display: flex;
     align-items: center;
-    justify-content: center;
-    white-space: nowrap;
+    padding: 6px 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+    min-height: 32px;
+    border-bottom: 1px solid var(--border, #e8e6f5);
+    background: transparent;
+}
+
+/* Preserve hover visual feedback */
+.order-history-recent .row-entry:hover {
+    filter: brightness(0.98);
 }
 
 .order-history-preview .row-entry.canon-row,
@@ -558,239 +822,6 @@
         rgba(var(--canon-color-rgb), 0.06) 100%
     ) !important;
 }
-
-/* Adjust column widths for order view */
-.order-history-preview .row-entry .cell.epoch,
-.recent-orders-list .row-entry .cell.epoch {
-    flex: 0 0 90px;
-    max-width: 90px;
-    min-width: 90px;
-    font-family: monospace;
-    font-size: 0.75em;
-    text-align: center;
-    justify-content: center;
-}
-
-.order-history-preview .row-entry .cell.type,
-.recent-orders-list .row-entry .cell.type {
-    flex: 0 0 80px;
-    max-width: 80px;
-    min-width: 80px;
-    font-size: 0.75em;
-}
-
-.order-history-preview .row-entry .cell.avatar,
-.recent-orders-list .row-entry .cell.avatar {
-    flex: 0 0 18px;
-    max-width: 18px;
-    min-width: 18px;
-    margin-left: 8px;
-}
-
-.order-history-preview .row-entry .cell.canon,
-.recent-orders-list .row-entry .cell.canon {
-    flex: 1 1 300px;
-    max-width: none;
-    min-width: 200px;
-    font-size: 0.85em;
-    overflow: hidden;
-    justify-content: flex-start;
-}
-
-.order-history-preview .row-entry .cell.key,
-.recent-orders-list .row-entry .cell.key {
-    flex: 0 0 90px;
-    max-width: 90px;
-    min-width: 90px;
-    font-size: 0.75em;
-}
-
-.order-history-preview .row-entry .cell.uri,
-.recent-orders-list .row-entry .cell.uri {
-    flex: 0 0 75px;
-    max-width: 75px;
-    min-width: 75px;
-    font-size: 0.75em;
-}
-
-.order-history-preview .avatar-img,
-.recent-orders-list .avatar-img {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
-    margin: 0 auto;
-}
-
-/* Snake charmer animation for strange souvenir events */
-.order-history-preview .snake-word,
-.recent-orders-list .snake-word {
-    display: inline-block;
-    animation: snakeCharm 6s ease-in-out infinite;
-    transform-origin: center center;
-    vertical-align: baseline;
-    margin: 0 0.15em 0 0;
-    white-space: nowrap;
-}
-
-.order-history-preview .color-souvenir.souvenir-strange.intensity-special .snake-word,
-.recent-orders-list .color-souvenir.souvenir-strange.intensity-special .snake-word {
-    animation: snakeCharmIntense 3.5s ease-in-out infinite;
-}
-
-@keyframes snakeCharm {
-    0%, 100% {
-        transform: translateY(0) rotate(0deg) scale(1);
-    }
-    25% {
-        transform: translateY(-2px) rotate(1.5deg) scale(1.01);
-    }
-    50% {
-        transform: translateY(0) rotate(0deg) scale(1);
-    }
-    75% {
-        transform: translateY(-2px) rotate(-1.5deg) scale(1.01);
-    }
-}
-
-@keyframes snakeCharmIntense {
-    0%, 100% {
-        transform: translateY(0) rotate(0deg) scale(1);
-        text-shadow: 0 0 0 transparent;
-    }
-    20% {
-        transform: translateY(-3px) rotate(2deg) scale(1.02);
-        text-shadow: 0 1px 3px rgba(123, 90, 158, 0.3);
-    }
-    50% {
-        transform: translateY(0) rotate(0deg) scale(1);
-        text-shadow: 0 0 0 transparent;
-    }
-    70% {
-        transform: translateY(-3px) rotate(-2deg) scale(1.02);
-        text-shadow: 0 1px 3px rgba(176, 143, 217, 0.3);
-    }
-}
-
-/* Dream row styling - similar to canon but with dream-specific colors */
-.order-history-preview .row-entry.dream-row,
-.recent-orders-list .row-entry.dream-row {
-    background: linear-gradient(
-        to right,
-        rgba(var(--dream-color-rgb), 0.20) 0%,
-        rgba(var(--dream-color-rgb), 0.12) 30%,
-        rgba(var(--dream-color-rgb), 0.06) 70%,
-        rgba(var(--dream-color-rgb), 0.02) 100%
-    ) !important;
-    border-left: 3px solid var(--dream-color) !important;
-    border-top: 1px solid rgba(var(--dream-color-rgb), 0.25) !important;
-    border-bottom: 1px solid rgba(var(--dream-color-rgb), 0.25) !important;
-    box-shadow: inset 0 0 6px rgba(var(--dream-color-rgb), 0.12), 
-                0 1px 2px rgba(var(--dream-color-rgb), 0.15);
-}
-
-.order-history-preview .row-entry.dream-row:hover,
-.recent-orders-list .row-entry.dream-row:hover {
-    background: linear-gradient(
-        to right,
-        rgba(var(--dream-color-rgb), 0.30) 0%,
-        rgba(var(--dream-color-rgb), 0.18) 30%,
-        rgba(var(--dream-color-rgb), 0.09) 70%,
-        rgba(var(--dream-color-rgb), 0.03) 100%
-    ) !important;
-    box-shadow: inset 0 0 10px rgba(var(--dream-color-rgb), 0.18),
-                0 2px 3px rgba(var(--dream-color-rgb), 0.2);
-}
-
-.order-history-preview .row-entry.dream-row .cell,
-.recent-orders-list .row-entry.dream-row .cell {
-    color: var(--dream-color) !important;
-}
-
-.order-history-preview .row-entry.dream-row .cell.type,
-.order-history-preview .row-entry.dream-row .cell.key,
-.recent-orders-list .row-entry.dream-row .cell.type,
-.recent-orders-list .row-entry.dream-row .cell.key {
-    font-weight: 600;
-    text-shadow: 0 0 1px rgba(var(--dream-color-rgb), 0.3);
-}
-
-/* Dream-specific styles */
-.order-history-preview .row-entry.dream-flawed,
-.recent-orders-list .row-entry.dream-flawed {
-    --dream-color: #454545;
-    --dream-color-rgb: 69, 69, 69;
-}
-
-.order-history-preview .row-entry.dream-flawed .cell,
-.order-history-preview .row-entry.dream-flawed img,
-.recent-orders-list .row-entry.dream-flawed .cell,
-.recent-orders-list .row-entry.dream-flawed img {
-    filter: blur(2.5px) !important;
-    animation: clarityTimer 15s ease-in-out infinite !important;
-    transition: filter 0.4s ease-out !important;
-}
-
-.order-history-preview .row-entry.dream-flawed:hover .cell,
-.order-history-preview .row-entry.dream-flawed:hover img,
-.recent-orders-list .row-entry.dream-flawed:hover .cell,
-.recent-orders-list .row-entry.dream-flawed:hover img {
-    filter: blur(0px) !important;
-    animation: none !important;
-}
-
-@keyframes clarityTimer {
-    0%, 90% {
-        filter: blur(2.5px);
-    }
-    93%, 97% {
-        filter: blur(0px);
-    }
-    100% {
-        filter: blur(2.5px);
-    }
-}
-
-.dreamer-name {
-    font-weight: 600;
-    color: #888 !important;
-    text-decoration: none;
-}
-
-.dreamer-name:hover {
-    text-decoration: underline;
-    color: #666 !important;
-}
-
-.event-text {
-    font-style: italic;
-    color: #888;
-    opacity: 0.9;
-}
-
-/* Pending row (user entry) - use user color */
-#user-entry .cell.epoch {
-    color: var(--canon-color) !important;
-    opacity: 1;
-    font-weight: 600;
-}
-
-#user-entry .dreamer-name {
-    color: var(--canon-color) !important;
-    font-weight: 700;
-}
-
-#user-entry .dreamer-name:hover {
-    color: var(--canon-color) !important;
-    opacity: 0.8;
-}
-
-#user-entry .event-text {
-    color: var(--canon-color) !important;
-    opacity: 0.85;
-}
-
 /* ============================================
    LEFT SIDE: BOOK WIDGET
    ============================================ */
@@ -1315,7 +1346,8 @@
 
 /* Quantity Slider */
 .quantity-section {
-    margin: auto 0 0 0;
+    margin-top: 0;
+    margin-bottom: auto;
 }
 
 .shipping-notice-header {

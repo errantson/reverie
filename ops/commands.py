@@ -82,13 +82,14 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
             elif cmd_name == 'like_post':
                 cmd_result = like_post(replies, quest_config, verbose=verbose)
             elif cmd_name == 'add_canon':
-                # Support: add_canon:key:event or add_canon:key:event:type
+                # Support: add_canon:key:event:type or add_canon:key:event:type:rowstyle
                 if param and ':' in param:
-                    parts = param.split(':', 2)
+                    parts = param.split(':', 3)
                     canon_key = parts[0]
                     canon_event = parts[1] if len(parts) > 1 else 'event occurred'
                     canon_type = parts[2] if len(parts) > 2 else 'event'
-                    cmd_result = add_canon(replies, quest_config, canon_key, canon_event, canon_type, verbose=verbose)
+                    canon_rowstyle = parts[3] if len(parts) > 3 else None
+                    cmd_result = add_canon(replies, quest_config, canon_key, canon_event, canon_type, canon_rowstyle, verbose=verbose)
                 else:
                     result['errors'].append(f"Invalid add_canon format: {command}")
                     result['success'] = False
@@ -687,7 +688,8 @@ def like_post(replies: List[Dict], quest_config: Dict, verbose: bool = False) ->
 
 
 def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str, 
-              canon_event: str, canon_type: str = 'event', verbose: bool = False) -> Dict:
+              canon_event: str, canon_type: str = 'event', canon_rowstyle: str = None, 
+              verbose: bool = False) -> Dict:
     """
     Add canon entry for quest reply authors.
     IDEMPOTENT: Won't create duplicates if same type/key already exists for dreamer.
@@ -696,6 +698,7 @@ def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str,
         canon_key: The canon key/tag (e.g., 'bell', 'watson', 'invite')
         canon_event: The event description (e.g., 'answered the call', 'received a letter')
         canon_type: The canon type (e.g., 'event', 'souvenir') - defaults to 'event'
+        canon_rowstyle: Optional rowstyle override (e.g., 'octant', 'adaptive', 'canon')
     """
     result = {'success': False, 'errors': []}
     
@@ -738,8 +741,8 @@ def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str,
             
             # Add canon entry
             db.execute("""
-                INSERT INTO canon (did, event, type, key, uri, url, epoch, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO canon (did, event, type, key, uri, url, epoch, created_at, rowstyle)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 author_did,
                 canon_event,
@@ -748,7 +751,8 @@ def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str,
                 reply_uri,
                 reply_url,
                 reply_epoch,
-                int(time.time())
+                int(time.time()),
+                canon_rowstyle
             ))
             
             db.commit()
