@@ -87,15 +87,23 @@ class QuestDiagnostics:
         if quest.get('description'):
             print(f"Description: {quest['description']}")
         
-        print(f"URI:         {quest['uri']}")
+        if quest.get('uri'):
+            print(f"URI:         {quest['uri']}")
+            
+            # Convert URI to clickable Bluesky link
+            if quest['uri'].startswith('at://'):
+                bsky_url = quest['uri'].replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/')
+                print(f"View Post:   {bsky_url}")
         
-        # Convert URI to clickable Bluesky link
-        if quest['uri'].startswith('at://'):
-            bsky_url = quest['uri'].replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/')
-            print(f"View Post:   {bsky_url}")
+        # Handle both old 'condition' and new 'conditions' formats
+        if quest.get('condition'):
+            print(f"Condition:   {quest['condition']}")
+        elif quest.get('conditions'):
+            conditions_str = json.dumps(quest['conditions'], indent=2)
+            print(f"Conditions:  {conditions_str}")
         
-        print(f"Condition:   {quest['condition']}")
-        print(f"Commands:    {', '.join(quest['commands'])}")
+        if quest.get('commands'):
+            print(f"Commands:    {', '.join(quest['commands'])}")
         
         if quest.get('canon'):
             print(f"Canon Event: {quest['canon'].get('event', 'N/A')}")
@@ -333,8 +341,15 @@ class QuestDiagnostics:
         # Count by condition type
         conditions = defaultdict(int)
         for quest in quests:
-            cond = quest['condition'].split(':')[0]
-            conditions[cond] += 1
+            # Handle both old 'condition' and new 'conditions' formats
+            if quest.get('condition'):
+                cond = quest['condition'].split(':')[0]
+                conditions[cond] += 1
+            elif quest.get('conditions'):
+                for cond_obj in quest['conditions']:
+                    if isinstance(cond_obj, dict) and 'condition' in cond_obj:
+                        cond = cond_obj['condition'].split(':')[0]
+                        conditions[cond] += 1
         
         # Count by command type
         commands = defaultdict(int)

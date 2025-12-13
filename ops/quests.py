@@ -190,12 +190,16 @@ class QuestManager:
         Update quest fields.
         
         Args:
-            title: Quest identifier
+            title: Quest identifier (current title)
             **kwargs: Fields to update (uri, commands, enabled, conditions, trigger_type, etc.)
+                     Special field 'new_title' can be used to rename the quest
             
         Returns:
             True if quest was updated, False if not found
         """
+        # Handle renaming separately
+        new_title = kwargs.pop('new_title', None)
+        
         allowed_fields = {
             'uri', 'commands', 'enabled', 'description',
             'canon_event', 'canon_keys', 'conditions', 'condition_operator',
@@ -215,6 +219,11 @@ class QuestManager:
             
             updates.append(f"{field} = %s")
             values.append(value)
+        
+        # Add new_title to updates if provided
+        if new_title and new_title != title:
+            updates.append("title = %s")
+            values.append(new_title)
         
         if not updates:
             return False
