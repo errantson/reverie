@@ -157,6 +157,9 @@
         } else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) {
             userRole = 'cogitarian';
             roleStatus = roleStatuses.cogitarian;
+        } else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) {
+            userRole = 'provisioner';
+            roleStatus = roleStatuses.provisioner;
         }
         
         if (!userRole) {
@@ -172,7 +175,8 @@
         const roleConfigs = {
             greeter: { title: 'GREETER' },
             mapper: { title: 'MAPPER' },
-            cogitarian: { title: 'COGITARIAN' }
+            cogitarian: { title: 'COGITARIAN' },
+            provisioner: { title: 'PROVISIONER' }
         };
 
         const roleTitle = roleConfigs[userRole]?.title || userRole.toUpperCase();

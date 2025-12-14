@@ -236,6 +236,115 @@ class WorkAPI {
         const status = await getCredentialStatus();
         return status.connected;
     }
+
+    // ========================================================================
+    // PROVISIONER METHODS
+    // ========================================================================
+
+    /**
+     * Get provisioner status (current provisioner, role info, etc.)
+     */
+    async getProvisionerStatus() {
+        const token = this.getToken();
+        const response = await fetch('/api/work/provisioner/status', {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to get provisioner status: ${response.status}`);
+        }
+        
+        return await response.json();
+    }
+
+    /**
+     * Activate as provisioner using existing stored credentials
+     */
+    async activateProvisionerWithExistingCredentials() {
+        const token = this.getToken();
+        if (!token) {
+            throw new Error('No authentication token');
+        }
+
+        const response = await fetch('/api/work/provisioner/activate', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ use_existing_credentials: true })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Activation failed');
+        }
+
+        return data;
+    }
+
+    /**
+     * Step down as provisioner
+     */
+    async stepDownProvisioner() {
+        const token = this.getToken();
+        if (!token) {
+            throw new Error('No authentication token');
+        }
+
+        const response = await fetch('/api/work/provisioner/step-down', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Step down failed');
+        }
+
+        return data;
+    }
+
+    /**
+     * Set provisioner status (working, retiring)
+     */
+    async setProvisionerStatus(status) {
+        const token = this.getToken();
+        if (!token) {
+            throw new Error('No authentication token');
+        }
+
+        const response = await fetch('/api/work/provisioner/set-status', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Status update failed');
+        }
+
+        return data;
+    }
+
+    /**
+     * Check if user has active provisioner role
+     */
+    async isActiveProvisioner() {
+        const rolesData = await this.getUserRoles();
+        const provisionerRole = rolesData.roles.find(r => r.role === 'provisioner');
+        return provisionerRole && provisionerRole.status === 'active';
+    }
 }
 
 // Export singleton instance

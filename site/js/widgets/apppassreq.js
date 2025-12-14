@@ -144,6 +144,10 @@ class AppPasswordRequest {
                 border-color: var(--role-cogitarian);
             }
             
+            #app-password-request-modal .modal-content.role-provisioner {
+                border-color: var(--role-provisioner);
+            }
+            
             .modal-intro {
                 text-align: center;
                 color: #555;
@@ -171,6 +175,10 @@ class AppPasswordRequest {
             
             .modal-content.role-cogitarian .modal-title {
                 color: var(--role-cogitarian-dark);
+            }
+            
+            .modal-content.role-provisioner .modal-title {
+                color: var(--role-provisioner-dark);
             }
             
             .modal-description {
@@ -261,6 +269,10 @@ class AppPasswordRequest {
                 border-color: var(--role-cogitarian);
             }
             
+            .modal-content.role-provisioner .form-group input:focus {
+                border-color: var(--role-provisioner);
+            }
+            
             .small-note {
                 font-size: 0.85rem;
                 color: #666;
@@ -322,6 +334,14 @@ class AppPasswordRequest {
             
             .modal-content.role-cogitarian .action-button:hover:not(:disabled) {
                 background: var(--role-cogitarian-dark);
+            }
+            
+            .modal-content.role-provisioner .action-button {
+                background: var(--role-provisioner);
+            }
+            
+            .modal-content.role-provisioner .action-button:hover:not(:disabled) {
+                background: var(--role-provisioner-dark);
             }
             
             .action-button:disabled {

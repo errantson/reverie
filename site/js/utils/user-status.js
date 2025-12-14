@@ -174,7 +174,7 @@ class UserStatus {
     }
     
     /**
-     * Check worker status (greeter/mapper/cogitarian) from work APIs
+     * Check worker status (greeter/mapper/cogitarian/provisioner) from work APIs
      * @private
      * If authToken is provided, uses authenticated endpoints for current user
      * Otherwise uses public /api/work/{role}/info endpoints to check if DID is a worker
@@ -183,13 +183,14 @@ class UserStatus {
         const result = {
             isGreeter: false,
             isMapper: false,
-            isCogitarian: false
+            isCogitarian: false,
+            isProvisioner: false
         };
         
         if (authToken) {
             // Authenticated check - use status endpoints
             try {
-                const [greeterResponse, mapperResponse, cogitarianResponse] = await Promise.allSettled([
+                const [greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse] = await Promise.allSettled([
                     fetch('/api/work/greeter/status', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     }),
@@ -197,6 +198,9 @@ class UserStatus {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     }),
                     fetch('/api/work/cogitarian/status', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
+                    fetch('/api/work/provisioner/status', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     })
                 ]);
@@ -218,16 +222,23 @@ class UserStatus {
                     const data = await cogitarianResponse.value.json();
                     result.isCogitarian = data.is_worker || false;
                 }
+                
+                // Process provisioner status
+                if (provisionerResponse.status === 'fulfilled' && provisionerResponse.value.ok) {
+                    const data = await provisionerResponse.value.json();
+                    result.isProvisioner = data.is_worker || false;
+                }
             } catch (error) {
                 console.warn('Failed to check worker status (authenticated):', error);
             }
         } else {
             // Public check - use info endpoints and check if DID is in workers list
             try {
-                const [greeterResponse, mapperResponse, cogitarianResponse] = await Promise.allSettled([
+                const [greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse] = await Promise.allSettled([
                     fetch('/api/work/greeter/info'),
                     fetch('/api/work/mapper/info'),
-                    fetch('/api/work/cogitarian/info')
+                    fetch('/api/work/cogitarian/info'),
+                    fetch('/api/work/provisioner/info')
                 ]);
                 
                 // Check greeter
@@ -250,6 +261,13 @@ class UserStatus {
                     const workers = data.workers || [];
                     result.isCogitarian = workers.some(w => w.did === did);
                 }
+                
+                // Check provisioner
+                if (provisionerResponse.status === 'fulfilled' && provisionerResponse.value.ok) {
+                    const data = await provisionerResponse.value.json();
+                    const workers = data.workers || [];
+                    result.isProvisioner = workers.some(w => w.did === did);
+                }
             } catch (error) {
                 console.warn('Failed to check worker status (public):', error);
             }
@@ -268,6 +286,7 @@ class UserStatus {
             isGreeter: false,
             isMapper: false,
             isCogitarian: false,
+            isProvisioner: false,
             isCharacter: false,
             characterLevel: null,
             canAutoLore: false,
@@ -288,7 +307,7 @@ class UserStatus {
             return 'Keeper of Reverie House';
         }
         
-        // Check for worker roles (prioritize in order: greeter, mapper, cogitarian)
+        // Check for worker roles (prioritize in order: greeter, mapper, cogitarian, provisioner)
         if (user.isGreeter) {
             return 'Greeter of Reveries';
         }
@@ -297,6 +316,9 @@ class UserStatus {
         }
         if (user.isCogitarian) {
             return 'Cogitarian (Prime)';
+        }
+        if (user.isProvisioner) {
+            return 'Head of Pantry';
         }
         
         // Base status
@@ -467,7 +489,7 @@ class UserStatus {
         let label = this.getStatusLabel(user);
         
         // Don't modify worker role titles - they're already properly capitalized
-        const workerRoles = ['Greeter of Reveries', 'Spectrum Mapper', 'Cogitarian (Prime)', 'Keeper of Reverie House'];
+        const workerRoles = ['Greeter of Reveries', 'Spectrum Mapper', 'Cogitarian (Prime)', 'Head of Pantry', 'Keeper of Reverie House'];
         
         if (options.capitalize && !workerRoles.includes(label)) {
             label = label.charAt(0).toUpperCase() + label.slice(1);

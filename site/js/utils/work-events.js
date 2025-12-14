@@ -119,6 +119,11 @@ WorkEvents.EVENTS = {
     MAPPER_STEPPED_DOWN: 'mapper:stepped-down',
     MAPPER_STATUS_CHANGED: 'mapper:status-changed',
     
+    // Provisioner events
+    PROVISIONER_ACTIVATED: 'provisioner:activated',
+    PROVISIONER_STEPPED_DOWN: 'provisioner:stepped-down',
+    PROVISIONER_STATUS_CHANGED: 'provisioner:status-changed',
+    
     // Credential events
     CREDENTIALS_CONNECTED: 'credentials:connected',
     CREDENTIALS_DISCONNECTED: 'credentials:disconnected',

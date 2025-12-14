@@ -44,7 +44,7 @@
     <!-- Core utilities -->
     <script src="/js/core/world-config-cache.js"></script>
     <script src="/js/core/color-manager.js"></script>
-    <script src="/js/core/rowstyle-registry.js"></script>
+    <script src="/js/core/rowstyle-registry.js?v=1765642342"></script>
     <script src="/js/core/rowstyle-engine.js"></script>
     <script src="/js/utils/shadowbox.js"></script>
     <script src="/js/widgets/showdreamer.js"></script>
@@ -58,7 +58,7 @@
     
     <!-- Work widgets -->
     <script type="module" src="/js/widgets/spectrumpreview.js?v=1763454411"></script>
-    <script src="/js/widgets/eventstack.js"></script>
+    <script src="/js/widgets/eventstack.js?v=1765642847"></script>
     
     <!-- Header and drawer widgets -->
     <script src="/js/widgets/header.js" defer></script>
@@ -171,6 +171,14 @@
                         </svg>
                         <span class="role-tab-name">Cogitarian</span>
                     </button>
+                    <button class="role-tab" data-role="provisioner" onclick="selectRole('provisioner')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                            <path d="M7 2v20"></path>
+                            <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
+                        </svg>
+                        <span class="role-tab-name">Provisioner</span>
+                    </button>
                 </div>
 
                 <!-- Mobile Role Selector -->
@@ -179,6 +187,7 @@
                         <option value="greeter" selected>Greeter</option>
                         <option value="mapper">Mapper</option>
                         <option value="cogitarian">Cogitarian</option>
+                        <option value="provisioner">Provisioner</option>
                     </select>
                 </div>
 
@@ -215,6 +224,16 @@
                             </p>
                             <p class="role-description">
                                 As <b>Spectrum Mapper</b> you will automatically reply the origin coordinates for all dreamers who reveal their beginnings within our wild mindscape.
+                            </p>
+                        </div>
+                        
+                        <!-- Provisioner Description -->
+                        <div id="provisioner-description" class="role-desc-content" style="display: none;">
+                            <p class="role-description">
+                                Provisioners are dreamweavers who understand that ease of rest in the waking world eases all manner of dreams across our wild mindscape.
+                            </p>
+                            <p class="role-description">
+                                When another dreamer at <b>Reverie House</b> feels the real pangs of hunger, it is <b>Head of Pantry</b> who will remotely try to ease their burden with food.
                             </p>
                         </div>
                     </div>
@@ -381,6 +400,77 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Provisioner Content Section -->
+                <div id="provisioner-content-section" class="provisioner-content-container" style="display: none;">
+                    <div class="provisioner-content-grid">
+                        <!-- Left Box -->
+                        <div class="provisioner-box">
+                            <h3 class="provisioner-box-title">Feeding Dreamweavers</h3>
+                            <p class="provisioner-box-text">
+                                If you are a hungry dreamweaver and having some free food would help you dream better, then let our <b>Head of Pantry</b> know and they will try to arrange you a free food pickup through <a href="http://toogoodtogo.com">TooGoodToGo</a></b>
+                            </p>
+                            <p class="provisioner-box-text">
+                                <i>Most pickups will be for next-day.</i>
+                            </p>
+                            <button class="provisioner-box-button" onclick="requestFoodPickup()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                                Request Food Pickup
+                            </button>
+                        </div>
+                        
+                        <!-- Right Box -->
+                        <div class="provisioner-box">
+                            <h3 class="provisioner-box-title">Being Provisioner</h3>
+                            <p class="provisioner-box-text">
+                                This is an experiment in effective altruism. Please accept that this is a human relationship, and both parties will need to be available to communicate.<br>
+                                <i>Everyone will do their best!</i>
+                            </p>
+                            <p class="provisioner-box-text">
+                                If you need reliable or long-term assistance, seek food banks or programs in your area.
+                            </p>
+                            <button class="provisioner-box-button" onclick="window.open('https://www.feedingamerica.org/find-your-local-foodbank/all-food-banks', '_blank')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                                Food Banks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- City Input Modal -->
+    <div id="cityInputModal" class="modal">
+        <div class="modal-content city-modal-content">
+            <div class="city-modal-title">Request Food Pickup</div>
+            
+            <div class="city-modal-header">
+                <span class="city-modal-label">Current City:</span>
+                <input type="text" id="cityInput" placeholder="Toronto, New York, London..." autocomplete="off">
+            </div>
+            
+            <div class="city-modal-preview">
+                <div class="preview-label">Message Preview:</div>
+                <div id="messagePreview" class="preview-text">
+                    Hey @<span class="preview-handle">provisioner</span>, if you're around to help, I'm in <span class="preview-city">...</span> and could use some free food whenever it's available. Thanks in advance!
+                </div>
+            </div>
+            
+            <div class="city-modal-actions">
+                <button class="city-modal-btn city-send-btn" onclick="submitCityAndSendRequest()">
+                    Send Request
+                </button>
+                <button class="city-modal-btn city-cancel-btn" onclick="closeCityModal()">
+                    Cancel
+                </button>
             </div>
         </div>
     </div>
@@ -401,7 +491,8 @@
         let roleStatuses = {
             greeter: null,
             mapper: null,
-            cogitarian: null
+            cogitarian: null,
+            provisioner: null
         };
         let currentTab = 'greeter';
         let spectrumPreviewWidget = null; // Global spectrum preview widget instance
@@ -415,6 +506,49 @@
         let sessionCheckComplete = false;
         let isInitializing = false; // Prevent duplicate initialization
         let profileLoaded = false; // Track if profile is ready
+
+        // Hide provisioner UI unless user is an admin (admin login stores `admin_token` in localStorage).
+        function enforceProvisionerVisibility() {
+            const hasAdmin = !!localStorage.getItem('admin_token');
+            const provButton = document.querySelector('.role-tab[data-role="provisioner"]');
+            const provOption = document.querySelector('#role-selector-mobile option[value="provisioner"]');
+            const provContent = document.getElementById('provisioner-content-section');
+            const provDesc = document.getElementById('provisioner-description');
+
+            if (!hasAdmin) {
+                if (provButton) provButton.style.display = 'none';
+                if (provOption) provOption.remove();
+                if (provContent) provContent.style.display = 'none';
+                if (provDesc) provDesc.style.display = 'none';
+                if (currentRole === 'provisioner') {
+                    // fallback to greeter if provisioner was selected
+                    selectRole('greeter');
+                }
+            } else {
+                if (provButton) provButton.style.display = '';
+                // Ensure the mobile selector has the option (if it was removed earlier)
+                if (provOption === null) {
+                    const mobileSelector = document.getElementById('role-selector-mobile');
+                    if (mobileSelector) {
+                        const exists = Array.from(mobileSelector.options).some(o => o.value === 'provisioner');
+                        if (!exists) {
+                            const opt = document.createElement('option');
+                            opt.value = 'provisioner';
+                            opt.text = 'Provisioner';
+                            mobileSelector.appendChild(opt);
+                        }
+                    }
+                }
+            }
+        }
+
+        // React to cross-tab changes and OAuth profile events
+        window.addEventListener('storage', (ev) => {
+            if (ev.key === 'admin_token') enforceProvisionerVisibility();
+        });
+        window.addEventListener('oauth:profile-loaded', () => enforceProvisionerVisibility());
+        // Run once at load
+        enforceProvisionerVisibility();
 
         // Role selection function
         function selectRole(role) {
@@ -458,7 +592,8 @@
             const labels = {
                 'greeter': 'CURRENT GREETER:',
                 'mapper': 'CURRENT MAPPER:',
-                'cogitarian': 'CURRENT COGITARIAN:'
+                'cogitarian': 'CURRENT COGITARIAN:',
+                'provisioner': 'CURRENT PROVISIONER:'
             };
             document.getElementById('worker-label').textContent = labels[role];
             
@@ -472,6 +607,8 @@
                 hideEventStack();
                 // Hide mapper content for cogitarian
                 hideMapperContent();
+                // Hide provisioner content for cogitarian
+                hideProvisionerContent();
                 // Show cogitarian content
                 showCogitarianContent();
             } else if (role === 'mapper') {
@@ -486,6 +623,8 @@
                 hideEventStack();
                 // Hide cogitarian content for mapper
                 hideCogitarianContent();
+                // Hide provisioner content for mapper
+                hideProvisionerContent();
                 // Show mapper content
                 showMapperContent();
             } else if (role === 'greeter') {
@@ -501,6 +640,20 @@
                 hideMapperContent();
                 // Hide cogitarian content for greeter
                 hideCogitarianContent();
+                // Hide provisioner content for greeter
+                hideProvisionerContent();
+            } else if (role === 'provisioner') {
+                // Load role status for provisioner
+                loadRoleStatus(role);
+                // Hide all role-specific content for provisioner
+                hideEventStack();
+                hideSpectrumPreview();
+                hideMapperContent();
+                hideCogitarianContent();
+                // Show provisioner content
+                showProvisionerContent();
+                // Populate food request form with user data
+                populateFoodRequestForm();
             } else {
                 // Load role status for the selected role
                 loadRoleStatus(role);
@@ -619,6 +772,417 @@
             }
         }
         
+        function showProvisionerContent() {
+            const container = document.getElementById('provisioner-content-section');
+            if (container) {
+                container.style.display = 'block';
+            }
+        }
+        
+        function hideProvisionerContent() {
+            const container = document.getElementById('provisioner-content-section');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        function populateFoodRequestForm() {
+            const userDisplay = document.getElementById('food-request-user-display');
+            if (!userDisplay) return;
+            
+            if (!currentSession || !currentSession.profile) {
+                // Logged out state - show placeholder
+                userDisplay.innerHTML = `
+                    <div class="user-display-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div class="user-display-info">
+                        <div class="user-display-name">Not logged in</div>
+                        <div class="user-display-handle"></div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Logged in state - show avatar and profile info
+            const profile = currentSession.profile;
+            const displayName = profile.displayName || profile.handle || 'Anonymous';
+            const handle = profile.handle || '';
+            const avatar = profile.avatar || '';
+            
+            let avatarHTML;
+            if (avatar) {
+                avatarHTML = `<img src="${avatar}" alt="${displayName}">`;
+            } else {
+                avatarHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                `;
+            }
+            
+            userDisplay.innerHTML = `
+                <div class="user-display-icon">
+                    ${avatarHTML}
+                </div>
+                <div class="user-display-info">
+                    <div class="user-display-name">${displayName}</div>
+                    <div class="user-display-handle">${handle ? '@' + handle : ''}</div>
+                </div>
+            `;
+        }
+        
+        // Store provisioner DID for the modal
+        let pendingRequestProvisionerDid = null;
+        
+        async function requestFoodPickup() {
+            console.log('🍽️ [Provisioner] Request food pickup clicked');
+            
+            // Check if user is logged in
+            if (!currentSession || !currentSession.profile) {
+                showCelebration('Please log in to request', 'error');
+                return;
+            }
+            
+            // Check if there's an active provisioner
+            const provisionerStatus = roleStatuses.provisioner;
+            if (!provisionerStatus || !provisionerStatus.current_worker) {
+                showCelebration('There is currently no active Head of Pantry.\n\nPlease check back later or volunteer for the role yourself!', 'error');
+                return;
+            }
+            
+            // Get current provisioner DID
+            const provisionerDid = provisionerStatus.current_worker.did;
+            const userDid = currentSession.sub || currentSession.did;
+            
+            // Don't allow provisioner to request from themselves
+            if (provisionerDid === userDid) {
+                showCelebration('You cannot request food from yourself!\n\nStep down as provisioner first if you need assistance.', 'error');
+                return;
+            }
+            
+            // Check if user has stored app password for DM access
+            let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            if (!token && currentSession && currentSession.accessJwt) {
+                token = currentSession.accessJwt;
+            }
+            
+            if (!token) {
+                console.error('❌ [Food Request] No authentication token found');
+                console.error('   - oauth_token:', localStorage.getItem('oauth_token') ? 'exists' : 'missing');
+                console.error('   - admin_token:', localStorage.getItem('admin_token') ? 'exists' : 'missing');
+                console.error('   - currentSession:', currentSession ? 'exists' : 'missing');
+                showCelebration('Session expired - please refresh and try again', 'error');
+                return;
+            }
+            
+            console.log('🔐 [Food Request] Using token:', token.substring(0, 20) + '...');
+            
+            const headers = { 'Authorization': `Bearer ${token}` };
+            
+            try {
+                console.log('🔍 [Food Request] Checking for stored app password...');
+                console.log('   - Endpoint: /api/user/credentials/status');
+                console.log('   - Headers:', JSON.stringify(headers));
+                
+                const credResponse = await fetch('/api/user/credentials/status', { headers });
+                
+                console.log('📊 [Food Request] Credentials check response:', credResponse.status, credResponse.statusText);
+                console.log('   - OK:', credResponse.ok);
+                console.log('   - Headers:', Object.fromEntries(credResponse.headers.entries()));
+                
+                if (credResponse.ok) {
+                    const credData = await credResponse.json();
+                    console.log('📊 [Food Request] Credentials data received:');
+                    console.log('   - Full response:', JSON.stringify(credData, null, 2));
+                    console.log('   - connected field:', credData.connected, '(type:', typeof credData.connected, ')');
+                    console.log('   - valid field:', credData.valid, '(type:', typeof credData.valid, ')');
+                    
+                    // Check if user has valid credentials stored
+                    if (credData && (credData.connected === true || credData.valid === true)) {
+                        console.log('✅ [Food Request] User has stored credentials, proceeding with city modal');
+                        console.log('   - Storing provisioner DID:', provisionerDid);
+                        // User has credentials, proceed with city modal
+                        pendingRequestProvisionerDid = provisionerDid;
+                        showCityModal();
+                    } else {
+                        console.log('⚠️ [Food Request] No stored credentials found, showing app password widget');
+                        console.log('   - connected:', credData?.connected);
+                        console.log('   - valid:', credData?.valid);
+                        console.log('   - Full data:', JSON.stringify(credData));
+                        // No credentials, show app password widget
+                        showAppPasswordWidgetForFoodRequest(provisionerDid);
+                    }
+                } else {
+                    console.error('❌ [Food Request] Credentials check failed');
+                    console.error('   - Status:', credResponse.status, credResponse.statusText);
+                    const errorText = await credResponse.text();
+                    console.error('   - Error response:', errorText);
+                    console.error('   - Falling back to app password widget');
+                    showAppPasswordWidgetForFoodRequest(provisionerDid);
+                }
+            } catch (error) {
+                console.error('❌ [Food Request] Exception during credential check');
+                console.error('   - Error type:', error.constructor.name);
+                console.error('   - Error message:', error.message);
+                console.error('   - Stack trace:', error.stack);
+                showAppPasswordWidgetForFoodRequest(provisionerDid);
+            }
+        }
+        
+        function showAppPasswordWidgetForFoodRequest(provisionerDid) {
+            console.log('🔑 [App Password Widget] Initializing for food request');
+            console.log('   - Provisioner DID:', provisionerDid);
+            console.log('   - Widget available:', !!window.appPasswordRequest);
+            
+            if (!window.appPasswordRequest) {
+                console.error('❌ [App Password Widget] AppPasswordRequest widget not loaded');
+                console.error('   - window.appPasswordRequest:', window.appPasswordRequest);
+                console.error('   - Available window properties:', Object.keys(window).filter(k => k.includes('app') || k.includes('password')));
+                showCelebration('Widget not loaded - please refresh the page', 'error');
+                return;
+            }
+            
+            console.log('📝 [App Password Widget] Showing widget with config:');
+            const config = {
+                title: 'Enable Direct Messages',
+                description: 'To request food from the Head of Pantry, you need to create an app password that allows sending direct messages on Bluesky.',
+                featureName: 'food requests',
+                roleColor: 'provisioner'
+            };
+            console.log('   - Config:', JSON.stringify(config, null, 2));
+            
+            window.appPasswordRequest.show(config, async (appPassword) => {
+                console.log('🔑 [App Password Widget] App password received from widget');
+                console.log('   - Password length:', appPassword ? appPassword.length : 'null');
+                console.log('   - Password format:', appPassword ? appPassword.substring(0, 4) + '-****-****-****' : 'null');
+                
+                // Store the credentials
+                try {
+                    let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                    if (!token && currentSession && currentSession.accessJwt) {
+                        token = currentSession.accessJwt;
+                    }
+                    
+                    console.log('🔐 [App Password Widget] Retrieved auth token for storage');
+                    console.log('   - Token source:', localStorage.getItem('oauth_token') ? 'oauth_token' : 
+                                                      localStorage.getItem('admin_token') ? 'admin_token' : 
+                                                      'currentSession.accessJwt');
+                    console.log('   - Token preview:', token ? token.substring(0, 20) + '...' : 'null');
+                    
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    };
+                    
+                    console.log('📤 [App Password Widget] Sending credential storage request');
+                    console.log('   - Endpoint: POST /api/user/credentials/connect');
+                    console.log('   - Headers:', JSON.stringify(headers));
+                    console.log('   - Body: { app_password: "****-****-****-****" }');
+                    
+                    const response = await fetch('/api/user/credentials/connect', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({ app_password: appPassword })
+                    });
+                    
+                    console.log('📨 [App Password Widget] Storage response received');
+                    console.log('   - Status:', response.status, response.statusText);
+                    console.log('   - OK:', response.ok);
+                    
+                    if (response.ok) {
+                        const responseData = await response.json();
+                        console.log('✅ [App Password Widget] Credentials stored successfully');
+                        console.log('   - Response data:', JSON.stringify(responseData, null, 2));
+                        console.log('   - Now proceeding with food request modal');
+                        console.log('   - Setting pendingRequestProvisionerDid to:', provisionerDid);
+                        
+                        // Now proceed with the food request
+                        pendingRequestProvisionerDid = provisionerDid;
+                        showCityModal();
+                    } else {
+                        const error = await response.json();
+                        console.error('❌ [App Password Widget] Failed to store credentials');
+                        console.error('   - Status:', response.status);
+                        console.error('   - Error data:', JSON.stringify(error, null, 2));
+                        showCelebration(error.error || 'Failed to store credentials', 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ [App Password Widget] Exception during credential storage');
+                    console.error('   - Error type:', error.constructor.name);
+                    console.error('   - Error message:', error.message);
+                    console.error('   - Stack trace:', error.stack);
+                    showCelebration('Failed to store credentials. Please try again.', 'error');
+                }
+            });
+        }
+        
+        async function showCityModal() {
+            const modal = document.getElementById('cityInputModal');
+            const input = document.getElementById('cityInput');
+            const cityPreview = document.querySelector('.preview-city');
+            const handlePreview = document.querySelector('.preview-handle');
+            
+            // Get provisioner handle from current status
+            const provisionerStatus = roleStatuses.provisioner;
+            if (provisionerStatus && provisionerStatus.current_worker) {
+                const provisionerDid = provisionerStatus.current_worker.did;
+                
+                // Fetch provisioner's handle
+                try {
+                    const response = await fetch(`/api/dreamers/${provisionerDid}`);
+                    if (response.ok) {
+                        const dreamer = await response.json();
+                        handlePreview.textContent = dreamer.handle || 'provisioner';
+                    }
+                } catch (error) {
+                    console.error('Error fetching provisioner handle:', error);
+                    handlePreview.textContent = 'provisioner';
+                }
+            }
+            
+            // Update preview as user types
+            input.addEventListener('input', function() {
+                const city = this.value.trim();
+                cityPreview.textContent = city || '...';
+                cityPreview.style.fontStyle = city ? 'normal' : 'italic';
+            });
+            
+            modal.classList.add('show');
+            document.body.setAttribute('data-current-role', 'provisioner');
+            // Focus input after animation
+            setTimeout(() => input.focus(), 300);
+        }
+        
+        function closeCityModal() {
+            const modal = document.getElementById('cityInputModal');
+            const input = document.getElementById('cityInput');
+            const preview = document.querySelector('.preview-city');
+            
+            modal.classList.remove('show');
+            input.value = '';
+            preview.textContent = '...';
+            preview.style.fontStyle = 'italic';
+            pendingRequestProvisionerDid = null;
+        }
+        
+        async function submitCityAndSendRequest() {
+            const cityInput = document.getElementById('cityInput');
+            const city = cityInput.value.trim();
+            
+            if (!city) {
+                showCelebration('Please enter your city', 'error');
+                return;
+            }
+            
+            if (!pendingRequestProvisionerDid) {
+                showCelebration('Request session expired. Please try again.', 'error');
+                closeCityModal();
+                return;
+            }
+            
+            // Store the DID before closing modal
+            const provisionerDid = pendingRequestProvisionerDid;
+            
+            // Close modal and show loading
+            closeCityModal();
+            showCelebration('Sending request...', 'info');
+            
+            console.log('📨 Sending request with:', {
+                city: city,
+                provisioner_did: provisionerDid
+            });
+            
+            try {
+                // Get auth token - same priority as other work endpoints
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                if (!token && currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                }
+                
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const payload = {
+                    city: city,
+                    provisioner_did: provisionerDid
+                };
+                
+                console.log('📤 Request payload:', payload);
+                
+                const response = await fetch('/api/work/provisioner/send-request', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showCelebration('Request sent successfully!\n\nThe Head of Pantry will respond via DM.', 'success');
+                } else {
+                    if (data.needs_credentials) {
+                        showCelebration('You need to activate a work role first to send direct messages.\n\nPlease activate any role (like Provisioner) to enable DM functionality.', 'error');
+                    } else {
+                        showCelebration(data.error || 'Failed to send request', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error sending food request:', error);
+                showCelebration('Network error. Please try again.', 'error');
+            } finally {
+                pendingRequestProvisionerDid = null;
+            }
+        }
+        
+        // Allow Enter key to submit
+        document.addEventListener('DOMContentLoaded', () => {
+            const cityInput = document.getElementById('cityInput');
+            if (cityInput) {
+                cityInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        submitCityAndSendRequest();
+                    }
+                });
+            }
+        });
+        
+        function sendFoodRequest() {
+            console.log('🍽️ [Provisioner] Send food request clicked');
+            
+            const city = document.getElementById('food-request-city')?.value?.trim();
+            const details = document.getElementById('food-request-details')?.value?.trim();
+            
+            if (!city) {
+                showCelebration('Please enter your current city', 'error');
+                return;
+            }
+            
+            if (!currentSession || !currentSession.profile) {
+                showCelebration('Please log in to send a request', 'error');
+                return;
+            }
+            
+            // Placeholder for DM functionality
+            showCelebration('Food request functionality coming soon!\n\nYour request will be sent via DM to the current Head of Pantry.', 'info');
+            
+            console.log('Food request:', {
+                name: currentSession.profile.displayName,
+                handle: currentSession.profile.handle,
+                city: city,
+                details: details
+            });
+        }
+        
         function updateRoleActions(role) {
             const activateBtn = document.getElementById('activate-btn');
             if (!activateBtn) return;
@@ -628,6 +1192,7 @@
             if (roleStatuses.greeter && roleStatuses.greeter.is_worker) userCurrentRole = 'greeter';
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) userCurrentRole = 'mapper';
             else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
+            else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) userCurrentRole = 'provisioner';
             
             // If user has a different role, disable the button
             if (userCurrentRole && userCurrentRole !== role) {
@@ -662,6 +1227,7 @@
             await loadRoleStatus('greeter');
             await loadRoleStatus('mapper');
             await loadRoleStatus('cogitarian');
+            await loadRoleStatus('provisioner');
             console.log('🔄 [FLOW] oauth:profile-loaded → updateUI()');
             updateUI();
             isInitializing = false;
@@ -714,6 +1280,7 @@
                         await loadRoleStatus('greeter');
                         await loadRoleStatus('mapper');
                         await loadRoleStatus('cogitarian');
+                        await loadRoleStatus('provisioner');
                         updateUI();
                         
                         isInitializing = false;
@@ -743,7 +1310,7 @@
             const hashRole = window.location.hash.replace('#', '');
             
             // Build allowed roles list
-            let allowedRoles = ['greeter', 'mapper', 'cogitarian'];
+            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner'];
             
             let initialTab = null;
             
@@ -799,6 +1366,7 @@
             loadRoleStatus('greeter');
             loadRoleStatus('mapper');
             loadRoleStatus('cogitarian');
+            loadRoleStatus('provisioner');
             
             // Load greeting events for greeter tab
             loadGreetingEvents();
@@ -1073,10 +1641,12 @@
             console.log('   roleStatuses.greeter:', roleStatuses.greeter);
             console.log('   roleStatuses.mapper:', roleStatuses.mapper);
             console.log('   roleStatuses.cogitarian:', roleStatuses.cogitarian);
+            console.log('   roleStatuses.provisioner:', roleStatuses.provisioner);
             
             if (roleStatuses.greeter && roleStatuses.greeter.is_worker) actualUserRole = 'greeter';
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) actualUserRole = 'mapper';
             else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) actualUserRole = 'cogitarian';
+            else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) actualUserRole = 'provisioner';
             
             console.log('   → actualUserRole determined:', actualUserRole);
             
@@ -1225,6 +1795,18 @@
                         onclickHandler: 'openCogitarianModal()',
                         workerNamePlaceholder: 'cogitarian-name-placeholder',
                         activeNamePlaceholder: 'cogitarian-name-placeholder-active',
+                        retiringText: 'is ready to retire, if you\'re ready to replace them.',
+                        notRetiredText: 'is not yet ready to retire.',
+                        comingSoon: false
+                    },
+                    'provisioner': {
+                        title: roleConfigs.provisioner.title,
+                        description: 'Helps ease the hunger of dreamers in need by managing food assistance remotely.',
+                        buttonText: 'BECOME PROVISIONER',
+                        replaceText: 'REPLACE PROVISIONER',
+                        onclickHandler: 'openWorkerModal(\'provisioner\')',
+                        workerNamePlaceholder: 'provisioner-name-placeholder',
+                        activeNamePlaceholder: 'provisioner-name-placeholder-active',
                         retiringText: 'is ready to retire, if you\'re ready to replace them.',
                         notRetiredText: 'is not yet ready to retire.',
                         comingSoon: false
@@ -1455,7 +2037,7 @@
             
             if (!roleInfo.workers || roleInfo.workers.length === 0) {
                 console.log('⚠️ Work: No workers found in role_info');
-                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : 'Cogitarian';
+                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : 'Provisioner';
                 
                 // Reset worker card borders to default when no worker
                 const workerCard = document.querySelector('.role-worker-card');
@@ -1471,7 +2053,8 @@
                 const roleColors = {
                     'greeter': 'var(--role-greeter)',
                     'mapper': 'var(--role-mapper)',
-                    'cogitarian': 'var(--role-cogitarian)'
+                    'cogitarian': 'var(--role-cogitarian)',
+                    'provisioner': 'var(--role-provisioner)'
                 };
                 const roleColor = roleColors[role] || 'var(--role-greeter)';
                 
@@ -1667,6 +2250,21 @@
                 confirmTitle: 'Become Cogitarian (Prime)?',
                 confirmMessage: 'As Cogitarian, you will help foster thoughtful discourse in Reverie House.',
                 activationMessage: 'You are now the active cogitarian!',
+                showExamples: false,
+                getExamples: () => []
+            },
+            provisioner: {
+                title: 'Head of Pantry',
+                description: 'Provisioners are dreamweavers who understand that ease of rest in the waking world eases all manner of dreams across our wild mindscape.<br><br>When another dreamer at Reverie House feels the real pangs of hunger, it is <b>Head of Pantry</b> who will remotely try to ease their burden with food.',
+                exampleLabel: 'Pantry Examples',
+                appPasswordName: 'Head of Pantry',
+                passwordPurpose: 'for managing food assistance',
+                roleName: 'Head of Pantry',
+                roleNameLower: 'provisioner',
+                buttonText: 'BECOME PROVISIONER',
+                confirmTitle: 'Become Head of Pantry?',
+                confirmMessage: 'As Head of Pantry, you will help ease the hunger of dreamers in need.',
+                activationMessage: 'You are now Head of Pantry\nThank you for working!\nPlease stop if it feels like work.',
                 showExamples: false,
                 getExamples: () => []
             }
@@ -1990,10 +2588,12 @@
             }
             
             // Check if user has a different role first
+            // Check if user has a different role
             let userCurrentRole = null;
             if (roleStatuses.greeter && roleStatuses.greeter.is_worker) userCurrentRole = 'greeter';
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) userCurrentRole = 'mapper';
             else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
+            else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) userCurrentRole = 'provisioner';
             
             if (userCurrentRole && userCurrentRole !== role) {
                 const currentRoleConfig = roleConfigs[userCurrentRole];

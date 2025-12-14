@@ -225,12 +225,18 @@ class Sidebar {
                 activeRoles = await rolesResponse.json();
             }
             
-            // Match dreamers with their active roles (working or retiring)
+            // Match dreamers with their active roles. The server may return
+            // different status strings (e.g. 'working' rather than 'active'),
+            // so normalize and accept any reasonable active/retiring values.
+            const acceptedStatuses = new Set(['working', 'active', 'retiring']);
             const workersWithRoles = activeRoles
-                .filter(role => ['active', 'retiring'].includes(role.status))
+                .filter(role => acceptedStatuses.has((role.status || '').toString().toLowerCase()))
                 .map(role => {
-                    const dreamer = allDreamers.find(d => d.did === role.did);
-                    return dreamer ? { ...dreamer, role: role.role } : null;
+                    // role might carry a `did` key or other identifier; be defensive
+                    const roleDid = role.did || role.actor || role.handle || null;
+                    if (!roleDid) return null;
+                    const dreamer = allDreamers.find(d => d.did === roleDid || d.did === roleDid.toString());
+                    return dreamer ? { ...dreamer, role: role.role || role.role_name || role.roleName } : null;
                 })
                 .filter(Boolean);
             
