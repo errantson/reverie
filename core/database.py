@@ -8,6 +8,8 @@ import os
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 from contextlib import contextmanager
+import time
+import functools
 
 import psycopg2
 from psycopg2 import pool
@@ -95,6 +97,33 @@ class DatabaseManager:
         """Return connection to PostgreSQL pool"""
         if self.pg_pool:
             self.pg_pool.putconn(conn)
+
+    def _is_retryable_db_error(self, err: Exception) -> bool:
+        """Return True for SQLSTATEs that should be retried (deadlock/serialization)."""
+        try:
+            code = getattr(err, 'pgcode', None)
+            return code in ('40P01', '40001')
+        except Exception:
+            return False
+
+    def _retry_on_deadlock(self, func):
+        """Decorator to retry DB operations on deadlock/serialization failures."""
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            self = args[0]
+            max_retries = 3
+            backoff = 0.1
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except psycopg2.Error as e:
+                    if self._is_retryable_db_error(e) and attempt < max_retries - 1:
+                        sleep_time = backoff * (2 ** attempt)
+                        logger.warning(f"Transient DB error (attempt {attempt+1}/{max_retries}), retrying in {sleep_time:.2f}s: {e}")
+                        time.sleep(sleep_time)
+                        continue
+                    raise
+        return wrapper
     
     @contextmanager
     def get_connection(self):
@@ -160,73 +189,80 @@ class DatabaseManager:
         Returns:
             cursor object (note: invalidated when connection returns to pool)
         """
-        conn = self._get_connection()
-        
-        try:
-            cursor = conn.cursor()
-            query = self._normalize_query(query)
-            cursor.execute(query, params)
-            
-            if autocommit:
-                conn.commit()
-            
-            # Return cursor but warn that it's ephemeral
-            return cursor
-        except Exception as e:
-            if autocommit:
-                conn.rollback()
-            logger.error(f"Query execution error: {e}")
-            raise
-        finally:
-            self._return_connection(conn)
+        def _op(self, query: str, params: Tuple = (), autocommit: bool = True):
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                query = self._normalize_query(query)
+                cursor.execute(query, params)
+
+                if autocommit:
+                    conn.commit()
+
+                return cursor
+            except Exception as e:
+                if autocommit:
+                    conn.rollback()
+                logger.error(f"Query execution error: {e}")
+                raise
+            finally:
+                self._return_connection(conn)
+
+        return self._retry_on_deadlock(_op)(self, query, params, autocommit)
     
     def fetch_one(self, query: str, params: Tuple = ()):
         """Execute a SELECT query and return one row (or None)"""
-        conn = self._get_connection()
-        
-        try:
-            cursor = conn.cursor()
-            query = self._normalize_query(query)
-            cursor.execute(query, params)
-            result = cursor.fetchone()
-            return result
-        except Exception as e:
-            logger.error(f"Query execution error: {e}")
-            raise
-        finally:
-            self._return_connection(conn)
+        def _op(self, query: str, params: Tuple = ()): 
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                query = self._normalize_query(query)
+                cursor.execute(query, params)
+                result = cursor.fetchone()
+                return result
+            except Exception as e:
+                logger.error(f"Query execution error: {e}")
+                raise
+            finally:
+                self._return_connection(conn)
+
+        return self._retry_on_deadlock(_op)(self, query, params)
     
     def fetch_all(self, query: str, params: Tuple = ()):
         """Execute a SELECT query and return all rows"""
-        conn = self._get_connection()
-        
-        try:
-            cursor = conn.cursor()
-            query = self._normalize_query(query)
-            cursor.execute(query, params)
-            results = cursor.fetchall()
-            return results
-        except Exception as e:
-            logger.error(f"Query execution error: {e}")
-            raise
-        finally:
-            self._return_connection(conn)
+        def _op(self, query: str, params: Tuple = ()): 
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                query = self._normalize_query(query)
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+                return results
+            except Exception as e:
+                logger.error(f"Query execution error: {e}")
+                raise
+            finally:
+                self._return_connection(conn)
+
+        return self._retry_on_deadlock(_op)(self, query, params)
     
     def execute_many(self, query: str, params_list: List[Tuple]) -> None:
         """Execute query multiple times with different parameters (transactional)"""
-        conn = self._get_connection()
-        
-        try:
-            cursor = conn.cursor()
-            query = self._normalize_query(query)
-            cursor.executemany(query, params_list)
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Batch execution error: {e}")
-            raise
-        finally:
-            self._return_connection(conn)
+        def _op(self, query: str, params_list: List[Tuple]) -> None:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                query = self._normalize_query(query)
+                cursor.executemany(query, params_list)
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Batch execution error: {e}")
+                raise
+            finally:
+                self._return_connection(conn)
+
+        return self._retry_on_deadlock(_op)(self, query, params_list)
     
     def insert(self, query: str, params: Tuple = ()) -> Optional[int]:
         """
@@ -238,26 +274,28 @@ class DatabaseManager:
                 (did, name)
             )
         """
-        conn = self._get_connection()
-        
-        try:
-            cursor = conn.cursor()
-            query = self._normalize_query(query)
-            cursor.execute(query, params)
-            conn.commit()
-            
-            # Try to get RETURNING id if present
-            if cursor.description:
-                row = cursor.fetchone()
-                if row and 'id' in row:
-                    return row['id']
-            return None
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Insert error: {e}")
-            raise
-        finally:
-            self._return_connection(conn)
+        def _op(self, query: str, params: Tuple = ()) -> Optional[int]:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                query = self._normalize_query(query)
+                cursor.execute(query, params)
+                conn.commit()
+
+                # Try to get RETURNING id if present
+                if cursor.description:
+                    row = cursor.fetchone()
+                    if row and 'id' in row:
+                        return row['id']
+                return None
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Insert error: {e}")
+                raise
+            finally:
+                self._return_connection(conn)
+
+        return self._retry_on_deadlock(_op)(self, query, params)
     
     def update(self, query: str, params: Tuple = ()) -> int:
         """
@@ -269,21 +307,23 @@ class DatabaseManager:
                 (new_name, did)
             )
         """
-        conn = self._get_connection()
-        
-        try:
-            cursor = conn.cursor()
-            query = self._normalize_query(query)
-            cursor.execute(query, params)
-            rowcount = cursor.rowcount
-            conn.commit()
-            return rowcount
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Update error: {e}")
-            raise
-        finally:
-            self._return_connection(conn)
+        def _op(self, query: str, params: Tuple = ()) -> int:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                query = self._normalize_query(query)
+                cursor.execute(query, params)
+                rowcount = cursor.rowcount
+                conn.commit()
+                return rowcount
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Update error: {e}")
+                raise
+            finally:
+                self._return_connection(conn)
+
+        return self._retry_on_deadlock(_op)(self, query, params)
     
     def delete(self, query: str, params: Tuple = ()) -> int:
         """
@@ -295,21 +335,23 @@ class DatabaseManager:
                 (cutoff_time,)
             )
         """
-        conn = self._get_connection()
-        
-        try:
-            cursor = conn.cursor()
-            query = self._normalize_query(query)
-            cursor.execute(query, params)
-            rowcount = cursor.rowcount
-            conn.commit()
-            return rowcount
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Delete error: {e}")
-            raise
-        finally:
-            self._return_connection(conn)
+        def _op(self, query: str, params: Tuple = ()) -> int:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                query = self._normalize_query(query)
+                cursor.execute(query, params)
+                rowcount = cursor.rowcount
+                conn.commit()
+                return rowcount
+            except Exception as e:
+                conn.rollback()
+                logger.error(f"Delete error: {e}")
+                raise
+            finally:
+                self._return_connection(conn)
+
+        return self._retry_on_deadlock(_op)(self, query, params)
     
     def close(self) -> None:
         """Close PostgreSQL connection pool"""

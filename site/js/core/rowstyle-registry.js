@@ -133,7 +133,7 @@ const RowStyleRegistry = {
         description: "Enhanced dark smokey animated nightmare with pulsing tension for preparation events",
         category: "special",
         rendering: {
-            cssClasses: ['row-entry', 'event-type-nightmare', 'intensity-special'],
+            cssClasses: ['row-entry', 'event-type-nightmare', 'event-key-prepare', 'intensity-special'],
             cssFiles: ['color-rows.css'],
             cssVariables: [],
             effects: [],
@@ -405,6 +405,28 @@ const RowStyleRegistry = {
             return (event.color_source === 'role' && event.key === 'cogitarian') || (event.type === 'welcome' && event.key === 'cogitarian');
         }
     },
+
+    provisioner: {
+        name: "provisioner",
+        description: "Harvest wheat yellow for provisioner work",
+        category: "role",
+        rendering: {
+            cssClasses: ['row-entry', 'color-role', 'role-provisioner', 'intensity-highlight'],
+            cssFiles: ['color-rows.css', 'roles.css'],
+            cssVariables: ['--role-provisioner', '--role-provisioner-light', '--role-provisioner-medium', '--role-provisioner-dark'],
+            effects: [],
+            appearance: {
+                background: 'Wheat-yellow gradient (warm to light to transparent)',
+                border: '3px solid wheat (--role-provisioner)',
+                color: 'Warm brownish yellow',
+                animation: 'None',
+                special: 'Nourishment and warmth tones for provisioning role'
+            }
+        },
+        matches: (event) => {
+            return (event.color_source === 'role' && event.key === 'provisioner') || (event.type === 'work' && event.key === 'provisioner');
+        }
+    },
     
     // =========================================================================
     // OCTANT STYLES (Generated dynamically)
@@ -491,7 +513,7 @@ function computeRowStyle(event) {
         // User color variations
         'userhigh', 'user',
         // Role styles
-        'greeter', 'mapper', 'cogitarian',
+        'greeter', 'mapper', 'cogitarian', 'provisioner',
         // Octant styles (checked dynamically)
         ...['adaptive', 'chaotic', 'intended', 'prepared', 'contented', 'assertive', 'ordered', 'guarded', 'equilibrium', 'confused', 'singling', 'uncertain']
     ];

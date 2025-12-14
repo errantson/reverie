@@ -34,11 +34,11 @@
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
     <!-- Core utilities (must load first) -->
     <script src="js/core/color-manager.js"></script>
-    <script src="js/core/rowstyle-registry.js"></script>
+    <script src="js/core/rowstyle-registry.js?v=1765642342"></script>
     <script src="js/core/rowstyle-engine.js"></script>
     <script src="js/utils/shadowbox.js"></script>
     <script src="js/widgets/showpost.js"></script>
-    <script src="js/widgets/eventstack.js"></script>
+    <script src="js/widgets/eventstack.js?v=1765642847"></script>
     <script src="js/widgets/header.js" defer></script>
     <script src="js/widgets/drawer.js" defer></script>
 </head>
@@ -767,58 +767,20 @@
                         // Display event with larger text, no truncation
                         displayValue = value || '<span style="color: var(--text-dim);">—</span>';
                     } else if (col === 'uri' && tableName === 'events') {
-                        // Display URI - link to URL if available, otherwise convert to web link
+                        // Display just the final endpoint of the URI as raw characters
                         if (value) {
+                            let endpoint;
+                            // Handle stripe: prefix
                             if (value.startsWith('stripe:')) {
-                                // Stripe session code - link to order page if URL available
-                                const sessionCode = value.substring(7); // Remove "stripe:" prefix
-                                if (row.url && row.url.startsWith('/')) {
-                                    // Link to internal URL (e.g., /order)
-                                    displayValue = `<a href="${row.url}" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${sessionCode}</a>`;
-                                } else {
-                                    // No URL, display as non-clickable text
-                                    displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${sessionCode}</span>`;
-                                }
-                            } else if (value.startsWith('at://')) {
-                                // AT Protocol URI - convert to Bluesky web link
+                                endpoint = value.substring(7); // Remove "stripe:" prefix
+                            } else if (value.includes('/')) {
+                                // Extract last segment from path
                                 const parts = value.split('/');
-                                const endpoint = parts[parts.length - 1] || value;
-                                
-                                // Parse AT URI: at://did:plc:xxx/app.bsky.feed.post/rkey
-                                const match = value.match(/^at:\/\/(did:[^\/]+)\/app\.bsky\.feed\.post\/(.+)$/);
-                                if (match) {
-                                    const did = match[1];
-                                    const rkey = match[2];
-                                    const atUri = value;
-                                    const escapedUri = atUri.replace(/'/g, "\\'");
-                                    displayValue = `<a href="#" onclick="event.stopPropagation(); event.preventDefault(); window.showPost('${escapedUri}'); return false;" style="font-family: monospace; font-size: 0.9em; text-decoration: none; cursor: pointer;">${endpoint}</a>`;
-                                } else {
-                                    // Other AT URIs (like profile/self) - display as text or use row.url if available
-                                    if (row.url && row.url.includes('bsky.app')) {
-                                        const escapedUrl = row.url.replace(/'/g, "\\'");
-                                        displayValue = `<a href="#" onclick="event.stopPropagation(); event.preventDefault(); window.showPost('${escapedUrl}'); return false;" style="font-family: monospace; font-size: 0.9em; text-decoration: none; cursor: pointer;">${endpoint}</a>`;
-                                    } else if (row.url) {
-                                        displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
-                                    } else {
-                                        displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
-                                    }
-                                }
-                            } else if (row.url) {
-                                // URL field exists - link to it directly
-                                const parts = value.split('/');
-                                const endpoint = parts[parts.length - 1] || value;
-                                if (row.url.includes('bsky.app')) {
-                                    const escapedUrl = row.url.replace(/'/g, "\\'");
-                                    displayValue = `<a href="#" onclick="event.stopPropagation(); event.preventDefault(); window.showPost('${escapedUrl}'); return false;" style="font-family: monospace; font-size: 0.9em; text-decoration: none; cursor: pointer;">${endpoint}</a>`;
-                                } else {
-                                    displayValue = `<a href="${row.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-family: monospace; font-size: 0.9em; text-decoration: none;">${endpoint}</a>`;
-                                }
+                                endpoint = parts[parts.length - 1];
                             } else {
-                                // Other URIs - display as non-clickable text
-                                const parts = value.split('/');
-                                const endpoint = parts[parts.length - 1] || value;
-                                displayValue = `<span style="font-family: monospace; font-size: 0.9em; color: var(--text-dim);">${endpoint}</span>`;
+                                endpoint = value;
                             }
+                            displayValue = `<span style="font-family: monospace; font-size: 0.9em;">${endpoint}</span>`;
                         } else {
                             displayValue = '<span style="color: var(--text-dim);">—</span>';
                         }

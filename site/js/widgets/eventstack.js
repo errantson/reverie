@@ -279,8 +279,12 @@ class EventStack {
         // Build the row HTML
         let html = `<div class="${finalRowClass}"${rowStyleAttr}${dataAttrs}>`;
         
-        // Epoch cell (always in same position)
-        html += `<div class="cell epoch">${dateStr}</div>`;
+        // Type cell (before epoch) - better padding
+        const typeDisplay = type ? `<span style="font-size: 0.85em; text-transform: lowercase;">${type}</span>` : '<span>—</span>';
+        html += `<div class="cell type" style="padding-left: 12px; padding-right: 6px;">${typeDisplay}</div>`;
+        
+        // Epoch cell - reduced right margin
+        html += `<div class="cell epoch" style="padding-right: 8px;">${dateStr}</div>`;
         
         // Thread arrow for reactions (positioned before avatar)
         const threadArrowStyle = level > 0 ? ` style="margin-left: ${level * 20}px;"` : '';
@@ -308,6 +312,34 @@ class EventStack {
         const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
         const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
         html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} ${eventSpan}</span></div>`;
+        
+        // Key cell
+        const keyDisplay = key ? `<span style="font-size: 0.85em; font-family: monospace;">${key}</span>` : '<span>—</span>';
+        html += `<div class="cell key">${keyDisplay}</div>`;
+        
+        // URI cell - show just endpoint if relevant
+        let uriDisplay = '';
+        if (uri) {
+            uriDisplay = `<span style="font-size: 0.85em; font-family: monospace;">${uri}</span>`;
+        } else if (url) {
+            // Extract just the path/endpoint from URLs
+            let endpoint = url;
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                try {
+                    const urlObj = new URL(url);
+                    endpoint = urlObj.pathname + urlObj.search + urlObj.hash;
+                    if (!endpoint || endpoint === '/') {
+                        endpoint = urlObj.hostname;
+                    }
+                } catch (e) {
+                    endpoint = url;
+                }
+            }
+            uriDisplay = `<span style="font-size: 0.85em; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;" title="${url}">${endpoint}</span>`;
+        } else {
+            uriDisplay = '<span>—</span>';
+        }
+        html += `<div class="cell uri">${uriDisplay}</div>`;
         
         html += `</div>`;
         
@@ -412,7 +444,7 @@ class EventStack {
         }
         
         // Role events
-        const roleKeys = ['greeter', 'mapper', 'cogitarian', 'architect'];
+        const roleKeys = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'architect'];
         if (type === 'work' || roleKeys.includes(key)) {
             return {
                 source: 'role',
