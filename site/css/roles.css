@@ -23,16 +23,24 @@
     --role-cogitarian-light: rgba(210, 95, 50, 0.12);
     --role-cogitarian-medium: rgba(210, 95, 50, 0.25);
     --role-cogitarian-dark: rgb(160, 70, 35);
+    
+    /* Provisioner - Harvest wheat yellow (nourishment, warmth) */
+    --role-provisioner: rgb(218, 165, 32);
+    --role-provisioner-light: rgba(218, 165, 32, 0.12);
+    --role-provisioner-medium: rgba(218, 165, 32, 0.25);
+    --role-provisioner-dark: rgb(184, 134, 11);
 }
 
 /* Role-specific utility classes */
 .role-bg-greeter { background-color: var(--role-greeter-light) !important; }
 .role-bg-mapper { background-color: var(--role-mapper-light) !important; }
 .role-bg-cogitarian { background-color: var(--role-cogitarian-light) !important; }
+.role-bg-provisioner { background-color: var(--role-provisioner-light) !important; }
 
 .role-text-greeter { color: var(--role-greeter) !important; }
 .role-text-mapper { color: var(--role-mapper) !important; }
 .role-text-cogitarian { color: var(--role-cogitarian) !important; }
+.role-text-provisioner { color: var(--role-provisioner) !important; }
 
 /* Spectrum preview helper text styling moved here so role color tokens are available */
 .spectrum-preview-helper-text {

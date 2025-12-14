@@ -504,6 +504,12 @@
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Apply gold color uniformly to all cells */
+.row-entry.color-souvenir.souvenir-residence .cell,
+.row-entry.color-souvenir.souvenir-residence .cell * {
+    color: inherit;
+}
+
 /* Intense gradient shifting */
 @keyframes residenceGradientShiftIntense {
     0% {

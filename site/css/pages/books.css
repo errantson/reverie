@@ -113,6 +113,9 @@ body.toc-open {
     width: 100%;
     box-sizing: border-box;
 }
+body.reading-mode {
+    background-color: var(--reader-theme-bg);
+}
 body.reading-mode .invite-section {
     display: none !important;
 }
@@ -870,7 +873,7 @@ body.reading-mode .main-content {
 body.reading-mode .chapter-reader {
     max-width: 750px;
     margin: 0 auto 60px auto;
-    padding: 80px 40px 0 40px;
+    padding: 80px 40px 120px 40px;
     background: transparent;
     border: none;
     box-shadow: none;

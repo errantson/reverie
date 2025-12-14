@@ -166,6 +166,12 @@
     font-weight: 600;
 }
 
+/* Apply user color uniformly to all cells */
+.row-entry.color-user .cell,
+.row-entry.color-user .cell * {
+    color: inherit;
+}
+
 /* Fallback for browsers that don't support color-mix */
 @supports not (background: color-mix(in srgb, red, blue)) {
     .color-user.intensity-highlight {
@@ -321,18 +327,17 @@
     }
 }
 
-/* Force white text on all elements with enhanced contrast and proper layering */
-.row-entry.event-type-nightmare.intensity-special,
+/* Apply white uniformly to all cells */
 .row-entry.event-type-nightmare.intensity-special .cell,
-.row-entry.event-type-nightmare.intensity-special .cell.key,
-.row-entry.event-type-nightmare.intensity-special .cell.uri,
-.row-entry.event-type-nightmare.intensity-special .cell *,
-.row-entry.event-type-nightmare.intensity-special a,
-.row-entry.event-type-nightmare.intensity-special span {
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+.row-entry.event-type-nightmare.intensity-special .cell * {
+    color: inherit;
     position: relative;
     z-index: 1;
+}
+
+/* Override grey event text color for nightmare rows (italic event text spans) */
+.row-entry.event-type-nightmare.intensity-special .cell span[style*="font-style: italic"][style*="color: var(--text-secondary)"] {
+    color: inherit !important;
 }
 
 /* Enhanced floating smoke particles with proper layering */
@@ -449,13 +454,10 @@
     }
 }
 
-/* Force muted grey text on child elements with proper layering */
+/* Apply grey uniformly to all cells */
 .row-entry.event-type-dissipate.intensity-faded .cell,
-.row-entry.event-type-dissipate.intensity-faded .cell *,
-.row-entry.event-type-dissipate.intensity-faded a,
-.row-entry.event-type-dissipate.intensity-faded span {
-    color: #888;
-    text-shadow: none;
+.row-entry.event-type-dissipate.intensity-faded .cell * {
+    color: inherit;
     position: relative;
     z-index: 1;
 }
@@ -514,12 +516,10 @@
     font-weight: 600;
 }
 
-/* Force greeter color on child elements */
+/* Apply greeter color uniformly to all cells */
 .row-entry.color-role.role-greeter .cell,
-.row-entry.color-role.role-greeter .cell *,
-.row-entry.color-role.role-greeter a,
-.row-entry.color-role.role-greeter span {
-    color: var(--role-greeter-dark);
+.row-entry.color-role.role-greeter .cell * {
+    color: inherit;
 }
 
 /* Mapper - Natural lime tones */
@@ -553,12 +553,10 @@
     font-weight: 600;
 }
 
-/* Force mapper color on child elements */
+/* Apply mapper color uniformly to all cells */
 .row-entry.color-role.role-mapper .cell,
-.row-entry.color-role.role-mapper .cell *,
-.row-entry.color-role.role-mapper a,
-.row-entry.color-role.role-mapper span {
-    color: var(--role-mapper-dark);
+.row-entry.color-role.role-mapper .cell * {
+    color: inherit;
 }
 
 /* Cogitarian - Orange-red tones */
@@ -589,6 +587,43 @@
     box-shadow: inset 0 0 0 1px var(--role-cogitarian-light);
     color: color-mix(in srgb, var(--role-cogitarian) 90%, #000);
     font-weight: 500;
+}
+
+/* Provisioner - Harvest wheat yellow tones */
+.row-entry.color-role.role-provisioner.intensity-none {
+    border-left: 2px solid var(--role-provisioner);
+    color: color-mix(in srgb, var(--role-provisioner) 80%, #333);
+}
+
+.row-entry.color-role.role-provisioner.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--role-provisioner-medium) 0%,
+        var(--role-provisioner-light) 50%,
+        transparent 100%
+    );
+    border-left: 3px solid var(--role-provisioner);
+    border-right: none;
+    color: var(--role-provisioner-dark);
+}
+
+.row-entry.color-role.role-provisioner.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--role-provisioner-medium) 0%,
+        var(--role-provisioner-light) 100%
+    );
+    border-left: 4px solid var(--role-provisioner);
+    border-right: none;
+    box-shadow: inset 0 0 0 1px var(--role-provisioner-light);
+    color: var(--role-provisioner-dark);
+    font-weight: 600;
+}
+
+/* Apply provisioner color uniformly to all cells */
+.row-entry.color-role.role-provisioner .cell,
+.row-entry.color-role.role-provisioner .cell * {
+    color: inherit;
 }
 
 /* ============================================================================
@@ -626,6 +661,12 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--octant-color, #888) 25%, transparent);
     color: color-mix(in srgb, var(--octant-color, #888) 95%, #000);
     font-weight: 500;
+}
+
+/* Apply octant color uniformly to all cells */
+.row-entry.color-octant .cell,
+.row-entry.color-octant .cell * {
+    color: inherit;
 }
 
 /* Specific octant classes - these set the --octant-color variable */

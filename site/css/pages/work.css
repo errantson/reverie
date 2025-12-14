@@ -513,6 +513,26 @@ body {
     stroke: var(--role-cogitarian);
 }
 
+.role-tab[data-role="provisioner"] {
+    background: var(--role-provisioner);
+    border-color: var(--role-provisioner);
+}
+
+.role-tab[data-role="provisioner"]:hover:not(.active) {
+    background: var(--role-provisioner-dark);
+    border-color: var(--role-provisioner-dark);
+    transform: translateY(-1px);
+}
+
+.role-tab[data-role="provisioner"].active {
+    background: var(--role-provisioner-medium);
+    color: var(--role-provisioner);
+}
+
+.role-tab[data-role="provisioner"].active svg {
+    stroke: var(--role-provisioner);
+}
+
 .role-tab-name {
     font-family: 'Courier New', monospace;
 }
@@ -623,6 +643,11 @@ body[data-current-role="mapper"] .role-title {
 .role-tab[data-role="cogitarian"].active ~ .role-card .role-title,
 body[data-current-role="cogitarian"] .role-title {
     color: var(--role-cogitarian);
+}
+
+.role-tab[data-role="provisioner"].active ~ .role-card .role-title,
+body[data-current-role="provisioner"] .role-title {
+    color: var(--role-provisioner);
 }
 
 /* Right: Current Worker Card */
@@ -1215,6 +1240,11 @@ body[data-current-role="cogitarian"] .role-description b {
     color: var(--role-cogitarian-dark);
 }
 
+.role-tab[data-role="provisioner"].active ~ .role-card .role-description b,
+body[data-current-role="provisioner"] .role-description b {
+    color: var(--role-provisioner-dark);
+}
+
 .role-description u {
     text-decoration: none;
     border-bottom: 2px solid #e0e0e0;
@@ -1231,6 +1261,10 @@ body[data-current-role="mapper"] .role-description u {
 
 body[data-current-role="cogitarian"] .role-description u {
     border-color: var(--role-cogitarian-medium);
+}
+
+body[data-current-role="provisioner"] .role-description u {
+    border-color: var(--role-provisioner-medium);
 }
 
 /* Example Preview Box */
@@ -1416,17 +1450,11 @@ body[data-current-role="cogitarian"] .action-button.primary {
     animation: modalSlideIn 0.3s ease-out;
 }
 
-/* Role-specific modal borders */
-body[data-current-role="greeter"] .modal-content {
-    border-color: var(--role-greeter-medium);
-}
-
-body[data-current-role="mapper"] .modal-content {
-    border-color: var(--role-mapper-medium);
-}
-
-body[data-current-role="cogitarian"] .modal-content {
-    border-color: var(--role-cogitarian-medium);
+/* City Request Modal - Compact Style */
+.city-modal-content {
+    max-width: 380px;
+    padding: 1.5rem;
+    border: 3px solid var(--role-provisioner-medium);
 }
 
 @keyframes modalSlideIn {
@@ -1440,96 +1468,114 @@ body[data-current-role="cogitarian"] .modal-content {
     }
 }
 
-.modal-intro {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #f0f0f0;
-}
-
-.modal-intro strong {
-    font-size: 1.5rem;
-    color: #999;
-    font-family: 'Courier New', monospace;
-}
-
-/* Role-specific modal title colors */
-body[data-current-role="greeter"] .modal-intro strong {
-    color: var(--role-greeter);
-}
-
-body[data-current-role="mapper"] .modal-intro strong {
-    color: var(--role-mapper);
-}
-
-body[data-current-role="cogitarian"] .modal-intro strong {
-    color: var(--role-cogitarian);
-}
-
-.modal-body {
-    margin-bottom: 1.5rem;
-}
-
-.modal-body p {
-    margin: 1rem 0;
-    line-height: 1.6;
-}
-
-.modal-body ol {
-    margin: 1rem 0;
-    padding-left: 1.5rem;
-}
-
-.modal-body ol li {
-    margin: 0.5rem 0;
-    line-height: 1.6;
-}
-
-.form-group {
-    margin: 1.5rem 0;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
+.city-modal-title {
+    font-size: 1.1rem;
     font-weight: 600;
-    color: #333;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
+    color: var(--role-provisioner-dark);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--role-provisioner-light);
     font-family: 'Courier New', monospace;
 }
 
-.form-group input:focus {
+.city-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.city-modal-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--role-provisioner-dark);
+    white-space: nowrap;
+    font-family: 'Courier New', monospace;
+}
+
+.city-modal-header input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid var(--role-provisioner-light);
+    border-radius: 0;
+    font-size: 0.95rem;
+    font-family: 'Courier New', monospace;
+    transition: border-color 0.2s ease;
+}
+
+.city-modal-header input:focus {
     outline: none;
-    border-color: var(--user-color, #734ba1);
+    border-color: var(--role-provisioner);
 }
 
-.small-note {
-    font-size: 0.85rem;
+.city-modal-preview {
+    background: #f9f9f9;
+    border: 2px solid var(--role-provisioner-light);
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.preview-label {
+    font-size: 0.75rem;
+    font-weight: 600;
     color: #666;
-    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.preview-text {
+    font-size: 0.9rem;
     line-height: 1.5;
+    color: #333;
+    font-family: 'Courier New', monospace;
 }
 
-.modal-actions {
-    text-align: center;
+.preview-city {
+    color: var(--role-provisioner);
+    font-weight: 600;
 }
 
-.authorize-btn {
-    width: 100%;
-    margin-bottom: 1rem;
+.preview-handle {
+    color: var(--role-provisioner);
+    font-weight: 600;
 }
 
-.appreciation-text {
-    font-size: 0.85rem;
-    color: #666;
-    font-style: italic;
+.city-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.city-modal-btn {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    border-radius: 0;
+    border: none;
+}
+
+.city-send-btn {
+    background: var(--role-provisioner);
+    color: white;
+}
+
+.city-send-btn:hover {
+    background: var(--role-provisioner-dark);
+    transform: translateY(-1px);
+}
+
+.city-cancel-btn {
+    background: #999;
+    color: white;
+}
+
+.city-cancel-btn:hover {
+    background: #777;
+    transform: translateY(-1px);
 }
 
 /* Loading Overlay */
@@ -1867,3 +1913,107 @@ body[data-current-role="cogitarian"] .modal-intro strong {
     font-style: italic;
     text-align: center;
 }
+
+/* ========================================================================== */
+/* PROVISIONER CONTENT SECTION */
+/* ========================================================================== */
+
+.provisioner-content-container {
+    padding: 1.5rem;
+}
+
+.provisioner-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .provisioner-content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.provisioner-box {
+    background: white;
+    border: 2px solid var(--role-provisioner-medium);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.provisioner-box-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--role-provisioner-dark);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    margin: 0 0 1rem 0;
+    text-align: center;
+}
+
+.provisioner-box-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #555;
+    margin: 0 0 0.75rem 0;
+    flex: 1;
+}
+
+.provisioner-box-text:last-of-type {
+    margin-bottom: 1.25rem;
+}
+
+.provisioner-box-text b {
+    color: var(--role-provisioner-dark);
+    font-weight: 600;
+}
+
+.provisioner-box-text a {
+    color: var(--role-provisioner);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.provisioner-box-text a:hover {
+    color: var(--role-provisioner-dark);
+    text-decoration: underline;
+}
+
+.provisioner-box-button {
+    background: var(--role-provisioner);
+    border: 2px solid var(--role-provisioner);
+    color: white;
+    padding: 0.7rem 1.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.provisioner-box-button svg {
+    flex-shrink: 0;
+}
+
+.provisioner-box-button:hover {
+    background: var(--role-provisioner-dark);
+    border-color: var(--role-provisioner-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+}
+
+.provisioner-box-button:active {
+    transform: translateY(0);
+}
+
+

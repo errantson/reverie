@@ -1,0 +1,197 @@
+/**
+ * Books Color System
+ * 
+ * Standardized color references for each book in the Reverie House library.
+ * These CSS variables define color palettes for book-specific styling.
+ * 
+ * Each book has:
+ * - Primary color (main brand color)
+ * - Secondary color (complementary accent)
+ * - Background color (page/card backgrounds)
+ * - Text color (readable text on backgrounds)
+ * - Light/medium/dark variants for flexible theming
+ */
+
+:root {
+    /* Seeker's Reverie - Purples, powder blues, barely off-white */
+    --book-seeker-primary: rgb(92, 61, 94);           /* Deep purple */
+    --book-seeker-primary-light: rgba(92, 61, 94, 0.12);
+    --book-seeker-primary-medium: rgba(92, 61, 94, 0.25);
+    --book-seeker-primary-dark: rgb(68, 45, 70);
+    
+    --book-seeker-secondary: rgb(140, 180, 210);      /* Powder blue */
+    --book-seeker-secondary-light: rgba(140, 180, 210, 0.12);
+    --book-seeker-secondary-medium: rgba(140, 180, 210, 0.25);
+    --book-seeker-secondary-dark: rgb(100, 140, 170);
+    
+    --book-seeker-bg: rgb(250, 248, 252);             /* Barely off-white with purple tint */
+    --book-seeker-bg-alt: rgb(245, 242, 248);         /* Slightly darker alternative */
+    --book-seeker-text: rgb(45, 35, 50);              /* Dark purple-black for text */
+    --book-seeker-text-light: rgb(100, 85, 110);      /* Lighter purple for secondary text */
+    
+    --book-seeker-accent: rgb(180, 160, 190);         /* Soft lavender accent */
+    --book-seeker-border: rgb(210, 200, 220);         /* Light purple-gray border */
+    
+    /* Princes' Reverie - Crimson reds, deep golds, black accents */
+    --book-princes-primary: rgb(165, 42, 42);         /* Crimson red */
+    --book-princes-primary-light: rgba(165, 42, 42, 0.12);
+    --book-princes-primary-medium: rgba(165, 42, 42, 0.25);
+    --book-princes-primary-dark: rgb(120, 30, 30);
+    
+    --book-princes-secondary: rgb(184, 134, 11);      /* Deep gold */
+    --book-princes-secondary-light: rgba(184, 134, 11, 0.12);
+    --book-princes-secondary-medium: rgba(184, 134, 11, 0.25);
+    --book-princes-secondary-dark: rgb(140, 100, 8);
+    
+    --book-princes-bg: rgb(255, 251, 245);            /* Warm off-white */
+    --book-princes-bg-alt: rgb(250, 245, 238);        /* Warmer alternative */
+    --book-princes-text: rgb(30, 20, 15);             /* Near black with warm tint */
+    --book-princes-text-light: rgb(90, 70, 60);       /* Warm gray for secondary text */
+    
+    --book-princes-accent: rgb(100, 20, 20);          /* Deep crimson accent */
+    --book-princes-black: rgb(20, 15, 15);            /* Black accent */
+    --book-princes-border: rgb(200, 180, 170);        /* Warm gray border */
+}
+
+/* Book-specific utility classes for backgrounds */
+.book-bg-seeker { background-color: var(--book-seeker-bg) !important; }
+.book-bg-seeker-alt { background-color: var(--book-seeker-bg-alt) !important; }
+.book-bg-seeker-primary { background-color: var(--book-seeker-primary-light) !important; }
+
+.book-bg-princes { background-color: var(--book-princes-bg) !important; }
+.book-bg-princes-alt { background-color: var(--book-princes-bg-alt) !important; }
+.book-bg-princes-primary { background-color: var(--book-princes-primary-light) !important; }
+
+/* Book-specific utility classes for text colors */
+.book-text-seeker { color: var(--book-seeker-primary) !important; }
+.book-text-seeker-dark { color: var(--book-seeker-primary-dark) !important; }
+.book-text-seeker-secondary { color: var(--book-seeker-secondary) !important; }
+
+.book-text-princes { color: var(--book-princes-primary) !important; }
+.book-text-princes-dark { color: var(--book-princes-primary-dark) !important; }
+.book-text-princes-secondary { color: var(--book-princes-secondary) !important; }
+
+/* Book-specific utility classes for borders */
+.book-border-seeker { border-color: var(--book-seeker-border) !important; }
+.book-border-princes { border-color: var(--book-princes-border) !important; }
+
+/* Book-themed sections */
+.book-section-seeker {
+    background-color: var(--book-seeker-bg);
+    color: var(--book-seeker-text);
+}
+
+.book-section-princes {
+    background-color: var(--book-princes-bg);
+    color: var(--book-princes-text);
+}
+
+/* Book-themed cards */
+.book-card-seeker {
+    background: var(--book-seeker-bg);
+    border: 2px solid var(--book-seeker-primary);
+    color: var(--book-seeker-text);
+}
+
+.book-card-seeker .card-header {
+    background: var(--book-seeker-primary);
+    color: white;
+}
+
+.book-card-princes {
+    background: var(--book-princes-bg);
+    border: 2px solid var(--book-princes-primary);
+    color: var(--book-princes-text);
+}
+
+.book-card-princes .card-header {
+    background: var(--book-princes-primary);
+    color: white;
+}
+
+/* Book-themed buttons */
+.book-btn-seeker {
+    background: var(--book-seeker-primary);
+    color: white;
+    border: 2px solid var(--book-seeker-primary);
+}
+
+.book-btn-seeker:hover:not(:disabled) {
+    background: var(--book-seeker-primary-dark);
+    border-color: var(--book-seeker-primary-dark);
+}
+
+.book-btn-seeker-outline {
+    background: transparent;
+    color: var(--book-seeker-primary);
+    border: 2px solid var(--book-seeker-primary);
+}
+
+.book-btn-seeker-outline:hover:not(:disabled) {
+    background: var(--book-seeker-primary);
+    color: white;
+}
+
+.book-btn-princes {
+    background: var(--book-princes-primary);
+    color: white;
+    border: 2px solid var(--book-princes-primary);
+}
+
+.book-btn-princes:hover:not(:disabled) {
+    background: var(--book-princes-primary-dark);
+    border-color: var(--book-princes-primary-dark);
+}
+
+.book-btn-princes-outline {
+    background: transparent;
+    color: var(--book-princes-primary);
+    border: 2px solid var(--book-princes-primary);
+}
+
+.book-btn-princes-outline:hover:not(:disabled) {
+    background: var(--book-princes-primary);
+    color: white;
+}
+
+/* Book-themed accents */
+.book-accent-seeker {
+    border-left: 4px solid var(--book-seeker-primary);
+    padding-left: 1rem;
+}
+
+.book-accent-princes {
+    border-left: 4px solid var(--book-princes-primary);
+    padding-left: 1rem;
+}
+
+/* Book-specific TOC styling */
+.book-toc-seeker .toc-chapter {
+    background: var(--book-seeker-bg-alt);
+    border-left: 3px solid var(--book-seeker-secondary);
+}
+
+.book-toc-seeker .toc-chapter:hover {
+    background: var(--book-seeker-primary-light);
+    border-left-color: var(--book-seeker-primary);
+}
+
+.book-toc-seeker .toc-part-header {
+    background: var(--book-seeker-primary);
+    color: white;
+}
+
+.book-toc-princes .toc-chapter {
+    background: var(--book-princes-bg-alt);
+    border-left: 3px solid var(--book-princes-secondary);
+}
+
+.book-toc-princes .toc-chapter:hover {
+    background: var(--book-princes-primary-light);
+    border-left-color: var(--book-princes-primary);
+}
+
+.book-toc-princes .toc-part-header {
+    background: var(--book-princes-primary);
+    color: white;
+}
