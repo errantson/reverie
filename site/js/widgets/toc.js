@@ -117,9 +117,11 @@ class TOC {
                 const chapterFile = row.getAttribute('data-chapter');
                 const chapterTitle = row.getAttribute('data-title');
                 const chapterIndex = row.getAttribute('data-index');
-                let actualIndex = chapterIndex ? parseInt(chapterIndex) : 
-                    this.booksWidget.chapters.findIndex(ch => ch.file === chapterFile);
-                this.booksWidget.loadChapter(chapterFile, chapterTitle, actualIndex);
+                // Navigate to chapter URL and let library widget handle it
+                const bookId = book.id;
+                const folderName = bookId === 'seekers-reverie' ? 'seeker' : 'princes';
+                const chapterId = chapterFile.match(/\d+/)[0];
+                window.location.href = `/books/${folderName}/${chapterId}`;
             });
         });
     }
@@ -142,8 +144,7 @@ class TOC {
                 const bookPath = isPrince ? 'princes' : 'seeker';
                 const url = `/books/${bookPath}/${firstChapter}`;
                 this.close();
-                window.history.pushState({ view: 'chapter', book: book.id, chapter: firstChapter }, '', url);
-                this.booksWidget.handleInitialRoute();
+                window.location.href = url;
             }, 300);
         });
     }

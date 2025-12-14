@@ -24,10 +24,13 @@
     <meta name="twitter:image" content="https://reverie.house/assets/og-image.png">
     
     <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/books.css">
     <link rel="stylesheet" href="/css/pages/books.css">
+    <link rel="stylesheet" href="/css/pages/library.css">
     <link rel="stylesheet" href="/css/widgets/dialogue.css">
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
-    <!-- Core utilities (must load first) -->
+    
+    <!-- Core utilities -->
     <script src="/js/core/world-config-cache.js"></script>
     <script src="/js/core/color-manager.js"></script>
     <script src="/js/utils/shadowbox.js"></script>
@@ -35,196 +38,172 @@
     <script src="/js/widgets/header.js" defer></script>
     <script type="module" src="/js/widgets/oauth-manager.js"></script>
     <script src="/js/widgets/login.js" defer></script>
-    <script src="/js/widgets/toc.js" defer></script>
-    <script src="/js/widgets/bookshelf.js" defer></script>
-    <script src="/js/widgets/library.js" defer></script>
-    <script src="/js/utils/region.js" defer></script>
     <script src="/js/widgets/drawer.js" defer></script>
     <script src="/js/widgets/konami.js" defer></script>
-    <script>
-        async function openRegionalAmazonLink() {
-            const link = await getRegionalAmazonLink();
-            window.open(link, '_blank');
-        }
-    </script>
-    <style>
-        .logo-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 12px 16px;
-            padding-left: 60px;
-            min-width: 140px;
-        }
-        
-        .logo-container img {
-            height: 100px;
-            width: auto;
-            margin-bottom: 4px;
-        }
-        
-        .logo-label {
-            font-size: 0.95em;
-            font-weight: 700;
-            color: #87408d;
-            letter-spacing: 0.1em;
-            padding-bottom: 2px;
-        }
-        
-        .library-description {
-            font-size: 1em;
-            color: #333;
-            line-height: 1.8;
-            max-width: 540px;
-            width: 540px;
-        }
-        
-        .library-description .opening {
-            font-size: 1.1em;
-            font-weight: 500;
-            color: #2c2c2c;
-            display: block;
-            line-height: 1.3;
-        }
-        
-        .library-description .details {
-            font-weight: 400;
-            color: #555;
-            margin-top: 8px;
-            display: block;
-        }
-        
-        .invite-section {
-            background: white;
-            padding: 20px;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            gap: 60px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .toc-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 60px;
-            padding: 40px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .toc-stack > .toc-layout {
-            background: white;
-            border: 2px solid #d0d0d0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            overflow: visible;
-            padding: 20px;
-        }
-    </style>
+    <script src="/js/utils/region.js" defer></script>
+    <script src="/js/widgets/reader.js"></script>
+    <script src="/js/widgets/library.js"></script>
 </head>
 <body>
     <div id="header-container"></div>
     
-    <!-- Full-Screen Background Scene (matches dreamer.html structure) -->
+    <!-- Full-Screen Background Scene -->
     <div class="fullscreen-background">
         <div class="scene-background">
-            <img src="souvenirs/residence/phanera.png" alt="Phanera Background" class="scene-layer background-layer">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera Residence" class="scene-layer background-layer">
         </div>
     </div>
 
-    <!-- Main Content (positioned above background) -->
-    <div class="main-content">
-        <div class="library-section">
-        <!-- Library Header Section -->
-        <div class="invite-section">
-            <div class="logo-container">
-                <img src="/assets/logo.png" alt="Reverie House Logo">
-                <div class="logo-label">LIBRARY</div>
+    <!-- Main Content -->
+    <div class="library-page-container">
+        <!-- Left Sidebar -->
+        <div class="library-sidebar">
+            <!-- Header Section -->
+            <div class="sidebar-header">
+                <img src="/assets/logo.png" alt="Reverie House Logo" class="sidebar-logo">
+                <div class="sidebar-title">
+                    <img src="/assets/icon.png" alt="" class="title-icon">
+                    <h1>LIBRARY</h1>
+                    <img src="/assets/icon_face.png" alt="" class="title-icon">
+                </div>
             </div>
-            <div class="library-description">
-                <span class="opening">
-                    Stories within the Reverie House library are free to enjoy.<br>
-                    Read them, share them, or rewrite them as you please.
-                </span>
-                <span class="details">
-                    These are the collected adventures of our wild mindscape.<br>
-                    They have always belonged to you, dreamweaver.
-                </span>
+
+            <!-- Library Philosophy -->
+            <div class="sidebar-philosophy">
+                <p>Stories within the Reverie House library are free to enjoy.</p>
+                <p>Read them, share them, or rewrite them as you please.</p>
+                <p>These are the collected adventures of our wild mindscape.</p>
+                <p class="emphasis">They have always belonged to you, dreamweaver.</p>
+            </div>
+
+            <!-- View Controls -->
+            <div class="sidebar-controls">
+                <div class="control-label">LIBRARY VIEW</div>
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="bookshelf" onclick="switchView('bookshelf')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="18" rx="2" ry="2"></rect>
+                            <line x1="2" y1="9" x2="22" y2="9"></line>
+                            <line x1="2" y1="15" x2="22" y2="15"></line>
+                        </svg>
+                        <span>Bookshelf</span>
+                    </button>
+                    <button class="view-btn" data-view="list" onclick="switchView('list')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                        <span>Booklist</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="sidebar-links">
+                <div class="links-label">QUICK LINKS</div>
+                <a href="/order" class="sidebar-link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span>Order Print Editions</span>
+                </a>
+                <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" class="sidebar-link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>CC0 License Info</span>
+                </a>
             </div>
         </div>
-        
-        <!-- Reader content area (hidden until chapter is loaded) -->
-        <div class="reader-content" style="display: none;">
-            <!-- Chapter content will be dynamically loaded here by library.js -->
-        </div>
-        
-        <!-- Library TOC view (shown by default) -->
-        <div class="toc-stack" id="toc-container">
-            <!-- TOCs will be rendered here -->
+
+        <!-- Right Content Area -->
+        <div class="library-content">
+            <!-- Bookshelf View -->
+            <div class="bookshelf-view" id="bookshelf-view">
+                <div class="bookshelf-grid" id="bookshelf-grid">
+                    <!-- Books will be rendered here by library2.js -->
+                </div>
+            </div>
+
+            <!-- List View -->
+            <div class="list-view" id="list-view" style="display: none;">
+                <div class="list-container" id="list-container">
+                    <!-- Books will be rendered here by library2.js -->
+                </div>
+            </div>
+
+            <!-- Book Details Panel (overlays on the right) -->
+            <div class="book-details-panel" id="book-details-panel" style="display: none;">
+                <div class="book-details-content">
+                    <button class="close-details-btn" onclick="closeBookDetails()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    
+                    <div class="book-details-header">
+                        <img id="details-cover" src="" alt="Book Cover" class="details-cover">
+                        <div class="details-info">
+                            <h2 id="details-title" class="details-title">Book Title</h2>
+                            <p id="details-author" class="details-author">by Author</p>
+                            <p id="details-synopsis" class="details-synopsis"></p>
+                            
+                            <div class="header-format-buttons">
+                                <button class="order-btn format-print" id="details-btn-print">
+                                    Order Physical Print
+                                </button>
+                                <div class="format-buttons-row">
+                                    <button class="order-btn format-kindle" id="details-btn-kindle">
+                                        Read on Kindle
+                                    </button>
+                                    <button class="order-btn format-epub" id="details-btn-epub">
+                                        Download ePub
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="book-details-body">
+                        <div class="details-section">
+                            <h3>Table of Contents</h3>
+                            <div id="details-toc" class="details-toc">
+                                <!-- TOC will be rendered here -->
+                            </div>
+                        </div>
+
+                        <div class="cc0-notice-full">
+                            All prior editions of texts by errantson are dedicated to you through 
+                            <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0 1.0</a> universal license. 
+                            You may freely adapt or utilize these texts for commercial and/or non-commercial purposes. 
+                            Authorial attribution to <a href="https://reverie.house">reverie.house</a> is appreciated.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Reader View (for chapter reading) - outside library-page-container -->
+    <div class="main-content" style="display: none;">
+        <div id="reader-view" class="reader-content" style="display: none;">
+            <div class="chapter-reader">
+                <div class="chapter-content">
+                    <!-- Chapter content will be loaded here -->
+                </div>
+            </div>
+        </div>
     </div>
-    
+
     <div id="footer-container"></div>
-    
-    <script>
-        // Wait for library.js to load, then initialize
-        window.addEventListener('load', () => {
-            if (!window.BooksWidget) {
-                console.error('BooksWidget not loaded');
-                return;
-            }
-            
-            // Check if we're on a chapter route
-            const path = window.location.pathname;
-            const isChapterRoute = path.match(/^\/books\/(seeker|princes)\/\d+/);
-            
-            if (isChapterRoute) {
-                // We're loading a specific chapter
-                const widget = new BooksWidget();
-                window.booksWidget = widget;
-                
-                // Hide the library TOC view immediately
-                const container = document.getElementById('toc-container');
-                if (container) {
-                    container.style.display = 'none';
-                }
-                
-                // Show the reader view
-                const readerContent = document.querySelector('.reader-content');
-                if (readerContent) {
-                    readerContent.style.display = 'block';
-                }
-                
-                // Hide the library section
-                const librarySection = document.querySelector('.library-section');
-                if (librarySection) {
-                    librarySection.querySelector('.invite-section')?.remove();
-                    librarySection.querySelector('hr')?.remove();
-                }
-                
-                // Initialize the widget which will handle routing
-                widget.init();
-            } else {
-                // We're showing the library view
-                // Create widget but DON'T call init() - we just need the data
-                const widget = new BooksWidget();
-                window.booksWidget = widget;
-                
-                // Check if Bookshelf widget is loaded
-                if (!window.Bookshelf) {
-                    console.error('Bookshelf widget not loaded');
-                    return;
-                }
-                
-                // Create and render bookshelf with complete TOC display
-                const bookshelf = new Bookshelf(widget);
-                bookshelf.render('toc-container');
-                
-                console.log('✅ Library bookshelf rendered');
-            }
-        });
-    </script>
 </body>
 </html>
