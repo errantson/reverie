@@ -267,9 +267,13 @@ def add_first_time_work_canon(db_manager, did, role_name, canon_event, canon_key
         uri = f'/work'
         url = f'https://reverie.house/work'
         
+        # Determine color intensity based on role
+        # 'became X' events get 'special' for mapper, 'highlight' for others
+        color_intensity = 'special' if canon_key == 'mapper' else 'highlight'
+        
         db_manager.execute("""
-            INSERT INTO events (did, epoch, type, event, key, uri, url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO events (did, epoch, type, event, key, uri, url, color_source, color_intensity)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             did,
             epoch,
@@ -277,7 +281,9 @@ def add_first_time_work_canon(db_manager, did, role_name, canon_event, canon_key
             canon_event,
             canon_key,
             uri,
-            url
+            url,
+            'role',
+            color_intensity
         ))
         
         print(f"  ✨ First-time work canon: {canon_event}")
@@ -6307,15 +6313,15 @@ def activate_greeter():
         if use_existing:
             print(f"🔐 Attempting to use existing credentials...")
             existing_cred = db_manager.fetch_one("""
-                SELECT password_hash, pds FROM user_credentials
-                WHERE did = %s AND valid = TRUE
+                SELECT app_password_hash, pds_url FROM user_credentials
+                WHERE did = %s AND is_valid = TRUE
             """, (user_did,))
             if existing_cred:
                 print(f"  ✓ Found existing credentials")
                 # Decrypt encrypted password
-                password_hash = existing_cred['password_hash']  # Encrypted string from DB
+                password_hash = existing_cred['app_password_hash']  # Encrypted string from DB
                 decoded_password = decrypt_password(password_hash)
-                pds = existing_cred['pds']
+                pds = existing_cred['pds_url']
                 
                 # Skip validation, proceed directly to role activation
                 # (credentials already validated when first stored)
@@ -6435,14 +6441,14 @@ def activate_greeter():
             # Update existing credential
             db_manager.execute("""
                 UPDATE user_credentials
-                SET password_hash = %s, pds = %s, valid = TRUE, verified = %s
+                SET app_password_hash = %s, pds_url = %s, is_valid = TRUE, last_verified = CURRENT_TIMESTAMP
                 WHERE did = %s
-            """, (password_hash, pds, int(time.time()), user_did))
+            """, (password_hash, pds, user_did))
             print(f"  ✓ Updated existing credential")
         else:
             # Create new credential
             db_manager.execute("""
-                INSERT INTO user_credentials (did, password_hash, pds, valid)
+                INSERT INTO user_credentials (did, app_password_hash, pds_url, is_valid)
                 VALUES (%s, %s, %s, TRUE)
             """, (user_did, password_hash, pds))
             print(f"  ✓ Created new credential")
@@ -6840,14 +6846,14 @@ def activate_mapper():
         
         # Get existing credentials
         existing_cred = db_manager.fetch_one("""
-            SELECT password_hash FROM user_credentials
-            WHERE did = %s AND valid = TRUE
+            SELECT app_password_hash FROM user_credentials
+            WHERE did = %s AND is_valid = TRUE
         """, (user_did,))
         
         if not existing_cred:
             return jsonify({'error': 'No stored credentials found. Please connect your app password first.'}), 400
         
-        password_hash = existing_cred['password_hash']
+        password_hash = existing_cred['app_password_hash']
         
         # ===== UNIFIED SYSTEM (PRIMARY) =====
         print(f"💾 Updating unified user_roles table...")
@@ -7203,14 +7209,14 @@ def activate_cogitarian():
         
         # Get existing credentials
         existing_cred = db_manager.fetch_one("""
-            SELECT password_hash FROM user_credentials
-            WHERE did = %s AND valid = TRUE
+            SELECT app_password_hash FROM user_credentials
+            WHERE did = %s AND is_valid = TRUE
         """, (user_did,))
         
         if not existing_cred:
             return jsonify({'error': 'No stored credentials found. Please connect your app password first.'}), 400
         
-        password_hash = existing_cred['password_hash']
+        password_hash = existing_cred['app_password_hash']
         
         # ===== UNIFIED SYSTEM (PRIMARY) =====
         print(f"💾 Updating unified user_roles table...")
@@ -7448,6 +7454,477 @@ def step_down_cogitarian():
 
 
 # ============================================================================
+# PROVISIONER WORK ENDPOINTS
+# ============================================================================
+
+@app.route('/api/work/provisioner/status')
+@rate_limit()
+def get_provisioner_status():
+    """Get current provisioner work status for logged-in user"""
+    try:
+        from core.database import DatabaseManager
+        
+        # Get token from Authorization header
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        # Validate token
+        valid, user_did, handle = validate_work_token(token)
+        
+        db_manager = DatabaseManager()
+        row = db_manager.fetch_one("""
+            SELECT workers, status, forced_retirement, worker_limit, created_at, updated_at
+            FROM work 
+            WHERE role = 'provisioner' 
+            LIMIT 1
+        """)
+        
+        if not row:
+            return jsonify({
+                'success': True,
+                'is_worker': False,
+                'current_worker': None,
+                'role_info': None
+            })
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        current_worker = workers[0] if workers else None
+        
+        is_worker = False
+        worker_status = None
+        
+        if user_did and current_worker:
+            is_worker = (user_did == current_worker.get('did'))
+            if is_worker:
+                worker_status = current_worker.get('status', 'working')
+        
+        role_info = {
+            'role': 'provisioner',
+            'status': row['status'],
+            'forced_retirement': row['forced_retirement'],
+            'worker_limit': row['worker_limit'],
+            'workers': workers,
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at']
+        }
+        
+        return jsonify({
+            'success': True,
+            'is_worker': is_worker,
+            'status': worker_status,
+            'forced_retirement': row['forced_retirement'] if is_worker else None,
+            'current_worker': {
+                'did': current_worker['did'],
+                'status': current_worker.get('status', 'working')
+            } if current_worker else None,
+            'role_info': role_info
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/provisioner/activate', methods=['POST'])
+@rate_limit()
+def activate_provisioner():
+    """Activate as provisioner - uses existing credentials from credentials table"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        data = request.get_json() or {}
+        use_existing = data.get('use_existing_credentials', True)
+        
+        print(f"\n{'='*80}")
+        print(f"🌾 PROVISIONER ACTIVATION REQUEST")
+        print(f"{'='*80}")
+        print(f"Session DID: {user_did}")
+        print(f"Session handle: {handle}")
+        print(f"Use existing credentials: {use_existing}")
+        print(f"{'='*80}\n")
+        
+        # Get existing credentials
+        existing_cred = db_manager.fetch_one("""
+            SELECT app_password_hash FROM user_credentials
+            WHERE did = %s AND is_valid = TRUE
+        """, (user_did,))
+        
+        if not existing_cred:
+            return jsonify({'error': 'No stored credentials found. Please connect your app password first.'}), 400
+        
+        password_hash = existing_cred['app_password_hash']
+        
+        # Check for conflicts
+        conflict = db_manager.fetch_one("""
+            SELECT did FROM user_roles
+            WHERE role = 'provisioner' AND status = 'active' AND did != %s
+        """, (user_did,))
+        
+        if conflict:
+            return jsonify({'error': 'Another provisioner is currently active'}), 409
+        
+        # Unified system
+        existing_role = db_manager.fetch_one("""
+            SELECT 1 FROM user_roles WHERE did = %s AND role = 'provisioner'
+        """, (user_did,))
+        
+        if existing_role:
+            db_manager.execute("""
+                UPDATE user_roles
+                SET status = 'active', activated_at = CURRENT_TIMESTAMP, deactivated_at = NULL
+                WHERE did = %s AND role = 'provisioner'
+            """, (user_did,))
+            print(f"  ✓ Reactivated provisioner role")
+        else:
+            db_manager.execute("""
+                INSERT INTO user_roles (did, role, status)
+                VALUES (%s, 'provisioner', 'active')
+            """, (user_did,))
+            print(f"  ✓ Created provisioner role")
+        
+        # Legacy system
+        work_row = db_manager.fetch_one("""
+            SELECT workers, status, forced_retirement FROM work
+            WHERE role = 'provisioner'
+        """)
+        
+        if not work_row:
+            return jsonify({'error': 'Provisioner role not found in work table'}), 404
+        
+        workers = json.loads(work_row['workers']) if work_row['workers'] else []
+        
+        if workers:
+            current_provisioner = workers[0]
+            if current_provisioner['status'] == 'working':
+                return jsonify({'error': 'Another provisioner is currently working.'}), 409
+        
+        new_worker = {
+            'did': user_did,
+            'status': 'working',
+            'passhash': password_hash
+        }
+        
+        updated_workers = [new_worker]
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'provisioner'
+        """, (json.dumps(updated_workers), int(time.time())))
+        
+        # Add first-time work canon
+        add_first_time_work_canon(
+            db_manager, 
+            user_did, 
+            'provisioner',
+            'became Head of Pantry',
+            'provisioner'
+        )
+        
+        print(f"✅ Provisioner activated for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': True,
+            'status': 'working'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/provisioner/set-status', methods=['POST'])
+@rate_limit()
+def set_provisioner_status():
+    """Set provisioner status (working/retiring)"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json()
+        new_status = data.get('status')
+        
+        if new_status not in ['working', 'retiring']:
+            return jsonify({'error': 'Invalid status. Must be "working" or "retiring"'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        print(f"📝 PROVISIONER STATUS CHANGE: {user_did} → {new_status}")
+        
+        # Map legacy status to unified status
+        unified_status = 'active' if new_status == 'working' else 'retiring'
+        
+        # Unified system
+        db_manager.execute("""
+            UPDATE user_roles
+            SET status = %s, last_activity = %s
+            WHERE did = %s AND role = 'provisioner'
+        """, (unified_status, int(time.time()), user_did))
+        print(f"  ✓ Updated unified system status to '{unified_status}'")
+        
+        # Legacy system
+        cursor = db_manager.execute("SELECT workers FROM work WHERE role = 'provisioner'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Provisioner role not found'}), 404
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        updated = False
+        for worker in workers:
+            if worker['did'] == user_did:
+                worker['status'] = new_status
+                updated = True
+                break
+        
+        if not updated:
+            return jsonify({'error': 'You are not the current provisioner'}), 403
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'provisioner'
+        """, (json.dumps(workers), int(time.time())))
+        
+        return jsonify({
+            'success': True,
+            'status': new_status
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/provisioner/step-down', methods=['POST'])
+@rate_limit()
+def step_down_provisioner():
+    """Step down as provisioner"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        print(f"📝 PROVISIONER STEP-DOWN: {user_did}")
+        
+        # Unified system
+        db_manager.execute("""
+            UPDATE user_roles
+            SET status = 'inactive', deactivated_at = CURRENT_TIMESTAMP
+            WHERE did = %s AND role = 'provisioner'
+        """, (user_did,))
+        print(f"  ✓ Deactivated provisioner role in unified system")
+        
+        # Legacy system
+        cursor = db_manager.execute("SELECT workers FROM work WHERE role = 'provisioner'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Provisioner role not found'}), 404
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        updated_workers = [w for w in workers if w['did'] != user_did]
+        
+        if len(updated_workers) == len(workers):
+            return jsonify({'error': 'You are not the current provisioner'}), 403
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'provisioner'
+        """, (json.dumps(updated_workers), int(time.time())))
+        print(f"  ✓ Removed from legacy work table")
+        
+        print(f"✅ Provisioner step-down complete for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': False
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/provisioner/send-request', methods=['POST'])
+@rate_limit()
+def send_provisioner_request():
+    """Send food request DM to active provisioner via AT Protocol"""
+    try:
+        from core.database import DatabaseManager
+        from atproto import Client, models
+        
+        # Validate authentication
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, user_handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        # Get request data
+        data = request.json or {}
+        city = (data.get('city') or '').strip()
+        provisioner_did = (data.get('provisioner_did') or '').strip()
+        
+        if not city:
+            return jsonify({'error': 'City is required'}), 400
+        
+        if not provisioner_did:
+            return jsonify({'error': 'Provisioner DID is required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        print(f"📨 [Provisioner Request] {user_did} → {provisioner_did} (city: {city})")
+        
+        # Verify provisioner is active
+        cursor = db_manager.execute("""
+            SELECT status FROM user_roles
+            WHERE did = %s AND role = 'provisioner' AND status = 'active'
+        """, (provisioner_did,))
+        
+        if not cursor.fetchone():
+            return jsonify({'error': 'Provisioner is no longer active'}), 400
+        
+        # Get provisioner's handle for the message
+        cursor = db_manager.execute("""
+            SELECT handle FROM dreamers WHERE did = %s
+        """, (provisioner_did,))
+        
+        prov_row = cursor.fetchone()
+        provisioner_handle = prov_row['handle'] if prov_row else 'provisioner'
+        
+        # Get requester's handle and app password
+        if not user_handle:
+            cursor = db_manager.execute("""
+                SELECT handle FROM dreamers WHERE did = %s
+            """, (user_did,))
+            req_row = cursor.fetchone()
+            user_handle = req_row['handle'] if req_row else 'dreamer'
+        
+        # For DM sending, we'll use the OAuth access token directly
+        # The user is already authenticated via OAuth, so we can use their session
+        try:
+            # Create AT Protocol client using the OAuth token
+            # The token from validate_work_token is the OAuth JWT
+            client = Client()
+            
+            # Use the token directly - it's the accessJwt from OAuth
+            print(f"🔐 Using OAuth session for {user_handle} to send DM...")
+            
+            # We need to set the session manually since we have the JWT
+            # The AT Protocol SDK expects us to login, but we already have the token
+            # So we'll use a workaround: login with the stored credentials if available,
+            # or guide the user to create an app password
+            
+            # Check if user has stored credentials
+            cursor = db_manager.execute("""
+                SELECT app_password_hash, pds_url FROM user_credentials
+                WHERE did = %s
+            """, (user_did,))
+            
+            cred_row = cursor.fetchone()
+            
+            if not cred_row or not cred_row['app_password_hash']:
+                return jsonify({
+                    'error': 'App password required. Please create an app password to enable direct messaging.',
+                    'needs_credentials': True
+                }), 400
+            
+            encrypted_password = cred_row['app_password_hash']
+            
+            # Decrypt the app password
+            app_password = decrypt_password(encrypted_password)
+            
+            # Create AT Protocol client and login as the requester
+            print(f"🔐 Logging in as {user_handle} to send DM...")
+            client.login(user_handle, app_password)
+            
+            # Create chat proxy client
+            dm_client = client.with_bsky_chat_proxy()
+            dm = dm_client.chat.bsky.convo
+            
+            # Get or create conversation with the provisioner
+            print(f"💬 Getting conversation with provisioner {provisioner_did}...")
+            convo = dm.get_convo_for_members(
+                models.ChatBskyConvoGetConvoForMembers.Params(members=[provisioner_did])
+            ).convo
+            
+            # Compose the message
+            message_text = f"Hey @{provisioner_handle}, if you're around to help, I'm in {city} and could use some free food whenever it's available. Thanks in advance!"
+            
+            # Send the message
+            print(f"📤 Sending message to {provisioner_handle}...")
+            message = dm.send_message(
+                models.ChatBskyConvoSendMessage.Data(
+                    convo_id=convo.id,
+                    message=models.ChatBskyConvoDefs.MessageInput(
+                        text=message_text
+                    )
+                )
+            )
+            
+            print(f"✅ Message sent successfully! Message ID: {message.id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Request sent successfully',
+                'convo_id': convo.id
+            })
+            
+        except Exception as auth_error:
+            print(f"❌ AT Protocol error: {auth_error}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Failed to send message: {str(auth_error)}'}), 500
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
 # USER CREDENTIALS & ROLES API (Phase 2: Unified App Password System)
 # ============================================================================
 
@@ -7466,25 +7943,48 @@ def connect_user_credentials():
         import base64
         import re
         
+        print(f"\n{'='*80}")
+        print(f"🔐 CREDENTIALS CONNECT REQUEST")
+        print(f"{'='*80}")
+        
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        print(f"🔑 Token received: {token[:20] + '...' if token else 'NONE'}")
+        
         if not token:
+            print(f"❌ No authorization token provided")
             return jsonify({'error': 'No authorization token provided'}), 401
         
         # Validate token (supports both admin sessions and OAuth tokens)
         valid, user_did, handle = validate_work_token(token)
+        print(f"🔍 Token validation result:")
+        print(f"   - Valid: {valid}")
+        print(f"   - User DID: {user_did}")
+        print(f"   - Handle: {handle}")
+        
         if not valid or not user_did:
+            print(f"❌ Invalid or expired token")
             return jsonify({'error': 'Invalid or expired token'}), 401
         
         # Get app password from request
         data = request.get_json()
+        print(f"📦 Request data received: {bool(data)}")
+        print(f"   - Has 'app_password': {'app_password' in data if data else False}")
+        
         if not data or 'app_password' not in data:
+            print(f"❌ app_password required but not provided")
             return jsonify({'error': 'app_password required'}), 400
         
         app_password = data['app_password'].strip()
+        print(f"🔑 App password received:")
+        print(f"   - Original length: {len(data['app_password'])}")
+        print(f"   - After strip length: {len(app_password)}")
+        print(f"   - Format preview: {app_password[:4] if len(app_password) >= 4 else app_password}****")
         
         # Format password (add dashes if missing, normalize to lowercase)
         app_password = app_password.replace(' ', '').replace('-', '').lower()
+        print(f"   - After formatting length: {len(app_password)}")
+        print(f"   - Contains only alphanumeric: {app_password.isalnum()}")
         
         # Validate length first
         if len(app_password) != 16:
@@ -7515,10 +8015,17 @@ def connect_user_credentials():
         
         print(f"🔐 Connecting app password for {user_handle} ({user_did})")
         
-        # Check if credential already exists
-        existing = db_manager.fetch_one("SELECT 1 FROM user_credentials WHERE did = %s", (user_did,))
-        if existing:
+        # Check if credential already exists and is valid
+        existing = db_manager.fetch_one("""
+            SELECT is_valid FROM user_credentials WHERE did = %s
+        """, (user_did,))
+        
+        if existing and existing.get('is_valid'):
+            print(f"⚠️ Valid credential already exists, user should disconnect first")
             return jsonify({'error': 'App password already connected. Disconnect first to update.'}), 409
+        
+        if existing:
+            print(f"🔄 Existing credential found but invalid (is_valid={existing.get('is_valid')}), will update")
         
         # Validate password with WorkerNetworkClient
         try:
@@ -7572,22 +8079,55 @@ def connect_user_credentials():
         from datetime import datetime
         pds = worker_client.pds or 'https://bsky.social'  # Set by authenticate(), fallback to bsky.social
         
-        print(f"✅ Storing credentials - PDS: {pds}")
+        print(f"💾 Storing credentials to database:")
+        print(f"   - DID: {user_did}")
+        print(f"   - PDS: {pds}")
+        print(f"   - Encrypted password length: {len(encrypted_password)}")
         
         db_manager.execute("""
-            INSERT INTO user_credentials (did, password_hash, pds, verified, valid)
-            VALUES (%s, %s, %s, EXTRACT(epoch FROM CURRENT_TIMESTAMP)::INTEGER, TRUE)
+            INSERT INTO user_credentials (did, app_password_hash, pds_url, last_verified, is_valid)
+            VALUES (%s, %s, %s, CURRENT_TIMESTAMP, TRUE)
             ON CONFLICT (did) DO UPDATE SET
-                password_hash = EXCLUDED.password_hash,
-                pds = EXCLUDED.pds,
-                verified = EXCLUDED.verified,
-                valid = TRUE
+                app_password_hash = EXCLUDED.app_password_hash,
+                pds_url = EXCLUDED.pds_url,
+                last_verified = EXCLUDED.last_verified,
+                is_valid = TRUE
         """, (user_did, encrypted_password, pds))
+        
+        print(f"✅ Database INSERT/UPDATE completed")
         
         # Auto-committed by DatabaseManager
         
+        # Verify it was stored
+        verify_cred = db_manager.fetch_one("""
+            SELECT did, app_password_hash, pds_url, is_valid, last_verified
+            FROM user_credentials
+            WHERE did = %s
+        """, (user_did,))
+        
+        print(f"🔍 Verification query result:")
+        if verify_cred:
+            print(f"   ✅ Record exists in database")
+            print(f"   - DID: {verify_cred['did']}")
+            print(f"   - app_password_hash length: {len(verify_cred['app_password_hash']) if verify_cred['app_password_hash'] else 0}")
+            print(f"   - pds_url: {verify_cred['pds_url']}")
+            print(f"   - is_valid: {verify_cred['is_valid']}")
+            print(f"   - last_verified: {verify_cred['last_verified']}")
+        else:
+            print(f"   ❌ Record NOT found in database after insert!")
+        
         # Return available roles
         roles_available = ['greeter']  # Future: add 'moderator', etc.
+        
+        response_data = {
+            'success': True,
+            'connected': True,
+            'roles_available': roles_available
+        }
+        
+        print(f"✅ Returning success response:")
+        print(f"   {response_data}")
+        print(f"{'='*80}\n")
         
         audit_log(
             event_type='credentials_connected',
@@ -7599,15 +8139,13 @@ def connect_user_credentials():
             user_agent=request.headers.get('User-Agent')
         )
         
-        return jsonify({
-            'success': True,
-            'connected': True,
-            'roles_available': roles_available
-        })
+        return jsonify(response_data)
         
     except Exception as e:
+        print(f"❌ Exception in connect_user_credentials:")
         import traceback
         traceback.print_exc()
+        print(f"{'='*80}\n")
         return jsonify({'error': str(e)}), 500
 
 
@@ -7622,51 +8160,94 @@ def get_credentials_status():
     try:
         from core.database import DatabaseManager
         
+        print(f"\n{'='*80}")
+        print(f"📊 CREDENTIALS STATUS CHECK")
+        print(f"{'='*80}")
+        
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        print(f"🔐 Token received: {token[:20] + '...' if token else 'NONE'}")
+        
         if not token:
+            print(f"❌ No authorization token provided")
             return jsonify({'error': 'No authorization token provided'}), 401
         
         # Validate token (supports both admin sessions and OAuth tokens)
         valid, user_did, handle = validate_work_token(token)
+        print(f"🔍 Token validation result:")
+        print(f"   - Valid: {valid}")
+        print(f"   - User DID: {user_did}")
+        print(f"   - Handle: {handle}")
+        
         if not valid or not user_did:
+            print(f"❌ Invalid or expired token")
             return jsonify({'error': 'Invalid or expired token'}), 401
         
         # Check credential
         db_manager = DatabaseManager()
+        print(f"🗄️ Querying user_credentials for DID: {user_did}")
+        
         cred = db_manager.fetch_one("""
-            SELECT verified, valid, is_valid, pds, pds_url, created_at, app_password_hash
+            SELECT last_verified, is_valid, pds_url, created_at, app_password_hash
             FROM user_credentials
             WHERE did = %s
         """, (user_did,))
         
+        print(f"📦 Database query result:")
+        if cred:
+            print(f"   - Record found: YES")
+            print(f"   - app_password_hash exists: {cred.get('app_password_hash') is not None}")
+            print(f"   - app_password_hash length: {len(cred.get('app_password_hash', ''))}")
+            print(f"   - is_valid: {cred.get('is_valid')}")
+            print(f"   - pds_url: {cred.get('pds_url')}")
+            print(f"   - last_verified: {cred.get('last_verified')}")
+            print(f"   - created_at: {cred.get('created_at')}")
+        else:
+            print(f"   - Record found: NO")
+        
         if not cred:
-            return jsonify({
+            response_data = {
                 'connected': False,
                 'roles_available': ['greeter']
-            })
+            }
+            print(f"✅ Returning (no credentials):")
+            print(f"   {response_data}")
+            print(f"{'='*80}\n")
+            return jsonify(response_data)
         
         # Check if credentials are valid and password exists
-        # Both valid columns should be TRUE and app_password_hash should exist and be non-empty
         has_valid_credentials = (
             cred.get('app_password_hash') is not None and
             bool(cred.get('app_password_hash')) and  # Not empty string
-            cred.get('is_valid', False) and 
-            cred.get('valid', False)
+            cred.get('is_valid', False)
         )
         
-        return jsonify({
+        print(f"🔍 Credential validation:")
+        print(f"   - app_password_hash is not None: {cred.get('app_password_hash') is not None}")
+        print(f"   - app_password_hash bool: {bool(cred.get('app_password_hash'))}")
+        print(f"   - is_valid: {cred.get('is_valid', False)}")
+        print(f"   - FINAL has_valid_credentials: {has_valid_credentials}")
+        
+        response_data = {
             'connected': has_valid_credentials,
-            'verified': cred['verified'],
+            'verified': cred['last_verified'],
             'valid': has_valid_credentials,
-            'pds': cred.get('pds_url') or cred.get('pds'),
+            'pds': cred.get('pds_url'),
             'created_at': cred['created_at'],
             'roles_available': ['greeter'] if has_valid_credentials else []
-        })
+        }
+        
+        print(f"✅ Returning response:")
+        print(f"   {response_data}")
+        print(f"{'='*80}\n")
+        
+        return jsonify(response_data)
         
     except Exception as e:
+        print(f"❌ Exception in get_credentials_status:")
         import traceback
         traceback.print_exc()
+        print(f"{'='*80}\n")
         return jsonify({'error': str(e)}), 500
 
 
