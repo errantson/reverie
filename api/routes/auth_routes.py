@@ -48,19 +48,20 @@ def rate_limit(requests_per_minute=100):
 @bp.route('/reverie-login', methods=['POST'])
 def reverie_login():
     """
-    Smart authentication for .reverie.house handles:
-    - First tries PDS authentication (for real reverie.house accounts)
-    - If account is hosted elsewhere (e.g., bsky.social with .reverie.house handle),
-      falls back to OAuth flow
+    Smart authentication for all PDS types:
+    - reverie.house PDS: Direct authentication to reverie.house
+    - Foreign PDS: Direct authentication to their PDS
+    - bsky.network: Requires OAuth (handled client-side)
     
     Expects: {
-        "handle": "username.reverie.house",
-        "password": "app-password"  (optional if using OAuth fallback)
+        "handle": "username.domain",
+        "password": "app-password",
+        "foreign_pds": "https://pds.example.com"  (optional, for foreign PDS)
     }
     
     Returns: {
         "success": true,
-        "method": "pds" | "oauth",  // Which auth method succeeded
+        "method": "pds" | "foreign-pds",
         "session": {...},
         "redirect": "/dreamers?name=..." | null
     }
@@ -69,11 +70,12 @@ def reverie_login():
         data = request.get_json()
         handle = data.get('handle', '').strip().lower()
         password = data.get('password', '')
+        foreign_pds = data.get('foreign_pds')  # Foreign PDS endpoint if provided
         
         if not handle:
             return jsonify({'error': 'Handle required'}), 400
         
-        print(f"Reverie login attempt: handle={handle}")
+        print(f"Login attempt: handle={handle}, foreign_pds={foreign_pds}")
         
         # Resolve handle to DID and check PDS service endpoint
         import requests
@@ -96,10 +98,19 @@ def reverie_login():
         
         # Step 2: Fetch DID document to find PDS service endpoint
         try:
-            did_doc_response = requests.get(
-                f"https://plc.directory/{did}",
-                timeout=30
-            )
+            # did:web DIDs are resolved from the domain's .well-known directory
+            if did.startswith('did:web:'):
+                domain = did.replace('did:web:', '')
+                did_doc_url = f"https://{domain}/.well-known/did.json"
+                print(f"Resolving did:web from {did_doc_url}")
+                did_doc_response = requests.get(did_doc_url, timeout=30)
+            else:
+                # did:plc DIDs are resolved from PLC directory
+                did_doc_response = requests.get(
+                    f"https://plc.directory/{did}",
+                    timeout=30
+                )
+            
             if did_doc_response.status_code != 200:
                 return jsonify({'error': 'DID document not found'}), 404
             
@@ -111,32 +122,53 @@ def reverie_login():
             print(f"DID document fetch error: {e}")
             return jsonify({'error': 'Unable to fetch account information'}), 400
         
-        # Step 3: Validate it's a reverie.house PDS account
-        if service_endpoint != 'https://reverie.house':
-            print(f"Account is not on reverie.house PDS (endpoint: {service_endpoint})")
+        # Step 3: Determine which PDS to authenticate against
+        # Use foreign_pds if provided and matches service_endpoint, otherwise use service_endpoint
+        if foreign_pds:
+            # Foreign PDS authentication
+            if foreign_pds != service_endpoint:
+                print(f"Warning: Provided foreign_pds {foreign_pds} doesn't match service endpoint {service_endpoint}")
+                # Use the one from DID document as source of truth
+                pds = service_endpoint
+            else:
+                pds = foreign_pds
+            auth_method = 'foreign-pds'
+            print(f"🌍 Attempting foreign PDS authentication at {pds}")
+        elif service_endpoint == 'https://reverie.house':
+            # Reverie.house PDS authentication
+            pds = service_endpoint
+            auth_method = 'pds'
+            print(f"🏠 Attempting reverie.house PDS authentication")
+        elif service_endpoint.startswith('https://') and 'bsky.network' in service_endpoint:
+            # bsky.network requires OAuth (shouldn't reach here from frontend)
+            print(f"Account is on bsky.network - OAuth required")
+            return jsonify({'error': 'oauth_required'}), 403
+        else:
+            # Other PDS without foreign_pds parameter means something is wrong
+            print(f"Account is on {service_endpoint} but no foreign_pds parameter provided")
             return jsonify({'error': 'oauth_required'}), 403
         
-        # Step 3.5: Check if account is deactivated BEFORE attempting PDS auth
+        # Step 3.5: For reverie.house accounts, check if deactivated BEFORE attempting PDS auth
         import sys
         import os
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from core.database import DatabaseManager
         
         db = DatabaseManager()
-        cursor = db.execute("""
-            SELECT deactivated 
-            FROM dreamers 
-            WHERE did = %s
-        """, (did,))
-        dreamer = cursor.fetchone()
         
-        if dreamer and dreamer.get('deactivated'):
-            print(f"❌ Login blocked: Account {handle} is deactivated")
-            return jsonify({'error': 'Account has been deactivated'}), 403
+        if auth_method == 'pds':  # Only check deactivation for reverie.house accounts
+            cursor = db.execute("""
+                SELECT deactivated 
+                FROM dreamers 
+                WHERE did = %s
+            """, (did,))
+            dreamer = cursor.fetchone()
+            
+            if dreamer and dreamer.get('deactivated'):
+                print(f"❌ Login blocked: Account {handle} is deactivated")
+                return jsonify({'error': 'Account has been deactivated'}), 403
         
         # Try PDS authentication
-        pds = "https://reverie.house"
-        
         print(f"🔐 Attempting PDS authentication for {handle} at {pds}")
         
         response = requests.post(
@@ -155,7 +187,7 @@ def reverie_login():
             session_data = response.json()
             print(f"✅ PDS auth successful for {handle} (DID: {session_data['did']})")
             
-            # Get dreamer info from database (deactivation already checked above)
+            # Get dreamer info from database if available
             cursor = db.execute("""
                 SELECT name, avatar, display_name 
                 FROM dreamers 
@@ -194,7 +226,7 @@ def reverie_login():
             
             return jsonify({
                 'success': True,
-                'method': 'pds',
+                'method': auth_method,  # 'pds' or 'foreign-pds'
                 'session': enhanced_session,
                 'token': backend_token,  # Backend session token for authenticated API calls
                 'redirect': redirect_url

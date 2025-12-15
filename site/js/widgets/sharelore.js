@@ -45,58 +45,124 @@ class ShareLore {
         overlay.id = 'shareModalOverlay';
         overlay.innerHTML = `
             <div class="share-modal">
-                <h2 class="share-modal-title">Share Your Dreams</h2>
-                <p>
-                    Submit or select a dream for the communal <b>Reverie House</b> lore:
-                </p>
+                <!-- Close Button -->
+                <button class="share-modal-close" id="closeShareModal" aria-label="Close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
                 
-                <!-- Recent Posts Carousel -->
-                <div class="share-recent-posts" id="recentPostsCarousel" style="display: none;">
-                    <div class="share-recent-posts-scroll" id="recentPostsScroll">
-                        <!-- Posts will be inserted here -->
-                    </div>
+                <!-- Header Section -->
+                <div class="share-modal-header">
+                    <h2 class="share-modal-title">Share Your Dreams</h2>
+                    <p class="share-modal-subtitle">
+                        Submit a dream for the communal <strong>Reverie House</strong> lore
+                    </p>
                 </div>
                 
-                <input 
-                    type="text" 
-                    id="postUriInput" 
-                    class="share-modal-input" 
-                    placeholder="https://bsky.app/profile/yourhandle/post/..."
-                />
-                
-                <div class="share-modal-preview" id="postPreview">
-                    <div class="share-modal-preview-header">
-                        <img id="previewAvatar" class="share-modal-preview-avatar" src="" alt="">
-                        <div class="share-modal-preview-author">
-                            <div class="share-modal-preview-name" id="previewName"></div>
-                            <div class="share-modal-preview-handle" id="previewHandle"></div>
+                <!-- Stage 1: Input & Recent Posts -->
+                <div class="share-stage share-stage-input" id="stageInput">
+                    <!-- Recent Posts Section -->
+                    <div class="share-section share-recent-section" id="recentPostsCarousel" style="display: none;">
+                        <label class="share-section-label">Your Recent Posts</label>
+                        <div class="share-recent-posts-scroll" id="recentPostsScroll">
+                            <!-- Posts will be inserted here -->
                         </div>
                     </div>
-                    <div class="share-modal-preview-text" id="previewText"></div>
-                    <img id="previewImage" class="share-modal-preview-image" style="display: none;" src="" alt="">
-                </div>
-                
-                <button class="share-modal-btn" id="submitLabelBtn">
-                    Add to Shared Lore
-                </button>
-                <div class="share-modal-status" id="labelStatus"></div>
-                
-                <!-- Character Application Toggle -->
-                <div class="share-character-section" id="characterSection" style="display: none;">
-                    <div class="share-character-row">
-                        <span class="share-character-label">Apply as Character for lore.farm</span>
-                        <label class="character-toggle">
-                            <input type="checkbox" 
-                                   id="registerCharacterCheck" 
-                                   onchange="window.shareLoreWidget.handleCharacterToggle(this.checked)">
-                            <span class="character-toggle-slider"></span>
+                    
+                    <!-- Input Section -->
+                    <div class="share-section">
+                        <label class="share-section-label" for="postUriInput">
+                            Bluesky Post URL
                         </label>
+                        <div class="share-input-wrapper">
+                            <svg class="share-input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                            <input 
+                                type="text" 
+                                id="postUriInput" 
+                                class="share-modal-input" 
+                                placeholder="https://bsky.app/profile/yourhandle/post/..."
+                                autocomplete="off"
+                                spellcheck="false"
+                            />
+                        </div>
                     </div>
-                    <div class="share-modal-status" id="characterStatus"></div>
                 </div>
                 
-                <a class="learn-more-link" id="learnMoreLink">learn more about lore.farm labels</a>
-                <div class="share-modal-close-text" id="closeShareModal">Close</div>
+                <!-- Stage 2: Preview & Actions -->
+                <div class="share-stage share-stage-preview" id="stagePreview" style="display: none;">
+                    <!-- Preview Section -->
+                    <div class="share-section">
+                        <div class="share-preview-card" id="postPreview">
+                            <div class="share-preview-header">
+                                <img id="previewAvatar" class="share-preview-avatar" src="" alt="">
+                                <div class="share-preview-author">
+                                    <div class="share-preview-name" id="previewName"></div>
+                                    <div class="share-preview-handle" id="previewHandle"></div>
+                                </div>
+                            </div>
+                            <div class="share-preview-content">
+                                <div class="share-preview-text" id="previewText"></div>
+                                <img id="previewImage" class="share-preview-image" style="display: none;" src="" alt="">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Status Messages -->
+                    <div class="share-modal-status" id="labelStatus"></div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="share-modal-actions">
+                        <button class="share-back-btn" id="backToInputBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                            Back
+                        </button>
+                        <button class="share-modal-btn share-modal-btn-primary" id="submitLabelBtn">
+                            <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>Add to Shared Lore</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Character Application Section -->
+                    <div class="share-character-section" id="characterSection" style="display: none;">
+                        <div class="share-character-card">
+                            <div class="share-character-content">
+                                <div class="share-character-info">
+                                    <div class="share-character-label">Mark as Persona</div>
+                                    <div class="share-character-description">Note this dreamweaver and their entire history as eligible for lore and canon applications, at the pervue of reverie.house loremasters.</div>
+                                </div>
+                                <label class="character-toggle">
+                                    <input type="checkbox" 
+                                           id="registerCharacterCheck" 
+                                           onchange="window.shareLoreWidget.handleCharacterToggle(this.checked)">
+                                    <span class="character-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="share-modal-status" id="characterStatus"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="share-modal-footer">
+                    <a class="learn-more-link" id="learnMoreLink">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        Learn more about lore.farm labels
+                    </a>
+                </div>
             </div>
         `;
         
@@ -123,6 +189,12 @@ class ShareLore {
             closeBtn.addEventListener('click', () => this.close());
         }
 
+        // Back button
+        const backBtn = document.getElementById('backToInputBtn');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => this.showInputStage());
+        }
+
         // Click outside to close
         const overlay = document.getElementById('shareModalOverlay');
         if (overlay) {
@@ -145,9 +217,84 @@ class ShareLore {
         }
     }
 
+    showInputStage() {
+        const inputStage = document.getElementById('stageInput');
+        const previewStage = document.getElementById('stagePreview');
+        
+        if (inputStage) inputStage.style.display = 'block';
+        if (previewStage) previewStage.style.display = 'none';
+        
+        // Clear input
+        const input = document.getElementById('postUriInput');
+        if (input) input.value = '';
+        
+        // Reset state
+        this.hasValidPreview = false;
+        this.currentPostAuthorDid = null;
+    }
+
+    async showPreviewStage() {
+        const inputStage = document.getElementById('stageInput');
+        const previewStage = document.getElementById('stagePreview');
+        
+        if (inputStage) inputStage.style.display = 'none';
+        if (previewStage) previewStage.style.display = 'block';
+        
+        // Check character status and hide toggle if already registered
+        await this.checkAndUpdateCharacterSection();
+        
+        // Apply user color to modal
+        this.applyUserColor();
+    }
+
     loadPreferences() {
         // Load character registration status when modal opens
         this.loadCharacterStatus();
+    }
+    
+    async checkAndUpdateCharacterSection() {
+        try {
+            const session = window.oauthManager ? window.oauthManager.getSession() : null;
+            if (!session?.did) {
+                // Not logged in, hide character section
+                const characterSection = document.getElementById('characterSection');
+                if (characterSection) characterSection.style.display = 'none';
+                return;
+            }
+            
+            // Check if user is already registered as a character
+            const response = await fetch('/api/dreamers');
+            if (!response.ok) return;
+            
+            const dreamers = await response.json();
+            const userDreamer = dreamers.find(d => d.did === session.did);
+            
+            const characterSection = document.getElementById('characterSection');
+            if (!characterSection) return;
+            
+            // Only show character section if user is NOT already registered
+            if (userDreamer && userDreamer.display_name) {
+                characterSection.style.display = 'none';
+                console.log('✅ [Share] User already registered as character, hiding toggle');
+            } else {
+                characterSection.style.display = 'block';
+                console.log('ℹ️ [Share] User not registered, showing character toggle');
+            }
+        } catch (error) {
+            console.error('Failed to check character status:', error);
+        }
+    }
+    
+    applyUserColor() {
+        // Get user color from color manager if available
+        const userColor = window.colorManager?.color || window.colorManager?.getColor?.() || '#556C53';
+        if (userColor) {
+            const modal = document.querySelector('.share-modal');
+            if (modal) {
+                modal.style.setProperty('--user-color', userColor);
+                console.log('🎨 [Share] Applied user color:', userColor);
+            }
+        }
     }
     
     async loadCharacterStatus() {
@@ -252,28 +399,14 @@ class ShareLore {
             console.log('   Adding "active" class to overlay');
             overlay.classList.add('active');
             
-            // Reset form
-            const input = document.getElementById('postUriInput');
-            if (input) {
-                console.log('   Resetting input field');
-                input.value = '';
-            } else {
-                console.warn('⚠️ [sharelore.js] postUriInput not found');
-            }
+            // Show input stage, hide preview stage
+            this.showInputStage();
             
             // Load recent posts carousel
             this.loadRecentPosts();
             
             // Load character status
             this.loadCharacterStatus();
-            
-            const preview = document.getElementById('postPreview');
-            if (preview) {
-                console.log('   Hiding preview');
-                preview.classList.remove('active');
-            } else {
-                console.warn('⚠️ [sharelore.js] postPreview not found');
-            }
             
             const statusMsg = document.getElementById('labelStatus');
             if (statusMsg) {
@@ -400,6 +533,7 @@ class ShareLore {
                     const input = document.getElementById('postUriInput');
                     if (input) {
                         input.value = url;
+                        // Trigger the input handler which will switch to preview stage
                         this.handlePostUrlInput();
                     }
                 });
@@ -514,7 +648,8 @@ class ShareLore {
                         previewImg.style.display = 'none';
                     }
                     
-                    preview.classList.add('active');
+                    // Switch to preview stage
+                    this.showPreviewStage();
                     
                     // Only enable submit button if the post belongs to the logged-in user
                     if (userDid && this.currentPostAuthorDid === userDid) {
@@ -537,7 +672,6 @@ class ShareLore {
                 }
             } catch (error) {
                 console.error('Error fetching post preview:', error);
-                preview.classList.remove('active');
                 this.hasValidPreview = false;
                 this.currentPostAuthorDid = null;
                 submitBtn.disabled = true;
@@ -654,11 +788,62 @@ class ShareLore {
             });
             
             // Make request to Reverie proxy endpoint
+            // Prefer using the OAuth manager token set (handles refresh/DPoP),
+            // fall back to localStorage admin/oauth tokens.
+            let authHeader = null;
+            try {
+                if (window.oauthManager && typeof window.oauthManager.getTokenSet === 'function') {
+                    const tokenSet = await window.oauthManager.getTokenSet('auto');
+                    if (tokenSet && tokenSet.access_token) {
+                        const type = tokenSet.token_type || 'Bearer';
+                        authHeader = `${type} ${tokenSet.access_token}`;
+                    }
+                }
+            } catch (err) {
+                console.warn('Unable to retrieve token from oauthManager.getTokenSet():', err);
+            }
+
+            if (!authHeader) {
+                // Try conventional localStorage keys used elsewhere in the app
+                const fallback = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token') || localStorage.getItem('reverie_token');
+                if (fallback) authHeader = `Bearer ${fallback}`;
+            }
+
+            if (!authHeader) {
+                throw new Error('Missing OAuth token; please log in again.');
+            }
+
+            // Some server endpoints in this project expect `X-Auth-Token` instead
+            // of or in addition to the Authorization header (see dashboard.js).
+            let xAuthToken = null;
+            try {
+                if (window.oauthManager && typeof window.oauthManager.getAuthToken === 'function') {
+                    xAuthToken = window.oauthManager.getAuthToken();
+                }
+            } catch (err) {
+                console.warn('Error calling oauthManager.getAuthToken():', err);
+            }
+
+            // Fallbacks for X-Auth-Token
+            if (!xAuthToken) {
+                const sessionObj = window.oauthManager ? window.oauthManager.getSession && window.oauthManager.getSession() : null;
+                if (sessionObj && sessionObj.accessJwt) {
+                    xAuthToken = sessionObj.accessJwt;
+                }
+            }
+            if (!xAuthToken) {
+                xAuthToken = localStorage.getItem('reverie_token') || localStorage.getItem('admin_token') || localStorage.getItem('oauth_token') || '';
+            }
+
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (authHeader) headers['Authorization'] = authHeader;
+            if (xAuthToken) headers['X-Auth-Token'] = xAuthToken;
+
             const response = await fetch('/api/lore/apply-label', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify({
                     uri: atUri,
                     userDid: session.did,

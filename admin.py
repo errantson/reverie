@@ -1831,11 +1831,19 @@ def get_souvenirs():
 @rate_limit(10)  # Limit to 10 requests per minute for label applications
 def apply_lore_label():
     """
-    Proxy endpoint to apply labels to lore.farm
-    This handles authentication with lorefarm using the world's lorekey
+    Apply lore label to a post via lore.farm API
+    
+    AUTHENTICATION: Requires valid OAuth token (JWT) from user
+    AUTHORIZATION: User can only label their own posts
+    
+    This endpoint:
+    1. Validates user authentication via OAuth token
+    2. Verifies user is registered in Reverie
+    3. Uses server's lorekey to authenticate with lore.farm
+    4. Applies the lore label to the specified post
     """
     print("=" * 80)
-    print(f"[Lore Label] New request received")
+    print(f"🏷️  [Lore Label] New request received")
     print("=" * 80)
     
     try:
@@ -1844,12 +1852,107 @@ def apply_lore_label():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from core.database import DatabaseManager
         
+        # AUTHENTICATION CHECK: Get token from Authorization header
+        token = None
+        auth_header = request.headers.get('Authorization')
+        cookie_session = request.cookies.get('session')
+        
+        print(f"🔍 [Lore Label] Auth Check:")
+        print(f"   - Authorization header present: {bool(auth_header)}")
+        print(f"   - Session cookie present: {bool(cookie_session)}")
+        
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            auth_method = "OAuth Bearer Token"
+            print(f"   - Auth method: {auth_method}")
+            print(f"   - Token preview: {token[:30]}..." if len(token) > 30 else f"   - Token: {token}")
+        elif cookie_session:
+            token = cookie_session
+            auth_method = "Session Cookie (App Password)"
+            print(f"   - Auth method: {auth_method}")
+            print(f"   - Cookie preview: {cookie_session[:20]}...")
+        else:
+            print(f"❌ [Lore Label] No authentication credentials found")
+            return jsonify({
+                'success': False,
+                'error': 'Authentication required. Please log in.'
+            }), 401
+        
+        # Validate token (supports both admin sessions and OAuth JWT)
+        print(f"🔐 [Lore Label] Validating token using validate_work_token()...")
+        valid, authenticated_did, handle = validate_work_token(token)
+        
+        print(f"📋 [Lore Label] Validation result:")
+        print(f"   - Valid: {valid}")
+        print(f"   - Authenticated DID: {authenticated_did}")
+        print(f"   - Handle: {handle}")
+        
+        if not valid:
+            print(f"❌ [Lore Label] Authentication validation failed")
+            return jsonify({
+                'success': False,
+                'error': 'Invalid token. Please log in again.'
+            }), 401
+        
+        print(f"✅ [Lore Label] Authentication successful - DID: {authenticated_did}")
+        
+        # Load LOREFARM_KEY from environment or file
+        lorefarm_key = os.environ.get('LOREFARM_KEY')
+        if not lorefarm_key:
+            # Try loading from file
+            lorefarm_key_file = os.environ.get('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm_key.txt')
+            print(f"🔍 [Lore Label] No LOREFARM_KEY env var, trying file: {lorefarm_key_file}")
+            try:
+                with open(lorefarm_key_file, 'r') as f:
+                    lorefarm_key = f.read().strip()
+                print(f"✅ [Lore Label] LOREFARM_KEY loaded from file")
+            except FileNotFoundError:
+                print(f"❌ [Lore Label] LOREFARM_KEY file not found: {lorefarm_key_file}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Server configuration error: LOREFARM_KEY missing'
+                }), 500
+            except Exception as e:
+                print(f"❌ [Lore Label] Error reading LOREFARM_KEY file: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Server configuration error: Could not read LOREFARM_KEY'
+                }), 500
+        
+        if not lorefarm_key:
+            print(f"❌ [Lore Label] LOREFARM_KEY is empty")
+            return jsonify({
+                'success': False,
+                'error': 'Server configuration error: LOREFARM_KEY empty'
+            }), 500
+        
+        print(f"✅ [Lore Label] LOREFARM_KEY present (length: {len(lorefarm_key)} chars)")
+        print(f"🔑 [Lore Label] LOREFARM_KEY preview: {lorefarm_key[:15]}...")
+        
+        # Test LOREFARM_KEY against lore.farm API
+        print(f"🔍 [Lore Label] Verifying LOREFARM_KEY with lore.farm API...")
+        try:
+            verify_response = requests.get(
+                'https://lore.farm/api/health',
+                headers={'Authorization': f'Bearer {lorefarm_key}'},
+                timeout=5
+            )
+            print(f"📋 [Lore Label] lore.farm health check: {verify_response.status_code}")
+            if verify_response.status_code == 200:
+                print(f"✅ [Lore Label] LOREFARM_KEY validated successfully")
+            else:
+                print(f"⚠️  [Lore Label] Health check returned status {verify_response.status_code}")
+                print(f"   Response: {verify_response.text[:200]}")
+        except Exception as verify_error:
+            print(f"⚠️  [Lore Label] Could not verify LOREFARM_KEY: {verify_error}")
+            # Continue anyway - the actual label API call will fail if key is invalid
+        
         # Get request data
         data = request.get_json()
         print(f"📦 [Lore Label] Request data received: {data}")
         
         if not data:
-            print(f"[Lore Label] No JSON data in request")
+            print(f"❌ [Lore Label] No JSON data in request")
             return jsonify({
                 'success': False,
                 'error': 'Missing request data'
@@ -1859,19 +1962,39 @@ def apply_lore_label():
         user_did = data.get('userDid')
         label = data.get('label', 'lore:reverie.house')
         
-        print(f"[Lore Label] Parsed fields:")
-        print(f"   URI: {uri}")
-        print(f"   User DID: {user_did}")
-        print(f"   Label: {label}")
+        print(f"📋 [Lore Label] Parsed fields:")
+        print(f"   - URI: {uri}")
+        print(f"   - User DID: {user_did}")
+        print(f"   - Label: {label}")
         
         if not uri or not user_did:
-            print(f"[Lore Label] Missing required fields")
+            print(f"❌ [Lore Label] Missing required fields")
             return jsonify({
                 'success': False,
                 'error': 'Missing required fields: uri, userDid'
             }), 400
         
-        # Verify the user is authenticated and registered
+        # AUTHORIZATION CHECK: User can only label their own posts
+        # (unless admin override)
+        is_admin = (authenticated_did == AUTHORIZED_ADMIN_DID)
+        is_self = (authenticated_did == user_did)
+        
+        if not is_self and not is_admin:
+            print(f"[Lore Label] SECURITY: Authorization failed!")
+            print(f"   Authenticated DID: {authenticated_did}")
+            print(f"   Requested DID: {user_did}")
+            print(f"   Someone tried to label posts for another user!")
+            return jsonify({
+                'success': False,
+                'error': 'You can only label your own posts'
+            }), 403
+        
+        if is_admin and not is_self:
+            print(f"[Lore Label] Admin override: {authenticated_did} labeling for {user_did}")
+        
+        print(f"[Lore Label] Authorization passed (is_self: {is_self}, is_admin: {is_admin})")
+        
+        # Verify the user is registered in Reverie
         print(f"[Lore Label] Checking if user is registered...")
         db = DatabaseManager()
         cursor = db.execute("SELECT * FROM dreamers WHERE did = %s", (user_did,))
@@ -1908,14 +2031,15 @@ def apply_lore_label():
         
         print(f"[Lore Label] LOREFARM_KEY configured")
         
-        # Make request to lore.farm using the legacy /api/labels endpoint
+        # Prepare request to lore.farm API
+        # Try modern endpoint first, fall back to legacy if needed
         lorefarm_url = 'https://lore.farm/api/labels'
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {lorekey}'
         }
         
-        # Use lorefarm's legacy endpoint field names
+        # Prepare payload with correct field names for lore.farm API
         payload = {
             'post_uri': uri,
             'label_value': label,
@@ -1927,7 +2051,7 @@ def apply_lore_label():
         print(f"   Payload: {payload}")
         print(f"   Auth header: Bearer {lorekey[:10]}...")
         
-        # Log the label application attempt
+        # Log the label application attempt to audit log
         try:
             audit_log(
                 event_type='lore_label_apply',
@@ -1937,54 +2061,89 @@ def apply_lore_label():
                 response_status=0,  # Will update after response
                 user_did=user_did,
                 user_agent=request.headers.get('User-Agent'),
-                extra_data=json.dumps({'uri': uri, 'label': label})
+                extra_data=json.dumps({
+                    'uri': uri,
+                    'label': label,
+                    'authenticated_did': authenticated_did
+                })
             )
             print(f"[Lore Label] Audit log entry created")
         except Exception as e:
             print(f"[Lore Label] Failed to log audit entry: {e}")
         
-        response = requests.post(lorefarm_url, json=payload, headers=headers, timeout=10)
+        # Make request to lore.farm
+        response = requests.post(
+            lorefarm_url,
+            json=payload,
+            headers=headers,
+            timeout=15  # Increased timeout for reliability
+        )
         
         print(f"📥 [Lore Label] Response from lore.farm:")
         print(f"   Status code: {response.status_code}")
         print(f"   Headers: {dict(response.headers)}")
-        print(f"   Body: {response.text[:1000]}")
         
+        # Try to parse response body
+        try:
+            response_text = response.text
+            print(f"   Body preview: {response_text[:500]}")
+        except Exception:
+            print(f"   Body: <unable to read>")
+        
+        # Handle success
         if response.status_code == 200:
-            result = response.json()
-            print(f"[Lore Label] Success! Label applied.")
-            print(f"   Result: {result}")
-            print("=" * 80)
-            return jsonify({
-                'success': True,
-                'label': result.get('label')
-            })
-        else:
-            print(f"[Lore Label] lore.farm returned error status: {response.status_code}")
-            
-            # Try to parse JSON response, handle HTML/text responses
             try:
-                error_data = response.json()
-                print(f"   Error data (JSON): {error_data}")
+                result = response.json()
+                print(f"✅ [Lore Label] Success! Label applied.")
+                print(f"   Result: {result}")
+                print("=" * 80)
+                return jsonify({
+                    'success': True,
+                    'label': result.get('label'),
+                    'message': 'Your dream has been added to the shared lore!'
+                })
             except Exception as e:
-                print(f"   Could not parse JSON response: {e}")
-                error_data = {'error': response.text[:200]}
-                print(f"   Raw response: {response.text[:500]}")
-            
-            print("=" * 80)
-            
-            # Provide friendly error messages for common status codes
-            if response.status_code == 409:
-                error_message = "This post has already been added to the shared lore"
-            elif response.status_code == 500:
-                error_message = f"Lorefarm server error. {error_data.get('error', 'Please try again later.')}"
-            else:
-                error_message = error_data.get('error', f'Lorefarm returned status {response.status_code}')
-            
-            return jsonify({
-                'success': False,
-                'error': error_message
-            }), response.status_code
+                print(f"[Lore Label] Success but failed to parse response JSON: {e}")
+                print("=" * 80)
+                return jsonify({
+                    'success': True,
+                    'message': 'Your dream has been added to the shared lore!'
+                })
+        
+        # Handle errors with user-friendly messages
+        print(f"❌ [Lore Label] lore.farm returned error status: {response.status_code}")
+        
+        # Try to parse error response
+        error_data = {}
+        try:
+            error_data = response.json()
+            print(f"   Error data (JSON): {error_data}")
+        except Exception as e:
+            print(f"   Could not parse JSON response: {e}")
+            # Use raw text as error
+            error_data = {'error': response.text[:200] if response.text else 'Unknown error'}
+            print(f"   Raw response: {response.text[:500]}")
+        
+        print("=" * 80)
+        
+        # Provide user-friendly error messages based on status code
+        if response.status_code == 400:
+            error_message = error_data.get('error', 'Invalid request. Please check the post URL.')
+        elif response.status_code == 401:
+            error_message = 'Server authentication failed. Please contact an administrator.'
+        elif response.status_code == 409:
+            error_message = 'This dream has already been added to the shared lore.'
+        elif response.status_code == 500:
+            error_message = f"lore.farm server error. {error_data.get('error', 'Please try again later.')}"
+        elif response.status_code == 503:
+            error_message = 'lore.farm is temporarily unavailable. Please try again later.'
+        else:
+            error_message = error_data.get('error', f'lore.farm returned status {response.status_code}')
+        
+        return jsonify({
+            'success': False,
+            'error': error_message
+        }), response.status_code if response.status_code < 500 else 502  # Convert 5xx to 502 Bad Gateway
         
     except requests.RequestException as e:
         print(f"[Lore Label] Network error connecting to lore.farm: {e}")
@@ -3103,10 +3262,25 @@ def public_quests_grouped():
                 if not list_key:
                     conditions = quest.get('conditions', [])
                     for cond in conditions:
-                        cond_str = cond.get('condition') if isinstance(cond, dict) else cond
+                        # Cond may be canonical object or legacy string
+                        if isinstance(cond, dict):
+                            cond_name = cond.get('condition')
+                            # If canonical, list key may be in args
+                            if cond_name == 'has_biblio_stamp':
+                                args = cond.get('args') or []
+                                if args:
+                                    list_key = args[0]
+                                    break
+                            # Also support embedded 'has_biblio_stamp:...' in condition field
+                            cond_str = cond.get('condition') or ''
+                        else:
+                            cond_str = cond
+
                         if cond_str and 'has_biblio_stamp:' in cond_str:
-                            list_key = cond_str.split(':')[1]
-                            break
+                            parts = str(cond_str).split(':', 1)
+                            if len(parts) > 1:
+                                list_key = parts[1]
+                                break
                 
                 list_key = list_key or 'default'
                 group_key = f"biblio:{list_key}"
@@ -6110,29 +6284,48 @@ def validate_work_token(token):
     import jwt
     from jwt import PyJWKClient
     
+    print(f"\n🔐 [validate_work_token] Starting validation...")
+    
     if not token:
+        print(f"❌ [validate_work_token] No token provided")
         return False, None, None
     
+    print(f"🔍 [validate_work_token] Token length: {len(token)} chars")
+    
     # First try admin session validation
+    print(f"🔍 [validate_work_token] Attempting admin session validation...")
     valid, did, handle = auth.validate_session(token)
     if valid:
+        print(f"✅ [validate_work_token] Admin session VALID - DID: {did}, Handle: {handle}")
         return True, did, handle
+    else:
+        print(f"⚠️  [validate_work_token] Not a valid admin session")
     
     # Try decoding as JWT (OAuth accessJwt from AT Protocol)
+    print(f"🔍 [validate_work_token] Attempting OAuth JWT validation...")
     try:
         # Decode the header to check if it's a JWT
         try:
             header = jwt.get_unverified_header(token)
-        except Exception:
+            print(f"📋 [validate_work_token] JWT header: {header}")
+        except Exception as e:
             # Not a valid JWT
+            print(f"❌ [validate_work_token] Not a valid JWT - {e}")
             return False, None, None
         
         # Decode without verification first to get the DID (to find the PDS)
         unverified = jwt.decode(token, options={"verify_signature": False})
         user_did = unverified.get('sub')  # 'sub' claim contains the DID
         
+        print(f"📋 [validate_work_token] JWT claims decoded:")
+        print(f"   - sub (DID): {user_did}")
+        print(f"   - iss (issuer): {unverified.get('iss')}")
+        print(f"   - exp (expiry): {unverified.get('exp')}")
+        print(f"   - scope: {unverified.get('scope')}")
+        print(f"   - aud (audience): {unverified.get('aud')}")
+        
         if not user_did:
-            print(f"[SECURITY] JWT missing 'sub' claim")
+            print(f"❌ [validate_work_token] JWT missing 'sub' claim")
             return False, None, None
         
         # SECURITY CHECK: Verify the token is actually signed by a PDS
@@ -6145,15 +6338,16 @@ def validate_work_token(token):
         if not issuer:
             # AT Protocol JWT tokens may not have 'iss' - check for 'scope' instead
             scope = unverified.get('scope')
-            print(f"[AUTH] JWT claims: sub={user_did}, scope={scope}")
+            print(f"⚠️  [validate_work_token] No issuer found, checking scope-based auth...")
+            print(f"   - Scope: {scope}")
             
             # For AT Protocol, if we have a valid 'sub' (DID), accept it
             # This is safe because we're only accepting tokens from our own PDS
             if user_did and user_did.startswith('did:'):
-                print(f"[AUTH] OAuth JWT accepted for DID: {user_did} (no issuer, using DID)")
+                print(f"✅ [validate_work_token] OAuth JWT VALID - DID: {user_did} (scope-based)")
                 return True, user_did, None
             
-            print(f"[SECURITY] JWT token missing 'iss' claim and invalid DID - rejecting")
+            print(f"❌ [validate_work_token] JWT token missing 'iss' claim and invalid DID")
             return False, None, None
         
         # For now, we'll verify basic JWT structure and expiry
