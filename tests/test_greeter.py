@@ -91,7 +91,21 @@ def test_greet_newcomer():
         print("\n❌ TEST FAILED: Greeting was not posted")
         for error in result['errors']:
             print(f"   Error: {error}")
-    
+
+    # Cleanup test records to avoid leaving test data in the live database
+    try:
+        print('\n🧹 Cleaning up test records...')
+        db.execute("DELETE FROM events WHERE did = %s", (test_reply['author']['did'],))
+        db.execute("DELETE FROM dreamers WHERE did = %s", (test_reply['author']['did'],))
+        print('✅ Cleanup completed: removed test dreamer and events')
+    except Exception as e:
+        print(f'⚠️ Cleanup failed: {e}')
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
     return result['success']
 
 

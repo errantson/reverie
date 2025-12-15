@@ -160,6 +160,10 @@ class Sidebar {
             }
             
             container.innerHTML = topContributors.map(dreamer => {
+                // Apply user's color
+                const userColor = dreamer.color_hex || '#734ba1';
+                const userColorBg = this.hexToRgba(userColor, 0.12);
+                
                 // Get avatar URL
                 let avatarUrl = '/assets/icon_face.png';
                 if (dreamer.avatar?.url) {
@@ -184,11 +188,11 @@ class Sidebar {
                 const contributionScore = dreamer.non_patron_contribution;
                 
                 return `
-                    <div class="top-contributor-item" data-did="${encodeURIComponent(dreamer.did)}">
+                    <div class="top-contributor-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
-                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
+                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <span style="font-size: 10px; color: var(--reverie-core-color, #734ba1); font-weight: 600;">${contributionScore}</span>
@@ -252,8 +256,10 @@ class Sidebar {
                 return;
             }
             
-            container.innerHTML = selectedWorkers.map(dreamer => {
-                // Get avatar URL
+            container.innerHTML = selectedWorkers.map(dreamer => {                // Apply user's color
+                const userColor = dreamer.color_hex || '#734ba1';
+                const userColorBg = this.hexToRgba(userColor, 0.12);
+                                // Get avatar URL
                 let avatarUrl = '/assets/icon_face.png';
                 if (dreamer.avatar?.url) {
                     avatarUrl = dreamer.avatar.url;
@@ -264,18 +270,21 @@ class Sidebar {
                     avatarUrl = dreamer.avatar;
                 }
                 
-                // Capitalize role name
+                // Capitalize role name and get role-specific color
+                const roleKey = dreamer.role.toLowerCase();
                 const roleName = dreamer.role.charAt(0).toUpperCase() + dreamer.role.slice(1);
+                const roleColor = `var(--role-${roleKey})`;
+                const roleBg = `var(--role-${roleKey}-light)`;
                 
                 return `
-                    <div class="current-worker-item" data-did="${encodeURIComponent(dreamer.did)}">
+                    <div class="current-worker-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${roleBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
-                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
+                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${roleColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="font-size: 10px; color: #734ba1; font-weight: 600;">${roleName}</span>
+                                <span style="font-size: 10px; color: ${roleColor}; font-weight: 600;">${roleName}</span>
                             </div>
                         </div>
                     </div>
@@ -309,6 +318,10 @@ class Sidebar {
             }
             
             container.innerHTML = recentDreamers.map(dreamer => {
+                // Apply user's color
+                const userColor = dreamer.color_hex || '#734ba1';
+                const userColorBg = this.hexToRgba(userColor, 0.12);
+                
                 // Get avatar URL (same logic as regular results)
                 let avatarUrl = '/assets/icon_face.png';
                 if (dreamer.avatar?.url) {
@@ -348,11 +361,11 @@ class Sidebar {
                 }
                 
                 return `
-                    <div class="recent-arrival-item" data-did="${encodeURIComponent(dreamer.did)}">
+                    <div class="recent-arrival-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
-                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
+                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
@@ -460,6 +473,10 @@ class Sidebar {
             }
             
             container.innerHTML = activeDreamers.map(({ dreamer, type }) => {
+                // Apply user's color
+                const userColor = dreamer.color_hex || '#734ba1';
+                const userColorBg = this.hexToRgba(userColor, 0.12);
+                
                 // Get avatar URL
                 let avatarUrl = '/assets/icon_face.png';
                 if (dreamer.avatar?.url) {
@@ -499,11 +516,11 @@ class Sidebar {
                 }
                 
                 return `
-                    <div class="active-dreamer-item" data-did="${encodeURIComponent(dreamer.did)}">
+                    <div class="recent-arrival-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
-                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
+                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
@@ -556,6 +573,10 @@ class Sidebar {
             }
             
             container.innerHTML = selectedGuests.map(dreamer => {
+                // Apply user's color
+                const userColor = dreamer.color_hex || '#734ba1';
+                const userColorBg = this.hexToRgba(userColor, 0.12);
+                
                 // Get avatar URL
                 let avatarUrl = '/assets/icon_face.png';
                 if (dreamer.avatar?.url) {
@@ -572,11 +593,11 @@ class Sidebar {
                 const serverIconStyle = '';
                 
                 return `
-                    <div class="honoured-guest-item" data-did="${encodeURIComponent(dreamer.did)}">
+                    <div class="honoured-guest-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
-                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
+                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
@@ -621,6 +642,10 @@ class Sidebar {
             }
             
             container.innerHTML = topPatrons.map(dreamer => {
+                // Apply user's color
+                const userColor = dreamer.color_hex || '#734ba1';
+                const userColorBg = this.hexToRgba(userColor, 0.12);
+                
                 // Get avatar URL
                 let avatarUrl = '/assets/icon_face.png';
                 if (dreamer.avatar?.url) {
@@ -645,11 +670,11 @@ class Sidebar {
                 const patronScore = dreamer.patron_score || 0;
                 
                 return `
-                    <div class="great-patron-item" data-did="${encodeURIComponent(dreamer.did)}">
+                    <div class="great-patron-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
-                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
+                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <span style="font-size: 10px; color: var(--reverie-core-color, #734ba1); font-weight: 600;">${patronScore}</span>
@@ -687,6 +712,10 @@ class Sidebar {
             }
             
             container.innerHTML = activeDreamers.map(dreamer => {
+                // Apply user's color
+                const userColor = dreamer.color_hex || '#734ba1';
+                const userColorBg = this.hexToRgba(userColor, 0.12);
+                
                 // Get avatar URL
                 let avatarUrl = '/assets/icon_face.png';
                 if (dreamer.avatar?.url) {
@@ -726,11 +755,11 @@ class Sidebar {
                 }
                 
                 return `
-                    <div class="active-dreamer-item" data-did="${encodeURIComponent(dreamer.did)}">
+                    <div class="active-dreamer-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
-                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer;">${dreamer.name}</span>
+                                <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
@@ -804,6 +833,14 @@ class Sidebar {
         }
     }
     
+    hexToRgba(hex, alpha = 0.12) {
+        // Convert hex color to rgba with specified alpha
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     updateSearchResults(query, container) {
         container.innerHTML = '';
         let results = query ?
@@ -816,11 +853,11 @@ class Sidebar {
         results.forEach((match, index) => {
             const item = document.createElement('div');       
             item.className = 'dreamer-item';
-            if (index % 2 === 0) {
-                item.style.backgroundColor = '#f0f0f0';
-            } else {
-                item.style.backgroundColor = '#ffffff';
-            }
+            
+            // Apply user's color
+            const userColor = match.color_hex || '#734ba1';
+            const userColorBg = this.hexToRgba(userColor, 0.12);
+            item.style.backgroundColor = userColorBg;
             
             // Get avatar URL
             let avatarUrl = '/assets/icon_face.png';
@@ -863,7 +900,7 @@ class Sidebar {
             item.innerHTML = `<div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'"> 
-                    <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(match.did)}" style="text-align: left; cursor: pointer;">${match.name}</span>
+                    <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(match.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${match.name}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
                     <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">

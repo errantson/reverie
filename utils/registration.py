@@ -121,9 +121,9 @@ def register_dreamer(
                                 url = canon_entry.get('url') or f"https://bsky.app/profile/{did}"
                                 
                                 db.execute("""
-                                    INSERT INTO events (did, event, epoch, uri, url, type, key, created_at)
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                                """, (did, event, arrival_timestamp, uri, url, 'namegiver', key, now))
+                                    INSERT INTO events (did, event, epoch, uri, url, type, key, created_at, color_source, color_intensity)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """, (did, event, arrival_timestamp, uri, url, 'namegiver', key, now, 'user', 'highlight'))
                         
                         if verbose:
                             print(f"   🔄 NAME UPDATED: {current_name} → {new_name}")
@@ -380,9 +380,9 @@ def register_dreamer(
             epoch = canon_entry.get('epoch', arrival_timestamp)
             
             db.execute("""
-                INSERT INTO events (did, event, epoch, uri, url, type, key, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (did, event, epoch, uri, url, entry_type, key, now))
+                INSERT INTO events (did, event, epoch, uri, url, type, key, created_at, color_source, color_intensity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (did, event, epoch, uri, url, entry_type, key, now, 'user', 'highlight'))
             
             if verbose:
                 print(f"   ✅ TIMELINE EVENT CREATED: '{event}'")
@@ -419,12 +419,12 @@ def register_dreamer(
                 
                 # Create timeline event for residence souvenir
                 db.execute("""
-                    INSERT INTO events (did, event, epoch, uri, url, type, key, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO events (did, event, epoch, uri, url, type, key, created_at, color_source, color_intensity)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (did, 'stayed at Reverie House', residence_timestamp, 
                       'self', 
                       'https://reverie.house/souvenirs?key=residence',
-                      'souvenir', 'residence', now))
+                      'souvenir', 'residence', now, 'souvenir', 'highlight'))
                 
                 if verbose:
                     print(f"   🏡 Assigned residence souvenir to {dreamer_name}")

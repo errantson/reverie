@@ -502,10 +502,12 @@ class Profile {
     }
 
     linkifyBioText(text) {
-        // Convert URLs in text to clickable links that open in new tabs
-        // Keep link styling the same as text, but abbreviate display
+        // Convert URLs and plain domains in text to clickable links that open in new tabs
+        // Keep link styling plain with just an underline
+        
+        // First, handle full URLs (http:// or https://)
         const urlPattern = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
-        return text.replace(urlPattern, (match) => {
+        let result = text.replace(urlPattern, (match) => {
             const fullUrl = match;
             // Create abbreviated display: remove https://, trailing /, and www.
             let displayUrl = fullUrl
@@ -513,8 +515,22 @@ class Profile {
                 .replace(/\/$/, '')          // Remove trailing /
                 .replace(/^www\./, '');      // Remove www. prefix
             
-            return `<a href="${fullUrl}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none; border-bottom: 1px solid currentColor;">${displayUrl}</a>`;
+            return `<a href="${fullUrl}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">${displayUrl}</a>`;
         });
+        
+        // Then, detect plain domains (e.g., "example.com", "toogoodtogo.com")
+        // Match word boundaries, domain name with TLD, but not already in href attributes
+        const domainPattern = /\b(?<!href=")([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b/g;
+        result = result.replace(domainPattern, (match) => {
+            // Skip if this is already part of a link (basic check)
+            if (result.indexOf(`href="http`) !== -1 && result.indexOf(match) > result.lastIndexOf(`href="http`)) {
+                return match; // Already linked
+            }
+            const fullUrl = `https://${match}`;
+            return `<a href="${fullUrl}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">${match}</a>`;
+        });
+        
+        return result;
     }
 
     formatArrival(dateString) {
@@ -884,7 +900,13 @@ class Profile {
             // Use EventStack to render events (same as database.html)
             if (window.EventStack) {
                 const eventStack = new EventStack();
-                eventStack.render(uniqueEvents, eventsContent);
+                eventStack.render(uniqueEvents, eventsContent, {
+                    columns: {
+                        type: false,
+                        key: false,
+                        uri: false
+                    }
+                });
             } else {
                 console.error('EventStack not loaded');
                 eventsContent.innerHTML = '<div class="activity-empty">Unable to load events</div>';
@@ -906,18 +928,13 @@ class Profile {
         const isReverieHouse = serverClean === 'reverie.house';
         const isBskyNetwork = serverClean.endsWith('bsky.network');
         
-        let serverLabel, serverDisplay;
-        if (isReverieHouse) {
-            serverLabel = 'Residence';
-            serverDisplay = 'Reverie House';
-        } else if (isBskyNetwork) {
-            const prefix = serverClean.split('.')[0];
-            serverLabel = 'Homestar';
-            serverDisplay = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-        } else {
-            serverLabel = 'Server';
-            serverDisplay = serverClean.split('.')[0];
-        }
+        const serverLabel = 'Domain';
+        // Remove 'pds.' prefix for cleaner display
+        const serverDisplay = serverClean.replace(/^pds\./, '');
+        // For custom PDS, link to the actual domain instead of the PDS URL
+        const serverLinkUrl = serverClean.startsWith('pds.') 
+            ? 'https://' + serverClean.replace(/^pds\./, '')
+            : serverUrl;
         
         const renderAltNames = (alts) => {
             if (!alts || alts === 'none') return '<span style="opacity: 0.5;">none</span>';
@@ -1017,7 +1034,7 @@ class Profile {
                 </div>
                 <div class="identity-info-row">
                     <span class="identity-info-label">${serverLabel}</span>
-                    <a href="${serverUrl}" 
+                    <a href="${serverLinkUrl}" 
                        target="_blank" 
                        rel="noopener"
                        class="identity-info-value identity-info-link"

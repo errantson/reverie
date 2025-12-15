@@ -281,8 +281,8 @@ def greet_newcomer(replies: List[Dict], quest_config: Dict, verbose: bool = Fals
                             
                             # Create the greeting event with reaction_to pointing back to name event
                             cursor.execute("""
-                                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, reaction_to)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, reaction_to, color_source, color_intensity)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 RETURNING id
                             """, (
                                 worker_client.worker_did,

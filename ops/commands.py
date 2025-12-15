@@ -274,8 +274,8 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                 
                 # Add "spoke their name" canon entry
                 db.execute("""
-                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     author_did,
                     'spoke their name',
@@ -284,7 +284,9 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                     reply_uri,
                     reply_url,
                     reply_epoch,
-                    int(time.time())
+                    int(time.time()),
+                    'user',
+                    'highlight'
                 ))
                 
                 db.commit()
@@ -316,8 +318,8 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                 
                 # Add canon with CURRENT name (not proposed)
                 db.execute("""
-                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     author_did,
                     'spoke their name',
@@ -326,7 +328,9 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                     reply_uri,
                     reply_url,
                     reply_epoch,
-                    int(time.time())
+                    int(time.time()),
+                    'user',
+                    'highlight'
                 ))
                 
                 db.commit()
@@ -364,8 +368,8 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
             reply_epoch = iso_to_unix(reply_created_at)
             
             db.execute("""
-                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 author_did,
                 'spoke their name',
@@ -607,8 +611,8 @@ def mod_spectrum(replies: List[Dict], quest_config: Dict,
             canon_event = canon_config.get('event', 'recalls their last dream')
             
             db.execute("""
-                INSERT INTO events (did, event, epoch, uri, type, key, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO events (did, event, epoch, uri, type, key, created_at, color_source, color_intensity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 author_did,
                 canon_event,
@@ -742,8 +746,8 @@ def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str,
             
             # Add canon entry
             db.execute("""
-                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, rowstyle)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 author_did,
                 canon_event,
@@ -753,7 +757,8 @@ def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str,
                 reply_url,
                 reply_epoch,
                 int(time.time()),
-                canon_rowstyle
+                'user',
+                'highlight'
             ))
             
             db.commit()
