@@ -179,8 +179,8 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
             
             # Check if dreamer already has a "spoke their name" canon entry
             cursor = db.execute("""
-                SELECT did FROM canon 
-                WHERE did = ? AND type = 'name' AND key LIKE '%name%'
+                SELECT did FROM events 
+                WHERE did = %s AND type = 'name' AND key = 'name'
             """, (author_did,))
             has_name_canon = cursor.fetchone()
             
@@ -274,8 +274,8 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                 
                 # Add "spoke their name" canon entry
                 db.execute("""
-                    INSERT INTO canon (did, event, type, key, uri, url, epoch, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     author_did,
                     'spoke their name',
@@ -299,7 +299,7 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
             # Check if it's already taken by someone else
             cursor = db.execute("""
                 SELECT did, name FROM dreamers 
-                WHERE name = ? AND did != ?
+                WHERE name = %s AND did != %s
             """, (proposed_name, author_did))
             name_owner = cursor.fetchone()
             
@@ -316,8 +316,8 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                 
                 # Add canon with CURRENT name (not proposed)
                 db.execute("""
-                    INSERT INTO canon (did, event, type, key, uri, url, epoch, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     author_did,
                     'spoke their name',
@@ -348,8 +348,8 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                 
                 db.execute("""
                     UPDATE dreamers 
-                    SET name = ?, alts = ?, updated_at = ?
-                    WHERE did = ?
+                    SET name = %s, alts = %s, updated_at = %s
+                    WHERE did = %s
                 """, (proposed_name, new_alts, int(time.time()), author_did))
                 
                 if verbose:
@@ -364,8 +364,8 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
             reply_epoch = iso_to_unix(reply_created_at)
             
             db.execute("""
-                INSERT INTO canon (did, event, type, key, uri, url, epoch, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 author_did,
                 'spoke their name',
@@ -519,8 +519,9 @@ def add_kindred(replies: List[Dict], quest_config: Dict, verbose: bool = False) 
                 epoch = int(time.time())
                 
                 db.execute("""
-                    INSERT OR IGNORE INTO kindred (did_a, did_b, discovered_epoch)
-                    VALUES (?, ?, ?)
+                    INSERT INTO kindred (did_a, did_b, discovered_epoch)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (did_a, did_b) DO NOTHING
                 """, (did_a, did_b, epoch))
                 
                 if verbose:
@@ -582,14 +583,14 @@ def mod_spectrum(replies: List[Dict], quest_config: Dict,
                 
                 db.execute(f"""
                     UPDATE spectrum 
-                    SET {', '.join(updates)}, updated_at = ?
-                    WHERE did = ?
+                    SET {', '.join(updates)}, updated_at = %s
+                    WHERE did = %s
                 """, tuple(values))
             else:
                 # Create new spectrum entry
                 db.execute("""
                     INSERT INTO spectrum (did, entropy, oblivion, liberty, authority, receptive, skeptic, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     author_did,
                     modifications.get('entropy', 0),
@@ -606,8 +607,8 @@ def mod_spectrum(replies: List[Dict], quest_config: Dict,
             canon_event = canon_config.get('event', 'recalls their last dream')
             
             db.execute("""
-                INSERT INTO canon (did, event, epoch, uri, type, key, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO events (did, event, epoch, uri, type, key, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 author_did,
                 canon_event,
@@ -727,8 +728,8 @@ def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str,
             
             # IDEMPOTENCY CHECK: Does this canon entry already exist?
             cursor = db.execute("""
-                SELECT id FROM canon 
-                WHERE did = ? AND type = ? AND key = ?
+                SELECT id FROM events 
+                WHERE did = %s AND type = %s AND key = %s
             """, (author_did, canon_type, canon_key))
             
             existing = cursor.fetchone()
@@ -741,8 +742,8 @@ def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str,
             
             # Add canon entry
             db.execute("""
-                INSERT INTO canon (did, event, type, key, uri, url, epoch, created_at, rowstyle)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, rowstyle)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 author_did,
                 canon_event,
@@ -881,8 +882,8 @@ def add_name(replies: List[Dict], quest_config: Dict, new_name: str,
                 new_alts = ', '.join(alt_list)
                 
                 db.execute("""
-                    UPDATE dreamers SET name = ?, alts = ?, updated_at = ?
-                    WHERE did = ?
+                    UPDATE dreamers SET name = %s, alts = %s, updated_at = %s
+                    WHERE did = %s
                 """, (new_name, new_alts, int(time.time()), author_did))
                 
                 db.commit()
@@ -896,7 +897,7 @@ def add_name(replies: List[Dict], quest_config: Dict, new_name: str,
             # Check if new_name is already in use by another dreamer
             cursor = db.execute("""
                 SELECT name FROM dreamers 
-                WHERE (name = ? OR alts LIKE ? OR alts LIKE ? OR alts LIKE ?) AND did != ?
+                WHERE (name = %s OR alts LIKE %s OR alts LIKE %s OR alts LIKE %s) AND did != %s
             """, (new_name, f"{new_name},%", f"%,{new_name},%", f"%,{new_name}", author_did))
             
             existing = cursor.fetchone()
@@ -911,8 +912,8 @@ def add_name(replies: List[Dict], quest_config: Dict, new_name: str,
             new_alts = ', '.join(alt_list)
             
             db.execute("""
-                UPDATE dreamers SET name = ?, alts = ?, updated_at = ?
-                WHERE did = ?
+                UPDATE dreamers SET name = %s, alts = %s, updated_at = %s
+                WHERE did = %s
             """, (new_name, new_alts, int(time.time()), author_did))
             
             db.commit()
@@ -1003,8 +1004,9 @@ def award_souvenir(replies: List[Dict], quest_config: Dict, souvenir_key: str,
             
             # Award souvenir (INSERT OR IGNORE = idempotent)
             db.execute("""
-                INSERT OR IGNORE INTO dreamer_souvenirs (did, souvenir_key, earned_epoch)
-                VALUES (?, ?, ?)
+                INSERT INTO dreamer_souvenirs (did, souvenir_key, earned_epoch)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (did, souvenir_key) DO NOTHING
             """, (author_did, souvenir_key, int(time.time())))
             
             db.commit()

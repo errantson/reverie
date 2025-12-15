@@ -40,15 +40,15 @@ def _get_active_greeter(db: DatabaseManager) -> Dict:
     
     workers = json.loads(row['workers'])
     
-    # Find a working greeter (not retiring)
+    # Find a working or retiring greeter (both are active)
     for worker in workers:
-        if worker.get('status') == 'working':
+        if worker.get('status') in ['working', 'retiring']:
             return {
                 'did': worker['did'],
                 'passhash': worker['passhash']
             }
     
-    # If no working greeter, use any greeter
+    # If no active greeter, use any greeter
     if workers:
         return {
             'did': workers[0]['did'],
@@ -212,7 +212,7 @@ def greet_newcomer(replies: List[Dict], quest_config: Dict, verbose: bool = Fals
             
             # Check if this dreamer was just named (has 'spoke their name' canon entry)
             canon_row = db.fetch_one("""
-                SELECT uri FROM canon 
+                SELECT uri FROM events 
                 WHERE did = %s AND type = 'name' AND key = 'name'
                 ORDER BY created_at DESC
                 LIMIT 1

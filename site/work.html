@@ -2368,7 +2368,13 @@
                             limit: 20,
                             sortOrder: 'desc',
                             emptyMessage: 'No greeting events yet',
-                            showReactions: true
+                            showReactions: true,
+                            dateFormat: 'date',
+                            columns: {
+                                type: false,
+                                key: false,
+                                uri: false
+                            }
                         });
                     } else {
                         console.warn('[Work] EventStack not available yet');

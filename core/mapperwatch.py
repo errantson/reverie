@@ -399,9 +399,12 @@ class MapperhoseMonitor:
             from core.database import DatabaseManager
             db = DatabaseManager()
             db.execute(
-                """INSERT OR REPLACE INTO quest_retry_requests 
+                """INSERT INTO quest_retry_requests 
                    (user_did, quest_title, retry_post_uri, original_reply_uri)
-                   VALUES (?, ?, ?, ?)""",
+                   VALUES (%s, %s, %s, %s)
+                   ON CONFLICT (user_did, quest_title) 
+                   DO UPDATE SET retry_post_uri = EXCLUDED.retry_post_uri,
+                                 original_reply_uri = EXCLUDED.original_reply_uri""",
                 (user_did, 'origin', retry_post_uri, reply_uri)
             )
             
@@ -423,8 +426,8 @@ class MapperhoseMonitor:
             from core.database import DatabaseManager
             db = DatabaseManager()
             db.execute(
-                "DELETE FROM quest_retry_requests WHERE user_did = ? AND quest_title = 'origin'",
-                (user_did,)
+                "DELETE FROM quest_retry_requests WHERE user_did = %s AND quest_title = %s",
+                (user_did, 'origin')
             )
             
             if user_did in self.retry_requests:
