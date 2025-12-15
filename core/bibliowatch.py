@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from ops.quests import QuestManager
 from ops.quest_hooks import process_quest_reply
 from ops.conditions import evaluate_conditions
+from ops.commands import execute_quest_commands
 from ops.triggers import get_trigger_handler, BibliohoseTrigger
 
 
@@ -204,12 +205,12 @@ class BibliohoseMonitor:
             
             # Execute commands
             custom_commands = condition_result.get('custom_commands', [])
-            common_commands = quest['commands']
+            common_commands = quest.get('commands', [])
             all_commands = custom_commands + common_commands
-            
+
             replies = eval_context.get('replies', [])
-            
-            command_result = execute_commands(
+
+            command_result = execute_quest_commands(
                 all_commands,
                 replies,
                 quest,

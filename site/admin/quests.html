@@ -1055,6 +1055,39 @@
             box-shadow: 0 2px 6px rgba(115, 75, 161, 0.2);
         }
         
+        /* Raw Panel - for displaying raw JSON in condition/command cards */
+        .raw-panel {
+            padding: 0.75rem;
+            background: #1e1e2e;
+            border: 1px solid #45475a;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            margin-top: 0.5rem;
+        }
+        
+        .raw-panel-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #89b4fa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .raw-panel-code {
+            margin: 0;
+            padding: 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.72rem;
+            line-height: 1.4;
+            color: #a6e3a1;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        
         /* Commands Section */
         .commands-section h4 {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -1899,13 +1932,10 @@
         
         <!-- Main Panel -->
         <div class="quest-main-panel">
-            <div class="quest-detail-container" id="quest-detail-container">
-                <div class="empty-state">
-                    <div class="empty-state-icon">📋</div>
-                    <div class="empty-state-text">Select a quest to view details</div>
+                <div class="quest-detail-container" id="quest-detail-container">
+                    <!-- Detail pane intentionally left empty; populated by /js/quests.js -->
                 </div>
             </div>
-        </div>
     </div>
     
     <script src="/js/quests.js"></script>

@@ -64,14 +64,17 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
     }
     
     for command in commands:
+        # New canonical format: command must be a dict {'cmd': 'name', 'args': [...]}
+        if not isinstance(command, dict):
+            raise RuntimeError(
+                "Legacy command strings are no longer supported. Run the migration tool to convert quests to canonical commands: tools/migrate_quests_to_canonical.py"
+            )
+        cmd_name = command.get('cmd')
+        param_list = command.get('args', [])
         try:
-            if ':' in command:
-                cmd_name, param = command.split(':', 1)
-            else:
-                cmd_name, param = command, None
-            
+            param = param_list[0] if param_list else None
+
             if cmd_name == 'name_dreamer':
-                # Support forced name: name_dreamer:watson
                 forced_name = param if param else None
                 cmd_result = name_dreamer(replies, quest_config, forced_name=forced_name, verbose=verbose)
             elif cmd_name == 'add_kindred':
@@ -82,20 +85,18 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
             elif cmd_name == 'like_post':
                 cmd_result = like_post(replies, quest_config, verbose=verbose)
             elif cmd_name == 'add_canon':
-                # Support: add_canon:key:event:type or add_canon:key:event:type:rowstyle
-                if param and ':' in param:
-                    parts = param.split(':', 3)
-                    canon_key = parts[0]
-                    canon_event = parts[1] if len(parts) > 1 else 'event occurred'
-                    canon_type = parts[2] if len(parts) > 2 else 'event'
-                    canon_rowstyle = parts[3] if len(parts) > 3 else None
+                # Expect args: [key, event, type, rowstyle?]
+                if len(param_list) >= 2:
+                    canon_key = param_list[0]
+                    canon_event = param_list[1] if len(param_list) > 1 else 'event occurred'
+                    canon_type = param_list[2] if len(param_list) > 2 else 'event'
+                    canon_rowstyle = param_list[3] if len(param_list) > 3 else None
                     cmd_result = add_canon(replies, quest_config, canon_key, canon_event, canon_type, canon_rowstyle, verbose=verbose)
                 else:
                     result['errors'].append(f"Invalid add_canon format: {command}")
                     result['success'] = False
                     continue
             elif cmd_name == 'add_name':
-                # Support: add_name:watson
                 new_name = param if param else None
                 if new_name:
                     cmd_result = add_name(replies, quest_config, new_name, verbose=verbose)
@@ -104,10 +105,8 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
                     result['success'] = False
                     continue
             elif cmd_name == 'register_if_needed':
-                # Support: register_if_needed (simple registration, no "spoke their name")
                 cmd_result = register_if_needed(replies, quest_config, verbose=verbose)
             elif cmd_name == 'award_souvenir':
-                # Support: award_souvenir:letter
                 souvenir_key = param if param else None
                 if souvenir_key:
                     cmd_result = award_souvenir(replies, quest_config, souvenir_key, verbose=verbose)
@@ -116,13 +115,10 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
                     result['success'] = False
                     continue
             elif cmd_name == 'disable_quest':
-                # Support: disable_quest (disables the current quest after execution)
                 cmd_result = disable_quest(replies, quest_config, verbose=verbose)
             elif cmd_name == 'reply_origin_spectrum':
-                # Support: reply_origin_spectrum (replies with origin spectrum values)
                 cmd_result = reply_origin_spectrum(replies, quest_config, verbose=verbose)
             elif cmd_name == 'greet_newcomer':
-                # Support: greet_newcomer (greets newly named dreamers)
                 from ops.commands.greet_newcomer import greet_newcomer
                 cmd_result = greet_newcomer(replies, quest_config, verbose=verbose)
             else:

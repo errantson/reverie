@@ -14,6 +14,78 @@
         div.textContent = text;
         return div.innerHTML;
     }
+
+    // Client-side dry-run simulator for quests (best-effort, mirrors server rules)
+    function simulateDryRun(quest, sample) {
+        const conditions = quest.conditions ? (Array.isArray(quest.conditions) ? quest.conditions : [quest.conditions]) : [];
+        const operator = (quest.condition_operator || 'AND').toUpperCase();
+        const evalResults = [];
+
+        function evalCondition(cond) {
+            const c = (typeof cond === 'string') ? { condition: cond } : cond || {};
+            const type = c.condition || 'any_reply';
+            const val = c.value || c.args || null;
+
+            let matched = false;
+            let reason = '';
+
+            const text = (sample.text || '').toLowerCase();
+            if (type === 'any_reply' || type === 'first_reply' || type === 'new_reply') {
+                matched = !!sample.text;
+                reason = 'Text present';
+            } else if (type === 'dreamer_replies') {
+                matched = !!sample.handle && !!sample.registered;
+                reason = matched ? 'Author is registered' : 'Author not registered or handle missing';
+            } else if (type === 'contains_hashtags') {
+                const needles = (val || '').toString().split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                matched = needles.some(n => n && text.includes(n.replace('#','')) || text.includes(n));
+                reason = 'Hashtag match: ' + needles.join(', ');
+            } else if (type === 'contains_mentions') {
+                const needles = (val || '').toString().split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                matched = needles.some(n => n && text.includes(n.replace('@','')) || text.includes(n));
+                reason = 'Mention match: ' + needles.join(', ');
+            } else if (type === 'reply_contains') {
+                const needle = (val || '').toString().toLowerCase();
+                matched = needle ? text.includes(needle) : false;
+                reason = `Contains '${needle}'`;
+            } else if (type === 'hasnt_canon') {
+                const key = (val || '').toString();
+                const hasCanon = !!(sample.has_canon || sample.extra && sample.extra.has_canon);
+                matched = !hasCanon;
+                reason = hasCanon ? 'User has canon' : 'User has no canon';
+            } else {
+                // Unknown condition types default to false but record for debugging
+                matched = false;
+                reason = 'Unknown condition type';
+            }
+
+            return { type, matched, reason, raw: c };
+        }
+
+        // Evaluate each condition
+        for (let i = 0; i < conditions.length; i++) {
+            const r = evalCondition(conditions[i]);
+            evalResults.push(r);
+        }
+
+        let overall = true;
+        if (evalResults.length === 0) overall = false;
+        else if (operator === 'AND') overall = evalResults.every(r => r.matched);
+        else if (operator === 'OR') overall = evalResults.some(r => r.matched);
+
+        // Determine commands that would run
+        const commands = (quest.commands && Array.isArray(quest.commands)) ? quest.commands : (quest.commands ? [quest.commands] : []);
+        const commandsToRun = overall ? commands.map(c => (typeof c === 'string' ? c : (c.cmd || c.type || c.command || JSON.stringify(c)))) : [];
+
+        return {
+            quest: quest.title,
+            sample,
+            condition_operator: operator,
+            conditions_evaluated: evalResults,
+            matched: overall,
+            commands: commandsToRun
+        };
+    }
     
     // Check authentication on page load
     console.log('[QuestManager] Initializing quest manager...');
@@ -241,10 +313,30 @@
             const statusText = quest.enabled ? 'Active' : 'Disabled';
             const isActive = selectedQuest && selectedQuest.title === quest.title;
             
-            // Count conditions and commands
-            const conditionCount = quest.conditions ? (Array.isArray(quest.conditions) ? quest.conditions.length : 1) : 0;
-            const commandCount = quest.commands ? quest.commands.length : 0;
-            
+            // Condition types summary and command names (canonical-aware)
+            let conditionCount = 0;
+            let conditionTypes = [];
+            if (quest.conditions) {
+                if (Array.isArray(quest.conditions)) {
+                    conditionCount = quest.conditions.length;
+                    conditionTypes = quest.conditions.map(c => (typeof c === 'object' ? c.condition : c)).filter(Boolean);
+                } else {
+                    conditionCount = 1;
+                    conditionTypes = [String(quest.conditions)];
+                }
+            }
+
+            const uniqueCond = Array.from(new Set(conditionTypes)).slice(0,3).join(', ');
+
+            let commandCount = 0;
+            let commandNames = [];
+            if (quest.commands && Array.isArray(quest.commands)) {
+                commandCount = quest.commands.length;
+                commandNames = quest.commands.map(cmd => (typeof cmd === 'object' ? (cmd.cmd || '') : String(cmd))).filter(Boolean);
+            }
+
+            const cmdPreview = Array.from(new Set(commandNames)).slice(0,3).join(', ');
+
             return `
                 <div class="quest-list-item ${isActive ? 'active' : ''}" data-quest-title="${escapeHtml(quest.title)}">
                     <div class="quest-item-header">
@@ -861,6 +953,29 @@
                     <button class="add-command-btn" onclick="addCommand('${escapeHtml(quest.title)}')">+ Add Command</button>
                 </div>
             </div>
+            
+            <div class="quest-section">
+                <h3 class="quest-section-title">Dry Run (client-side)</h3>
+                <div class="worker-preview" data-dryrun-for="${escapeHtml(quest.title)}">
+                    <div class="form-group">
+                        <label>Sample Author Handle</label>
+                        <input class="form-input dryrun-handle" data-quest-title="${escapeHtml(quest.title)}" placeholder="@example.bsky.social" value="@example.bsky.social">
+                    </div>
+                    <div class="form-group">
+                        <label>Sample Post Text</label>
+                        <textarea class="form-input dryrun-text" data-quest-title="${escapeHtml(quest.title)}" rows="3" placeholder="Example reply text..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Additional JSON Payload (optional)</label>
+                        <textarea class="form-input dryrun-json" data-quest-title="${escapeHtml(quest.title)}" rows="3" placeholder='{"registered":true,"has_canon":false}'></textarea>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                        <button class="command-btn run-dry-run" data-quest-title="${escapeHtml(quest.title)}">Run Dry Run</button>
+                        <button class="quest-action-btn" onclick="loadQuests()">Refresh Quests</button>
+                    </div>
+                    <pre class="dryrun-result" data-quest-title="${escapeHtml(quest.title)}" style="white-space:pre-wrap;margin-top:1rem;background:#f8fafc;padding:1rem;border:1px solid #e6eefc;max-height:300px;overflow:auto;">Dry run result will appear here</pre>
+                </div>
+            </div>
         `;
         
         container.innerHTML = html;
@@ -1054,6 +1169,43 @@
                 }
             });
         }
+
+        // Attach dry-run handlers (client-side simulation)
+        const runDryBtns = container.querySelectorAll('.run-dry-run');
+        runDryBtns.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const questTitle = e.target.dataset.questTitle;
+                const parent = container.querySelector(`[data-dryrun-for="${escapeHtml(quest.title)}"]`);
+                const handleInput = parent.querySelector('.dryrun-handle');
+                const textInput = parent.querySelector('.dryrun-text');
+                const jsonInput = parent.querySelector('.dryrun-json');
+                const resultEl = parent.querySelector('.dryrun-result');
+
+                resultEl.textContent = 'Running dry run (client-side)...';
+
+                const sample = {
+                    handle: handleInput ? handleInput.value : '',
+                    text: textInput ? textInput.value : ''
+                };
+
+                if (jsonInput && jsonInput.value) {
+                    try {
+                        Object.assign(sample, JSON.parse(jsonInput.value));
+                    } catch (err) {
+                        resultEl.textContent = 'Invalid JSON payload: ' + err.message;
+                        return;
+                    }
+                }
+
+                try {
+                    const sim = simulateDryRun(quest, sample);
+                    resultEl.textContent = JSON.stringify(sim, null, 2);
+                } catch (err) {
+                    console.error('[QuestManager] Dry run simulation error:', err);
+                    resultEl.textContent = 'Dry run error: ' + err.message;
+                }
+            });
+        });
     }
     
     async function loadSouvenirPreviews() {

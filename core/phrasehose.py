@@ -23,7 +23,7 @@ from atproto import CAR, FirehoseSubscribeReposClient, parse_subscribe_repos_mes
 from ops.quests import QuestManager
 from ops.quest_hooks import process_quest_reply
 from ops.conditions import evaluate_conditions
-from ops.commands import execute_commands
+from ops.commands import execute_quest_commands
 from ops.triggers import get_trigger_handler, FirehosePhraseTriger
 from core.cursor_manager import CursorManager
 
@@ -172,7 +172,7 @@ class PhrasehoseMonitor:
             # Use trigger's should_activate method
             if trigger.should_activate(post_event):
                 self.matched_posts += 1
-                
+
                 if self.verbose:
                     matched = trigger.get_matched_phrases(text)
                     print(f"\n✨ Phrase match found!")
@@ -180,10 +180,10 @@ class PhrasehoseMonitor:
                     print(f"   Author: {author_did}")
                     print(f"   Matched: {', '.join(matched)}")
                     print(f"   Text: {text[:100]}{'...' if len(text) > 100 else ''}")
-                
+
                 # Get evaluation context from trigger
                 eval_context = trigger.get_evaluation_context(post_event)
-                
+
                 # Trigger quest for the author
                 self._trigger_quest_for_user(quest, trigger, eval_context)
     
@@ -203,23 +203,24 @@ class PhrasehoseMonitor:
             
             # Evaluate quest conditions
             conditions = quest.get('conditions', [])
-            
+            condition_operator = quest.get('condition_operator', 'AND')
+
             if conditions:
-                conditions_met = evaluate_conditions(conditions, eval_context)
-                
-                if not conditions_met:
+                cond_result = evaluate_conditions(conditions, condition_operator, eval_context, quest)
+                if not cond_result.get('success'):
                     if self.verbose:
                         print(f"   ❌ Conditions not met for {user_handle}")
                     return
-            
+
             # Execute quest commands
             commands = quest.get('commands', [])
-            
+
             if commands:
                 if self.verbose:
                     print(f"   ✅ Executing {len(commands)} command(s) for {user_handle}")
-                
-                execute_commands(commands, eval_context)
+
+                replies = eval_context.get('replies', [])
+                execute_quest_commands(commands, replies, quest, verbose=self.verbose)
                 self.quests_triggered += 1
             
         except Exception as e:

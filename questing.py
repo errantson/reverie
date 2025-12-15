@@ -95,15 +95,26 @@ class QuestDiagnostics:
                 bsky_url = quest['uri'].replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/')
                 print(f"View Post:   {bsky_url}")
         
-        # Handle both old 'condition' and new 'conditions' formats
-        if quest.get('condition'):
-            print(f"Condition:   {quest['condition']}")
-        elif quest.get('conditions'):
-            conditions_str = json.dumps(quest['conditions'], indent=2)
-            print(f"Conditions:  {conditions_str}")
-        
+        # Display canonical conditions if available, otherwise show legacy condition
+            if quest.get('conditions'):
+                try:
+                    conditions_str = json.dumps(quest['conditions'], indent=2)
+                except Exception:
+                    conditions_str = str(quest.get('conditions'))
+                print(f"Conditions:  {conditions_str}")
+            elif quest.get('condition'):
+                print(f"Condition:   {quest.get('condition')}")
+
+        # Display commands (support canonical command objects and legacy strings)
         if quest.get('commands'):
-            print(f"Commands:    {', '.join(quest['commands'])}")
+            cmds_out = []
+            for c in quest.get('commands', []):
+                if isinstance(c, dict):
+                    args = c.get('args') or []
+                    cmds_out.append(f"{c.get('cmd')} {args}")
+                else:
+                    cmds_out.append(str(c))
+            print(f"Commands:    {', '.join(cmds_out)}")
         
         if quest.get('canon'):
             print(f"Canon Event: {quest['canon'].get('event', 'N/A')}")
@@ -208,7 +219,7 @@ class QuestDiagnostics:
             if not quest['uri'].startswith('at://'):
                 quest_issues.append("Invalid URI format (should start with 'at://')")
             
-            # Check condition - UPDATED LIST
+            # Check condition - UPDATED LIST (supports canonical `conditions`)
             valid_conditions = [
                 'new_reply',
                 'dreamer_replies', 
@@ -217,9 +228,27 @@ class QuestDiagnostics:
                 'contains_mentions',
                 'hasnt_canon'  # Added hasnt_canon
             ]
-            condition_base = quest['condition'].split(':')[0]
-            if condition_base not in valid_conditions and not quest['condition'].startswith('reply_contains:'):
-                quest_warnings.append(f"Unknown condition: {quest['condition']}")
+
+            conds = quest.get('conditions')
+            if conds:
+                if isinstance(conds, str):
+                    try:
+                        conds = json.loads(conds)
+                    except Exception:
+                        conds = []
+
+                for cond_obj in conds:
+                    cond_val = cond_obj.get('condition') if isinstance(cond_obj, dict) else str(cond_obj)
+                    cond_base = cond_val.split(':')[0]
+                    if cond_base not in valid_conditions and not cond_val.startswith('reply_contains:'):
+                        quest_warnings.append(f"Unknown condition: {cond_val}")
+            else:
+                # Fallback to legacy single-condition string
+                    if quest.get('condition'):
+                        cond_val = quest.get('condition')
+                        cond_base = str(cond_val).split(':')[0]
+                        if cond_base not in valid_conditions and not str(cond_val).startswith('reply_contains:'):
+                            quest_warnings.append(f"Unknown condition: {cond_val}")
             
             # Check commands - UPDATED LIST
             valid_commands = [
@@ -241,8 +270,11 @@ class QuestDiagnostics:
                 'greet_newcomer',  # Added greeter command
                 'declare_origin'   # Added mapper command
             ]
-            for cmd in quest['commands']:
-                cmd_name = cmd.split(':')[0]
+            for cmd in quest.get('commands', []):
+                if isinstance(cmd, dict):
+                    cmd_name = cmd.get('cmd', '').split(':')[0]
+                else:
+                    cmd_name = str(cmd).split(':')[0]
                 if cmd_name not in valid_commands:
                     quest_warnings.append(f"Unknown command: {cmd}")
             
@@ -338,24 +370,31 @@ class QuestDiagnostics:
         enabled = sum(1 for q in quests if q['enabled'])
         disabled = len(quests) - enabled
         
-        # Count by condition type
+        # Count by condition type (canonical `conditions` expected)
         conditions = defaultdict(int)
         for quest in quests:
-            # Handle both old 'condition' and new 'conditions' formats
-            if quest.get('condition'):
-                cond = quest['condition'].split(':')[0]
-                conditions[cond] += 1
-            elif quest.get('conditions'):
-                for cond_obj in quest['conditions']:
-                    if isinstance(cond_obj, dict) and 'condition' in cond_obj:
-                        cond = cond_obj['condition'].split(':')[0]
-                        conditions[cond] += 1
+            conds = quest.get('conditions') or []
+            # Support JSON-string stored conditions (defensive)
+            if isinstance(conds, str):
+                try:
+                    conds = json.loads(conds)
+                except Exception:
+                    conds = []
+
+            for cond_obj in conds:
+                if isinstance(cond_obj, dict) and 'condition' in cond_obj:
+                    cond = cond_obj['condition'].split(':')[0]
+                    conditions[cond] += 1
         
-        # Count by command type
+        # Count by command type (canonical `commands` expected as objects)
         commands = defaultdict(int)
         for quest in quests:
-            for cmd in quest['commands']:
-                cmd_name = cmd.split(':')[0]
+            for cmd in quest.get('commands', []):
+                if isinstance(cmd, dict) and 'cmd' in cmd:
+                    cmd_name = cmd['cmd'].split(':')[0]
+                else:
+                    # Legacy string commands may still exist; count by prefix
+                    cmd_name = str(cmd).split(':')[0]
                 commands[cmd_name] += 1
         
         print(f"\n📋 Total Quests: {len(quests)}")
@@ -396,8 +435,13 @@ class QuestDiagnostics:
         print(f"🧪 TESTING QUEST CONDITION: {quest['title']}")
         print("=" * 80)
         
-        print(f"\nCondition: {quest['condition']}")
-        print(f"URI: {quest['uri']}")
+        # Show canonical conditions (or fall back to legacy condition for display)
+        if quest.get('conditions'):
+            print(f"\nConditions: {quest.get('conditions')}")
+        else:
+            print(f"\nCondition: {quest.get('condition')}")
+
+        print(f"URI: {quest.get('uri')}")
         
         print("\n⚠️  This is a dry-run simulation")
         print("   No actual commands will be executed")
@@ -422,16 +466,21 @@ class QuestDiagnostics:
         thread_result = {'replies': [mock_reply]}
         
         try:
-            result = evaluate_condition(quest['condition'], thread_result, quest)
-            
+            # evaluate_condition will prefer `quest['conditions']` when present
+            result = evaluate_condition(None, thread_result, quest)
+
             if result['success']:
                 print(f"✅ Condition would trigger")
                 print(f"   Matching replies: {result['count']}")
                 print(f"   Reason: {result.get('reason', 'N/A')}")
-                
+
                 print(f"\n⚙️  Commands that would execute:")
-                for cmd in quest['commands']:
-                    print(f"   - {cmd}")
+                for cmd in quest.get('commands', []):
+                    if isinstance(cmd, dict):
+                        args = cmd.get('args') or []
+                        print(f"   - {cmd.get('cmd')} {args}")
+                    else:
+                        print(f"   - {cmd}")
             else:
                 print(f"❌ Condition would NOT trigger")
                 print(f"   Reason: {result.get('reason', 'N/A')}")
@@ -456,17 +505,18 @@ class QuestDiagnostics:
         
         for quest in quests:
             quest_data = {
-                'title': quest['title'],
-                'uri': quest['uri'],
-                'condition': quest['condition'],
-                'commands': quest['commands'],
-                'enabled': quest['enabled'],
+                'title': quest.get('title'),
+                'uri': quest.get('uri'),
+                # Export canonical fields
+                'conditions': quest.get('conditions'),
+                'commands': quest.get('commands'),
+                'enabled': quest.get('enabled'),
                 'description': quest.get('description'),
             }
-            
+
             if quest.get('canon'):
-                quest_data['canon'] = quest['canon']
-            
+                quest_data['canon'] = quest.get('canon')
+
             export_data['quests'].append(quest_data)
         
         with open(output_file, 'w') as f:
