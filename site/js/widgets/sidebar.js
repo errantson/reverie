@@ -195,7 +195,7 @@ class Sidebar {
                                 <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="font-size: 10px; color: var(--reverie-core-color, #734ba1); font-weight: 600;">${contributionScore}</span>
+                                <span style="font-size: 10px; color: ${userColor}; font-weight: 600;">${contributionScore}</span>
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;">
                             </div>
                         </div>
@@ -369,7 +369,7 @@ class Sidebar {
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: #666; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
+                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
                             </div>
                         </div>
                     </div>
@@ -524,7 +524,7 @@ class Sidebar {
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: #666; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
+                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
                             </div>
                         </div>
                     </div>
@@ -601,7 +601,7 @@ class Sidebar {
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: #666; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
+                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
                             </div>
                         </div>
                     </div>
@@ -677,7 +677,7 @@ class Sidebar {
                                 <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="font-size: 10px; color: var(--reverie-core-color, #734ba1); font-weight: 600;">${patronScore}</span>
+                                <span style="font-size: 10px; color: ${userColor}; font-weight: 600;">${patronScore}</span>
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;">
                             </div>
                         </div>
@@ -763,7 +763,7 @@ class Sidebar {
                             </div>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: #666; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
+                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
                             </div>
                         </div>
                     </div>
@@ -904,7 +904,7 @@ class Sidebar {
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
                     <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                    <a href="https://bsky.app/profile/${match.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: #666; text-decoration: none; text-align: right;">@${match.handle}</a>
+                    <a href="https://bsky.app/profile/${match.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${match.handle}</a>
                 </div>
             </div>`;
             item.addEventListener('click', () => {
