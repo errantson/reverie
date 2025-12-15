@@ -391,20 +391,6 @@ class LoginWidget {
                         if (dreamerByName && dreamerByName.handle) {
                             console.log(`   ✅ Found dreamer by name: ${dreamerByName.name} -> ${dreamerByName.handle}`);
                             handle = dreamerByName.handle;
-                            
-                            // If it's a reverie.house handle, route to dreamweaver login
-                            if (handle.includes('reverie.house')) {
-                                console.log(`   🏠 Routing to dreamweaver login for ${handle}`);
-                                overlay.classList.remove('visible');
-                                loginBox.classList.remove('visible');
-                                setTimeout(() => {
-                                    overlay.remove();
-                                    this.showDreamweaverLoginForm(handle);
-                                }, 300);
-                                return;
-                            }
-                            // Handle is now set from database, continue with OAuth login below
-                            console.log(`   📤 Using handle from database for OAuth: ${handle}`);
                         } else {
                             console.log(`   ❌ No dreamer found with name "${handle}", using fallback: ${handle}.bsky.social`);
                             handle = `${handle}.bsky.social`;
@@ -422,6 +408,66 @@ class LoginWidget {
                 }
             }
             
+            // Now determine which auth flow to use based on PDS endpoint
+            // Resolve handle to check PDS service endpoint
+            // First, normalize the handle (replace @ with .)
+            handle = handle.replace('@', '.');
+            
+            console.log(`🔍 Checking PDS endpoint for ${handle}...`);
+            try {
+                // Resolve handle to DID
+                const didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
+                if (didResponse.ok) {
+                    const didData = await didResponse.json();
+                    const did = didData.did;
+                    console.log(`   DID: ${did}`);
+                    
+                    // Fetch DID document to find PDS
+                    let didDocResponse;
+                    if (did.startsWith('did:web:')) {
+                        // did:web DIDs are resolved from the domain's .well-known directory
+                        const domain = did.replace('did:web:', '');
+                        const didDocUrl = `https://${domain}/.well-known/did.json`;
+                        console.log(`   Resolving did:web from ${didDocUrl}`);
+                        didDocResponse = await fetch(didDocUrl);
+                    } else {
+                        // did:plc DIDs are resolved from PLC directory
+                        didDocResponse = await fetch(`https://plc.directory/${did}`);
+                    }
+                    if (didDocResponse.ok) {
+                        const didDoc = await didDocResponse.json();
+                        const service = didDoc.service?.find(s => s.id === '#atproto_pds');
+                        const serviceEndpoint = service?.serviceEndpoint || '';
+                        console.log(`   PDS endpoint: ${serviceEndpoint}`);
+                        
+                        // Route based on PDS endpoint
+                        // If it's bsky.network, use OAuth
+                        // If it's anything else (reverie.house or foreign PDS), use dreamweaver login
+                        if (serviceEndpoint.includes('bsky.network')) {
+                            console.log(`   📤 bsky.network detected - using OAuth`);
+                            overlay.classList.remove('visible');
+                            loginBox.classList.remove('visible');
+                            setTimeout(() => overlay.remove(), 300);
+                            await this.oauthManager.login(handle);
+                            return;
+                        } else {
+                            console.log(`   🏠 Non-bsky.network PDS detected - routing to dreamweaver login`);
+                            overlay.classList.remove('visible');
+                            loginBox.classList.remove('visible');
+                            setTimeout(() => {
+                                overlay.remove();
+                                this.showDreamweaverLoginForm(handle);
+                            }, 300);
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('   ❌ PDS check error:', error);
+            }
+            
+            // Fallback: if PDS check fails, try OAuth (will handle errors appropriately)
+            console.log(`   ⚠️ PDS check failed, defaulting to OAuth`);
             overlay.classList.remove('visible');
             loginBox.classList.remove('visible');
             setTimeout(() => overlay.remove(), 300);
@@ -429,12 +475,7 @@ class LoginWidget {
                 await this.oauthManager.login(handle);
             } catch (error) {
                 console.error('OAuth login error:', error);
-                if (error.message && error.message.includes('reverie.house')) {
-                    // Pass the full handle, not just the username part
-                    this.showDreamweaverLoginForm(handle);
-                } else {
-                    this.showMessage('Login Failed', error.message || 'Unable to start login process', true);
-                }
+                this.showMessage('Login Failed', error.message || 'Unable to start login process', true);
             }
         });
         quickHandleInput.addEventListener('keypress', (e) => {
@@ -721,11 +762,11 @@ class LoginWidget {
             checkTimeout = setTimeout(() => checkHandle(fullValue), 500);
         }, true);
 
-        const checkHandle = async (handleInput) => {
-            let handle = handleInput.replace(/^@/, '').trim();
+        const checkHandle = async (handleValue) => {
+            let handle = handleValue.replace(/^@/, '').trim();
             
             console.log('🚀 === DREAMWEAVER LOGIN CHECK START ===');
-            console.log(`   Handle input: "${handleInput}"`);
+            console.log(`   Handle input: "${handleValue}"`);
             console.log(`   Cleaned handle: "${handle}"`);
             
             statusMessage.style.display = 'flex';
@@ -884,7 +925,17 @@ class LoginWidget {
                 console.log(`   DID: ${resolvedDid}`);
                 
                 console.log(`🔍 STEP 3: Fetching DID document to find PDS service endpoint...`);
-                const didDocResponse = await fetch(`https://plc.directory/${resolvedDid}`);
+                let didDocResponse;
+                if (resolvedDid.startsWith('did:web:')) {
+                    // did:web DIDs are resolved from the domain's .well-known directory
+                    const domain = resolvedDid.replace('did:web:', '');
+                    const didDocUrl = `https://${domain}/.well-known/did.json`;
+                    console.log(`   Resolving did:web from ${didDocUrl}`);
+                    didDocResponse = await fetch(didDocUrl);
+                } else {
+                    // did:plc DIDs are resolved from PLC directory
+                    didDocResponse = await fetch(`https://plc.directory/${resolvedDid}`);
+                }
                 const didDoc = await didDocResponse.json();
                 const service = didDoc.service?.find(s => s.id === '#atproto_pds');
                 const serviceEndpoint = service?.serviceEndpoint || '';
@@ -926,9 +977,34 @@ class LoginWidget {
                 }
                 
                 // Determine authentication mode based on service endpoint
-                // If it's on bsky.network, use OAuth
-                // If it's on any other PDS (reverie.house, flawed.center, etc.), use password auth
-                if (serviceEndpoint.includes('bsky.network')) {
+                // Three modes: reverie.house (resident), bsky.network (oauth), foreign PDS (guest)
+                if (serviceEndpoint === 'https://reverie.house') {
+                    // Resident Dreamweaver on our PDS - use password auth
+                    console.log(`   ✅ RESULT: Resident Dreamweaver (PDS account on ${serviceEndpoint})`);
+                    authMode = 'pds';
+                    statusMessage.style.display = 'flex';
+                    statusMessage.style.alignItems = 'center';
+                    statusMessage.style.justifyContent = 'center';
+                    statusMessage.style.gap = '8px';
+                    statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
+                    statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
+                    statusMessage.style.color = coreColor;
+                    statusMessage.innerHTML = `
+                        <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
+                        <strong>Resident Dreamweaver</strong>
+                    `;
+                    passwordGroup.style.display = 'block';
+                    passwordInfo.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                    submitBtn.style.background = coreColor;
+                    submitBtn.style.borderColor = coreColor;
+                    submitBtn.style.color = 'white';
+                    loginText.textContent = 'Welcome Home';
+                    setTimeout(() => passwordInput.focus(), 100);
+                } else if (serviceEndpoint.includes('bsky.network')) {
+                    // Bluesky network - use OAuth
                     console.log(`   ✅ RESULT: Awakened Dreamweaver (OAuth account on ${serviceEndpoint})`);
                     authMode = 'oauth';
                     statusMessage.style.display = 'flex';
@@ -952,29 +1028,44 @@ class LoginWidget {
                     submitBtn.style.color = 'white';
                     loginText.textContent = 'Welcome Back';
                 } else {
-                    // Custom PDS (reverie.house, flawed.center, etc.) - use password auth
-                    console.log(`   ✅ RESULT: Resident Dreamweaver (PDS account on ${serviceEndpoint})`);
-                    authMode = 'pds';
+                    // Foreign PDS - use password auth to their PDS
+                    console.log(`   ✅ RESULT: Honoured Guest (Foreign PDS account on ${serviceEndpoint})`);
+                    authMode = 'foreign-pds';
+                    // Store the foreign PDS endpoint for later use
+                    handleInput.dataset.foreignPds = serviceEndpoint;
+                    
+                    // Get heraldry for this server
+                    console.log(`🛡️ [LOGIN] Looking up heraldry for server: ${serviceEndpoint}`);
+                    console.log(`🛡️ [LOGIN] window.heraldrySystem exists:`, !!window.heraldrySystem);
+                    const heraldry = window.heraldrySystem ? window.heraldrySystem.getByServer(serviceEndpoint) : null;
+                    console.log(`🛡️ [LOGIN] Heraldry result:`, heraldry);
+                    const guestIcon = heraldry ? heraldry.icon : '/assets/wild_mindscape.png';
+                    const guestColor = heraldry ? heraldry.color : '#2d3748';
+                    const guestName = heraldry ? heraldry.fullName : 'Honoured Guest';
+                    const guestBg = heraldry ? `rgba(${parseInt(guestColor.slice(1,3),16)}, ${parseInt(guestColor.slice(3,5),16)}, ${parseInt(guestColor.slice(5,7),16)}, 0.05)` : 'rgba(45, 55, 72, 0.05)';
+                    const guestBorder = heraldry ? `rgba(${parseInt(guestColor.slice(1,3),16)}, ${parseInt(guestColor.slice(3,5),16)}, ${parseInt(guestColor.slice(5,7),16)}, 0.3)` : 'rgba(45, 55, 72, 0.3)';
+                    
                     statusMessage.style.display = 'flex';
                     statusMessage.style.alignItems = 'center';
                     statusMessage.style.justifyContent = 'center';
                     statusMessage.style.gap = '8px';
-                    statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
-                    statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
-                    statusMessage.style.color = coreColor;
+                    statusMessage.style.background = guestBg;
+                    statusMessage.style.border = `1px solid ${guestBorder}`;
+                    statusMessage.style.color = guestColor;
                     statusMessage.innerHTML = `
-                        <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
-                        <strong>Resident Dreamweaver</strong>
+                        <img src="${guestIcon}" alt="" style="width: 18px; height: 18px;">
+                        <strong>${guestName}</strong>
                     `;
                     passwordGroup.style.display = 'block';
                     passwordInfo.style.display = 'block';
+                    passwordInfo.innerHTML = '<small style="color: rgba(45, 55, 72, 0.7);">Enter an <a href="https://bsky.app/settings/app-passwords" target="_blank" style="color: #2d3748; text-decoration: underline; font-weight: 600;">app password</a> from your account settings</small>';
                     submitBtn.disabled = false;
                     submitBtn.style.opacity = '1';
                     submitBtn.style.cursor = 'pointer';
-                    submitBtn.style.background = coreColor;
-                    submitBtn.style.borderColor = coreColor;
+                    submitBtn.style.background = guestColor;
+                    submitBtn.style.borderColor = guestColor;
                     submitBtn.style.color = 'white';
-                    loginText.textContent = 'Welcome Home';
+                    loginText.textContent = 'Enter as Guest';
                     setTimeout(() => passwordInput.focus(), 100);
                 }
             } catch (error) {
@@ -1053,11 +1144,17 @@ class LoginWidget {
             handleInput.disabled = true;
             passwordInput.disabled = true;
             try {
-                console.log('🔐 Attempting reverie-login for:', handle);
+                // For foreign PDS, pass the PDS endpoint
+                const foreignPds = authMode === 'foreign-pds' ? handleInput.dataset.foreignPds : null;
+                console.log(`🔐 Attempting ${authMode === 'foreign-pds' ? 'foreign-pds' : 'reverie'}-login for:`, handle, foreignPds ? `at ${foreignPds}` : '');
                 const response = await fetch('/api/reverie-login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ handle, password })
+                    body: JSON.stringify({ 
+                        handle, 
+                        password,
+                        foreign_pds: foreignPds
+                    })
                 });
                 console.log('📥 Login response status:', response.status);
                 const result = await response.json();

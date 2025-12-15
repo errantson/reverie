@@ -170,6 +170,11 @@ def evaluate_single_condition(condition: str, thread_result: Dict, quest_config:
         }
 
 
+# NOTE: We now enforce canonical condition objects only. Legacy condition
+# normalization has been removed — run the migration tool to convert quests
+# before enabling the new strict mode.
+
+
 def evaluate_conditions(conditions: List[Dict], operator: str, thread_result: Dict, quest_config: Dict) -> Dict:
     """
     Evaluate multiple conditions with a logical operator.
@@ -208,11 +213,22 @@ def evaluate_conditions(conditions: List[Dict], operator: str, thread_result: Di
         # Skip disabled conditions
         if cond_obj.get('disabled', False):
             continue
-            
-        condition_str = cond_obj.get('condition', '')
-        if not condition_str:
-            continue
-            
+
+        # Expect canonical condition object with 'condition' and 'args'
+        cond_name = cond_obj.get('condition')
+        if not cond_name:
+            raise RuntimeError(
+                "Found non-canonical condition object; run migration to canonical schema: tools/migrate_quests_to_canonical.py"
+            )
+
+        # Build the condition string for the single-condition evaluator
+        args = cond_obj.get('args', []) or []
+        if args:
+            # Join args with comma to form the single-condition API (e.g. reply_contains:foo)
+            condition_str = f"{cond_name}:{','.join(str(a) for a in args)}"
+        else:
+            condition_str = cond_name
+
         result = evaluate_single_condition(condition_str, thread_result, quest_config)
         results.append(result)
         

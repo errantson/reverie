@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reverie House - Community Lore Archive</title>
     <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/heraldry.css">
     <link rel="stylesheet" href="/css/pages/story.css">
     <link rel="stylesheet" href="/css/widgets/login.css">
     <link rel="stylesheet" href="/css/widgets/createdreamer.css">
@@ -17,6 +18,7 @@
     <script src="/js/core/world-config-cache.js"></script>
     <script src="/js/core/color-manager.js"></script>
     <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/utils/heraldry.js"></script>
     <script src="/js/utils/atproto-interactions.js"></script>
     <script src="/js/widgets/background.js"></script>
     
@@ -75,6 +77,7 @@
                     <button class="share-story-btn" id="shareStoryBtn" onclick="handleShareClick()">
                         <span id="shareStoryBtnText">Share Your <span class="rotating-word"></span></span>
                     </button>
+                    <div id="shareErrorHint" class="share-error-hint" style="display:none; margin-top:8px; color:#a33; font-size:0.95em; max-width:320px;">Unable to open the AddLore dialog. Check the browser console for details or ensure you're logged in.</div>
                     <div class="filter-buttons">
                         <button class="filter-btn active" data-filter="canon" title="Stories officially recognized by the Keeper as part of the shared canon">Canon Only</button>
                         <button class="filter-btn" data-filter="all" title="All stories tagged as lore by dreamers, including community contributions">Expanded Lore</button>
@@ -123,9 +126,24 @@
                 </div>
             </div>
             
-            <button class="share-modal-btn" onclick="closeExplanationModal()" style="margin-top: 10px;">
-                Back
-            </button>
+
+            <div style="display:flex; justify-content:center; margin-top:18px;">
+                <button class="explanation-back-btn" onclick="closeExplanationModal()" type="button" style="
+                    background: var(--user-color, #734ba1);
+                    color: #fff;
+                    border: none;
+                    border-radius: 0;
+                    font-weight: 700;
+                    font-size: 1rem;
+                    padding: 12px 36px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    box-shadow: 0 2px 8px rgba(115,75,161,0.10);
+                    cursor: pointer;
+                    transition: background 0.2s;
+                    outline: none;
+                ">BACK</button>
+            </div>
             
             <p style="font-size: 0.85em; color: #666; margin-top: 16px; margin-bottom: 0;">
                 Learn more at <a href="https://lore.farm" target="_blank" style="color: #734ba1; text-decoration: none; font-weight: 600;">lore.farm</a>
@@ -787,24 +805,69 @@
                 }
                 return;
             }
-            
+
+            // Helper: show a short, visible error hint near the share button
+            function showShareError(msg) {
+                console.error('Share error:', msg);
+                const hint = document.getElementById('shareErrorHint');
+                if (hint) {
+                    hint.textContent = msg;
+                    hint.style.display = 'block';
+                    setTimeout(() => { hint.style.display = 'none'; }, 8000);
+                } else {
+                    alert(msg);
+                }
+            }
+
             // User is logged in, open share modal via widget
-            if (window.shareLoreWidget) {
-                window.shareLoreWidget.show();
-                
-                // Listen for success to reload stories
-                window.addEventListener('sharelore:success', () => {
-                    setTimeout(() => {
-                        loadStories();
-                    }, 2000);
-                }, { once: true });
+            if (window.shareLoreWidget && typeof window.shareLoreWidget.show === 'function') {
+                try {
+                    window.shareLoreWidget.show();
+
+                    // Listen for success to reload stories
+                    window.addEventListener('sharelore:success', () => {
+                        setTimeout(() => {
+                            loadStories();
+                        }, 2000);
+                    }, { once: true });
+                } catch (err) {
+                    showShareError('Failed to open AddLore dialog. See console for details.');
+                    console.error('Exception while opening ShareLore.show():', err);
+                }
+            } else {
+                // Widget not initialized or unavailable
+                showShareError('AddLore dialog is currently unavailable. Please check the browser console; the widget may not have initialized or required scripts failed to load.');
+                console.error('ShareLore widget not available', {
+                    ShareLore: window.ShareLore,
+                    shareLoreWidget: window.shareLoreWidget
+                });
             }
         }
         
         // Update button text based on login state
         function openExplanationModal() {
-            document.getElementById('explanationModalOverlay').classList.add('active');
-            loadLoremasters();
+            // If the Share modal is open, open explanation in a stacked Shadowbox
+            const shareOverlay = document.getElementById('shareModalOverlay');
+            if (shareOverlay && shareOverlay.classList.contains('active') && window.HowToLore) {
+                try {
+                    const how = new HowToLore();
+                    how.show();
+                    // Load loremasters into the widget if available
+                    loadLoremasters().then(data => {
+                        // HowToLore handles its own data if needed; nothing extra here
+                    }).catch(() => {});
+                    return;
+                } catch (e) {
+                    console.warn('🎭 [openExplanationModal] Failed to open HowToLore Shadowbox, falling back', e);
+                }
+            }
+
+            // Fallback: legacy inline explanation overlay
+            const el = document.getElementById('explanationModalOverlay');
+            if (el) {
+                el.classList.add('active');
+                loadLoremasters();
+            }
         }
         
         function closeExplanationModal() {

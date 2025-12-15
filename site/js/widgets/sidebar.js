@@ -9,6 +9,24 @@ class Sidebar {
         this.render();
         this.initialize();
     }
+    
+    getServerIcon(dreamer) {
+        // Determine server icon using heraldry system
+        // Priority: Use actual server field if available (authoritative)
+        if (dreamer.server === 'https://reverie.house') {
+            return 'assets/icon.png';
+        } else if (dreamer.server && dreamer.server.includes('bsky.network')) {
+            return 'assets/bluesky.png';
+        } else if (dreamer.server) {
+            // Use heraldry system for foreign PDS (server field is authoritative)
+            const heraldry = window.heraldrySystem ? window.heraldrySystem.getByServer(dreamer.server) : null;
+            return heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
+        } else {
+            // Fallback: try to determine from handle
+            const heraldry = window.heraldrySystem ? window.heraldrySystem.getByHandle(dreamer.handle) : null;
+            return heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
+        }
+    }
     render() {
         this.container.innerHTML = `
             <div class="carousel-detached">
@@ -176,14 +194,7 @@ class Sidebar {
                 }
                 
                 // Get server icon
-                let serverIconSrc = '';
-                if (dreamer.server === 'https://reverie.house') {
-                    serverIconSrc = 'assets/icon.png';
-                } else if (dreamer.server && dreamer.server.includes('bsky.network')) {
-                    serverIconSrc = 'assets/bluesky.png';
-                } else {
-                    serverIconSrc = 'assets/wild_mindscape.svg';
-                }
+                const serverIconSrc = this.getServerIcon(dreamer);
                 
                 const contributionScore = dreamer.non_patron_contribution;
                 
@@ -356,7 +367,8 @@ class Sidebar {
                         serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                     }
                 } else {
-                    serverIconSrc = 'assets/wild_mindscape.svg';
+                    const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(dreamer || u || match) : null;
+                    serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
                     serverIconStyle = '';
                 }
                 
@@ -511,7 +523,8 @@ class Sidebar {
                         serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                     }
                 } else {
-                    serverIconSrc = 'assets/wild_mindscape.svg';
+                    const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(dreamer || u || match) : null;
+                    serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
                     serverIconStyle = '';
                 }
                 
@@ -589,8 +602,10 @@ class Sidebar {
                 }
                 
                 // Get server icon - use wild mindscape icon for external servers
-                const serverIconSrc = 'assets/wild_mindscape.svg';
+                const serverIconSrc = this.getServerIcon(dreamer);
                 const serverIconStyle = '';
+                
+                console.log(`🛡️ [Honoured Guest] ${dreamer.name} (${dreamer.handle}) - Server: ${dreamer.server} - Icon: ${serverIconSrc}`);
                 
                 return `
                     <div class="honoured-guest-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
@@ -658,14 +673,7 @@ class Sidebar {
                 }
                 
                 // Get server icon
-                let serverIconSrc = '';
-                if (dreamer.server === 'https://reverie.house') {
-                    serverIconSrc = 'assets/icon.png';
-                } else if (dreamer.server && dreamer.server.includes('bsky.network')) {
-                    serverIconSrc = 'assets/bluesky.png';
-                } else {
-                    serverIconSrc = 'assets/wild_mindscape.svg';
-                }
+                const serverIconSrc = this.getServerIcon(dreamer);
                 
                 const patronScore = dreamer.patron_score || 0;
                 
@@ -750,7 +758,8 @@ class Sidebar {
                         serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                     }
                 } else {
-                    serverIconSrc = 'assets/wild_mindscape.svg';
+                    const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(dreamer || u || match) : null;
+                    serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
                     serverIconStyle = '';
                 }
                 
@@ -893,7 +902,8 @@ class Sidebar {
                     serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                 }
             } else {
-                serverIconSrc = 'assets/wild_mindscape.svg';       
+                const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(dreamer || u || match) : null;
+                    serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';       
                 serverIconStyle = '';
             }
             

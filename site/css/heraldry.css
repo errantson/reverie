@@ -1,0 +1,148 @@
+/**
+ * Heraldry System - Visual Identity for Foreign PDS Servers
+ * 
+ * This file defines colors, icons, and visual themes for known
+ * foreign Personal Data Servers in the ATProto network.
+ * 
+ * Structure:
+ * - Server domain matching patterns
+ * - Color schemes (primary, secondary, accent)
+ * - Icon paths
+ * - Display labels
+ */
+
+:root {
+    /* Northsky.social - Cool northern blues */
+    --heraldry-northsky-primary: #4a90e2;
+    --heraldry-northsky-secondary: #2c5aa0;
+    --heraldry-northsky-accent: #7bb3ff;
+    --heraldry-northsky-bg: rgba(74, 144, 226, 0.05);
+    --heraldry-northsky-border: rgba(74, 144, 226, 0.2);
+    
+    /* Blacksky.social - Dark mysterious tones */
+    --heraldry-blacksky-primary: #1a1a1a;
+    --heraldry-blacksky-secondary: #000000;
+    --heraldry-blacksky-accent: #333333;
+    --heraldry-blacksky-bg: rgba(26, 26, 26, 0.05);
+    --heraldry-blacksky-border: rgba(26, 26, 26, 0.3);
+    
+    /* Witchcraft.systems - Mystical purples */
+    --heraldry-witchcraft-primary: #8b3a9c;
+    --heraldry-witchcraft-secondary: #6b2875;
+    --heraldry-witchcraft-accent: #b055c5;
+    --heraldry-witchcraft-bg: rgba(139, 58, 156, 0.05);
+    --heraldry-witchcraft-border: rgba(139, 58, 156, 0.25);
+    
+    /* Selfhosted.pds - Independent greens */
+    --heraldry-selfhosted-primary: #2d7a4f;
+    --heraldry-selfhosted-secondary: #1e5a37;
+    --heraldry-selfhosted-accent: #43b36f;
+    --heraldry-selfhosted-bg: rgba(45, 122, 79, 0.05);
+    --heraldry-selfhosted-border: rgba(45, 122, 79, 0.25);
+    
+    /* Chaos.observer - Chaotic oranges/reds */
+    --heraldry-chaos-primary: #e85d04;
+    --heraldry-chaos-secondary: #9d0208;
+    --heraldry-chaos-accent: #f48c06;
+    --heraldry-chaos-bg: rgba(232, 93, 4, 0.05);
+    --heraldry-chaos-border: rgba(232, 93, 4, 0.25);
+    
+    /* Default/Unknown - Neutral grays */
+    --heraldry-default-primary: #2d3748;
+    --heraldry-default-secondary: #1a202c;
+    --heraldry-default-accent: #4a5568;
+    --heraldry-default-bg: rgba(45, 55, 72, 0.05);
+    --heraldry-default-border: rgba(45, 55, 72, 0.3);
+}
+
+/* Heraldry Badge Styles */
+.heraldry-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.heraldry-badge img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+}
+
+/* Server-specific badge styles */
+.heraldry-northsky {
+    background: var(--heraldry-northsky-bg);
+    border: 1px solid var(--heraldry-northsky-border);
+    color: var(--heraldry-northsky-primary);
+}
+
+.heraldry-blacksky {
+    background: var(--heraldry-blacksky-bg);
+    border: 1px solid var(--heraldry-blacksky-border);
+    color: var(--heraldry-blacksky-primary);
+}
+
+.heraldry-witchcraft {
+    background: var(--heraldry-witchcraft-bg);
+    border: 1px solid var(--heraldry-witchcraft-border);
+    color: var(--heraldry-witchcraft-primary);
+}
+
+.heraldry-selfhosted {
+    background: var(--heraldry-selfhosted-bg);
+    border: 1px solid var(--heraldry-selfhosted-border);
+    color: var(--heraldry-selfhosted-primary);
+}
+
+.heraldry-chaos {
+    background: var(--heraldry-chaos-bg);
+    border: 1px solid var(--heraldry-chaos-border);
+    color: var(--heraldry-chaos-primary);
+}
+
+.heraldry-default {
+    background: var(--heraldry-default-bg);
+    border: 1px solid var(--heraldry-default-border);
+    color: var(--heraldry-default-primary);
+}
+
+/* Login button styles */
+.login-heraldry-northsky {
+    background: var(--heraldry-northsky-primary) !important;
+    border-color: var(--heraldry-northsky-primary) !important;
+    color: white !important;
+}
+
+.login-heraldry-blacksky {
+    background: var(--heraldry-blacksky-primary) !important;
+    border-color: var(--heraldry-blacksky-primary) !important;
+    color: white !important;
+}
+
+.login-heraldry-witchcraft {
+    background: var(--heraldry-witchcraft-primary) !important;
+    border-color: var(--heraldry-witchcraft-primary) !important;
+    color: white !important;
+}
+
+.login-heraldry-selfhosted {
+    background: var(--heraldry-selfhosted-primary) !important;
+    border-color: var(--heraldry-selfhosted-primary) !important;
+    color: white !important;
+}
+
+.login-heraldry-chaos {
+    background: var(--heraldry-chaos-primary) !important;
+    border-color: var(--heraldry-chaos-primary) !important;
+    color: white !important;
+}
+
+.login-heraldry-default {
+    background: var(--heraldry-default-primary) !important;
+    border-color: var(--heraldry-default-primary) !important;
+    color: white !important;
+}
