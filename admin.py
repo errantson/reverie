@@ -1432,9 +1432,9 @@ def admin_add_canon():
         else:
             # Insert new entry
             db.execute("""
-                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, quantities)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-            """, (did, event, type_val, key, uri, url, epoch, int(time.time()), quantities_json))
+                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, quantities, color_source, color_intensity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
+            """, (did, event, type_val, key, uri, url, epoch, int(time.time()), quantities_json, 'user', 'highlight'))
         
         return jsonify({'success': True})
         
@@ -1465,7 +1465,7 @@ def admin_delete_canon(entry_id):
             return jsonify({'error': 'Canon entry not found'}), 404
         
         # Delete the entry
-        db.execute("DELETE FROM events WHERE id = %s", (entry_id,))
+        db.execute("DELETE FROM events WHERE id = %s", (entry_id,), autocommit=True)
         
         return jsonify({'success': True})
         
@@ -2491,8 +2491,8 @@ def set_heading():
             try:
                 epoch = int(time.time())
                 db.execute("""
-                    INSERT INTO events (did, epoch, type, event, key, uri, url)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO events (did, epoch, type, event, key, uri, url, color_source, color_intensity)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     did,
                     epoch,

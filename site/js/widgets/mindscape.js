@@ -209,6 +209,11 @@ class Mindscape {
                 if (window.showPost) {
                     window.showPost(url);
                 }
+            },
+            columns: {
+                type: false,
+                key: false,
+                uri: false
             }
         });
     }

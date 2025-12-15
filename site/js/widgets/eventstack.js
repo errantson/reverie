@@ -32,18 +32,31 @@ class EventStack {
      * @param {string} options.sortOrder - 'desc' | 'asc' (by epoch)
      * @param {Function} options.onRowClick - Custom click handler (event) => {}
      * @param {string} options.emptyMessage - Custom message when no events
+     * @param {Object} options.columns - Column visibility configuration {type: true, epoch: true, canon: true, key: true, uri: true}
      */
     render(events, targetElement, options = {}) {
         console.log('📜 [EventStack] Rendering', events?.length || 0, 'events with options:', options);
         
         this.container = targetElement;
+        
+        // Default column configuration
+        const defaultColumns = {
+            type: true,
+            epoch: true,
+            canon: true,
+            key: true,
+            uri: true
+        };
+        
         this.options = {
             colorMode: 'auto',
             colorIntensity: 'highlight',
             showReactions: true, // Enable reactions by default
             sortOrder: 'desc',
             emptyMessage: 'No events recorded yet',
-            ...options
+            ...options,
+            // Merge columns separately to preserve defaults
+            columns: { ...defaultColumns, ...options.columns }
         };
         this.allEvents = events || [];
         
@@ -198,7 +211,11 @@ class EventStack {
         const year = String(date.getFullYear()).slice(-2);
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
-        const dateStr = `${day}/${month}/${year} ${hours}:${minutes}`;
+        
+        // Format based on dateFormat option
+        const dateStr = this.options.dateFormat === 'date' 
+            ? `${day}/${month}/${year}` 
+            : `${day}/${month}/${year} ${hours}:${minutes}`;
         
         const avatar = event.avatar || '/assets/icon_face.png';
         const name = event.name || 'unknown';
@@ -280,11 +297,15 @@ class EventStack {
         let html = `<div class="${finalRowClass}"${rowStyleAttr}${dataAttrs}>`;
         
         // Type cell (before epoch) - better padding
-        const typeDisplay = type ? `<span style="font-size: 0.85em; text-transform: lowercase;">${type}</span>` : '<span>—</span>';
-        html += `<div class="cell type" style="padding-left: 12px; padding-right: 6px;">${typeDisplay}</div>`;
+        if (this.options.columns.type) {
+            const typeDisplay = type ? `<span style="font-size: 0.85em; text-transform: lowercase;">${type}</span>` : '<span>—</span>';
+            html += `<div class="cell type" style="padding-left: 12px; padding-right: 6px;">${typeDisplay}</div>`;
+        }
         
         // Epoch cell - reduced right margin
-        html += `<div class="cell epoch" style="padding-right: 8px;">${dateStr}</div>`;
+        if (this.options.columns.epoch) {
+            html += `<div class="cell epoch" style="padding: 0 2px;">${dateStr}</div>`;
+        }
         
         // Thread arrow for reactions (positioned before avatar)
         const threadArrowStyle = level > 0 ? ` style="margin-left: ${level * 20}px;"` : '';
@@ -295,7 +316,7 @@ class EventStack {
         }
         
         // Avatar cell (no margin for threaded items to group with arrow)
-        const avatarMargin = level > 0 ? 0 : 12;
+        const avatarMargin = level > 0 ? 0 : 2;
         const avatarStyle = ` style="margin-left: ${avatarMargin}px;"`;
         const dreamerLink = did ? `/dreamer?did=${encodeURIComponent(did)}` : '#';
         html += `<div class="cell avatar"${avatarStyle}>`;
@@ -307,39 +328,45 @@ class EventStack {
         html += `</div>`;
         
         // Canon cell (keep normal padding, indent is handled by thread-arrow)
-        const canonPadding = level > 0 ? 8 : 12;
-        const canonStyle = ` style="padding-left: ${canonPadding}px;"`;
-        const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
-        const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
-        html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} ${eventSpan}</span></div>`;
+        if (this.options.columns.canon) {
+            const canonPadding = level > 0 ? 8 : 12;
+            const canonStyle = ` style="padding-left: ${canonPadding}px;"`;
+            const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
+            const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
+            html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} ${eventSpan}</span></div>`;
+        }
         
         // Key cell
-        const keyDisplay = key ? `<span style="font-size: 0.85em; font-family: monospace;">${key}</span>` : '<span>—</span>';
-        html += `<div class="cell key">${keyDisplay}</div>`;
+        if (this.options.columns.key) {
+            const keyDisplay = key ? `<span style="font-size: 0.85em; font-family: monospace;">${key}</span>` : '<span>—</span>';
+            html += `<div class="cell key">${keyDisplay}</div>`;
+        }
         
         // URI cell - show just endpoint if relevant
-        let uriDisplay = '';
-        if (uri) {
-            uriDisplay = `<span style="font-size: 0.85em; font-family: monospace;">${uri}</span>`;
-        } else if (url) {
-            // Extract just the path/endpoint from URLs
-            let endpoint = url;
-            if (url.startsWith('http://') || url.startsWith('https://')) {
-                try {
-                    const urlObj = new URL(url);
-                    endpoint = urlObj.pathname + urlObj.search + urlObj.hash;
-                    if (!endpoint || endpoint === '/') {
-                        endpoint = urlObj.hostname;
+        if (this.options.columns.uri) {
+            let uriDisplay = '';
+            if (uri) {
+                uriDisplay = `<span style="font-size: 0.85em; font-family: monospace;">${uri}</span>`;
+            } else if (url) {
+                // Extract just the path/endpoint from URLs
+                let endpoint = url;
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                    try {
+                        const urlObj = new URL(url);
+                        endpoint = urlObj.pathname + urlObj.search + urlObj.hash;
+                        if (!endpoint || endpoint === '/') {
+                            endpoint = urlObj.hostname;
+                        }
+                    } catch (e) {
+                        endpoint = url;
                     }
-                } catch (e) {
-                    endpoint = url;
                 }
+                uriDisplay = `<span style="font-size: 0.85em; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;" title="${url}">${endpoint}</span>`;
+            } else {
+                uriDisplay = '<span>—</span>';
             }
-            uriDisplay = `<span style="font-size: 0.85em; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;" title="${url}">${endpoint}</span>`;
-        } else {
-            uriDisplay = '<span>—</span>';
+            html += `<div class="cell uri">${uriDisplay}</div>`;
         }
-        html += `<div class="cell uri">${uriDisplay}</div>`;
         
         html += `</div>`;
         

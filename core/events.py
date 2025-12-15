@@ -185,8 +185,8 @@ class EventsManager:
             with self.db.transaction() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
-                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, quantities)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, quantities, color_source, color_intensity)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
                         RETURNING id
                     """, (
                         did,
@@ -268,10 +268,10 @@ class EventsManager:
                     
                     # Insert new event
                     cursor.execute('''
-                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, reaction_to, quantities)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, reaction_to, quantities, color_source, color_intensity)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
                         RETURNING id
-                    ''', (did, event, event_type, key or '', uri, url, epoch, int(time.time()), reaction_to, quantities))
+                    ''', (did, event, event_type, key or '', uri, url, epoch, int(time.time()), reaction_to, quantities, 'user', 'highlight'))
                     
                     result = cursor.fetchone()
                     event_id = result['id'] if result else None

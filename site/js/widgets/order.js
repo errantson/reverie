@@ -269,7 +269,12 @@ class OrderWidget {
                     showReactions: false,
                     limit: 4,
                     sortOrder: 'desc',
-                    emptyMessage: 'No orders yet. Be the first!'
+                    emptyMessage: 'No orders yet. Be the first!',
+                    columns: {
+                        type: false,
+                        key: false,
+                        uri: false
+                    }
                 });
 
                 // Inject a prospective (live) row at the top showing the current user and time

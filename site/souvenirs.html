@@ -698,7 +698,12 @@
             fetchEventsForKey(currentSouvenir.key).then(events => {
                 const eventStack = new EventStack();
                 eventStack.render(events, document.getElementById('souvenir-events-face'), {
-                    colorMode: 'auto'
+                    colorMode: 'auto',
+                    columns: {
+                        type: false,
+                        key: false,
+                        uri: false
+                    }
                 });
             });
             

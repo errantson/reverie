@@ -514,20 +514,23 @@ class Dashboard {
     }
 
     getServerLabel(server) {
-        const serverClean = (server || 'reverie.house').replace(/^https?:\/\//, '');
-        if (serverClean === 'reverie.house') return 'Residence';
-        if (serverClean.endsWith('bsky.network')) return 'Homestar';
-        return 'Server';
+        return 'Domain';
+    }
+    
+    getServerUrl(server) {
+        const serverClean = (server || 'https://reverie.house').replace(/^https?:\/\//, '');
+        // For custom PDS (pds.domain.com), link to the actual domain
+        if (serverClean.startsWith('pds.')) {
+            return 'https://' + serverClean.replace(/^pds\./, '');
+        }
+        // Otherwise use the full server URL as-is
+        return server || 'https://reverie.house';
     }
     
     getServerDisplay(server) {
         const serverClean = (server || 'reverie.house').replace(/^https?:\/\//, '');
-        if (serverClean === 'reverie.house') return 'Reverie House';
-        if (serverClean.endsWith('bsky.network')) {
-            const prefix = serverClean.split('.')[0];
-            return prefix.charAt(0).toUpperCase() + prefix.slice(1);
-        }
-        return serverClean.split('.')[0];
+        // Remove 'pds.' prefix for cleaner display
+        return serverClean.replace(/^pds\./, '');
     }
     
     getPdsStatusMessage(server) {
@@ -722,7 +725,7 @@ class Dashboard {
                                         </div>
                                         <div class="account-info-row">
                                             <span class="dashboard-info-label">${this.getServerLabel(d.server)}</span>
-                                            <a href="https://${d.server || 'reverie.house'}" target="_blank" rel="noopener" class="dashboard-info-value dashboard-info-link info-truncate" title="${d.server || 'reverie.house'}">${this.getServerDisplay(d.server)}</a>
+                                            <a href="${this.getServerUrl(d.server)}" target="_blank" rel="noopener" class="dashboard-info-value dashboard-info-link info-truncate" title="${this.getServerUrl(d.server)}">${this.getServerDisplay(d.server)}</a>
                                         </div>
                                         <div class="account-info-row">
                                             <span class="dashboard-info-label">Patronage</span>
@@ -5189,19 +5192,61 @@ class Dashboard {
      * Detect facets (mentions and links) in post text
      * Returns array of facet objects in AT Protocol format
      */
-    detectFacets(text) {
+    async detectFacets(text) {
         const facets = [];
         const encoder = new TextEncoder();
         const bytes = encoder.encode(text);
         
-        // NOTE: Mentions (@handle) are not included because they require async DID resolution
-        // The backend courier system handles mention resolution properly for scheduled posts
-        // For immediate posts, users should use the full @handle.domain format which will be
-        // visible as plain text (Bluesky clients will auto-link them)
+        // Detect mentions (@handle)
+        const mentionRegex = /(@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)/g;
+        let match;
+        
+        const mentionPromises = [];
+        const mentionMatches = [];
+        
+        while ((match = mentionRegex.exec(text)) !== null) {
+            const handle = match[0].substring(1); // Remove @ prefix
+            mentionMatches.push({
+                handle,
+                fullMatch: match[0],
+                index: match.index
+            });
+            
+            // Queue the DID resolution
+            mentionPromises.push(
+                fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => data?.did || null)
+                    .catch(() => null)
+            );
+        }
+        
+        // Resolve all mentions in parallel
+        const resolvedDids = await Promise.all(mentionPromises);
+        
+        // Add facets for successfully resolved mentions
+        for (let i = 0; i < mentionMatches.length; i++) {
+            const did = resolvedDids[i];
+            if (did) {
+                const m = mentionMatches[i];
+                const start = this.getByteOffset(text, m.index);
+                const end = this.getByteOffset(text, m.index + m.fullMatch.length);
+                
+                facets.push({
+                    index: {
+                        byteStart: start,
+                        byteEnd: end
+                    },
+                    features: [{
+                        $type: 'app.bsky.richtext.facet#mention',
+                        did: did
+                    }]
+                });
+            }
+        }
         
         // Detect URLs
         const urlRegex = /(https?:\/\/[^\s]+)/g;
-        let match;
         
         while ((match = urlRegex.exec(text)) !== null) {
             const url = match[0];
@@ -6267,7 +6312,7 @@ class Dashboard {
                         }
                         
                         // Detect facets (mentions and links)
-                        const facets = this.detectFacets(postText);
+                        const facets = await this.detectFacets(postText);
                         if (facets) {
                             console.log('🔗 [Compose] Detected facets:', facets.length);
                         }
@@ -6372,9 +6417,6 @@ class Dashboard {
                             result = await response.json();
                             console.log('✅ [Compose] Post created via PDS session:', result);
                         }
-                        
-                        result = await response.json();
-                        console.log('✅ [Compose] Post created via PDS session:', result);
                     } catch (error) {
                         console.error('❌ [Compose] PDS posting error:', error);
                         throw error;

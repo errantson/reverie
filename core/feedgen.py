@@ -418,9 +418,9 @@ class FeedGenerator:
                         canon_text = random.choice(varied_canon_texts)
                     
                     self.main_db.execute('''
-                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ''', (author_did, canon_text, 'canon', 'canon', uri, post_url, post_epoch, post_epoch))
+                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (author_did, canon_text, 'canon', 'canon', uri, post_url, post_epoch, post_epoch, 'user', 'highlight'))
                     
                     print(f"  ✓ Canon: {dreamer['handle']} - {canon_text}")
                     return True
@@ -466,9 +466,9 @@ class FeedGenerator:
                         event_text = random.choice(varied_texts)
                     
                     self.main_db.execute('''
-                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ''', (author_did, event_text, 'lore', 'lore', uri, post_url, post_epoch, post_epoch))
+                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (author_did, event_text, 'lore', 'lore', uri, post_url, post_epoch, post_epoch, 'user', 'highlight'))
                     
                     print(f"  ✓ Lore: {dreamer['handle']} - {event_text}")
                     return True
