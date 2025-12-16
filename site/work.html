@@ -34,6 +34,10 @@
     <link rel="stylesheet" href="/css/widgets/dreamer-hover.css">
     <link rel="stylesheet" href="/css/widgets/showdreamer.css">
     <link rel="stylesheet" href="/css/color-rows.css">
+    <link rel="preload" href="/css/octants.css" as="style">
+    <link rel="preload" href="/css/roles.css" as="style">
+    <link rel="preload" href="/css/souvenirs.css" as="style">
+    <link rel="stylesheet" href="/css/octants.css">
     <link rel="stylesheet" href="/css/roles.css">
     <link rel="stylesheet" href="/css/souvenirs.css">
     
@@ -111,7 +115,7 @@
                 <!-- Guest State -->
                 <div id="sidebar-guest" class="sidebar-guest" style="display: none;">
                     <div class="guest-message">
-                        <p>Login to volunteer for work</p>
+                        <p>Dreamweavers of Reverie House may self-elect to take available roles at any time.</p>
                     </div>
                     <button class="sidebar-login-btn" onclick="triggerLogin()">
                         Dreamweaver Login
@@ -336,25 +340,16 @@
                                     </svg>
                                     Issues
                                 </a>
-                                <a href="https://github.com/errantson/reverie/pulls" target="_blank" class="repo-action-btn">
+                                <a href="https://github.com/errantson/reverie/blob/main/CONTRIBUTING.md" target="_blank" class="repo-action-btn">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="18" cy="18" r="3"></circle>
                                         <circle cx="6" cy="6" r="3"></circle>
                                         <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
                                         <line x1="6" y1="9" x2="6" y2="21"></line>
                                     </svg>
-                                    Pull Requests
+                                    Contribution Guide
                                 </a>
-                                <a href="https://github.com/errantson/reverie/fork" target="_blank" class="repo-action-btn">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="18" r="3"></circle>
-                                        <circle cx="6" cy="6" r="3"></circle>
-                                        <circle cx="18" cy="6" r="3"></circle>
-                                        <path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"></path>
-                                        <path d="M12 12v3"></path>
-                                    </svg>
-                                    Fork
-                                </a>
+                                
                             </div>
                             <div id="repo-info" class="repo-info">
                                 <div class="repo-info-item">
@@ -362,7 +357,15 @@
                                     <span class="repo-info-value">Loading...</span>
                                 </div>
                                 <div class="repo-info-item">
-                                    <span class="repo-info-label">Last Updated:</span>
+                                    <span class="repo-info-label">Updated:</span>
+                                    <span class="repo-info-value">Loading...</span>
+                                </div>
+                                <div class="repo-info-item">
+                                    <span class="repo-info-label">Watchers:</span>
+                                    <span class="repo-info-value">Loading...</span>
+                                </div>
+                                <div class="repo-info-item">
+                                    <span class="repo-info-label">File Size:</span>
                                     <span class="repo-info-value">Loading...</span>
                                 </div>
                             </div>
@@ -1972,7 +1975,7 @@
                     headers['Authorization'] = `Bearer ${token}`;
                     console.log(`🔑 Work: Using ${tokenSource} token for ${role} auth`);
                 } else {
-                    console.warn(`⚠️ Work: No token found, ${role} API will return public info only`);
+                    console.info(`Work: No token found, ${role} API will return public info only`);
                 }
 
                 console.log(`🔄 Work: Loading ${role} status...`);
@@ -2410,17 +2413,58 @@
                 const lastUpdated = new Date(repoData.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 
                 // Update repo info if available
-                if (repoInfoDiv) {
+                    if (repoInfoDiv) {
+                    // Convert GitHub 'size' (KB) to human-readable string
+                    function humanFileSizeFromKB(kb) {
+                        if (kb === null || kb === undefined) return 'N/A';
+                        const bytes = kb * 1024;
+                        const thresh = 1024;
+                        if (Math.abs(bytes) < thresh) return bytes + ' B';
+                        const units = ['KB','MB','GB','TB'];
+                        let u = -1;
+                        let value = bytes;
+                        do {
+                            value /= thresh;
+                            ++u;
+                        } while (Math.abs(value) >= thresh && u < units.length - 1);
+                        return value.toFixed(1) + ' ' + units[u];
+                    }
+
+                    const fileSize = humanFileSizeFromKB(repoData.size);
+                    const openIssues = repoData.open_issues_count ?? 'N/A';
+                    const watchers = repoData.watchers_count ?? repoData.subscribers_count ?? 'N/A';
+
                     repoInfoDiv.innerHTML = `
                         <div class="repo-info-item">
                             <span class="repo-info-label">Languages:</span>
                             <span class="repo-info-value">${topLanguages || 'N/A'}</span>
                         </div>
                         <div class="repo-info-item">
-                            <span class="repo-info-label">Last Updated:</span>
+                            <span class="repo-info-label">Updated:</span>
                             <span class="repo-info-value">${lastUpdated || 'N/A'}</span>
                         </div>
+                        <div class="repo-info-item">
+                            <span class="repo-info-label">Watchers:</span>
+                            <span class="repo-info-value">${watchers}</span>
+                        </div>
+                        <div class="repo-info-item">
+                            <span class="repo-info-label">File Size:</span>
+                            <span class="repo-info-value">${fileSize}</span>
+                        </div>
                     `;
+
+                    // Update the Issues button to include the open issues count
+                    try {
+                        const issuesBtn = document.querySelector('a[href="https://github.com/errantson/reverie/issues"]');
+                        if (issuesBtn) {
+                            const svg = issuesBtn.querySelector('svg');
+                            const svgHtml = svg ? svg.outerHTML : '';
+                            const countText = (typeof openIssues === 'number') ? openIssues : openIssues;
+                            issuesBtn.innerHTML = `\n                                ${svgHtml}\n                                Open Issues: ${countText}\n                            `;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to update issues button:', e);
+                    }
                 }
                 
                 // Fetch all commits (max 100 per page, fetch multiple pages)
