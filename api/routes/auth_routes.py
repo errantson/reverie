@@ -155,6 +155,12 @@ def reverie_login():
         from core.database import DatabaseManager
         
         db = DatabaseManager()
+        # Debug: write initial request info
+        try:
+            with open('/tmp/reverie_login_debug.log', 'a') as f:
+                f.write(f"\n=== reverie-login called ===\nhandle={handle}, foreign_pds={foreign_pds}, did={did}, pds={service_endpoint if 'service_endpoint' in locals() else 'UNKNOWN'}\n")
+        except Exception:
+            pass
         
         if auth_method == 'pds':  # Only check deactivation for reverie.house accounts
             cursor = db.execute("""
@@ -163,10 +169,101 @@ def reverie_login():
                 WHERE did = %s
             """, (did,))
             dreamer = cursor.fetchone()
+            try:
+                with open('/tmp/reverie_login_debug.log', 'a') as f:
+                    f.write(f"dreamer_row={dreamer}\n")
+            except Exception:
+                pass
             
             if dreamer and dreamer.get('deactivated'):
                 print(f"❌ Login blocked: Account {handle} is deactivated")
-                return jsonify({'error': 'Account has been deactivated'}), 403
+                # Try to include archived "formers" record and recent canon (events)
+                try:
+                    former_cursor = db.execute(
+                        "SELECT did, handle, name, display_name, avatar_archived, avatar_url, profile_data FROM formers WHERE did = %s",
+                        (did,)
+                    )
+                    former_row = former_cursor.fetchone()
+                    former = None
+                    if not former_row and handle:
+                        # Try lookup by handle if DID lookup didn't return a formers record
+                        try:
+                            alt_cursor = db.execute(
+                                "SELECT did, handle, name, display_name, avatar_archived, avatar_url, profile_data FROM formers WHERE LOWER(handle) = LOWER(%s)",
+                                (handle,)
+                            )
+                            former_row = alt_cursor.fetchone()
+                            if former_row:
+                                print(f"  ℹ️ Found formers record by handle lookup for {handle}")
+                        except Exception as alt_e:
+                            print(f"  ⚠️ Error querying formers by handle: {alt_e}")
+
+                    if former_row:
+                        # Prefer archived avatar if present
+                        avatar = former_row.get('avatar_archived') or former_row.get('avatar_url') or ''
+                        # profile_data may be stored as JSON text
+                        profile_data = former_row.get('profile_data')
+                        try:
+                            import json
+                            if profile_data and isinstance(profile_data, str):
+                                profile_data = json.loads(profile_data)
+                        except Exception:
+                            pass
+                        former = {
+                            'did': former_row.get('did'),
+                            'handle': former_row.get('handle'),
+                            'name': former_row.get('name'),
+                            'display_name': former_row.get('display_name'),
+                            'avatar': avatar,
+                            'profile': profile_data
+                        }
+
+                    # Fetch recent events (canon) for this did
+                    events = []
+                    try:
+                        ev_cursor = db.execute(
+                            "SELECT id, epoch, event, type, key FROM events WHERE did = %s ORDER BY epoch DESC LIMIT 10",
+                            (did,)
+                        )
+                        for er in ev_cursor.fetchall():
+                            events.append({
+                                'id': er.get('id'),
+                                'epoch': er.get('epoch'),
+                                'event': er.get('event'),
+                                'type': er.get('type'),
+                                'key': er.get('key')
+                            })
+                    except Exception:
+                        events = []
+
+                    payload = {
+                        'error': 'Account has been deactivated',
+                        'code': 'account_deactivated',
+                        'former': former,
+                        'events': events
+                    }
+                        # Debug: write what we found to a temp file for inspection
+                        try:
+                            with open('/tmp/formers_debug.log', 'a') as f:
+                                f.write('\n--- PAYLOAD DEBUG ---\n')
+                                f.write(f'handle={handle}, did={did}\n')
+                                f.write('former_row=' + (str(former_row) + '\n'))
+                                f.write('former=' + (str(former) + '\n'))
+                                f.write('events_count=' + str(len(events)) + '\n')
+                        except Exception as dbg_e:
+                            print('Could not write payload debug file:', dbg_e)
+                    return jsonify(payload), 403
+                except Exception as e:
+                    import traceback, time
+                    tb = traceback.format_exc()
+                    print(f"  ⚠️ Failed to load former record or events: {e}")
+                    try:
+                        with open('/tmp/formers_debug.log', 'a') as f:
+                            f.write(f"\n--- {time.asctime()} ---\nHandle: {handle}, DID: {did}\n")
+                            f.write(tb)
+                    except Exception as write_e:
+                        print(f"  ⚠️ Could not write debug log: {write_e}")
+                    return jsonify({'error': 'Account has been deactivated'}), 403
         
         # Try PDS authentication
         print(f"🔐 Attempting PDS authentication for {handle} at {pds}")

@@ -406,6 +406,86 @@ def get_dreamer_by_did(did):
         }), 500
 
 
+@bp.route('/formers/<identifier>')
+def get_former_by_identifier(identifier):
+    """Get an archived 'formers' record by DID or handle"""
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from core.database import DatabaseManager
+
+        db = DatabaseManager()
+
+        # Determine if identifier looks like a DID
+        if identifier.startswith('did:'):
+            cursor = db.execute(
+                "SELECT did, handle, name, display_name, avatar_url, avatar_archived, banner_url, banner_archived, description, profile_data, departure_date FROM formers WHERE did = %s",
+                (identifier,)
+            )
+        else:
+            # lookup by handle (case-insensitive)
+            cursor = db.execute(
+                "SELECT did, handle, name, display_name, avatar_url, avatar_archived, banner_url, banner_archived, description, profile_data, departure_date FROM formers WHERE LOWER(handle) = LOWER(%s)",
+                (identifier,)
+            )
+
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'error': 'Former record not found'}), 404
+
+        # Try to parse profile_data if present
+        profile = row.get('profile_data')
+        try:
+            import json
+            if profile and isinstance(profile, str):
+                profile = json.loads(profile)
+        except Exception:
+            pass
+
+        result = {
+            'did': row.get('did'),
+            'handle': row.get('handle'),
+            'name': row.get('name'),
+            'display_name': row.get('display_name'),
+            'avatar_url': row.get('avatar_url'),
+            'avatar_archived': row.get('avatar_archived'),
+            'banner_url': row.get('banner_url'),
+            'banner_archived': row.get('banner_archived'),
+            'description': row.get('description'),
+            'profile': profile,
+            'departure_date': row.get('departure_date')
+        }
+
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error in /api/formers/<identifier>: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/events')
+def get_events_api():
+    """Return events, optionally filtered by DID. Query params: did, limit, type"""
+    try:
+        did = request.args.get('did')
+        limit = int(request.args.get('limit', '20'))
+        event_type = request.args.get('type')
+
+        # Use EventsManager to fetch events
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from core.events import EventsManager
+        em = EventsManager()
+
+        events = em.get_events(limit=limit, event_type=event_type, did=did)
+        return jsonify(events)
+    except Exception as e:
+        print(f"Error in /api/events: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @bp.route('/dreamer/check')
 def check_dreamer():
     """Check if a dreamer exists in the database"""

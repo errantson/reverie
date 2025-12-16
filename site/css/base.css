@@ -535,3 +535,16 @@ a:visited {
 .errantson-helper.has-unread {
     animation: errantson-flash 2s ease-in-out infinite;
 }
+
+/* EventStack default styles (global) */
+.eventstack { width: 100%; }
+.eventstack .row-entry { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid #f0f0f0; }
+.eventstack .epoch { color: #667; min-width:64px; padding:4px 6px; font-size:0.85rem; }
+.eventstack .evt-avatar, .eventstack img.event-avatar { width:32px; height:32px; border-radius:4px; }
+.eventstack .evt-body { flex:1; text-align:left; font-size:0.95rem; color: #222; }
+
+/* Compact variant used in deactivated panel */
+#deactivated-eventstack .row-entry { padding: 4px 8px; font-size: 0.86rem; }
+#deactivated-eventstack .epoch { padding: 2px 4px; min-width: 48px; max-width: 64px; font-size:0.78rem; }
+#deactivated-eventstack .evt-avatar, #deactivated-eventstack img.event-avatar { width:22px; height:22px; }
+#deactivated-eventstack { font-size: 0.88rem; }

@@ -148,6 +148,9 @@ class LoginWidget {
         console.log('🚫 showLoginPopupDisabled() called');
         const overlay = document.createElement('div');
         overlay.className = 'login-overlay';
+        // Ensure overlay and its box sit above header and other chrome
+        overlay.style.zIndex = '99999';
+        box.style.zIndex = '100000';
         console.log('   Created overlay:', overlay);
         const loginBox = document.createElement('div');
         loginBox.className = 'login-box login-disabled';
@@ -251,6 +254,293 @@ class LoginWidget {
             }
         };
         document.addEventListener('keydown', escapeHandler);
+    }
+
+    async showDeactivatedPanel(former, events, fallbackHandle) {
+        // Render a compact 'dissipated' panel. Try to enrich with live DB data like Profile widget.
+        const overlay = document.createElement('div');
+        overlay.className = 'login-overlay';
+        const box = document.createElement('div');
+        box.className = 'login-box login-deactivated-box compact';
+        const coreColor = getComputedStyle(document.documentElement)
+            .getPropertyValue('--reverie-core-color').trim() || this.coreColor || '#87408d';
+
+        // Prefer to load archival data from /api/formers if available
+        const fetchFormer = async () => {
+            try {
+                // Use DID first if provided either from former or fallbackHandle
+                const didToTry = (former && former.did) || (fallbackHandle && fallbackHandle.startsWith('did:') && fallbackHandle) || null;
+                if (didToTry) {
+                    const resp = await fetch(`/api/formers/${encodeURIComponent(didToTry)}`);
+                    if (resp.ok) return await resp.json();
+                }
+
+                // Then try by handle (former.handle or fallbackHandle)
+                const handleToTry = (former && former.handle) || fallbackHandle || null;
+                if (handleToTry) {
+                    // Try archived formers by handle first
+                    try {
+                        const resp = await fetch(`/api/formers/${encodeURIComponent(handleToTry)}`);
+                        if (resp.ok) return await resp.json();
+                    } catch (e) {
+                        // ignore and try live lookup
+                    }
+
+                    // As fallback, try to query live dreamers list and find match by handle
+                    const resp2 = await fetch('/api/dreamers');
+                    if (!resp2.ok) return null;
+                    const list = await resp2.json();
+                    return list.find(d => d.handle && d.handle.toLowerCase() === handleToTry.toLowerCase()) || null;
+                }
+
+                return null;
+            } catch (e) {
+                console.warn('Failed to fetch former/profile for deactivated panel:', e);
+                return null;
+            }
+        };
+
+        const dreamerData = await fetchFormer();
+
+        // Decide values to show
+        const displayName = (dreamerData && (dreamerData.display_name || dreamerData.name)) || (former && (former.display_name || former.name)) || 'A Dissipated Dreamer';
+        const handle = (dreamerData && dreamerData.handle) || (former && former.handle) || (fallbackHandle || '');
+        const avatar = (dreamerData && (dreamerData.avatar || dreamerData.avatar_url)) || (former && (former.avatar || former.avatar_url)) || '/assets/icon_face.png';
+        const description = (dreamerData && (dreamerData.description || (dreamerData.profile && dreamerData.profile.description))) || (former && former.profile && former.profile.description) || '';
+
+        // Try to fetch the authoritative `former` record by DID (it may contain the stored historical color)
+        let authoritativeFormer = former || null;
+        const getColorFromRecord = (r) => {
+            if (!r) return null;
+            return r.user_color || r.usercolor || r.color || r.accent_color || r.accent || (r.profile && (r.profile.user_color || r.profile.color || r.profile.accent_color)) || null;
+        };
+
+        if (!authoritativeFormer) {
+            // If we have a dreamerData with a DID, try to fetch the former record by that DID
+            const didCandidate = (dreamerData && dreamerData.did) || (former && former.did) || null;
+            if (didCandidate) {
+                try {
+                    const resp = await fetch(`/api/formers/${encodeURIComponent(didCandidate)}`);
+                    if (resp.ok) {
+                        authoritativeFormer = await resp.json();
+                    }
+                } catch (e) {
+                    // ignore fetch errors
+                }
+            }
+        } else {
+            // we have a `former` param, but try to re-fetch authoritative record by DID if possible
+            const didCandidate = authoritativeFormer.did || (dreamerData && dreamerData.did) || null;
+            if (didCandidate) {
+                try {
+                    const resp = await fetch(`/api/formers/${encodeURIComponent(didCandidate)}`);
+                    if (resp.ok) authoritativeFormer = await resp.json();
+                } catch (e) {}
+            }
+        }
+
+        // Determine user's accent/color: prefer authoritativeFormer, then archival dreamerData, then fallback to coreColor
+        let userColor = getColorFromRecord(authoritativeFormer) || getColorFromRecord(dreamerData) || coreColor;
+
+        // Special-case: if the queried handle is blink.reverie.house, force the historic color #776384
+        if (handle && handle.toLowerCase() === 'blink.reverie.house') {
+            userColor = '#776384';
+        }
+
+        // If we have a DID, fetch canonical events and filter like profile.js
+        let finalEvents = events && events.length ? events : [];
+        const didForEvents = (dreamerData && dreamerData.did) || (former && former.did) || null;
+        if (didForEvents) {
+            try {
+                const canonResp = await fetch('/api/canon');
+                if (canonResp.ok) {
+                    const allCanon = await canonResp.json();
+                    // Filter to this dreamer's events AND events they reacted to
+                    const dreamerEvents = allCanon.filter(entry => {
+                        const isOwnEvent = entry.did && entry.did.toLowerCase() === didForEvents.toLowerCase();
+                        const isReactedTo = entry.reaction_did && entry.reaction_did.toLowerCase() === didForEvents.toLowerCase();
+                        return isOwnEvent || isReactedTo;
+                    });
+
+                    // Deduplicate by id
+                    const uniqueEvents = [];
+                    const seenIds = new Set();
+                    for (const ev of dreamerEvents) {
+                        if (!seenIds.has(ev.id)) {
+                            seenIds.add(ev.id);
+                            uniqueEvents.push(ev);
+                        }
+                    }
+
+                    if (uniqueEvents.length > 0) finalEvents = uniqueEvents;
+                }
+            } catch (e) {
+                console.warn('Failed to fetch canon for deactivated panel:', e);
+            }
+        }
+
+        // Build events HTML
+        let eventsHtml = '';
+        if (finalEvents && finalEvents.length > 0) {
+            eventsHtml = '<ul class="deactivated-events">' + finalEvents.slice(0,5).map(e => `<li><small>${new Date((e.epoch || 0) * 1000).toLocaleString()}</small> — ${e.event}</li>`).join('') + '</ul>';
+        } else {
+            eventsHtml = '<p><em>No recent public events preserved.</em></p>';
+        }
+
+        // Simplified layout: explainer, avatar|name, octant showcase, eventstack, actions
+            box.innerHTML = `
+                <div style="padding:8px; background: #f7fafc; border-bottom: 1px solid ${userColor}; border-top-left-radius:0; border-top-right-radius:0; margin-bottom:6px; max-width:420px; margin-left:auto; margin-right:auto;">
+                    <strong id="deactivated-title" style="font-size:1.08rem;">${displayName} has Dissipated</strong>
+                    <div style="color:#4a5568; margin-top:6px; font-size:0.82rem; line-height:1.18; max-width:360px; margin-left:auto; margin-right:auto; text-align:center;">
+                        <div><strong id="deactivated-handle">@${handle}</strong> has dissipated their presence and can no longer roam our wild mindscape in this form.</div>
+                        <div style="margin-top:6px;">Their impact on <strong id="deactivated-rh">Reverie House</strong> is remembered, and we seek their spirit in other personas.</div>
+                    </div>
+                </div>
+
+            <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; gap:12px; padding:8px 12px; max-width:420px; margin:0 auto;">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    <div style="width:88px; height:88px; border-radius:50%; overflow:hidden; background:#f3f3f3; display:flex; align-items:center; justify-content:center; border:2px solid ${userColor};">
+                            <img src="${avatar}" alt="${displayName}" style="width:88px; height:88px; object-fit:cover; border-radius:50%;" onerror="this.src='/assets/icon_face.png'">
+                        </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.98rem; font-weight:800; color:${userColor};">${displayName}</div>
+                        <div style="color:${userColor}; font-weight:700; font-size:0.9rem; margin-top:2px;">@${handle}</div>
+                    </div>
+                </div>
+                <div style="flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                    <div id="deactivated-octant" style="width:240px; height:120px; margin-left:6px;"></div>
+                </div>
+            </div>
+
+            <div style="padding:8px 12px; text-align:center;">
+                <div id="deactivated-eventstack" style="width:100%; max-width:420px; margin: -5px auto 2px auto; max-height:240px; overflow:auto; border:1px solid ${userColor}; border-radius:0; background: #ffffff; box-shadow: none; padding:0;">
+                    <!-- EventStack will render here; container constrained and scrollable when >4 events -->
+                </div>
+            </div>
+
+            <div style="padding:12px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <button id="deactivatedClose" class="login-method-btn" style="width:60%; background:#eef2f7; color:#2d3748; padding:8px 12px; border:1px solid #cbd5e1; border-radius:0;">Close</button>
+            </div>
+        `;
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        // Force user color onto key elements with !important priority to avoid stylesheet overrides
+        (function enforceUserColor() {
+            try {
+                const titleEl = box.querySelector('#deactivated-title');
+                const handleEl = box.querySelector('#deactivated-handle');
+                const rhEl = box.querySelector('#deactivated-rh');
+                const avatarFrame = box.querySelector('div[style*="border:2px solid"]') || box.querySelector('img[alt]')?.parentElement;
+                const eventstackEl = box.querySelector('#deactivated-eventstack');
+
+                if (titleEl) titleEl.style.setProperty('color', userColor, 'important');
+                if (handleEl) handleEl.style.setProperty('color', userColor, 'important');
+                if (rhEl) rhEl.style.setProperty('color', userColor, 'important');
+                if (avatarFrame) avatarFrame.style.setProperty('border-color', userColor, 'important');
+                if (eventstackEl) eventstackEl.style.setProperty('border-color', userColor, 'important');
+            } catch (e) {
+                console.warn('Failed to enforce userColor on deactivated panel elements:', e);
+            }
+        })();
+        setTimeout(() => {
+            overlay.classList.add('visible');
+            box.classList.add('visible');
+        }, 10);
+
+        // Asynchronously load widgets: OctantDisplay and EventStack, then initialize
+        (async () => {
+            const loadScript = (src, globalName) => new Promise((resolve, reject) => {
+                if (globalName && window[globalName]) return resolve();
+                if (document.querySelector(`script[src*="${src}"]`)) {
+                    // wait briefly for global to appear
+                    let waited = 0;
+                    const iv = setInterval(() => {
+                        waited += 50;
+                        if ((globalName && window[globalName]) || waited > 2000) {
+                            clearInterval(iv);
+                            return resolve();
+                        }
+                    }, 50);
+                    return;
+                }
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = () => resolve();
+                s.onerror = (e) => reject(e);
+                document.head.appendChild(s);
+            });
+
+            // Initialize OctantDisplay
+            try {
+                await loadScript('/js/widgets/octantdisplay.js', 'OctantDisplay');
+                const octantContainer = document.getElementById('deactivated-octant');
+                        if (octantContainer && window.OctantDisplay) {
+                    try {
+                        const oct = new OctantDisplay(octantContainer, { did: didForEvents, showHeader: true, showFooter: false });
+                        oct.init();
+                    } catch (err) {
+                        console.warn('OctantDisplay init error:', err);
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load OctantDisplay:', e);
+            }
+
+            // Initialize EventStack
+            try {
+                await loadScript('/js/widgets/eventstack.js', 'EventStack');
+                const evContainer = document.getElementById('deactivated-eventstack');
+                if (evContainer && window.EventStack) {
+                    try {
+                        const eventStack = new EventStack();
+
+                        // Local compact styles for this panel to reduce row height and tighten epoch column
+                        (function(){
+                            if (!document.querySelector('style[data-generated-by="login-deactivated-compact"]')) {
+                                const s = document.createElement('style');
+                                s.setAttribute('data-generated-by','login-deactivated-compact');
+                                s.textContent = `
+                                    #deactivated-eventstack .row-entry { padding: 4px 8px; font-size: 0.86rem; }
+                                    #deactivated-eventstack .epoch { padding: 2px 4px; min-width: 48px; max-width: 64px; font-size:0.78rem; }
+                                    #deactivated-eventstack .evt-avatar, #deactivated-eventstack img.event-avatar { width:22px; height:22px; }
+                                    #deactivated-eventstack { font-size: 0.88rem; }
+                                `;
+                                document.head.appendChild(s);
+                            }
+                        })();
+
+                        // Render up to 4 events; container scrolls if there are more
+                        eventStack.render(finalEvents || [], evContainer, {
+                            limit: 4,
+                            showReactions: false,
+                            dateFormat: 'date',
+                            columns: { type: false, epoch: true, canon: true, key: false, uri: false },
+                            emptyMessage: '<div style="text-align:center; font-style:italic; color:var(--text-dim);">No preserved events</div>'
+                        });
+                    } catch (err) {
+                        console.warn('EventStack render error:', err);
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load EventStack:', e);
+            }
+        })();
+
+        document.getElementById('deactivatedClose').addEventListener('click', () => {
+            overlay.classList.remove('visible');
+            box.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 300);
+        });
+        // Contact Keepers button removed per UI update
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('visible');
+                box.classList.remove('visible');
+                setTimeout(() => overlay.remove(), 300);
+            }
+        });
     }
     showLoginPopupEnabled() {
         const overlay = document.createElement('div');
@@ -1159,6 +1449,20 @@ class LoginWidget {
                 console.log('📥 Login response status:', response.status);
                 const result = await response.json();
                 console.log('📦 Login result:', result);
+                const isDeactivated = result && (result.code === 'account_deactivated' || (result.error && typeof result.error === 'string' && result.error.toLowerCase().includes('deactiv')));
+                if (!response.ok && isDeactivated) {
+                    // Show specialized deactivated account panel if available
+                    console.log('🔒 Detected deactivated account response, showing panel');
+                    overlay.classList.remove('visible');
+                    loginBox.classList.remove('visible');
+                    setTimeout(() => overlay.remove(), 300);
+                    try {
+                        this.showDeactivatedPanel(result.former, result.events || [], handle);
+                    } catch (e) {
+                        this.showMessage('Login Failed', result.error || 'Account has been deactivated', true);
+                    }
+                    return;
+                }
                 if (!response.ok && result.error === 'oauth_required') {
                     console.log('🔄 Handle on another server, switching to OAuth...');
                     overlay.classList.remove('visible');

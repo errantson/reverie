@@ -304,7 +304,12 @@ class EventStack {
         
         // Epoch cell - reduced right margin
         if (this.options.columns.epoch) {
-            html += `<div class="cell epoch" style="padding: 0 2px;">${dateStr}</div>`;
+            // If only date is shown, shrink the epoch column width
+            let epochStyle = 'padding: 0 2px;';
+            if (this.options.dateFormat === 'date') {
+                epochStyle += 'min-width:56px; max-width:64px; text-align:left; padding-left:6px; padding-right:6px;';
+            }
+            html += `<div class="cell epoch" style="${epochStyle}">${dateStr}</div>`;
         }
         
         // Thread arrow for reactions (positioned before avatar)
