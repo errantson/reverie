@@ -58,12 +58,76 @@ class OriginScene {
     
     parseUrl() {
         const urlParams = new URLSearchParams(window.location.search);
-        this.handle = urlParams.get('handle') || 'demo';
-        console.log('🟢 [Origin] Parsed handle from URL:', this.handle);
+        const urlHandle = urlParams.get('handle');
+        
+        if (urlHandle) {
+            // Explicit handle in URL - use it
+            this.handle = urlHandle;
+            console.log('🟢 [Origin] Using handle from URL:', this.handle);
+        } else {
+            // No handle in URL - will try to detect from session in init()
+            this.handle = null;
+            console.log('🟢 [Origin] No handle in URL, will check for active session');
+        }
+    }
+    
+    /**
+     * Detect if user has an active Bluesky session and use their handle
+     * This allows visiting /origin or /origin.html without a handle param
+     * to automatically show the logged-in user's spectrum origin
+     */
+    async detectSessionHandle() {
+        console.log('🔍 [Origin] Checking for active Bluesky session...');
+        
+        // Wait briefly for OAuth manager to initialize if needed
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while (!window.oauthManager && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (!window.oauthManager) {
+            console.log('🔍 [Origin] OAuth manager not available');
+            return;
+        }
+        
+        try {
+            // Try to get the current session
+            const session = window.oauthManager.getSession();
+            
+            if (session && session.handle) {
+                this.handle = session.handle;
+                console.log('✅ [Origin] Found active session, using handle:', this.handle);
+                
+                // Update URL to include handle (without triggering reload)
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('handle', this.handle);
+                window.history.replaceState({}, '', newUrl.toString());
+                console.log('📝 [Origin] Updated URL with handle');
+            } else {
+                console.log('🔍 [Origin] No active session found');
+            }
+        } catch (error) {
+            console.error('❌ [Origin] Error checking session:', error);
+        }
     }
     
     async init() {
         console.log('🟡 [Origin] ===== INIT START =====');
+        
+        // If no handle from URL, try to get from active Bluesky session
+        if (!this.handle) {
+            await this.detectSessionHandle();
+        }
+        
+        // Fallback to demo if still no handle
+        if (!this.handle) {
+            this.handle = 'demo';
+            console.log('🟡 [Origin] No session found, using demo mode');
+        }
+        
         console.log('🟡 [Origin] Initializing for handle:', this.handle);
         
         // Ensure canvas is hidden initially
@@ -87,9 +151,20 @@ class OriginScene {
             }
         });
         
-        // Listen for OAuth events to update buttons
-        window.addEventListener('oauth:login', () => {
-            console.log('🔐 [Origin] User logged in, updating buttons...');
+        // Listen for OAuth events to update buttons or reload with user's handle
+        window.addEventListener('oauth:login', (event) => {
+            console.log('🔐 [Origin] User logged in');
+            
+            // If we're on the landing page (demo mode), reload with user's handle
+            if (this.handle === 'demo' || !this.handle.includes('.')) {
+                const session = event.detail?.session;
+                if (session && session.handle) {
+                    console.log('🔐 [Origin] Redirecting to user origin page:', session.handle);
+                    window.location.href = `/origin.html?handle=${encodeURIComponent(session.handle)}`;
+                    return;
+                }
+            }
+            
             this.addActionButtons();
         });
         
@@ -98,8 +173,19 @@ class OriginScene {
             this.addActionButtons();
         });
         
-        window.addEventListener('oauth:profile-loaded', () => {
-            console.log('👤 [Origin] Profile loaded, updating buttons...');
+        window.addEventListener('oauth:profile-loaded', (event) => {
+            console.log('👤 [Origin] Profile loaded');
+            
+            // If we're on the landing page (demo mode), reload with user's handle
+            if (this.handle === 'demo' || !this.handle.includes('.')) {
+                const session = event.detail?.session;
+                if (session && session.handle) {
+                    console.log('👤 [Origin] Redirecting to user origin page:', session.handle);
+                    window.location.href = `/origin.html?handle=${encodeURIComponent(session.handle)}`;
+                    return;
+                }
+            }
+            
             this.addActionButtons();
         });
         
@@ -113,6 +199,13 @@ class OriginScene {
     async showCarousel() {
         console.log('🎠 [Origin] Starting carousel...');
         
+        // Check if we're in demo/landing mode (no valid handle)
+        if (this.handle === 'demo' || !this.handle.includes('.')) {
+            console.log('🎠 [Origin] No valid handle, showing landing page');
+            this.showLandingPage();
+            return;
+        }
+        
         // Load spectrum data first (needed for card 2)
         try {
             await this.loadSpectrumData();
@@ -125,6 +218,139 @@ class OriginScene {
         
         // Create and show welcome card (card 1)
         this.showWelcomeCard();
+    }
+    
+    /**
+     * Show landing page when no handle is provided
+     * Primary action: enter handle to see spectrum (no auth needed)
+     */
+    showLandingPage() {
+        const carousel = document.getElementById('origin-carousel');
+        if (!carousel) return;
+        
+        carousel.innerHTML = `
+            <div class="carousel-card landing-card active">
+                <img src="/assets/logo.png" alt="Reverie House" class="landing-logo">
+                
+                <p class="landing-description">
+                    Dreamweavers wield forces like oblivion and entropy<br>
+                    to conjure powerful reveries and nightmares.<br><br>
+                    Enter your Bluesky handle to discover your<br>
+                    coordinates in our wild mindscape.
+                </p>
+                
+                <input 
+                    type="text" 
+                    id="landing-handle" 
+                    placeholder="@handle.bsky.social" 
+                    class="landing-input"
+                >
+                
+                <button id="landing-lookup-btn" class="landing-btn">
+                    View Origin
+                </button>
+                
+                <p class="landing-hint">
+                    No login required. Your origins are already known.
+                </p>
+            </div>
+        `;
+        
+        // Start rotating placeholder handles
+        this.startPlaceholderRotation();
+        
+        // Attach event handlers
+        document.getElementById('landing-lookup-btn')?.addEventListener('click', () => {
+            this.handleLandingSubmit();
+        });
+        
+        // Allow Enter key to submit
+        document.getElementById('landing-handle')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleLandingSubmit();
+            }
+        });
+    }
+    
+    /**
+     * Start rotating placeholder text between example handles
+     */
+    startPlaceholderRotation() {
+        const input = document.getElementById('landing-handle');
+        if (!input) return;
+        
+        const placeholders = ['@handle.bsky.social', '@name.reverie.house'];
+        let currentIndex = 0;
+        let isRotating = true;
+        
+        // Stop rotation when input is focused
+        input.addEventListener('focus', () => {
+            isRotating = false;
+            input.classList.remove('placeholder-fade');
+        });
+        
+        // Resume rotation when input loses focus (if empty)
+        input.addEventListener('blur', () => {
+            if (!input.value.trim()) {
+                isRotating = true;
+            }
+        });
+        
+        // Rotate every 3 seconds with smooth crossfade
+        this.placeholderInterval = setInterval(() => {
+            // Don't rotate if user has typed something or input is focused
+            if (input.value.trim() || !isRotating) {
+                return;
+            }
+            
+            // Fade out smoothly
+            input.classList.add('placeholder-fade');
+            
+            setTimeout(() => {
+                // Change placeholder
+                currentIndex = (currentIndex + 1) % placeholders.length;
+                input.placeholder = placeholders[currentIndex];
+                
+                // Fade in smoothly
+                input.classList.remove('placeholder-fade');
+            }, 400);
+        }, 3500);
+    }
+    
+    /**
+     * Handle the landing page form submission
+     * Takes the entered handle and loads their spectrum directly
+     */
+    async handleLandingSubmit() {
+        const handleInput = document.getElementById('landing-handle');
+        let handle = handleInput?.value?.trim()?.replace('@', '');
+        
+        if (!handle) {
+            // Shake the input to indicate error
+            handleInput?.classList.add('shake');
+            setTimeout(() => handleInput?.classList.remove('shake'), 500);
+            return;
+        }
+        
+        // If no domain provided, assume bsky.social
+        if (!handle.includes('.')) {
+            handle = `${handle}.bsky.social`;
+        }
+        
+        // Set the handle and update URL
+        this.handle = handle;
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('handle', handle);
+        window.history.replaceState({}, '', newUrl.toString());
+        
+        // Load spectrum data and go straight to canvas
+        try {
+            await this.loadSpectrumData();
+            await this.showSpectrumCard();
+        } catch (error) {
+            console.error('Failed to load spectrum:', error);
+            this.showError(error.message || 'Failed to load spectrum data');
+        }
     }
     
     showWelcomeCard() {
@@ -1362,13 +1588,13 @@ class OriginScene {
             console.log('🔐 [Origin] localStorage check:', isLoggedIn, currentUserHandle);
         }
         
-        // Button 1: Explore Spectrum
-        this.addButton(actionsContainer, 'Explore Spectrum', () => {
-            window.location.href = '/spectrum.html';
+        // Button 1: Read More - go to library
+        this.addButton(actionsContainer, 'Read More', () => {
+            window.location.href = '/library.html';
         }, false);
         
-        // Button 2: Find Dreamers - try to go to the origin handle's dreamer profile if they have one
-        this.addButton(actionsContainer, 'Find Dreamers', async () => {
+        // Button 2: Explore Dreamweavers - try to go to the origin handle's dreamer profile if they have one
+        this.addButton(actionsContainer, 'Explore Dreamweavers', async () => {
             // Try to fetch all dreamers and find one matching this handle
             try {
                 const response = await fetch('/api/dreamers');

@@ -485,6 +485,83 @@ def work_all_routes():
     return send_from_directory('site', 'work.html')
 
 
+@app.route('/api/random-handles')
+def api_random_handles():
+    """
+    Return a list of random handles from the dreamers database
+    Used for rotating placeholder text on the origin landing page
+    """
+    import random
+    try:
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+        cursor = db.execute("SELECT handle FROM dreamers WHERE handle IS NOT NULL AND handle != '' LIMIT 50")
+        all_handles = [row['handle'] for row in cursor.fetchall()]
+        
+        # Shuffle and return up to 20 handles
+        random.shuffle(all_handles)
+        handles = all_handles[:20]
+        
+        return jsonify({'handles': handles})
+    except Exception as e:
+        print(f"Error fetching random handles: {e}")
+        return jsonify({'handles': ['handle.bsky.social']})
+
+
+@app.route('/origin')
+@app.route('/origin/')
+def origin_no_handle():
+    """
+    Serve origin landing page with bespoke OG preview
+    For social media crawlers, serve OG meta tags
+    For browsers, serve origin.html which shows landing page
+    """
+    # Check if this is a social media crawler
+    user_agent = request.headers.get('User-Agent', '').lower()
+    is_crawler = any(bot in user_agent for bot in [
+        'twitterbot', 'facebookexternalhit', 'linkedinbot', 
+        'slackbot', 'discordbot', 'telegrambot', 'whatsapp',
+        'pinterest', 'tumblr', 'applebot', 'bsky'
+    ])
+    
+    if is_crawler:
+        # Serve OG preview for social media
+        html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrum Origins - Reverie House</title>
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/origin">
+    <meta property="og:title" content="Discover Your Spectrum Origin">
+    <meta property="og:description" content="What kind of dreamweaver are you? Enter your Bluesky handle to discover your position in our wild mindscape. No login required — your origins are already known.">
+    <meta property="og:image" content="https://reverie.house/assets/spectrum_01.gif">
+    <meta property="og:image:type" content="image/gif">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Discover Your Spectrum Origin">
+    <meta name="twitter:description" content="What kind of dreamweaver are you? Enter your Bluesky handle to discover your position in our wild mindscape.">
+    <meta name="twitter:image" content="https://reverie.house/assets/spectrum_01.gif">
+    
+    <meta http-equiv="refresh" content="0;url=https://reverie.house/origin.html">
+</head>
+<body>
+    <p>Redirecting to Spectrum Origins...</p>
+</body>
+</html>'''
+        return Response(html, mimetype='text/html')
+    
+    # For regular browsers, redirect to origin.html
+    return redirect('/origin.html')
+
+
 @app.route('/origin.html')
 def origin_html_with_meta():
     """

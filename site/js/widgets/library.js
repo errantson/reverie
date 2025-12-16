@@ -478,12 +478,43 @@ class LibraryWidget {
         const epubBtn = document.getElementById('details-btn-epub');
         const kindleBtn = document.getElementById('details-btn-kindle');
         const printBtn = document.getElementById('details-btn-print');
-        // Begin Reading button
+        // Begin Reading button: enable if there's any available chapter or a read URL
         if (beginBtn) {
-            beginBtn.disabled = !book.available;
+            let canBegin = false;
+
+            if (book.readOnlineUrl) {
+                canBegin = true;
+            } else if (book.parts) {
+                for (const part of book.parts) {
+                    if (part.chapters && part.chapters.some(c => c.available)) {
+                        canBegin = true;
+                        break;
+                    }
+                }
+            } else if (book.chapters) {
+                if (book.chapters.some(c => c.available)) canBegin = true;
+            }
+
+            beginBtn.disabled = !canBegin;
             beginBtn.onclick = () => {
                 if (book.readOnlineUrl) {
                     window.location.href = book.readOnlineUrl;
+                    return;
+                }
+
+                // Fallback: navigate to the first available chapter
+                if (book.parts) {
+                    for (const part of book.parts) {
+                        for (const chapter of part.chapters) {
+                            if (chapter.available) {
+                                window.location.href = `/books/${book.folderName}/${chapter.id}`;
+                                return;
+                            }
+                        }
+                    }
+                } else if (book.chapters) {
+                    const ch = book.chapters.find(c => c.available);
+                    if (ch) window.location.href = `/books/${book.folderName}/${ch.id}`;
                 }
             };
         }

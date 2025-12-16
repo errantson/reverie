@@ -242,16 +242,16 @@ def reverie_login():
                         'former': former,
                         'events': events
                     }
-                        # Debug: write what we found to a temp file for inspection
-                        try:
-                            with open('/tmp/formers_debug.log', 'a') as f:
-                                f.write('\n--- PAYLOAD DEBUG ---\n')
-                                f.write(f'handle={handle}, did={did}\n')
-                                f.write('former_row=' + (str(former_row) + '\n'))
-                                f.write('former=' + (str(former) + '\n'))
-                                f.write('events_count=' + str(len(events)) + '\n')
-                        except Exception as dbg_e:
-                            print('Could not write payload debug file:', dbg_e)
+                    # Debug: write what we found to a temp file for inspection
+                    try:
+                        with open('/tmp/formers_debug.log', 'a') as f:
+                            f.write('\n--- PAYLOAD DEBUG ---\n')
+                            f.write(f'handle={handle}, did={did}\n')
+                            f.write('former_row=' + (str(former_row) + '\n'))
+                            f.write('former=' + (str(former) + '\n'))
+                            f.write('events_count=' + str(len(events)) + '\n')
+                    except Exception as dbg_e:
+                        print('Could not write payload debug file:', dbg_e)
                     return jsonify(payload), 403
                 except Exception as e:
                     import traceback, time
