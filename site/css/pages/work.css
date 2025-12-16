@@ -1009,60 +1009,118 @@ body[data-current-role="cogitarian"] .example-nav-btn {
     scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
-/* Reset box model for eventstack content */
-.greeter-eventstack,
-.greeter-eventstack * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* =============================================================================
+   GREETER GUESTBOOK - Compact Table
+   ============================================================================= */
 
-/* Make event rows clickable */
+/* Row styling - don't override background/color to allow role colors */
 .greeter-eventstack .row-entry {
+    display: flex;
+    align-items: center;
     cursor: pointer;
-    width: 100% !important;
-    min-width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
+    width: 100%;
+    padding: 4px 6px;
+    min-height: 28px;
+    gap: 0;
+    margin: 0;
 }
 
-/* Ensure cells don't cause horizontal scroll */
-.greeter-eventstack .cell {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
+/* Date column - override inline padding with !important */
 .greeter-eventstack .cell.epoch {
-    flex: 0 0 90px;
-    max-width: 90px;
-    min-width: 90px;
-    font-size: 0.85em;
-    text-align: right;
-    padding-right: 8px;
+    flex: 0 0 56px !important;
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    font-size: 0.8em;
+    padding: 0 2px 0 0 !important;
+    margin: 0 !important;
 }
 
+/* CRITICAL: Hide EMPTY thread-arrow spacers completely (non-reaction rows) */
+.greeter-eventstack .cell.thread-arrow:empty {
+    display: none !important;
+}
+
+/* Show thread-arrow when it has content (reaction rows) */
+.greeter-eventstack .cell.thread-arrow:not(:empty) {
+    display: flex !important;
+    flex: 0 0 18px !important;
+    width: 18px !important;
+    min-width: 18px !important;
+    max-width: 18px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.greeter-eventstack .cell.thread-arrow .thread-arrow-icon {
+    font-size: 0.85em;
+    color: var(--role-greeter);
+    opacity: 0.7;
+}
+
+/* Avatar column - override inline margin with !important */
+.greeter-eventstack .cell.avatar {
+    flex: 0 0 24px !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+    padding: 0 !important;
+    margin: 0 2px 0 0 !important;
+}
+
+.greeter-eventstack .avatar-img {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+}
+
+/* Canon column - takes remaining space */
 .greeter-eventstack .cell.canon {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    padding: 0 4px 0 6px !important;
+    margin: 0 !important;
     white-space: normal;
     word-wrap: break-word;
+    font-size: 0.88em;
+    line-height: 1.3;
 }
 
-/* Reaction row indentation and styling */
-.greeter-eventstack .row-entry.reaction-row {
-    opacity: 0.95;
+/* Reaction rows - subtle indent and background */
+.greeter-eventstack .row-entry.thread-level-1 {
+    padding-left: 8px;
+    background: rgba(60, 160, 180, 0.04);
 }
 
-.greeter-eventstack .row-entry.reaction-row:hover {
-    opacity: 1;
+.greeter-eventstack .row-entry.thread-level-2 {
+    padding-left: 14px;
+    background: rgba(60, 160, 180, 0.06);
 }
 
-.greeter-eventstack .row-entry.reaction-row .cell.avatar {
-    position: relative;
+/* Allow role colors to work - enhance greeter colors in guestbook */
+.greeter-eventstack .row-entry.color-role.role-greeter {
+    background: linear-gradient(
+        to right,
+        var(--role-greeter-light) 0%,
+        rgba(60, 160, 180, 0.05) 60%,
+        transparent 100%
+    );
+    border-left: 2px solid var(--role-greeter);
 }
 
-.greeter-eventstack .row-entry.reaction-row .cell.epoch {
-    padding-left: 20px;
+.greeter-eventstack .row-entry.color-role.role-greeter .cell.canon {
+    color: var(--role-greeter-dark);
 }
+
+.greeter-eventstack .row-entry.color-role.role-greeter .cell.epoch {
+    color: var(--role-greeter);
+}
+
+/* =============================================================================
+   END GREETER GUESTBOOK
+   ============================================================================= */
 
 /* Greeter Showcase */
 .greeter-showcase {

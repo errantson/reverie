@@ -52,8 +52,8 @@ const RowStyleRegistry = {
         }
     },
     
-    userhigh: {
-        name: "userhigh",
+    "user-highlight": {
+        name: "user-highlight",
         description: "User color with highlight background",
         category: "basic",
         rendering: {
@@ -76,12 +76,12 @@ const RowStyleRegistry = {
         }
     },
     
-    canon: {
-        name: "canon",
-        description: "Special emphasis for canon events",
+    "user-special": {
+        name: "user-special",
+        description: "Special emphasis with strong user color (for canon, order events)",
         category: "basic",
         rendering: {
-            cssClasses: ['row-entry', 'color-user', 'intensity-special', 'event-key-canon'],
+            cssClasses: ['row-entry', 'color-user', 'intensity-special'],
             cssFiles: ['color-rows.css'],
             cssVariables: ['--user-color'],
             effects: [],
@@ -100,21 +100,21 @@ const RowStyleRegistry = {
         }
     },
     
-    dream: {
-        name: "dream",
-        description: "Extra pronounced with shimmer effect for dream events",
+    unfinished: {
+        name: "unfinished",
+        description: "Grey (#454545) blurred text - unreadable until hovered",
         category: "basic",
         rendering: {
             cssClasses: ['row-entry', 'event-key-dream', 'color-user', 'intensity-special'],
             cssFiles: ['color-rows.css'],
-            cssVariables: ['--user-color'],
-            effects: [],
+            cssVariables: ['--dream-color', '--dream-color-rgb'],
+            effects: ['blur-hover'],
             appearance: {
-                background: 'Very strong gradient (35-10% fade)',
-                border: '4px solid user color (left)',
-                color: 'Intense user color (95% mix with black)',
-                animation: 'Pulsing shimmer glow (3s infinite)',
-                special: 'Glowing box shadow, bold font'
+                background: 'Grey gradient (15-3% fade)',
+                border: '4px solid grey (#454545)',
+                color: 'Grey (#454545)',
+                animation: 'None - static blur',
+                special: 'Text blurred (2.5px) by default, clears on hover to reveal content'
             }
         },
         matches: (event) => {
@@ -155,9 +155,9 @@ const RowStyleRegistry = {
     // DISSIPATE STYLE - Faded away appearance
     // =========================================================================
     
-    dissipate: {
-        name: "dissipate",
-        description: "Enhanced faded grey mist with subtle particles and gentle drift for departed dreamers",
+    faded: {
+        name: "faded",
+        description: "Faded grey mist with subtle particles for departed dreamers",
         category: "special",
         rendering: {
             cssClasses: ['row-entry', 'event-type-dissipate', 'intensity-faded'],
@@ -173,7 +173,7 @@ const RowStyleRegistry = {
             }
         },
         matches: (event) => {
-            return event.key === 'dissipate' || event.type === 'departure';
+            return event.key === 'dissipate' || event.type === 'departure' || event.color_intensity === 'faded';
         }
     },
     
@@ -181,8 +181,8 @@ const RowStyleRegistry = {
     // SOUVENIR STYLES - STRANGE DREAM
     // =========================================================================
     
-    strangedream: {
-        name: "strangedream",
+    strange: {
+        name: "strange",
         description: "Reality-bending psychedelic pattern with word sway",
         category: "souvenir",
         rendering: {
@@ -205,18 +205,18 @@ const RowStyleRegistry = {
         }
     },
     
-    strangedreamintense: {
-        name: "strangedreamintense",
+    "strange-special": {
+        name: "strange-special",
         description: "Intense reality-bending with dramatic word dance",
         category: "souvenir",
-        extends: "strangedream",
+        extends: "strange",
         rendering: {
             cssClasses: ['row-entry', 'color-souvenir', 'souvenir-strange', 'intensity-special'],
             cssFiles: ['souvenirs.css'],
             cssVariables: [],
             effects: ['snakecharmer'],
             appearance: {
-                background: 'Same as strangedream but MORE intense',
+                background: 'Same as strange but MORE intense',
                 border: '4px solid bright purple with stronger glow',
                 color: 'Very dark purple',
                 animation: 'Faster rolling + more dramatic hue shifts + intense scanlines',
@@ -310,8 +310,8 @@ const RowStyleRegistry = {
         }
     },
     
-    residenceintense: {
-        name: "residenceintense",
+    "residence-special": {
+        name: "residence-special",
         description: "Dramatic lapis gradient with intense shifting",
         category: "souvenir",
         extends: "residence",
@@ -500,18 +500,18 @@ function computeRowStyle(event) {
     const styleOrder = [
         // Nightmare first (very specific)
         'nightmare',
-        // Dissipate
-        'dissipate',
-        // Dreams (most specific)
-        'dream',
-        // Canon
-        'canon',
+        // Faded (departures)
+        'faded',
+        // Unfinished dreams (blurry)
+        'unfinished',
+        // User special (canon, order)
+        'user-special',
         // Souvenir styles (specific keys)
-        'strangedreamintense', 'strangedream',
-        'residenceintense', 'residence',
-        'arrival',
+        'strange-special', 'strange',
+        'residence-special', 'residence',
+        'arrival', 'bell',
         // User color variations
-        'userhigh', 'user',
+        'user-highlight', 'user',
         // Role styles
         'greeter', 'mapper', 'cogitarian', 'provisioner',
         // Octant styles (checked dynamically)

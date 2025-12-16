@@ -6,6 +6,22 @@
  */
 
 /* ============================================================================
+   GLOBAL SOUVENIR TEXT COLOR OVERRIDE
+   Force event text to inherit souvenir colors instead of grey
+   ============================================================================ */
+
+.row-entry.color-souvenir .cell,
+.row-entry.color-souvenir .cell * {
+    color: inherit;
+}
+
+.row-entry.color-souvenir .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-souvenir.intensity-highlight .cell span,
+.row-entry.color-souvenir.intensity-special .cell span {
+    color: inherit !important;
+}
+
+/* ============================================================================
    STRANGE SOUVENIR - Reality-bending, unsettling, icon-face inspired
    Like the strange dream icon: distorted, fractured, otherworldly
    ============================================================================ */
@@ -336,64 +352,144 @@
 .souvenir-bell {
     --bell-burgundy: #8B1538;
     --bell-burgundy-dark: #6B0F2A;
+    --bell-burgundy-light: #A52848;
     --bell-orange: #C85A28;
     --bell-orange-bright: #E87545;
     --bell-cream: #F5E6D3;
 }
 
-/* Highlight intensity - animated audio waveform */
+/* Highlight intensity - burgundy gradient with authentic waveform */
 .row-entry.color-souvenir.souvenir-bell.intensity-highlight {
     background:
-        /* Base gradient */
         linear-gradient(
             to right,
             var(--bell-burgundy-dark) 0%,
             var(--bell-burgundy) 40%,
-            var(--bell-orange) 100%
+            var(--bell-burgundy-light) 100%
         );
     border-left: 3px solid var(--bell-burgundy);
     color: #ffffff;
     position: relative;
     overflow: hidden;
 }
+
+/* Waveform layer 1 - Main audio bars with realistic height variation */
+.row-entry.color-souvenir.souvenir-bell.intensity-highlight::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    /* SVG-encoded waveform pattern - bars with varying heights centered vertically */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40'%3E%3Crect x='2' y='16' width='2' height='8' fill='rgba(255,255,255,0.15)' rx='1'/%3E%3Crect x='6' y='12' width='2' height='16' fill='rgba(255,255,255,0.18)' rx='1'/%3E%3Crect x='10' y='8' width='2' height='24' fill='rgba(255,255,255,0.22)' rx='1'/%3E%3Crect x='14' y='4' width='2' height='32' fill='rgba(255,255,255,0.25)' rx='1'/%3E%3Crect x='18' y='6' width='2' height='28' fill='rgba(255,255,255,0.23)' rx='1'/%3E%3Crect x='22' y='10' width='2' height='20' fill='rgba(255,255,255,0.19)' rx='1'/%3E%3Crect x='26' y='14' width='2' height='12' fill='rgba(255,255,255,0.16)' rx='1'/%3E%3Crect x='30' y='15' width='2' height='10' fill='rgba(255,255,255,0.14)' rx='1'/%3E%3Crect x='34' y='12' width='2' height='16' fill='rgba(255,255,255,0.17)' rx='1'/%3E%3Crect x='38' y='6' width='2' height='28' fill='rgba(255,255,255,0.24)' rx='1'/%3E%3Crect x='42' y='2' width='2' height='36' fill='rgba(255,255,255,0.28)' rx='1'/%3E%3Crect x='46' y='5' width='2' height='30' fill='rgba(255,255,255,0.25)' rx='1'/%3E%3Crect x='50' y='9' width='2' height='22' fill='rgba(255,255,255,0.20)' rx='1'/%3E%3Crect x='54' y='13' width='2' height='14' fill='rgba(255,255,255,0.17)' rx='1'/%3E%3Crect x='58' y='16' width='2' height='8' fill='rgba(255,255,255,0.14)' rx='1'/%3E%3Crect x='62' y='14' width='2' height='12' fill='rgba(255,255,255,0.16)' rx='1'/%3E%3Crect x='66' y='10' width='2' height='20' fill='rgba(255,255,255,0.19)' rx='1'/%3E%3Crect x='70' y='7' width='2' height='26' fill='rgba(255,255,255,0.22)' rx='1'/%3E%3Crect x='74' y='3' width='2' height='34' fill='rgba(255,255,255,0.27)' rx='1'/%3E%3Crect x='78' y='6' width='2' height='28' fill='rgba(255,255,255,0.24)' rx='1'/%3E%3Crect x='82' y='11' width='2' height='18' fill='rgba(255,255,255,0.18)' rx='1'/%3E%3Crect x='86' y='15' width='2' height='10' fill='rgba(255,255,255,0.15)' rx='1'/%3E%3Crect x='90' y='17' width='2' height='6' fill='rgba(255,255,255,0.12)' rx='1'/%3E%3Crect x='94' y='15' width='2' height='10' fill='rgba(255,255,255,0.15)' rx='1'/%3E%3Crect x='98' y='11' width='2' height='18' fill='rgba(255,255,255,0.19)' rx='1'/%3E%3Crect x='102' y='5' width='2' height='30' fill='rgba(255,255,255,0.26)' rx='1'/%3E%3Crect x='106' y='1' width='2' height='38' fill='rgba(255,255,255,0.30)' rx='1'/%3E%3Crect x='110' y='4' width='2' height='32' fill='rgba(255,255,255,0.27)' rx='1'/%3E%3Crect x='114' y='8' width='2' height='24' fill='rgba(255,255,255,0.22)' rx='1'/%3E%3Crect x='118' y='12' width='2' height='16' fill='rgba(255,255,255,0.18)' rx='1'/%3E%3Crect x='122' y='14' width='2' height='12' fill='rgba(255,255,255,0.16)' rx='1'/%3E%3Crect x='126' y='11' width='2' height='18' fill='rgba(255,255,255,0.19)' rx='1'/%3E%3Crect x='130' y='7' width='2' height='26' fill='rgba(255,255,255,0.23)' rx='1'/%3E%3Crect x='134' y='4' width='2' height='32' fill='rgba(255,255,255,0.26)' rx='1'/%3E%3Crect x='138' y='2' width='2' height='36' fill='rgba(255,255,255,0.29)' rx='1'/%3E%3Crect x='142' y='6' width='2' height='28' fill='rgba(255,255,255,0.24)' rx='1'/%3E%3Crect x='146' y='10' width='2' height='20' fill='rgba(255,255,255,0.20)' rx='1'/%3E%3Crect x='150' y='14' width='2' height='12' fill='rgba(255,255,255,0.16)' rx='1'/%3E%3Crect x='154' y='16' width='2' height='8' fill='rgba(255,255,255,0.14)' rx='1'/%3E%3Crect x='158' y='13' width='2' height='14' fill='rgba(255,255,255,0.17)' rx='1'/%3E%3Crect x='162' y='9' width='2' height='22' fill='rgba(255,255,255,0.21)' rx='1'/%3E%3Crect x='166' y='5' width='2' height='30' fill='rgba(255,255,255,0.25)' rx='1'/%3E%3Crect x='170' y='3' width='2' height='34' fill='rgba(255,255,255,0.28)' rx='1'/%3E%3Crect x='174' y='7' width='2' height='26' fill='rgba(255,255,255,0.23)' rx='1'/%3E%3Crect x='178' y='11' width='2' height='18' fill='rgba(255,255,255,0.19)' rx='1'/%3E%3Crect x='182' y='14' width='2' height='12' fill='rgba(255,255,255,0.16)' rx='1'/%3E%3Crect x='186' y='16' width='2' height='8' fill='rgba(255,255,255,0.14)' rx='1'/%3E%3Crect x='190' y='13' width='2' height='14' fill='rgba(255,255,255,0.17)' rx='1'/%3E%3Crect x='194' y='10' width='2' height='20' fill='rgba(255,255,255,0.20)' rx='1'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: 0 center;
+    background-size: 200px 100%;
+    pointer-events: none;
+    animation: bellWaveScroll 10s linear infinite, bellWavePulse 3s ease-in-out infinite;
+    z-index: 0;
+    opacity: 0.85;
 }
 
-/* Bell: simple static gradient, white text, no animations or overlays */
-.row-entry.color-souvenir.souvenir-bell.intensity-highlight {
-    background: linear-gradient(
-        to right,
-        var(--bell-burgundy-dark) 0%,
-        var(--bell-burgundy) 40%,
-        var(--bell-orange) 100%
-    );
-    border-left: 3px solid var(--bell-burgundy);
-    color: #ffffff;
-    position: relative;
+/* Waveform layer 2 - Offset phase for depth and movement */
+.row-entry.color-souvenir.souvenir-bell.intensity-highlight::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='40' viewBox='0 0 160 40'%3E%3Crect x='3' y='14' width='2' height='12' fill='rgba(255,255,255,0.10)' rx='1'/%3E%3Crect x='11' y='10' width='2' height='20' fill='rgba(255,255,255,0.13)' rx='1'/%3E%3Crect x='19' y='6' width='2' height='28' fill='rgba(255,255,255,0.16)' rx='1'/%3E%3Crect x='27' y='8' width='2' height='24' fill='rgba(255,255,255,0.14)' rx='1'/%3E%3Crect x='35' y='12' width='2' height='16' fill='rgba(255,255,255,0.11)' rx='1'/%3E%3Crect x='43' y='15' width='2' height='10' fill='rgba(255,255,255,0.09)' rx='1'/%3E%3Crect x='51' y='11' width='2' height='18' fill='rgba(255,255,255,0.12)' rx='1'/%3E%3Crect x='59' y='5' width='2' height='30' fill='rgba(255,255,255,0.17)' rx='1'/%3E%3Crect x='67' y='3' width='2' height='34' fill='rgba(255,255,255,0.19)' rx='1'/%3E%3Crect x='75' y='7' width='2' height='26' fill='rgba(255,255,255,0.15)' rx='1'/%3E%3Crect x='83' y='13' width='2' height='14' fill='rgba(255,255,255,0.11)' rx='1'/%3E%3Crect x='91' y='16' width='2' height='8' fill='rgba(255,255,255,0.08)' rx='1'/%3E%3Crect x='99' y='12' width='2' height='16' fill='rgba(255,255,255,0.11)' rx='1'/%3E%3Crect x='107' y='6' width='2' height='28' fill='rgba(255,255,255,0.16)' rx='1'/%3E%3Crect x='115' y='2' width='2' height='36' fill='rgba(255,255,255,0.20)' rx='1'/%3E%3Crect x='123' y='5' width='2' height='30' fill='rgba(255,255,255,0.17)' rx='1'/%3E%3Crect x='131' y='9' width='2' height='22' fill='rgba(255,255,255,0.13)' rx='1'/%3E%3Crect x='139' y='14' width='2' height='12' fill='rgba(255,255,255,0.10)' rx='1'/%3E%3Crect x='147' y='11' width='2' height='18' fill='rgba(255,255,255,0.12)' rx='1'/%3E%3Crect x='155' y='7' width='2' height='26' fill='rgba(255,255,255,0.15)' rx='1'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: 50px center;
+    background-size: 160px 100%;
+    pointer-events: none;
+    animation: bellWaveScrollReverse 14s linear infinite, bellWavePulseAlt 4s ease-in-out infinite 1.5s;
+    z-index: 0;
+    opacity: 0.5;
+}
+
+/* Scrolling animation - left to right */
+@keyframes bellWaveScroll {
+    0% { background-position-x: 0; }
+    100% { background-position-x: 200px; }
+}
+
+/* Reverse scroll for parallax depth effect */
+@keyframes bellWaveScrollReverse {
+    0% { background-position-x: 0; }
+    100% { background-position-x: -160px; }
+}
+
+/* Subtle breathing/pulsing for liveliness */
+@keyframes bellWavePulse {
+    0%, 100% { opacity: 0.85; transform: scaleY(1); }
+    50% { opacity: 0.95; transform: scaleY(1.05); }
+}
+
+@keyframes bellWavePulseAlt {
+    0%, 100% { opacity: 0.5; transform: scaleY(1); }
+    50% { opacity: 0.65; transform: scaleY(0.92); }
 }
 
 .row-entry.color-souvenir.souvenir-bell.intensity-highlight .cell,
 .color-souvenir.souvenir-bell.intensity-highlight .cell {
     position: relative;
     z-index: 1;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+/* Special intensity - stronger waveform with glow */
 .color-souvenir.souvenir-bell.intensity-special {
     background: linear-gradient(
         to right,
         var(--bell-burgundy-dark) 0%,
         var(--bell-burgundy) 30%,
-        var(--bell-orange-bright) 100%
+        var(--bell-burgundy-light) 100%
     );
     border-left: 4px solid var(--bell-burgundy);
     color: #ffffff;
     font-weight: 600;
     position: relative;
+    overflow: hidden;
+}
+
+.color-souvenir.souvenir-bell.intensity-special::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    /* Stronger/bolder waveform for special intensity */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='40' viewBox='0 0 180 40'%3E%3Crect x='2' y='15' width='3' height='10' fill='rgba(255,255,255,0.22)' rx='1.5'/%3E%3Crect x='8' y='10' width='3' height='20' fill='rgba(255,255,255,0.28)' rx='1.5'/%3E%3Crect x='14' y='4' width='3' height='32' fill='rgba(255,255,255,0.35)' rx='1.5'/%3E%3Crect x='20' y='6' width='3' height='28' fill='rgba(255,255,255,0.32)' rx='1.5'/%3E%3Crect x='26' y='11' width='3' height='18' fill='rgba(255,255,255,0.26)' rx='1.5'/%3E%3Crect x='32' y='14' width='3' height='12' fill='rgba(255,255,255,0.23)' rx='1.5'/%3E%3Crect x='38' y='12' width='3' height='16' fill='rgba(255,255,255,0.25)' rx='1.5'/%3E%3Crect x='44' y='5' width='3' height='30' fill='rgba(255,255,255,0.34)' rx='1.5'/%3E%3Crect x='50' y='1' width='3' height='38' fill='rgba(255,255,255,0.40)' rx='1.5'/%3E%3Crect x='56' y='4' width='3' height='32' fill='rgba(255,255,255,0.36)' rx='1.5'/%3E%3Crect x='62' y='9' width='3' height='22' fill='rgba(255,255,255,0.28)' rx='1.5'/%3E%3Crect x='68' y='13' width='3' height='14' fill='rgba(255,255,255,0.24)' rx='1.5'/%3E%3Crect x='74' y='16' width='3' height='8' fill='rgba(255,255,255,0.20)' rx='1.5'/%3E%3Crect x='80' y='14' width='3' height='12' fill='rgba(255,255,255,0.23)' rx='1.5'/%3E%3Crect x='86' y='8' width='3' height='24' fill='rgba(255,255,255,0.30)' rx='1.5'/%3E%3Crect x='92' y='2' width='3' height='36' fill='rgba(255,255,255,0.38)' rx='1.5'/%3E%3Crect x='98' y='5' width='3' height='30' fill='rgba(255,255,255,0.34)' rx='1.5'/%3E%3Crect x='104' y='10' width='3' height='20' fill='rgba(255,255,255,0.27)' rx='1.5'/%3E%3Crect x='110' y='14' width='3' height='12' fill='rgba(255,255,255,0.23)' rx='1.5'/%3E%3Crect x='116' y='11' width='3' height='18' fill='rgba(255,255,255,0.26)' rx='1.5'/%3E%3Crect x='122' y='6' width='3' height='28' fill='rgba(255,255,255,0.32)' rx='1.5'/%3E%3Crect x='128' y='3' width='3' height='34' fill='rgba(255,255,255,0.37)' rx='1.5'/%3E%3Crect x='134' y='7' width='3' height='26' fill='rgba(255,255,255,0.31)' rx='1.5'/%3E%3Crect x='140' y='12' width='3' height='16' fill='rgba(255,255,255,0.25)' rx='1.5'/%3E%3Crect x='146' y='15' width='3' height='10' fill='rgba(255,255,255,0.22)' rx='1.5'/%3E%3Crect x='152' y='13' width='3' height='14' fill='rgba(255,255,255,0.24)' rx='1.5'/%3E%3Crect x='158' y='8' width='3' height='24' fill='rgba(255,255,255,0.30)' rx='1.5'/%3E%3Crect x='164' y='4' width='3' height='32' fill='rgba(255,255,255,0.35)' rx='1.5'/%3E%3Crect x='170' y='7' width='3' height='26' fill='rgba(255,255,255,0.31)' rx='1.5'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: 0 center;
+    background-size: 180px 100%;
+    pointer-events: none;
+    animation: bellWaveScrollSpecial 7s linear infinite, bellWavePulseSpecial 2.5s ease-in-out infinite;
+    z-index: 0;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+}
+
+@keyframes bellWaveScrollSpecial {
+    0% { background-position-x: 0; }
+    100% { background-position-x: 180px; }
+}
+
+@keyframes bellWavePulseSpecial {
+    0%, 100% { opacity: 0.9; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.08); }
 }
 
 .color-souvenir.souvenir-bell.intensity-special .cell,
 .row-entry.color-souvenir.souvenir-bell.intensity-special .cell {
     position: relative;
     z-index: 1;
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 /* ============================================================================

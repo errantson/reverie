@@ -215,7 +215,7 @@ def get_recent_dreamers():
         cursor = db.execute("""
             SELECT 
                 d.did, d.handle, d.name, d.display_name,
-                d.server, d.avatar, d.created_at
+                d.server, d.avatar, d.created_at, d.color_hex
             FROM dreamers d
             ORDER BY d.created_at DESC NULLS LAST
             LIMIT 3
@@ -231,7 +231,8 @@ def get_recent_dreamers():
                 'display_name': dreamer['display_name'] or dreamer['name'],
                 'server': dreamer['server'] or '',
                 'avatar': dreamer['avatar'] or '',
-                'created_at': dreamer['created_at'] or ''
+                'created_at': dreamer['created_at'] or '',
+                'color_hex': dreamer['color_hex'] or ''
             }
             for dreamer in dreamers
         ]

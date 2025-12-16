@@ -172,6 +172,13 @@
     color: inherit;
 }
 
+/* Force event text to inherit row color (override inline --text-secondary) */
+.row-entry.color-user .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-user.intensity-highlight .cell span,
+.row-entry.color-user.intensity-special .cell span {
+    color: inherit !important;
+}
+
 /* Fallback for browsers that don't support color-mix */
 @supports not (background: color-mix(in srgb, red, blue)) {
     .color-user.intensity-highlight {
@@ -188,38 +195,43 @@
 }
 
 /* ============================================================================
-   DREAM EVENT - Extra pronounced, more than canon, with shimmer effect
+   DREAM EVENT - Like canon but with #454545, blurred until hovered
+   Matches canon intensity-special style but forces grey and adds blur
    ============================================================================ */
 
 .row-entry.event-key-dream.color-user.intensity-special {
-    background: 
-        linear-gradient(
-            to right,
-            color-mix(in srgb, var(--user-color, #8b7355) 35%, transparent) 0%,
-            color-mix(in srgb, var(--user-color, #8b7355) 10%, transparent) 100%
-        );
-    border-left: 4px solid var(--user-color, #8b7355);
+    /* Force grey color like a user with #454545 */
+    --dream-color: #454545;
+    
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--dream-color) 30%, transparent) 0%,
+        color-mix(in srgb, var(--dream-color) 8%, transparent) 100%
+    );
+    border-left: 4px solid var(--dream-color);
     border-right: none;
-    box-shadow: 
-        inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 40%, transparent),
-        0 0 8px color-mix(in srgb, var(--user-color, #8b7355) 25%, transparent);
-    color: color-mix(in srgb, var(--user-color, #8b7355) 95%, #000);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dream-color) 35%, transparent);
+    color: color-mix(in srgb, var(--dream-color) 92%, #000);
     font-weight: 600;
-    position: relative;
-    animation: dreamShimmer 3s ease-in-out infinite;
 }
 
-@keyframes dreamShimmer {
-    0%, 100% {
-        box-shadow: 
-            inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 40%, transparent),
-            0 0 8px color-mix(in srgb, var(--user-color, #8b7355) 25%, transparent);
-    }
-    50% {
-        box-shadow: 
-            inset 0 0 0 1px color-mix(in srgb, var(--user-color, #8b7355) 50%, transparent),
-            0 0 12px color-mix(in srgb, var(--user-color, #8b7355) 35%, transparent);
-    }
+/* Force dream event text to inherit grey color */
+.row-entry.event-key-dream.color-user.intensity-special .cell span[style*="color: var(--text-secondary)"],
+.row-entry.event-key-dream.color-user.intensity-special .cell span {
+    color: inherit !important;
+}
+
+/* Blur effect on all cell content - unreadable by default */
+.row-entry.event-key-dream.color-user.intensity-special .cell,
+.row-entry.event-key-dream.color-user.intensity-special img {
+    filter: blur(2.5px);
+    transition: filter 0.4s ease-out;
+}
+
+/* Clear on hover - readable */
+.row-entry.event-key-dream.color-user.intensity-special:hover .cell,
+.row-entry.event-key-dream.color-user.intensity-special:hover img {
+    filter: blur(0px);
 }
 
 /* Override for "ventured a strange dream" - use default styling */
@@ -234,12 +246,14 @@
 /* Fallback for browsers without color-mix */
 @supports not (background: color-mix(in srgb, red, blue)) {
     .event-key-dream.color-user.intensity-special {
-        background: rgba(139, 115, 85, 0.28);
-        border-left: 4px solid #8b7355;
-        box-shadow: 
-            inset 0 0 0 1px rgba(139, 115, 85, 0.35),
-            0 0 10px rgba(139, 115, 85, 0.3);
-        color: #4b3925;
+        background: linear-gradient(
+            to right,
+            rgba(69, 69, 69, 0.30) 0%,
+            rgba(69, 69, 69, 0.08) 100%
+        );
+        border-left: 4px solid #454545;
+        box-shadow: inset 0 0 0 1px rgba(69, 69, 69, 0.35);
+        color: #3a3a3a;
         font-weight: 600;
     }
 }
@@ -330,14 +344,15 @@
 /* Apply white uniformly to all cells */
 .row-entry.event-type-nightmare.intensity-special .cell,
 .row-entry.event-type-nightmare.intensity-special .cell * {
-    color: inherit;
+    color: #ffffff !important;
     position: relative;
     z-index: 1;
 }
 
-/* Override grey event text color for nightmare rows (italic event text spans) */
-.row-entry.event-type-nightmare.intensity-special .cell span[style*="font-style: italic"][style*="color: var(--text-secondary)"] {
-    color: inherit !important;
+/* Override grey event text color for nightmare rows */
+.row-entry.event-type-nightmare.intensity-special .cell span[style*="font-style: italic"],
+.row-entry.event-type-nightmare.intensity-special .cell span[style*="color: var(--text-secondary)"] {
+    color: #ffffff !important;
 }
 
 /* Enhanced floating smoke particles with proper layering */
@@ -462,6 +477,12 @@
     z-index: 1;
 }
 
+/* Force event text to inherit faded grey color */
+.row-entry.event-type-dissipate.intensity-faded .cell span[style*="color: var(--text-secondary)"],
+.row-entry.event-type-dissipate.intensity-faded .cell span {
+    color: inherit !important;
+}
+
 /* Subtle border fade effect */
 .row-entry.event-type-dissipate.intensity-faded::after {
     content: '';
@@ -522,6 +543,13 @@
     color: inherit;
 }
 
+/* Force event text to inherit greeter color */
+.row-entry.color-role.role-greeter .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-role.role-greeter.intensity-highlight .cell span,
+.row-entry.color-role.role-greeter.intensity-special .cell span {
+    color: inherit !important;
+}
+
 /* Mapper - Natural lime tones */
 .row-entry.color-role.role-mapper.intensity-none {
     border-left: 2px solid var(--role-mapper);
@@ -557,6 +585,13 @@
 .row-entry.color-role.role-mapper .cell,
 .row-entry.color-role.role-mapper .cell * {
     color: inherit;
+}
+
+/* Force event text to inherit mapper color */
+.row-entry.color-role.role-mapper .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-role.role-mapper.intensity-highlight .cell span,
+.row-entry.color-role.role-mapper.intensity-special .cell span {
+    color: inherit !important;
 }
 
 /* Cogitarian - Orange-red tones */
@@ -626,6 +661,13 @@
     color: inherit;
 }
 
+/* Force event text to inherit provisioner color */
+.row-entry.color-role.role-provisioner .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-role.role-provisioner.intensity-highlight .cell span,
+.row-entry.color-role.role-provisioner.intensity-special .cell span {
+    color: inherit !important;
+}
+
 /* ============================================================================
    OCTANT COLOR SYSTEM (Spectrum-based coloring)
    ============================================================================ */
@@ -667,6 +709,13 @@
 .row-entry.color-octant .cell,
 .row-entry.color-octant .cell * {
     color: inherit;
+}
+
+/* Force event text to inherit octant color */
+.row-entry.color-octant .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-octant.intensity-highlight .cell span,
+.row-entry.color-octant.intensity-special .cell span {
+    color: inherit !important;
 }
 
 /* Specific octant classes - these set the --octant-color variable */
