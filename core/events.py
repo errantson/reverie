@@ -197,7 +197,9 @@ class EventsManager:
                         order_url,
                         epoch,
                         epoch,
-                        quantities_json
+                        quantities_json,
+                        'user',
+                        'highlight'
                     ))
                     
                     result = cursor.fetchone()

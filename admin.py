@@ -994,12 +994,12 @@ def operations_status():
         except Exception:
             pass
         
-        # Check if Stripe API is running (port 5000)
+        # Check if Stripe API is running (port 5555)
         stripe_active = False
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
-            stripe_active = sock.connect_ex(('localhost', 5000)) == 0
+            stripe_active = sock.connect_ex(('localhost', 5555)) == 0
             sock.close()
         except Exception:
             pass
@@ -1026,7 +1026,7 @@ def operations_status():
                 'active': stripe_active,
                 'status': 'active' if stripe_active else 'inactive',
                 'name': 'Payment Gateway',
-                'port': 5000
+                'port': 5555
             },
             'overall': 'healthy' if (firehose_active and pds_active and caddy_active) else 'degraded'
         })
@@ -9199,51 +9199,8 @@ def disable_user_role():
 # All dreamviewer endpoints have been removed as the dream_queue table and
 # associated firehose service are no longer in use.
 
-
-@app.route('/api/stripe/<path:endpoint>', methods=['GET', 'POST', 'OPTIONS'])
-def proxy_stripe(endpoint):
-    """
-    Proxy Stripe service requests to the stripe container.
-    
-    Forwards requests from /api/stripe/* to http://localhost:5555/*
-    """
-    try:
-        import requests
-        
-        # Handle CORS preflight
-        if request.method == 'OPTIONS':
-            return '', 200
-        
-        # Build target URL
-        stripe_url = f'http://127.0.0.1:5555/{endpoint}'
-        print(f"🔄 Stripe proxy: {request.method} {endpoint} -> {stripe_url}")
-        
-        # Forward the request
-        if request.method == 'POST':
-            response = requests.post(
-                stripe_url,
-                json=request.get_json(),
-                headers={'Content-Type': 'application/json'},
-                timeout=30
-            )
-        else:
-            response = requests.get(stripe_url, timeout=30)
-        
-        # Return the response
-        return Response(
-            response.content,
-            status=response.status_code,
-            headers={
-                'Content-Type': response.headers.get('Content-Type', 'application/json'),
-                'Access-Control-Allow-Origin': '*'
-            }
-        )
-        
-    except Exception as e:
-        print(f"❌ Stripe proxy error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': 'Stripe service unavailable'}), 503
+# NOTE: Stripe proxy route is defined at L760 (stripe_proxy) with rate limiting.
+# Caddy routes /api/stripe/* directly to reverie_stripe:5555 container.
 
 
 @app.route('/api/avatar-proxy', methods=['GET'])
