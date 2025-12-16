@@ -473,9 +473,20 @@ class LibraryWidget {
     }
 
     setupFormatButtons(book) {
+
+        const beginBtn = document.getElementById('details-btn-begin');
         const epubBtn = document.getElementById('details-btn-epub');
         const kindleBtn = document.getElementById('details-btn-kindle');
         const printBtn = document.getElementById('details-btn-print');
+        // Begin Reading button
+        if (beginBtn) {
+            beginBtn.disabled = !book.available;
+            beginBtn.onclick = () => {
+                if (book.readOnlineUrl) {
+                    window.location.href = book.readOnlineUrl;
+                }
+            };
+        }
 
         // Disable all if not available
         const disabled = !book.available;
