@@ -64,6 +64,48 @@ class TestFeedGen:
         except ImportError:
             pytest.skip("FeedGen not available")
     
+    def test_feedgen_updater_service_running(self):
+        """CRITICAL: Test feedgen_updater systemd service is active
+        
+        The updater service is responsible for polling community posts
+        every 2 minutes. Without it, the feed database goes stale.
+        """
+        import subprocess
+        try:
+            result = subprocess.run(
+                ['systemctl', 'is-active', 'feedgen_updater'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            status = result.stdout.strip()
+            assert status == 'active', f"feedgen_updater service is {status}, expected 'active'. Run: sudo systemctl start feedgen_updater"
+        except FileNotFoundError:
+            pytest.skip("systemctl not available")
+        except subprocess.TimeoutExpired:
+            pytest.fail("systemctl command timed out")
+    
+    def test_feedgen_posts_indexed_recently(self, test_db):
+        """CRITICAL: Verify feed posts are being indexed (within last 4 hours)
+        
+        If this fails, the feedgen_updater service may not be running.
+        """
+        from datetime import datetime, timezone, timedelta
+        
+        # Check for posts indexed in the last 4 hours
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=4)
+        result = test_db.execute(
+            "SELECT COUNT(*) as count FROM feed_posts WHERE indexed_at > %s",
+            (cutoff,)
+        ).fetchone()
+        
+        recent_count = result['count']
+        assert recent_count > 0, (
+            f"No posts indexed in last 4 hours! "
+            f"feedgen_updater may not be running. "
+            f"Run: sudo systemctl start feedgen_updater"
+        )
+    
     def test_feedgen_did_document(self):
         """Test feedgen DID document is accessible"""
         import requests

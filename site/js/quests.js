@@ -14,6 +14,80 @@
         return div.innerHTML;
     }
 
+    /**
+     * Generate rowstyle dropdown options dynamically from RowStyleRegistry
+     * Groups styles by category with descriptions from the registry
+     * @param {string} currentValue - Currently selected rowstyle value
+     * @returns {string} HTML options for select element
+     */
+    function generateRowstyleOptions(currentValue = '') {
+        if (!window.RowStyleRegistry) {
+            console.warn('RowStyleRegistry not loaded, using fallback options');
+            return `
+                <option value="">Default (auto)</option>
+                <option value="user">User</option>
+                <option value="user-highlight">User Highlight</option>
+                <option value="user-special">User Special</option>
+                <option value="unfinished">Unfinished</option>
+            `;
+        }
+        
+        const registry = window.RowStyleRegistry;
+        const categories = {
+            basic: { label: 'Basic Styles', styles: [] },
+            special: { label: 'Special Effects', styles: [] },
+            souvenir: { label: 'Souvenir Styles', styles: [] },
+            role: { label: 'Role Styles', styles: [] },
+            octant: { label: 'Octant Styles', styles: [] }
+        };
+        
+        // Group styles by category
+        Object.entries(registry).forEach(([name, style]) => {
+            if (!style.category || name === 'default') return;
+            
+            const cat = categories[style.category];
+            if (cat) {
+                cat.styles.push({
+                    value: name,
+                    label: style.name,
+                    desc: style.description || name
+                });
+            }
+        });
+        
+        // Build options HTML
+        let html = `<option value="" ${currentValue === '' ? 'selected' : ''}>Default (auto)</option>`;
+        
+        // Add special "octant" option that maps to user's actual octant
+        const octantDynamic = {
+            value: 'octant',
+            label: 'User Octant (Dynamic)',
+            desc: "Matches user's current spectrum octant"
+        };
+        
+        Object.entries(categories).forEach(([catKey, cat]) => {
+            if (cat.styles.length === 0) return;
+            
+            html += `<optgroup label="${cat.label}">`;
+            
+            // For octants, add the dynamic option first
+            if (catKey === 'octant') {
+                html += `<option value="${octantDynamic.value}" ${currentValue === octantDynamic.value ? 'selected' : ''}>${octantDynamic.label} - ${octantDynamic.desc}</option>`;
+            }
+            
+            cat.styles.forEach(style => {
+                const selected = currentValue === style.value ? 'selected' : '';
+                // Truncate description if too long
+                const shortDesc = style.desc.length > 50 ? style.desc.substring(0, 47) + '...' : style.desc;
+                html += `<option value="${style.value}" ${selected}>${style.label.charAt(0).toUpperCase() + style.label.slice(1)} - ${shortDesc}</option>`;
+            });
+            
+            html += `</optgroup>`;
+        });
+        
+        return html;
+    }
+
     // Client-side dry-run simulator for quests (best-effort, mirrors server rules)
     function simulateDryRun(quest, sample) {
         const conditions = quest.conditions ? (Array.isArray(quest.conditions) ? quest.conditions : [quest.conditions]) : [];
@@ -549,6 +623,11 @@
                     conditionValue = String(condObj.value);
                 }
                 
+                // Extract condition options
+                const condOperator = condObj.operator || 'AND';
+                const condOnceOnly = condObj.once_only || false;
+                const condDisabled = condObj.disabled || false;
+                
                 // Condition type descriptions
                 const conditionDescriptions = {
                     'any_reply': 'Triggers on any reply to the post',
@@ -558,37 +637,110 @@
                     'contains_hashtags': 'Triggers when reply contains specific hashtags',
                     'contains_mentions': 'Triggers when reply mentions specific users',
                     'reply_contains': 'Triggers when reply contains specific text',
-                    'hasnt_canon': 'Triggers if user has no canon entries'
+                    'has_canon': 'Triggers if user has a specific canon key',
+                    'hasnt_canon': 'Triggers if user has no canon entries for key',
+                    'count_canon': 'Triggers based on count of canon entries (e.g., >=3)',
+                    'user_canon_equals': 'Triggers if canon key equals specific value',
+                    'user_canon_not_equals': 'Triggers if canon key does NOT equal value',
+                    'user_in_canon_list': 'Triggers if canon key is in list of values',
+                    'user_has_souvenir': 'Triggers if user has a specific souvenir',
+                    'user_missing_souvenir': 'Triggers if user lacks a souvenir',
+                    'souvenir_exists_anywhere': 'Triggers if souvenir exists for any user',
+                    'has_read': 'Triggers if user has read a specific book (biblio)',
+                    'has_biblio_stamp': 'Triggers if user has a biblio stamp'
                 };
                 
                 return `
-                    <div class="condition-card-edit">
+                    <div class="condition-card-edit ${condDisabled ? 'condition-disabled' : ''}">
                         <div class="condition-header">
                             <label class="condition-label">Condition Type</label>
                             <select class="condition-select" 
                                     data-quest-title="${escapeHtml(quest.title)}" 
                                     data-index="${index}">
-                                <option value="any_reply" ${conditionType === 'any_reply' ? 'selected' : ''}>Any Reply</option>
-                                <option value="first_reply" ${conditionType === 'first_reply' ? 'selected' : ''}>First Reply (per user)</option>
-                                <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (legacy)</option>
-                                <option value="dreamer_replies" ${conditionType === 'dreamer_replies' ? 'selected' : ''}>Registered Dreamer Replies</option>
-                                <option value="contains_hashtags" ${conditionType === 'contains_hashtags' ? 'selected' : ''}>Contains Hashtags</option>
-                                <option value="contains_mentions" ${conditionType === 'contains_mentions' ? 'selected' : ''}>Contains Mentions</option>
-                                <option value="reply_contains" ${conditionType === 'reply_contains' ? 'selected' : ''}>Reply Contains Text</option>
-                                <option value="hasnt_canon" ${conditionType === 'hasnt_canon' ? 'selected' : ''}>User Has No Canon</option>
+                                <optgroup label="Reply Conditions">
+                                    <option value="any_reply" ${conditionType === 'any_reply' ? 'selected' : ''}>Any Reply</option>
+                                    <option value="first_reply" ${conditionType === 'first_reply' ? 'selected' : ''}>First Reply (per user)</option>
+                                    <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (legacy)</option>
+                                    <option value="dreamer_replies" ${conditionType === 'dreamer_replies' ? 'selected' : ''}>Registered Dreamer Replies</option>
+                                </optgroup>
+                                <optgroup label="Content Match">
+                                    <option value="reply_contains" ${conditionType === 'reply_contains' ? 'selected' : ''}>Reply Contains Text</option>
+                                    <option value="contains_hashtags" ${conditionType === 'contains_hashtags' ? 'selected' : ''}>Contains Hashtags</option>
+                                    <option value="contains_mentions" ${conditionType === 'contains_mentions' ? 'selected' : ''}>Contains Mentions</option>
+                                </optgroup>
+                                <optgroup label="Canon Checks">
+                                    <option value="has_canon" ${conditionType === 'has_canon' ? 'selected' : ''}>Has Canon Key</option>
+                                    <option value="hasnt_canon" ${conditionType === 'hasnt_canon' ? 'selected' : ''}>Missing Canon Key</option>
+                                    <option value="count_canon" ${conditionType === 'count_canon' ? 'selected' : ''}>Count Canon (>=N)</option>
+                                    <option value="user_canon_equals" ${conditionType === 'user_canon_equals' ? 'selected' : ''}>Canon Equals Value</option>
+                                    <option value="user_canon_not_equals" ${conditionType === 'user_canon_not_equals' ? 'selected' : ''}>Canon Not Equals</option>
+                                    <option value="user_in_canon_list" ${conditionType === 'user_in_canon_list' ? 'selected' : ''}>Canon In List</option>
+                                </optgroup>
+                                <optgroup label="Souvenirs">
+                                    <option value="user_has_souvenir" ${conditionType === 'user_has_souvenir' ? 'selected' : ''}>Has Souvenir</option>
+                                    <option value="user_missing_souvenir" ${conditionType === 'user_missing_souvenir' ? 'selected' : ''}>Missing Souvenir</option>
+                                    <option value="souvenir_exists_anywhere" ${conditionType === 'souvenir_exists_anywhere' ? 'selected' : ''}>Souvenir Exists Anywhere</option>
+                                </optgroup>
+                                <optgroup label="Biblio">
+                                    <option value="has_read" ${conditionType === 'has_read' ? 'selected' : ''}>Has Read Book</option>
+                                    <option value="has_biblio_stamp" ${conditionType === 'has_biblio_stamp' ? 'selected' : ''}>Has Biblio Stamp</option>
+                                </optgroup>
                             </select>
+                        </div>
+                        <div class="condition-options-row">
+                            <div class="condition-option">
+                                <label class="condition-label">Logic</label>
+                                <select class="condition-operator-select" 
+                                        data-quest-title="${escapeHtml(quest.title)}" 
+                                        data-index="${index}"
+                                        onchange="updateConditionOption('${escapeHtml(quest.title)}', ${index}, 'operator', this.value)">
+                                    <option value="AND" ${condOperator === 'AND' ? 'selected' : ''}>AND</option>
+                                    <option value="OR" ${condOperator === 'OR' ? 'selected' : ''}>OR</option>
+                                    <option value="NOT" ${condOperator === 'NOT' ? 'selected' : ''}>NOT</option>
+                                </select>
+                            </div>
+                            <div class="condition-option">
+                                <label class="condition-checkbox-label">
+                                    <input type="checkbox" 
+                                           class="condition-once-only" 
+                                           ${condOnceOnly ? 'checked' : ''}
+                                           onchange="updateConditionOption('${escapeHtml(quest.title)}', ${index}, 'once_only', this.checked)">
+                                    Once Only
+                                </label>
+                            </div>
+                            <div class="condition-option">
+                                <label class="condition-checkbox-label">
+                                    <input type="checkbox" 
+                                           class="condition-disabled" 
+                                           ${condDisabled ? 'checked' : ''}
+                                           onchange="updateConditionOption('${escapeHtml(quest.title)}', ${index}, 'disabled', this.checked)">
+                                    Disabled
+                                </label>
+                            </div>
                         </div>
                         <div class="condition-description">${conditionDescriptions[conditionType] || ''}</div>
                         <div class="condition-details">Value: <strong>${escapeHtml(String(conditionValue || '—'))}</strong></div>
-                        ${['contains_hashtags', 'contains_mentions', 'reply_contains', 'hasnt_canon'].includes(conditionType) ? `
+                        ${['contains_hashtags', 'contains_mentions', 'reply_contains', 'has_canon', 'hasnt_canon', 'count_canon', 'user_canon_equals', 'user_canon_not_equals', 'user_in_canon_list', 'user_has_souvenir', 'user_missing_souvenir', 'souvenir_exists_anywhere', 'has_read', 'has_biblio_stamp'].includes(conditionType) ? `
                         <div class="condition-value-field">
-                            <label class="condition-label">Value</label>
+                            <label class="condition-label">${['has_canon', 'hasnt_canon', 'count_canon', 'user_canon_equals', 'user_canon_not_equals', 'user_in_canon_list'].includes(conditionType) ? 'Canon Key/Value' : ['user_has_souvenir', 'user_missing_souvenir', 'souvenir_exists_anywhere'].includes(conditionType) ? 'Souvenir Key' : 'Value'}</label>
                             <input type="text" 
                                    class="condition-input" 
                                    data-quest-title="${escapeHtml(quest.title)}" 
                                    data-index="${index}"
                                    value="${escapeHtml(conditionValue)}" 
-                                   placeholder="${conditionType === 'contains_hashtags' ? '#hashtag' : conditionType === 'contains_mentions' ? '@username' : 'text to match'}">
+                                   placeholder="${
+                                    conditionType === 'contains_hashtags' ? '#hashtag1, #hashtag2' : 
+                                    conditionType === 'contains_mentions' ? '@username' : 
+                                    conditionType === 'has_canon' || conditionType === 'hasnt_canon' ? 'canon_key (e.g., name, origin)' :
+                                    conditionType === 'count_canon' ? 'key>=N (e.g., quest>=3)' :
+                                    conditionType === 'user_canon_equals' ? 'key=value' :
+                                    conditionType === 'user_canon_not_equals' ? 'key=value' :
+                                    conditionType === 'user_in_canon_list' ? 'key=val1,val2,val3' :
+                                    conditionType === 'user_has_souvenir' || conditionType === 'user_missing_souvenir' || conditionType === 'souvenir_exists_anywhere' ? 'souvenir_key' :
+                                    conditionType === 'has_read' ? 'Book Title' :
+                                    conditionType === 'has_biblio_stamp' ? 'list_rkey' :
+                                    'text to match'
+                                   }">
                             <button class="condition-save-btn" data-quest-title="${escapeHtml(quest.title)}" data-index="${index}">Save Value</button>
                         </div>
                         ` : ''}
@@ -815,44 +967,11 @@
                             <div class="canon-field">
                                 <label class="canon-label">Row Style (optional)</label>
                                 <select class="canon-rowstyle-select" data-quest-title="${escapeHtml(quest.title)}" data-index="${index}">
-                                    <option value="">Default (auto)</option>
-                                    <optgroup label="Basic Styles">
-                                        <option value="user">User - Minimal user color</option>
-                                        <option value="userhigh">User High - User color highlight</option>
-                                        <option value="canon">Canon - Special emphasis</option>
-                                        <option value="dream">Dream - Extra pronounced shimmer</option>
-                                    </optgroup>
-                                    <optgroup label="Special Styles">
-                                        <option value="nightmare">Nightmare - Dark smokey animated</option>
-                                        <option value="dissipate">Dissipate - Faded grey mist</option>
-                                    </optgroup>
-                                    <optgroup label="Souvenir Styles">
-                                        <option value="strangedream">Strange Dream - Psychedelic pattern</option>
-                                        <option value="strangedreamintense">Strange Dream Intense - Dramatic word dance</option>
-                                        <option value="arrival">Arrival - Welcoming banner</option>
-                                        <option value="residence">Residence - Lapis animated gradient</option>
-                                        <option value="residenceintense">Residence Intense - Dramatic lapis</option>
-                                        <option value="bell">Bell - Burgundy with audio waveform</option>
-                                    </optgroup>
-                                    <optgroup label="Role Styles">
-                                        <option value="greeter">Greeter - Cyan highlight</option>
-                                        <option value="mapper">Mapper - Lime highlight</option>
-                                        <option value="cogitarian">Cogitarian - Orange-red highlight</option>
-                                    </optgroup>
-                                    <optgroup label="Octant Styles">
-                                        <option value="adaptive">Adaptive - Flow (Entropy • Liberty • Receptive)</option>
-                                        <option value="chaotic">Chaotic - Experiment (Entropy • Liberty • Skeptic)</option>
-                                        <option value="intended">Intended - Command (Entropy • Authority • Skeptic)</option>
-                                        <option value="prepared">Prepared - Strategy (Entropy • Authority • Receptive)</option>
-                                        <option value="contented">Contented - Peace (Oblivion • Liberty • Receptive)</option>
-                                        <option value="assertive">Assertive - Wisdom (Oblivion • Liberty • Skeptic)</option>
-                                        <option value="ordered">Ordered - Order (Oblivion • Authority • Receptive)</option>
-                                        <option value="guarded">Guarded - Guard (Oblivion • Authority • Skeptic)</option>
-                                        <option value="equilibrium">Equilibrium - Balanced center</option>
-                                        <option value="confused">Confused - Balanced one axis</option>
-                                        <option value="singling">Singling - Balanced two axes</option>
-                                        <option value="uncertain">Uncertain - Legacy state</option>
-                                    </optgroup>
+                                    ${(() => {
+                                        const parts = commandParams ? commandParams.split(':') : [];
+                                        const currentRowstyle = parts[3] || '';
+                                        return generateRowstyleOptions(currentRowstyle);
+                                    })()}
                                 </select>
                             </div>
                             <div class="canon-preview" data-index="${index}">
@@ -2632,6 +2751,72 @@
         }
     }
     
+    // Update a specific option on a condition (operator, once_only, disabled)
+    window.updateConditionOption = async function(questTitle, index, optionName, optionValue) {
+        console.log('[QuestManager] updateConditionOption called:', questTitle, index, optionName, optionValue);
+        try {
+            const quest = questDataMap[questTitle];
+            if (!quest) {
+                console.error('[QuestManager] Quest not found:', questTitle);
+                return;
+            }
+            
+            const conditions = quest.conditions ? (Array.isArray(quest.conditions) ? [...quest.conditions] : [quest.conditions]) : [];
+            if (index >= conditions.length) {
+                console.error('[QuestManager] Condition index out of range:', index);
+                return;
+            }
+            
+            // Get condition object (normalize if string)
+            let condObj = conditions[index];
+            if (typeof condObj === 'string') {
+                condObj = { condition: condObj, operator: 'AND' };
+            } else {
+                condObj = { ...condObj }; // Clone to avoid mutation
+            }
+            
+            // Update the specific option
+            condObj[optionName] = optionValue;
+            conditions[index] = condObj;
+            
+            const payload = {
+                condition: quest.condition || '',
+                conditions: JSON.stringify(conditions),
+                condition_operator: quest.condition_operator || 'AND',
+                trigger_type: quest.trigger_type,
+                trigger_config: quest.trigger_config,
+                uri: quest.uri || '',
+                commands: quest.commands,
+                description: quest.description,
+                enabled: quest.enabled
+            };
+            
+            console.log('[QuestManager] Sending update condition option payload:', payload);
+            const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (response.ok) {
+                console.log('[QuestManager] Condition option updated successfully');
+                // Update local cache
+                quest.conditions = conditions;
+                // Refresh the display
+                await loadQuests();
+                const updatedQuest = allQuests.find(q => q.title === questTitle);
+                if (updatedQuest) selectQuest(updatedQuest);
+            } else {
+                const result = await response.json();
+                console.error('[QuestManager] Failed to update condition option:', result);
+                alert('Failed to update condition option: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error('[QuestManager] Error updating condition option:', err);
+            alert('Error updating condition option: ' + err.message);
+        }
+    };
+    
     window.addCommand = function(questTitle) {
         console.log('[QuestManager] addCommand called for:', questTitle);
         const quest = questDataMap[questTitle];
@@ -3074,6 +3259,80 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Generate rowstyle dropdown options dynamically from RowStyleRegistry
+     * Groups styles by category with descriptions from the registry
+     * @param {string} currentValue - Currently selected rowstyle value
+     * @returns {string} HTML options for select element
+     */
+    function generateRowstyleOptions(currentValue = '') {
+        if (!window.RowStyleRegistry) {
+            console.warn('RowStyleRegistry not loaded, using fallback options');
+            return `
+                <option value="">Default (auto)</option>
+                <option value="user">User</option>
+                <option value="user-highlight">User Highlight</option>
+                <option value="user-special">User Special</option>
+                <option value="unfinished">Unfinished</option>
+            `;
+        }
+        
+        const registry = window.RowStyleRegistry;
+        const categories = {
+            basic: { label: 'Basic Styles', styles: [] },
+            special: { label: 'Special Effects', styles: [] },
+            souvenir: { label: 'Souvenir Styles', styles: [] },
+            role: { label: 'Role Styles', styles: [] },
+            octant: { label: 'Octant Styles', styles: [] }
+        };
+        
+        // Group styles by category
+        Object.entries(registry).forEach(([name, style]) => {
+            if (!style.category || name === 'default') return;
+            
+            const cat = categories[style.category];
+            if (cat) {
+                cat.styles.push({
+                    value: name,
+                    label: style.name,
+                    desc: style.description || name
+                });
+            }
+        });
+        
+        // Build options HTML
+        let html = `<option value="" ${currentValue === '' ? 'selected' : ''}>Default (auto)</option>`;
+        
+        // Add special "octant" option that maps to user's actual octant
+        const octantDynamic = {
+            value: 'octant',
+            label: 'User Octant (Dynamic)',
+            desc: "Matches user's current spectrum octant"
+        };
+        
+        Object.entries(categories).forEach(([catKey, cat]) => {
+            if (cat.styles.length === 0) return;
+            
+            html += `<optgroup label="${cat.label}">`;
+            
+            // For octants, add the dynamic option first
+            if (catKey === 'octant') {
+                html += `<option value="${octantDynamic.value}" ${currentValue === octantDynamic.value ? 'selected' : ''}>${octantDynamic.label} - ${octantDynamic.desc}</option>`;
+            }
+            
+            cat.styles.forEach(style => {
+                const selected = currentValue === style.value ? 'selected' : '';
+                // Truncate description if too long
+                const shortDesc = style.desc.length > 50 ? style.desc.substring(0, 47) + '...' : style.desc;
+                html += `<option value="${style.value}" ${selected}>${style.label.charAt(0).toUpperCase() + style.label.slice(1)} - ${shortDesc}</option>`;
+            });
+            
+            html += `</optgroup>`;
+        });
+        
+        return html;
     }
     
     // Check authentication on page load
@@ -3545,6 +3804,11 @@
                     conditionValue = parts.slice(1).join(':');
                 }
                 
+                // Extract condition options
+                const condOperator = condObj.operator || 'AND';
+                const condOnceOnly = condObj.once_only || false;
+                const condDisabled = condObj.disabled || false;
+                
                 // Condition type descriptions
                 const conditionDescriptions = {
                     'any_reply': 'Triggers on any reply to the post',
@@ -3554,37 +3818,110 @@
                     'contains_hashtags': 'Triggers when reply contains specific hashtags',
                     'contains_mentions': 'Triggers when reply mentions specific users',
                     'reply_contains': 'Triggers when reply contains specific text',
-                    'hasnt_canon': 'Triggers if user has no canon entries'
+                    'has_canon': 'Triggers if user has a specific canon key',
+                    'hasnt_canon': 'Triggers if user has no canon entries for key',
+                    'count_canon': 'Triggers based on count of canon entries (e.g., >=3)',
+                    'user_canon_equals': 'Triggers if canon key equals specific value',
+                    'user_canon_not_equals': 'Triggers if canon key does NOT equal value',
+                    'user_in_canon_list': 'Triggers if canon key is in list of values',
+                    'user_has_souvenir': 'Triggers if user has a specific souvenir',
+                    'user_missing_souvenir': 'Triggers if user lacks a souvenir',
+                    'souvenir_exists_anywhere': 'Triggers if souvenir exists for any user',
+                    'has_read': 'Triggers if user has read a specific book (biblio)',
+                    'has_biblio_stamp': 'Triggers if user has a biblio stamp'
                 };
                 
                 return `
-                    <div class="condition-card-edit">
+                    <div class="condition-card-edit ${condDisabled ? 'condition-disabled' : ''}">
                         <div class="condition-header">
                             <label class="condition-label">Condition Type</label>
                             <select class="condition-select" 
                                     data-quest-title="${escapeHtml(quest.title)}" 
                                     data-index="${index}">
-                                <option value="any_reply" ${conditionType === 'any_reply' ? 'selected' : ''}>Any Reply</option>
-                                <option value="first_reply" ${conditionType === 'first_reply' ? 'selected' : ''}>First Reply (per user)</option>
-                                <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (legacy)</option>
-                                <option value="dreamer_replies" ${conditionType === 'dreamer_replies' ? 'selected' : ''}>Registered Dreamer Replies</option>
-                                <option value="contains_hashtags" ${conditionType === 'contains_hashtags' ? 'selected' : ''}>Contains Hashtags</option>
-                                <option value="contains_mentions" ${conditionType === 'contains_mentions' ? 'selected' : ''}>Contains Mentions</option>
-                                <option value="reply_contains" ${conditionType === 'reply_contains' ? 'selected' : ''}>Reply Contains Text</option>
-                                <option value="hasnt_canon" ${conditionType === 'hasnt_canon' ? 'selected' : ''}>User Has No Canon</option>
+                                <optgroup label="Reply Conditions">
+                                    <option value="any_reply" ${conditionType === 'any_reply' ? 'selected' : ''}>Any Reply</option>
+                                    <option value="first_reply" ${conditionType === 'first_reply' ? 'selected' : ''}>First Reply (per user)</option>
+                                    <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (legacy)</option>
+                                    <option value="dreamer_replies" ${conditionType === 'dreamer_replies' ? 'selected' : ''}>Registered Dreamer Replies</option>
+                                </optgroup>
+                                <optgroup label="Content Match">
+                                    <option value="reply_contains" ${conditionType === 'reply_contains' ? 'selected' : ''}>Reply Contains Text</option>
+                                    <option value="contains_hashtags" ${conditionType === 'contains_hashtags' ? 'selected' : ''}>Contains Hashtags</option>
+                                    <option value="contains_mentions" ${conditionType === 'contains_mentions' ? 'selected' : ''}>Contains Mentions</option>
+                                </optgroup>
+                                <optgroup label="Canon Checks">
+                                    <option value="has_canon" ${conditionType === 'has_canon' ? 'selected' : ''}>Has Canon Key</option>
+                                    <option value="hasnt_canon" ${conditionType === 'hasnt_canon' ? 'selected' : ''}>Missing Canon Key</option>
+                                    <option value="count_canon" ${conditionType === 'count_canon' ? 'selected' : ''}>Count Canon (>=N)</option>
+                                    <option value="user_canon_equals" ${conditionType === 'user_canon_equals' ? 'selected' : ''}>Canon Equals Value</option>
+                                    <option value="user_canon_not_equals" ${conditionType === 'user_canon_not_equals' ? 'selected' : ''}>Canon Not Equals</option>
+                                    <option value="user_in_canon_list" ${conditionType === 'user_in_canon_list' ? 'selected' : ''}>Canon In List</option>
+                                </optgroup>
+                                <optgroup label="Souvenirs">
+                                    <option value="user_has_souvenir" ${conditionType === 'user_has_souvenir' ? 'selected' : ''}>Has Souvenir</option>
+                                    <option value="user_missing_souvenir" ${conditionType === 'user_missing_souvenir' ? 'selected' : ''}>Missing Souvenir</option>
+                                    <option value="souvenir_exists_anywhere" ${conditionType === 'souvenir_exists_anywhere' ? 'selected' : ''}>Souvenir Exists Anywhere</option>
+                                </optgroup>
+                                <optgroup label="Biblio">
+                                    <option value="has_read" ${conditionType === 'has_read' ? 'selected' : ''}>Has Read Book</option>
+                                    <option value="has_biblio_stamp" ${conditionType === 'has_biblio_stamp' ? 'selected' : ''}>Has Biblio Stamp</option>
+                                </optgroup>
                             </select>
+                        </div>
+                        <div class="condition-options-row">
+                            <div class="condition-option">
+                                <label class="condition-label">Logic</label>
+                                <select class="condition-operator-select" 
+                                        data-quest-title="${escapeHtml(quest.title)}" 
+                                        data-index="${index}"
+                                        onchange="updateConditionOption('${escapeHtml(quest.title)}', ${index}, 'operator', this.value)">
+                                    <option value="AND" ${condOperator === 'AND' ? 'selected' : ''}>AND</option>
+                                    <option value="OR" ${condOperator === 'OR' ? 'selected' : ''}>OR</option>
+                                    <option value="NOT" ${condOperator === 'NOT' ? 'selected' : ''}>NOT</option>
+                                </select>
+                            </div>
+                            <div class="condition-option">
+                                <label class="condition-checkbox-label">
+                                    <input type="checkbox" 
+                                           class="condition-once-only" 
+                                           ${condOnceOnly ? 'checked' : ''}
+                                           onchange="updateConditionOption('${escapeHtml(quest.title)}', ${index}, 'once_only', this.checked)">
+                                    Once Only
+                                </label>
+                            </div>
+                            <div class="condition-option">
+                                <label class="condition-checkbox-label">
+                                    <input type="checkbox" 
+                                           class="condition-disabled" 
+                                           ${condDisabled ? 'checked' : ''}
+                                           onchange="updateConditionOption('${escapeHtml(quest.title)}', ${index}, 'disabled', this.checked)">
+                                    Disabled
+                                </label>
+                            </div>
                         </div>
                         <div class="condition-description">${conditionDescriptions[conditionType] || ''}</div>
                         <div class="condition-details">Value: <strong>${escapeHtml(String(conditionValue || '—'))}</strong></div>
-                        ${['contains_hashtags', 'contains_mentions', 'reply_contains', 'hasnt_canon'].includes(conditionType) ? `
+                        ${['contains_hashtags', 'contains_mentions', 'reply_contains', 'has_canon', 'hasnt_canon', 'count_canon', 'user_canon_equals', 'user_canon_not_equals', 'user_in_canon_list', 'user_has_souvenir', 'user_missing_souvenir', 'souvenir_exists_anywhere', 'has_read', 'has_biblio_stamp'].includes(conditionType) ? `
                         <div class="condition-value-field">
-                            <label class="condition-label">${conditionType === 'hasnt_canon' ? 'Canon Key' : 'Value'}</label>
+                            <label class="condition-label">${['has_canon', 'hasnt_canon', 'count_canon', 'user_canon_equals', 'user_canon_not_equals', 'user_in_canon_list'].includes(conditionType) ? 'Canon Key/Value' : ['user_has_souvenir', 'user_missing_souvenir', 'souvenir_exists_anywhere'].includes(conditionType) ? 'Souvenir Key' : 'Value'}</label>
                             <input type="text" 
                                    class="condition-input" 
                                    data-quest-title="${escapeHtml(quest.title)}" 
                                    data-index="${index}"
                                    value="${escapeHtml(conditionValue)}" 
-                                   placeholder="${conditionType === 'contains_hashtags' ? '#hashtag' : conditionType === 'contains_mentions' ? '@username' : conditionType === 'hasnt_canon' ? 'name, origin, prepare, etc.' : 'text to match'}">
+                                   placeholder="${
+                                    conditionType === 'contains_hashtags' ? '#hashtag1, #hashtag2' : 
+                                    conditionType === 'contains_mentions' ? '@username' : 
+                                    conditionType === 'has_canon' || conditionType === 'hasnt_canon' ? 'canon_key (e.g., name, origin)' :
+                                    conditionType === 'count_canon' ? 'key>=N (e.g., quest>=3)' :
+                                    conditionType === 'user_canon_equals' ? 'key=value' :
+                                    conditionType === 'user_canon_not_equals' ? 'key=value' :
+                                    conditionType === 'user_in_canon_list' ? 'key=val1,val2,val3' :
+                                    conditionType === 'user_has_souvenir' || conditionType === 'user_missing_souvenir' || conditionType === 'souvenir_exists_anywhere' ? 'souvenir_key' :
+                                    conditionType === 'has_read' ? 'Book Title' :
+                                    conditionType === 'has_biblio_stamp' ? 'list_rkey' :
+                                    'text to match'
+                                   }">
                             <button class="condition-save-btn" data-quest-title="${escapeHtml(quest.title)}" data-index="${index}">Save Value</button>
                         </div>
                         ` : ''}
@@ -3850,45 +4187,11 @@
                             <div class="canon-field">
                                 <label class="canon-label">Row Style (optional)</label>
                                 <select class="canon-rowstyle-select" data-quest-title="${escapeHtml(quest.title)}" data-index="${index}">
-                                    <option value="">Default (auto)</option>
-                                    <optgroup label="Basic Styles">
-                                        <option value="user">User - Minimal user color</option>
-                                        <option value="userhigh">User High - User color highlight</option>
-                                        <option value="canon">Canon - Special emphasis</option>
-                                        <option value="dream">Dream - Extra pronounced shimmer</option>
-                                    </optgroup>
-                                    <optgroup label="Special Styles">
-                                        <option value="nightmare">Nightmare - Dark smokey animated</option>
-                                        <option value="dissipate">Dissipate - Faded grey mist</option>
-                                    </optgroup>
-                                    <optgroup label="Souvenir Styles">
-                                        <option value="strangedream">Strange Dream - Psychedelic pattern</option>
-                                        <option value="strangedreamintense">Strange Dream Intense - Dramatic word dance</option>
-                                        <option value="arrival">Arrival - Welcoming banner</option>
-                                        <option value="residence">Residence - Lapis animated gradient</option>
-                                        <option value="residenceintense">Residence Intense - Dramatic lapis</option>
-                                        <option value="bell">Bell - Burgundy with audio waveform</option>
-                                    </optgroup>
-                                    <optgroup label="Role Styles">
-                                        <option value="greeter">Greeter - Cyan highlight</option>
-                                        <option value="mapper">Mapper - Lime highlight</option>
-                                        <option value="cogitarian">Cogitarian - Orange-red highlight</option>
-                                    </optgroup>
-                                    <optgroup label="Octant Styles">
-                                        <option value="octant">User Octant (Dynamic) - Matches user's octant</option>
-                                        <option value="adaptive">Adaptive - Flow (Entropy • Liberty • Receptive)</option>
-                                        <option value="chaotic">Chaotic - Experiment (Entropy • Liberty • Skeptic)</option>
-                                        <option value="intended">Intended - Command (Entropy • Authority • Skeptic)</option>
-                                        <option value="prepared">Prepared - Strategy (Entropy • Authority • Receptive)</option>
-                                        <option value="contented">Contented - Peace (Oblivion • Liberty • Receptive)</option>
-                                        <option value="assertive">Assertive - Wisdom (Oblivion • Liberty • Skeptic)</option>
-                                        <option value="ordered">Ordered - Order (Oblivion • Authority • Receptive)</option>
-                                        <option value="guarded">Guarded - Guard (Oblivion • Authority • Skeptic)</option>
-                                        <option value="equilibrium">Equilibrium - Balanced center</option>
-                                        <option value="confused">Confused - Balanced one axis</option>
-                                        <option value="singling">Singling - Balanced two axes</option>
-                                        <option value="uncertain">Uncertain - Legacy state</option>
-                                    </optgroup>
+                                    ${(() => {
+                                        const parts = commandParams ? commandParams.split(':') : [];
+                                        const currentRowstyle = parts[3] || '';
+                                        return generateRowstyleOptions(currentRowstyle);
+                                    })()}
                                 </select>
                             </div>
                             <div class="canon-preview" data-index="${index}">
@@ -5842,6 +6145,72 @@
             alert('Error updating condition: ' + err.message);
         }
     }
+    
+    // Update a specific option on a condition (operator, once_only, disabled)
+    window.updateConditionOption = async function(questTitle, index, optionName, optionValue) {
+        console.log('[QuestManager] updateConditionOption called:', questTitle, index, optionName, optionValue);
+        try {
+            const quest = questDataMap[questTitle];
+            if (!quest) {
+                console.error('[QuestManager] Quest not found:', questTitle);
+                return;
+            }
+            
+            const conditions = quest.conditions ? (Array.isArray(quest.conditions) ? [...quest.conditions] : [quest.conditions]) : [];
+            if (index >= conditions.length) {
+                console.error('[QuestManager] Condition index out of range:', index);
+                return;
+            }
+            
+            // Get condition object (normalize if string)
+            let condObj = conditions[index];
+            if (typeof condObj === 'string') {
+                condObj = { condition: condObj, operator: 'AND' };
+            } else {
+                condObj = { ...condObj }; // Clone to avoid mutation
+            }
+            
+            // Update the specific option
+            condObj[optionName] = optionValue;
+            conditions[index] = condObj;
+            
+            const payload = {
+                condition: quest.condition || '',
+                conditions: JSON.stringify(conditions),
+                condition_operator: quest.condition_operator || 'AND',
+                trigger_type: quest.trigger_type,
+                trigger_config: quest.trigger_config,
+                uri: quest.uri || '',
+                commands: quest.commands,
+                description: quest.description,
+                enabled: quest.enabled
+            };
+            
+            console.log('[QuestManager] Sending update condition option payload:', payload);
+            const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (response.ok) {
+                console.log('[QuestManager] Condition option updated successfully');
+                // Update local cache
+                quest.conditions = conditions;
+                // Refresh the display
+                await loadQuests();
+                const updatedQuest = allQuests.find(q => q.title === questTitle);
+                if (updatedQuest) selectQuest(updatedQuest);
+            } else {
+                const result = await response.json();
+                console.error('[QuestManager] Failed to update condition option:', result);
+                alert('Failed to update condition option: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error('[QuestManager] Error updating condition option:', err);
+            alert('Error updating condition option: ' + err.message);
+        }
+    };
     
     window.addCommand = function(questTitle) {
         console.log('[QuestManager] addCommand called for:', questTitle);
