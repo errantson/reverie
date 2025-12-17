@@ -124,6 +124,10 @@ WorkEvents.EVENTS = {
     PROVISIONER_STEPPED_DOWN: 'provisioner:stepped-down',
     PROVISIONER_STATUS_CHANGED: 'provisioner:status-changed',
     
+    // Dreamstyler events
+    DREAMSTYLER_ACTIVATED: 'dreamstyler:activated',
+    DREAMSTYLER_STEPPED_DOWN: 'dreamstyler:stepped-down',
+    
     // Credential events
     CREDENTIALS_CONNECTED: 'credentials:connected',
     CREDENTIALS_DISCONNECTED: 'credentials:disconnected',

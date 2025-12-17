@@ -454,19 +454,14 @@ class WorkerNetworkClient:
         Returns:
             WorkerNetworkClient instance if credential found and valid, None otherwise
         """
-        # Get shared credential
+        # Get shared credential (only those with valid password hash)
         cursor = db.execute(
-            "SELECT app_password_hash, pds_url, is_valid FROM user_credentials WHERE did = %s",
+            "SELECT app_password_hash, pds_url FROM user_credentials WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''",
             (did,)
         )
         cred = cursor.fetchone()
         
         if not cred:
-            return None
-        
-        # Check if credential is marked as invalid
-        if not cred['is_valid']:
-            print(f"⚠️ Credential for {did} is marked invalid")
             return None
         
         # Get user handle

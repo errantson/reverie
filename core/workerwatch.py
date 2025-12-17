@@ -84,7 +84,7 @@ class WorkerhoseMonitor:
             traceback.print_exc()
             return {}
     
-    def _validate_credential(self, did: str) -> bool:
+    def _validate_credential(self, did: str) -> str:
         """
         Validate a user's Bluesky app password by attempting login.
         
@@ -92,49 +92,124 @@ class WorkerhoseMonitor:
             did: User's DID
             
         Returns:
-            True if credential is valid, False otherwise
+            'valid' - credential works
+            'invalid' - credential is definitely wrong (401 auth error)
+            'skip' - temporary error (network, rate limit), should not purge
         """
+        import requests
+        
         try:
             db = DatabaseManager()
             cursor = db.execute(
-                "SELECT d.handle, uc.app_password_hash FROM dreamers d JOIN user_credentials uc ON d.did = uc.did WHERE d.did = %s",
+                "SELECT d.handle, uc.app_password_hash, uc.pds_url FROM dreamers d JOIN user_credentials uc ON d.did = uc.did WHERE d.did = %s",
                 (did,)
             )
             result = cursor.fetchone()
             
             if not result or not result['app_password_hash']:
-                return False
+                return 'invalid'
             
             # Decrypt password
             app_password = decrypt_password(result['app_password_hash'])
             if not app_password:
-                return False
+                return 'invalid'
             
-            # Attempt login
-            client = Client()
-            client.login(result['handle'], app_password)
+            handle = result['handle']
+            pds_url = result.get('pds_url', 'https://bsky.social')
             
-            # If we get here, login succeeded
-            return True
+            # Use the stored PDS URL for local accounts (like reverie.house)
+            # This is critical for accounts on self-hosted PDSs
+            if not pds_url:
+                pds_url = 'https://bsky.social'
+            
+            # For local reverie.house PDS, need to use internal Docker network URL
+            if 'reverie.house' in pds_url:
+                pds_url = 'http://reverie_pds:3333'
+            
+            if self.verbose:
+                print(f"      🔐 Validating against PDS: {pds_url}")
+            
+            # Use direct HTTP request instead of atproto Client
+            # This allows us to specify the correct PDS URL
+            login_response = requests.post(
+                f'{pds_url}/xrpc/com.atproto.server.createSession',
+                json={
+                    'identifier': handle,
+                    'password': app_password
+                },
+                timeout=10
+            )
+            
+            if login_response.ok:
+                return 'valid'
+            
+            # Check response status for classification
+            status_code = login_response.status_code
+            
+            if status_code == 401:
+                if self.verbose:
+                    print(f"      ❌ Auth failed (401) for {did[:20]}...")
+                return 'invalid'
+            
+            if status_code == 429:
+                if self.verbose:
+                    print(f"      ⏳ Rate limited for {did[:20]}..., skipping")
+                return 'skip'
+            
+            if status_code >= 500:
+                if self.verbose:
+                    print(f"      🌐 Server error ({status_code}) for {did[:20]}..., skipping")
+                return 'skip'
+            
+            # Other 4xx errors - could be various issues, skip to be safe
+            if self.verbose:
+                print(f"      ⚠️  HTTP {status_code} for {did[:20]}..., skipping")
+            return 'skip'
+            
+        except requests.exceptions.Timeout:
+            if self.verbose:
+                print(f"      🌐 Timeout for {did[:20]}..., skipping")
+            return 'skip'
+            
+        except requests.exceptions.ConnectionError as e:
+            if self.verbose:
+                print(f"      🌐 Connection error for {did[:20]}..., skipping: {e}")
+            return 'skip'
             
         except Exception as e:
-            # Any error (401, network, etc.) means invalid
+            error_str = str(e).lower()
+            
+            # Check for definite authentication failures
+            if '401' in error_str or 'unauthorized' in error_str:
+                if self.verbose:
+                    print(f"      ❌ Auth failed for {did[:20]}...: {e}")
+                return 'invalid'
+            
+            # Unknown error - be conservative and skip rather than purge
             if self.verbose:
-                print(f"      ❌ Validation failed for {did[:20]}...: {e}")
-            return False
+                print(f"      ⚠️  Unknown error for {did[:20]}..., skipping: {e}")
+            return 'skip'
     
     def _mark_credential_invalid(self, did: str) -> None:
-        """Mark a credential as invalid in the database."""
+        """
+        Purge invalid credentials from the database.
+        
+        Instead of just flipping a boolean flag, we clear the password hash entirely.
+        The truth source for 'has valid credentials' is whether app_password_hash exists.
+        """
         try:
             db = DatabaseManager()
+            # Clear the password hash - this is the authoritative indicator
+            # Keep the row for pds_url reference, but password is gone
             db.execute(
-                "UPDATE user_credentials SET is_valid = FALSE WHERE did = %s",
+                "UPDATE user_credentials SET app_password_hash = NULL, password_hash = NULL WHERE did = %s",
                 (did,)
             )
             self.stats['credentials_invalidated'] += 1
+            print(f"      🗑️ Purged credential for {did[:20]}...")
             
         except Exception as e:
-            print(f"      ❌ Error marking credential invalid: {e}")
+            print(f"      ❌ Error purging credential: {e}")
     
     def _remove_worker_from_role(self, did: str, role: str) -> None:
         """
@@ -189,13 +264,15 @@ class WorkerhoseMonitor:
         try:
             db = DatabaseManager()
             
-            # Get all active workers with credentials
+            # Get all active workers with valid credentials (password hash exists)
             cursor = db.execute("""
-                SELECT DISTINCT ur.did, ur.role, d.handle, uc.is_valid
+                SELECT DISTINCT ur.did, ur.role, d.handle, uc.app_password_hash
                 FROM user_roles ur
                 JOIN dreamers d ON ur.did = d.did
                 JOIN user_credentials uc ON ur.did = uc.did
                 WHERE ur.status = 'active'
+                  AND uc.app_password_hash IS NOT NULL 
+                  AND uc.app_password_hash != ''
                 ORDER BY ur.role, d.handle
             """)
             workers = cursor.fetchall()
@@ -212,21 +289,17 @@ class WorkerhoseMonitor:
                 did = worker['did']
                 role = worker['role']
                 handle = worker['handle']
-                is_valid = worker['is_valid']
                 
                 self.stats['workers_validated'] += 1
                 
                 if self.verbose:
                     print(f"   👤 @{handle} ({role})")
                 
-                # If already marked invalid, remove from role
-                if not is_valid:
-                    print(f"      ⚠️  Credential already marked invalid")
-                    self._remove_worker_from_role(did, role)
-                    continue
-                
                 # Validate credential by attempting login
-                if self._validate_credential(did):
+                # Returns: 'valid', 'invalid', or 'skip'
+                validation_result = self._validate_credential(did)
+                
+                if validation_result == 'valid':
                     if self.verbose:
                         print(f"      ✅ Credential valid")
                     
@@ -236,10 +309,12 @@ class WorkerhoseMonitor:
                         "UPDATE user_credentials SET last_verified = %s WHERE did = %s",
                         (int(time.time()), did)
                     )
-                else:
+                elif validation_result == 'invalid':
                     print(f"      ❌ Credential INVALID - removing from {role}")
                     self._mark_credential_invalid(did)
                     self._remove_worker_from_role(did, role)
+                else:  # 'skip' - temporary error, don't touch
+                    print(f"      ⏭️  Skipping {handle} due to temporary error")
             
         except Exception as e:
             print(f"❌ Error checking workers: {e}")
@@ -256,7 +331,7 @@ class WorkerhoseMonitor:
             db = DatabaseManager()
             
             # Define roles that should exist
-            valid_roles = {'greeter', 'mapper', 'cogitarian'}
+            valid_roles = {'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler'}
             
             # Get all current roles
             cursor = db.execute("SELECT role FROM work")
