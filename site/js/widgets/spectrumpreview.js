@@ -77,8 +77,12 @@ class SpectrumPreview {
     }
     
     render() {
-        const disabledClass = this.options.isMapper ? '' : 'disabled';
-        const disabledAttr = this.options.isMapper ? '' : 'disabled';
+        // Respect in-page Force Calculator toggle if present
+        const forceToggle = document.getElementById('forceCalculateToggle');
+        const forced = !!(forceToggle && forceToggle.checked);
+        const enabled = this.options.isMapper || forced;
+        const disabledClass = enabled ? '' : 'disabled';
+        const disabledAttr = enabled ? '' : 'disabled';
         
         // Pick a random suggestion handle for placeholder
         const randomHandle = this.suggestionHandles[Math.floor(Math.random() * this.suggestionHandles.length)];
@@ -118,6 +122,15 @@ class SpectrumPreview {
         
         if (this.options.isMapper) {
             this.attachEventListeners();
+        } else if (forceToggle) {
+            // If a force toggle exists, listen for changes and re-render so button/input enable state updates
+            forceToggle.addEventListener('change', () => {
+                try {
+                    this.render();
+                } catch (e) {
+                    console.warn('Failed to re-render SpectrumPreview on force toggle change', e);
+                }
+            });
         }
         
         // Initialize empty octant display

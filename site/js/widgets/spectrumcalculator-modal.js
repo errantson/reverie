@@ -66,6 +66,7 @@ class SpectrumCalculatorModal {
     
     /**
      * Check if there is an active mapper (enables calculator for everyone)
+     * MAPPER LIMITATION REMOVED - always returns active
      */
     async checkMapperStatus() {
         try {
@@ -75,18 +76,18 @@ class SpectrumCalculatorModal {
             if (response.ok) {
                 const data = await response.json();
                 const workers = data.workers || [];
-                // Calculator is unlocked if there's any active mapper
+                // Return mapper info if available for display purposes
                 return {
-                    isActive: workers.length > 0 && data.status === 'active',
+                    isActive: true, // Always active now
                     mapperHandle: workers.length > 0 ? workers[0].handle : null,
                     mapperDid: workers.length > 0 ? workers[0].did : null
                 };
             }
             
-            return { isActive: false, mapperHandle: null, mapperDid: null };
+            return { isActive: true, mapperHandle: null, mapperDid: null }; // Always active
         } catch (error) {
             console.error('Failed to check mapper status:', error);
-            return { isActive: false, mapperHandle: null, mapperDid: null };
+            return { isActive: true, mapperHandle: null, mapperDid: null }; // Always active
         }
     }
     

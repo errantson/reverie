@@ -2108,25 +2108,10 @@ class Profile {
         
         // Calculate Origins button
         const calcBtn = this.container.querySelector('#spectrumCalculateOriginsBtn');
-        console.log('[Profile] Calculator button found:', calcBtn);
-        console.log('[Profile] Calculator button disabled:', calcBtn?.disabled);
-        console.log('[Profile] Calculator button has disabled class:', calcBtn?.classList.contains('disabled'));
-        
         if (calcBtn) {
-            calcBtn.addEventListener('click', (e) => {
-                console.log('[Profile] Calculator button clicked');
-                console.log('[Profile] Button disabled state:', calcBtn.disabled);
-                console.log('[Profile] Button has disabled class:', calcBtn.classList.contains('disabled'));
-                
-                if (calcBtn.disabled || calcBtn.classList.contains('disabled')) {
-                    console.log('[Profile] Button is disabled, showing popup');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.showMapperOfflinePopup(calcBtn);
-                } else {
-                    console.log('[Profile] Button is enabled, opening calculator');
-                    this.openSpectrumCalculator();
-                }
+            calcBtn.addEventListener('click', () => {
+                console.log('[Profile] Calculator button clicked - opening calculator');
+                this.openSpectrumCalculator();
             });
         }
         
@@ -2234,38 +2219,14 @@ class Profile {
     
     async checkMapperStatusForButton() {
         console.log('[Profile] checkMapperStatusForButton called');
-        try {
-            const response = await fetch('/api/work/mapper/info');
-            console.log('[Profile] Mapper info response status:', response.status);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log('[Profile] Mapper info data:', data);
-                
-                const workers = data.workers || [];
-                const hasActiveMapper = workers.length > 0 && data.status === 'active';
-                console.log('[Profile] Has active mapper:', hasActiveMapper);
-                
-                const calcBtn = this.container.querySelector('#spectrumCalculateOriginsBtn');
-                console.log('[Profile] Calculator button for status update:', calcBtn);
-                
-                if (calcBtn) {
-                    if (hasActiveMapper) {
-                        console.log('[Profile] Enabling calculator button');
-                        calcBtn.classList.remove('disabled');
-                        calcBtn.style.cursor = 'pointer';
-                        calcBtn.title = 'Open Spectrum Calculator';
-                    } else {
-                        console.log('[Profile] Setting calculator button as unavailable');
-                        calcBtn.classList.add('disabled');
-                        calcBtn.style.cursor = 'not-allowed';
-                        calcBtn.title = 'Spectrum Calculator (mapper offline)';
-                    }
-                    console.log('[Profile] Button state after update - class:', calcBtn.className);
-                }
-            }
-        } catch (error) {
-            console.warn('[Profile] Failed to check mapper status:', error);
+        // MAPPER LIMITATION REMOVED - button is always enabled
+        
+        const calcBtn = this.container.querySelector('#spectrumCalculateOriginsBtn');
+        if (calcBtn) {
+            console.log('[Profile] Enabling calculator button (mapper check disabled)');
+            calcBtn.classList.remove('disabled');
+            calcBtn.style.cursor = 'pointer';
+            calcBtn.title = 'Open Spectrum Calculator';
         }
     }
 

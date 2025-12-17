@@ -64,6 +64,11 @@ class SpectrumDeluxe extends SpectrumVisualizer {
                 <button class="view-btn-bar" data-view="change-freedom" title="Change vs Freedom">Position</button>
             </div>
             <div class="control-bar-section control-bar-actions">
+                <label class="control-toggle-inline" style="margin-right:8px; align-items: center;">
+                    <input type="checkbox" id="forceCalculateToggle">
+                    <span class="toggle-slider-inline"></span>
+                    <span class="toggle-label-inline">Force Calculator</span>
+                </label>
                 <button class="action-btn-bar action-btn-icon" id="exploreOctantsBtn" title="Explore the octants of the spectrum">
                     <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -313,24 +318,12 @@ class SpectrumDeluxe extends SpectrumVisualizer {
             });
         }
         
-        // Calculate Origins button - ATTACH LISTENER FIRST
+        // Calculate Origins button
         const calcButton = document.getElementById('calculateOriginsBtn');
-        console.log('[SpectrumDeluxe] Calculator button found:', calcButton);
         if (calcButton) {
-            calcButton.addEventListener('click', (e) => {
-                console.log('[SpectrumDeluxe] Calculator button clicked');
-                console.log('[SpectrumDeluxe] Button disabled:', calcButton.disabled);
-                console.log('[SpectrumDeluxe] Button has disabled class:', calcButton.classList.contains('disabled'));
-                
-                if (calcButton.disabled || calcButton.classList.contains('disabled')) {
-                    console.log('[SpectrumDeluxe] Button is disabled, showing popup');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.showMapperOfflinePopup(calcButton);
-                } else {
-                    console.log('[SpectrumDeluxe] Button is enabled, opening calculator');
-                    this.openSpectrumCalculator();
-                }
+            calcButton.addEventListener('click', () => {
+                console.log('[SpectrumDeluxe] Calculator button clicked - opening calculator');
+                this.openSpectrumCalculator();
             });
         }
         
@@ -341,22 +334,20 @@ class SpectrumDeluxe extends SpectrumVisualizer {
             });
         }
         
-        // Floating Calculate Origins button - ATTACH LISTENER FIRST
+        // Floating Calculate Origins button
         if (this.floatingCalculateBtn) {
-            this.floatingCalculateBtn.addEventListener('click', (e) => {
-                console.log('[SpectrumDeluxe] Floating calculator button clicked');
-                console.log('[SpectrumDeluxe] Floating button disabled:', this.floatingCalculateBtn.disabled);
-                console.log('[SpectrumDeluxe] Floating button has disabled class:', this.floatingCalculateBtn.classList.contains('disabled'));
-                
-                if (this.floatingCalculateBtn.disabled || this.floatingCalculateBtn.classList.contains('disabled')) {
-                    console.log('[SpectrumDeluxe] Floating button is disabled, showing popup');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.showMapperOfflinePopup(this.floatingCalculateBtn);
-                } else {
-                    console.log('[SpectrumDeluxe] Floating button is enabled, opening calculator');
-                    this.openSpectrumCalculator();
-                }
+            this.floatingCalculateBtn.addEventListener('click', () => {
+                console.log('[SpectrumDeluxe] Floating calculator button clicked - opening calculator');
+                this.openSpectrumCalculator();
+            });
+        }
+
+        // Force Calculator toggle is no longer needed, but keep it for backwards compatibility
+        const forceToggle = document.getElementById('forceCalculateToggle');
+        if (forceToggle) {
+            // Button is always enabled now, so this toggle doesn't do anything
+            forceToggle.addEventListener('change', () => {
+                console.log('[SpectrumDeluxe] Force toggle changed (no effect - mapper check disabled)');
             });
         }
     }
@@ -436,52 +427,22 @@ class SpectrumDeluxe extends SpectrumVisualizer {
     
     async checkMapperStatusForButton() {
         console.log('[SpectrumDeluxe] checkMapperStatusForButton called');
-        try {
-            const response = await fetch('/api/work/mapper/info');
-            console.log('[SpectrumDeluxe] Mapper info response status:', response.status);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log('[SpectrumDeluxe] Mapper info data:', data);
-                
-                const workers = data.workers || [];
-                const hasActiveMapper = workers.length > 0 && data.status === 'active';
-                console.log('[SpectrumDeluxe] Has active mapper:', hasActiveMapper);
-                
-                const calcButton = document.getElementById('calculateOriginsBtn');
-                if (calcButton) {
-                    if (hasActiveMapper) {
-                        console.log('[SpectrumDeluxe] Enabling calculator button');
-                        calcButton.classList.remove('disabled');
-                        calcButton.style.cursor = 'pointer';
-                        calcButton.title = 'Open Spectrum Calculator';
-                    } else {
-                        console.log('[SpectrumDeluxe] Setting calculator button as unavailable');
-                        calcButton.classList.add('disabled');
-                        calcButton.style.cursor = 'not-allowed';
-                        calcButton.title = 'Spectrum Calculator (mapper offline)';
-                    }
-                    console.log('[SpectrumDeluxe] Button state - class:', calcButton.className);
-                }
-                
-                // Also update floating button
-                if (this.floatingCalculateBtn) {
-                    if (hasActiveMapper) {
-                        console.log('[SpectrumDeluxe] Enabling floating calculator button');
-                        this.floatingCalculateBtn.classList.remove('disabled');
-                        this.floatingCalculateBtn.style.cursor = 'pointer';
-                        this.floatingCalculateBtn.title = 'Open Spectrum Calculator';
-                    } else {
-                        console.log('[SpectrumDeluxe] Setting floating calculator button as unavailable');
-                        this.floatingCalculateBtn.classList.add('disabled');
-                        this.floatingCalculateBtn.style.cursor = 'not-allowed';
-                        this.floatingCalculateBtn.title = 'Spectrum Calculator (mapper offline)';
-                    }
-                    console.log('[SpectrumDeluxe] Floating button state - class:', this.floatingCalculateBtn.className);
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to check mapper status for Calculate Origins button:', error);
+        // MAPPER LIMITATION REMOVED - button is always enabled
+        
+        const calcButton = document.getElementById('calculateOriginsBtn');
+        if (calcButton) {
+            console.log('[SpectrumDeluxe] Enabling calculator button (mapper check disabled)');
+            calcButton.classList.remove('disabled');
+            calcButton.style.cursor = 'pointer';
+            calcButton.title = 'Open Spectrum Calculator';
+        }
+        
+        // Also update floating button
+        if (this.floatingCalculateBtn) {
+            console.log('[SpectrumDeluxe] Enabling floating calculator button (mapper check disabled)');
+            this.floatingCalculateBtn.classList.remove('disabled');
+            this.floatingCalculateBtn.style.cursor = 'pointer';
+            this.floatingCalculateBtn.title = 'Open Spectrum Calculator';
         }
     }
     
