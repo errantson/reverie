@@ -80,14 +80,13 @@ check_database() {
 
 # Check quest monitoring services
 echo "🎯 Quest Monitoring Services:"
-check_service "reverie_questhose"
+check_service "reverie_jetstream"  # DID-filtered: bsky_reply quests, dreamers, biblio
 check_service "reverie_greeter"
 check_service "reverie_mapper"
 
 echo ""
-echo "🌙 Other Firehose Services:"
-check_service "reverie_dreamerhose"
-check_service "reverie_dreamhose"
+echo "🌙 Full Network Firehose Services:"
+check_service "reverie_questhose"  # firehose_phrase triggers (full network scan)
 
 # Check database
 check_database

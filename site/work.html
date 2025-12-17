@@ -27,6 +27,7 @@
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/heraldry.css">
     <link rel="stylesheet" href="/css/pages/work.css">
+    <link rel="stylesheet" href="/css/pages/dreamer.css">
     <link rel="stylesheet" href="/css/pages/database.css">
     <link rel="stylesheet" href="/css/widgets/login.css">
     <link rel="stylesheet" href="/css/widgets/createdreamer.css">
@@ -104,38 +105,39 @@
                 <p class="sidebar-subtitle">Do those for which you care.</p>
             </div>
 
-            <!-- User Status Section (simplified layout) -->
+            <!-- User Status Section -->
             <div id="sidebar-user-section" class="sidebar-user-section">
-                <div id="sidebar-user" class="sidebar-user" style="display:block;">
-                    <!-- Top row: Avatar | Name / Handle | Close -->
-                    <div class="sidebar-header-row" style="display:flex;align-items:center;gap:10px;">
-                        <div class="sidebar-avatar-container">
-                            <img id="sidebar-avatar" src="/assets/icon_face.png" alt="Avatar" class="sidebar-avatar">
-                        </div>
-                        <div class="sidebar-user-info">
-                            <div id="sidebar-user-name" class="sidebar-user-name">Loading...</div>
-                            <div id="sidebar-user-handle" class="sidebar-user-handle">@...</div>
-                        </div>
-                        <div style="margin-left:auto;">
-                            <button id="sidebar-close-btn" class="btn btn-ghost" onclick="(window.closeSidebar || function(){})()">Close</button>
-                        </div>
-                    </div>
+                <!-- Loading State -->
+                <div id="sidebar-loading" class="sidebar-loading">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Checking session...</div>
+                </div>
 
-                    <!-- Middle: Eventstack | Octantshowcase -->
-                    <div class="sidebar-widgets" style="display:flex;gap:12px;margin-top:12px;">
-                        <div id="sidebar-eventstack" style="flex:1;min-width:0;">
-                            <div class="widget-label">Eventstack</div>
-                            <div id="eventstack-container"></div>
-                        </div>
-                        <div id="sidebar-octantshowcase" style="flex:1;min-width:0;">
-                            <div class="widget-label">Octant Showcase</div>
-                            <div id="octantshowcase-container"></div>
-                        </div>
+                <!-- Guest State -->
+                <div id="sidebar-guest" class="sidebar-guest" style="display: none;">
+                    <div class="guest-message">
+                        <p>Login to take on work</p>
                     </div>
+                    <button class="sidebar-login-btn" onclick="triggerLogin()">
+                        Dreamweaver Login
+                    </button>
+                </div>
 
-                    <!-- Footer: Contact -->
-                    <div class="sidebar-actions" style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px;">
-                        <button id="contact-btn" class="btn">Contact</button>
+                <!-- User Logged In -->
+                <div id="sidebar-user" class="sidebar-user" style="display: none;">
+                    <div class="sidebar-avatar-container">
+                        <img id="sidebar-avatar" src="/assets/icon_face.png" alt="Avatar" class="sidebar-avatar">
+                    </div>
+                    <div class="sidebar-user-info">
+                        <div id="sidebar-user-name" class="sidebar-user-name">Loading...</div>
+                        <div id="sidebar-user-handle" class="sidebar-user-handle">@...</div>
+                    </div>
+                    <!-- Work Status -->
+                    <div class="sidebar-work-status">
+                        <div class="status-label">Work Status</div>
+                        <div id="sidebar-status-content" class="status-content">
+                            <span class="status-badge not-working">DREAMWEAVER</span>
+                        </div>
                     </div>
                 </div>
             </div>

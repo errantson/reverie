@@ -6610,3 +6610,58 @@
     });
     
 })();
+
+
+// ============================================================================
+// FIREHOSE SERVICE STATUS MONITOR
+// ============================================================================
+
+(function() {
+    'use strict';
+    
+    function escapeHtmlLocal(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    async function loadServiceStatus() {
+        const container = document.getElementById('service-status-items');
+        if (!container) return;
+        
+        try {
+            const response = await fetch('/api/firehose-status');
+            if (!response.ok) throw new Error('Failed to fetch status');
+            
+            const data = await response.json();
+            
+            let html = '';
+            if (data.services) {
+                for (const [key, service] of Object.entries(data.services)) {
+                    const dotClass = service.running ? 'running' : 'stopped';
+                    const uptime = service.status || 'stopped';
+                    html += '<div class="service-item" title="' + escapeHtmlLocal(service.description || '') + '">' +
+                        '<span class="service-dot ' + dotClass + '"></span>' +
+                        '<span class="service-name">' + escapeHtmlLocal(service.name) + '</span>' +
+                        '<span style="color: #94a3b8; font-size: 0.65rem;">' + escapeHtmlLocal(uptime) + '</span>' +
+                        '</div>';
+                }
+            }
+            
+            container.innerHTML = html || '<div class="service-item"><span class="service-dot stopped"></span><span class="service-name">No services</span></div>';
+            
+        } catch (err) {
+            console.warn('Could not load service status:', err);
+            container.innerHTML = '<div class="service-item"><span class="service-dot stopped"></span><span class="service-name">Status unavailable</span></div>';
+        }
+    }
+    
+    // Load service status on page load and refresh every 30 seconds
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadServiceStatus);
+    } else {
+        loadServiceStatus();
+    }
+    setInterval(loadServiceStatus, 30000);
+    
+})();

@@ -373,7 +373,7 @@ class Sidebar {
                 }
                 
                 return `
-                    <div class="recent-arrival-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
+                    <div class="active-dreamer-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">

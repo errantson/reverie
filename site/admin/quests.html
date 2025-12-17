@@ -164,6 +164,59 @@
             box-shadow: 0 4px 12px rgba(115, 75, 161, 0.3);
         }
         
+        /* Service Status Indicator */
+        .service-status {
+            margin-top: 0.75rem;
+            padding: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+        }
+        
+        .service-status-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+        
+        .service-status-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .service-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .service-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .service-dot.running {
+            background: #22c55e;
+            box-shadow: 0 0 4px #22c55e;
+        }
+        
+        .service-dot.stopped {
+            background: #ef4444;
+        }
+        
+        .service-name {
+            color: #64748b;
+        }
+        
+        .service-status-items .service-item:hover .service-name {
+            color: #334155;
+        }
+        
         /* Quest List */
         .quest-list {
             flex: 1;
@@ -1997,6 +2050,19 @@
                     <button class="filter-btn" data-filter="disabled">Disabled</button>
                 </div>
                 <button class="create-quest-btn" onclick="createBlankQuest()">+ Create New Quest</button>
+                
+                <!-- Service Status -->
+                <div class="service-status" id="service-status">
+                    <div class="service-status-header">
+                        <span>🌊 Firehose Services</span>
+                    </div>
+                    <div class="service-status-items" id="service-status-items">
+                        <div class="service-item">
+                            <span class="service-dot stopped"></span>
+                            <span class="service-name">Loading...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="quest-list" id="quest-list">

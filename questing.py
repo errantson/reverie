@@ -156,11 +156,11 @@ class QuestDiagnostics:
         print("🌊 FIREHOSE INTEGRATION STATUS")
         print("=" * 80)
         
-        # Check if questhose container is running
+        # Check if jetstream container is running (replaces questhose)
         try:
             import subprocess
             result = subprocess.run(
-                ['docker', 'ps', '--filter', 'name=questhose', '--format', '{{.Status}}'],
+                ['docker', 'ps', '--filter', 'name=jetstream', '--format', '{{.Status}}'],
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -168,12 +168,12 @@ class QuestDiagnostics:
             
             if result.returncode == 0 and result.stdout.strip():
                 status = result.stdout.strip()
-                print(f"✅ Questhose Container: {status}")
+                print(f"✅ Jetstream Hub: {status}")
             else:
-                print("❌ Questhose Container: Not running")
-                print("   Start with: cd /srv && docker compose up -d questhose")
+                print("❌ Jetstream Hub: Not running")
+                print("   Start with: cd /srv && docker compose up -d jetstream")
         except Exception as e:
-            print(f"⚠️  Could not check questhose status: {e}")
+            print(f"⚠️  Could not check jetstream status: {e}")
         
         # Check quest URIs
         print("\n📜 Quest URIs being monitored:")
@@ -331,8 +331,8 @@ class QuestDiagnostics:
         
         if self.manager.enable_quest(title):
             print(f"✅ Enabled quest: {title}")
-            print("\n⚠️  Restart questhose to apply changes:")
-            print("   cd /srv && docker compose restart questhose")
+            print("\n⚠️  Restart jetstream to apply changes:")
+            print("   cd /srv && docker compose restart jetstream")
         else:
             print(f"❌ Failed to enable quest: {title}")
     
@@ -349,8 +349,8 @@ class QuestDiagnostics:
         
         if self.manager.disable_quest(title):
             print(f"✅ Disabled quest: {title}")
-            print("\n⚠️  Restart questhose to apply changes:")
-            print("   cd /srv && docker compose restart questhose")
+            print("\n⚠️  Restart jetstream to apply changes:")
+            print("   cd /srv && docker compose restart jetstream")
         else:
             print(f"❌ Failed to disable quest: {title}")
     

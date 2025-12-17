@@ -1,0 +1,30 @@
+# Dockerfile for Jetstream Hub
+# Unified ATProto event consumer - replaces dreamerhose, questhose, bibliohose
+
+FROM python:3.11-slim
+
+LABEL maintainer="reverie.house"
+LABEL description="Jetstream Hub - unified ATProto event consumer"
+
+WORKDIR /app
+
+# Install system deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install websockets for Jetstream
+RUN pip install --no-cache-dir websockets
+
+# Copy app code
+COPY . .
+
+# Set Python path
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Run the hub with all handlers
+CMD ["python", "core/jetstream_hub.py", "--verbose"]
