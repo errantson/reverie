@@ -6770,6 +6770,8 @@ def activate_greeter():
         # (password_hash and pds now set above, either from existing or new)
         
         print(f"💾 Storing credential in unified system...")
+        import time as time_module
+        now_epoch = int(time_module.time())
         
         # Check if credential already exists
         existing = db_manager.fetch_one("""
@@ -6780,16 +6782,16 @@ def activate_greeter():
             # Update existing credential
             db_manager.execute("""
                 UPDATE user_credentials
-                SET app_password_hash = %s, pds_url = %s, is_valid = TRUE, last_verified = CURRENT_TIMESTAMP
+                SET app_password_hash = %s, pds_url = %s, is_valid = TRUE, last_verified = %s
                 WHERE did = %s
-            """, (password_hash, pds, user_did))
+            """, (password_hash, pds, now_epoch, user_did))
             print(f"  ✓ Updated existing credential")
         else:
             # Create new credential
             db_manager.execute("""
-                INSERT INTO user_credentials (did, app_password_hash, pds_url, is_valid)
-                VALUES (%s, %s, %s, TRUE)
-            """, (user_did, password_hash, pds))
+                INSERT INTO user_credentials (did, app_password_hash, pds_url, is_valid, last_verified)
+                VALUES (%s, %s, %s, TRUE, %s)
+            """, (user_did, password_hash, pds, now_epoch))
             print(f"  ✓ Created new credential")
         
         # Check if someone else is actively working as greeter (conflict check)
@@ -8415,8 +8417,9 @@ def connect_user_credentials():
         print(f"✅ App password validated successfully for {user_handle}")
         
         # Store credential
-        from datetime import datetime
+        import time as time_module
         pds = worker_client.pds or 'https://bsky.social'  # Set by authenticate(), fallback to bsky.social
+        now_epoch = int(time_module.time())
         
         print(f"💾 Storing credentials to database:")
         print(f"   - DID: {user_did}")
@@ -8425,13 +8428,13 @@ def connect_user_credentials():
         
         db_manager.execute("""
             INSERT INTO user_credentials (did, app_password_hash, pds_url, last_verified, is_valid)
-            VALUES (%s, %s, %s, CURRENT_TIMESTAMP, TRUE)
+            VALUES (%s, %s, %s, %s, TRUE)
             ON CONFLICT (did) DO UPDATE SET
                 app_password_hash = EXCLUDED.app_password_hash,
                 pds_url = EXCLUDED.pds_url,
                 last_verified = EXCLUDED.last_verified,
                 is_valid = TRUE
-        """, (user_did, encrypted_password, pds))
+        """, (user_did, encrypted_password, pds, now_epoch))
         
         print(f"✅ Database INSERT/UPDATE completed")
         

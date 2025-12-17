@@ -900,39 +900,35 @@ def calculate_spectrum():
             
             if not existing_dreamer:
                 print(f"📝 Storing new dreamer in database: {handle} ({did})")
-                # Store basic dreamer record with calculated spectrum
+                # Store basic dreamer record (without spectrum columns - those go in spectrum table)
                 db.execute("""
-                    INSERT INTO dreamers (did, handle, name, display_name, avatar, server, 
-                                         oblivion, authority, skeptic, receptive, liberty, entropy, 
-                                         octant, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    INSERT INTO dreamers (did, handle, name, display_name, avatar, server, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 """, (
                     did,
                     handle,
                     handle.split('.')[0],  # Extract name from handle
                     display_name or handle,
                     avatar,
-                    server or '',
-                    spectrum_values['oblivion'],
-                    spectrum_values['authority'],
-                    spectrum_values['skeptic'],
-                    spectrum_values['receptive'],
-                    spectrum_values['liberty'],
-                    spectrum_values['entropy'],
-                    octant
+                    server or ''
                 ))
-        # Auto-committed by DatabaseManager
                 print(f"✅ Stored dreamer data for {handle}")
-            else:
-                # Update existing dreamer with latest profile data and spectrum
+                
+                # Store spectrum data in spectrum table
                 db.execute("""
-                    UPDATE dreamers 
-                    SET handle = %s, display_name = %s, avatar = %s,
-                        oblivion = %s, authority = %s, skeptic = %s, 
-                        receptive = %s, liberty = %s, entropy = %s, octant = %s
-                    WHERE did = %s
+                    INSERT INTO spectrum (did, oblivion, authority, skeptic, receptive, liberty, entropy, octant, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (did) DO UPDATE SET
+                        oblivion = EXCLUDED.oblivion,
+                        authority = EXCLUDED.authority,
+                        skeptic = EXCLUDED.skeptic,
+                        receptive = EXCLUDED.receptive,
+                        liberty = EXCLUDED.liberty,
+                        entropy = EXCLUDED.entropy,
+                        octant = EXCLUDED.octant,
+                        updated_at = EXCLUDED.updated_at
                 """, (
-                    handle, display_name or handle, avatar,
+                    did,
                     spectrum_values['oblivion'],
                     spectrum_values['authority'],
                     spectrum_values['skeptic'],
@@ -940,10 +936,44 @@ def calculate_spectrum():
                     spectrum_values['liberty'],
                     spectrum_values['entropy'],
                     octant,
-                    did
+                    int(time.time())
                 ))
-        # Auto-committed by DatabaseManager
-                print(f"✅ Updated existing dreamer data for {handle}")
+                print(f"✅ Stored spectrum data for {handle}")
+            else:
+                # Update existing dreamer with latest profile data
+                db.execute("""
+                    UPDATE dreamers 
+                    SET handle = %s, display_name = %s, avatar = %s
+                    WHERE did = %s
+                """, (
+                    handle, display_name or handle, avatar, did
+                ))
+                
+                # Update spectrum in spectrum table
+                db.execute("""
+                    INSERT INTO spectrum (did, oblivion, authority, skeptic, receptive, liberty, entropy, octant, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (did) DO UPDATE SET
+                        oblivion = EXCLUDED.oblivion,
+                        authority = EXCLUDED.authority,
+                        skeptic = EXCLUDED.skeptic,
+                        receptive = EXCLUDED.receptive,
+                        liberty = EXCLUDED.liberty,
+                        entropy = EXCLUDED.entropy,
+                        octant = EXCLUDED.octant,
+                        updated_at = EXCLUDED.updated_at
+                """, (
+                    did,
+                    spectrum_values['oblivion'],
+                    spectrum_values['authority'],
+                    spectrum_values['skeptic'],
+                    spectrum_values['receptive'],
+                    spectrum_values['liberty'],
+                    spectrum_values['entropy'],
+                    octant,
+                    int(time.time())
+                ))
+                print(f"✅ Updated existing dreamer and spectrum data for {handle}")
             
             # 2. Check if spectrum image already exists
             from werkzeug.utils import secure_filename

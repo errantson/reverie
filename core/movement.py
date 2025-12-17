@@ -125,7 +125,7 @@ class HeadingManager:
             "UPDATE dreamers SET heading = %s, heading_changed_at = %s WHERE did = %s",
             (heading, now, did)
         )
-        self.db.commit()
+        # Auto-committed by DatabaseManager
         
         return {
             'success': result.rowcount > 0,

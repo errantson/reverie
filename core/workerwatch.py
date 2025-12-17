@@ -128,7 +128,7 @@ class WorkerhoseMonitor:
         try:
             db = DatabaseManager()
             db.execute(
-                "UPDATE user_credentials SET is_valid = 0 WHERE did = %s",
+                "UPDATE user_credentials SET is_valid = FALSE WHERE did = %s",
                 (did,)
             )
             self.stats['credentials_invalidated'] += 1
@@ -159,9 +159,10 @@ class WorkerhoseMonitor:
             workers = [w for w in workers if w.get('did') != did]
             
             # Update work table
+            import time
             db.execute(
-                "UPDATE work SET workers = %s, updated_at = CURRENT_TIMESTAMP WHERE role = %s",
-                (json.dumps(workers), role)
+                "UPDATE work SET workers = %s, updated_at = %s WHERE role = %s",
+                (json.dumps(workers), int(time.time()), role)
             )
             
             # Update user_roles table
@@ -230,9 +231,10 @@ class WorkerhoseMonitor:
                         print(f"      ✅ Credential valid")
                     
                     # Update last_verified timestamp
+                    import time
                     db.execute(
-                        "UPDATE user_credentials SET last_verified = CURRENT_TIMESTAMP WHERE did = %s",
-                        (did,)
+                        "UPDATE user_credentials SET last_verified = %s WHERE did = %s",
+                        (int(time.time()), did)
                     )
                 else:
                     print(f"      ❌ Credential INVALID - removing from {role}")
