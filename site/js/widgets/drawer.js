@@ -242,6 +242,13 @@ class Drawer {
             }
         });
 
+        // Listen for handle changes from dashboard
+        window.addEventListener('handle-changed', (e) => {
+            console.log('🔄 [Drawer] Handle changed event received:', e.detail);
+            // Refresh the avatar/name display
+            this.updateAvatarButton();
+        });
+
         // Subscribe to orientation handler for robust orientation change detection
         if (window.orientationHandler) {
             this.orientationUnsubscribe = window.orientationHandler.subscribe((data) => {

@@ -55,9 +55,9 @@ class ShareLore {
                 
                 <!-- Header Section -->
                 <div class="share-modal-header">
-                    <h2 class="share-modal-title">Share Your Dreams</h2>
+                    <h2 class="share-modal-title">Submit to Canon</h2>
                     <p class="share-modal-subtitle">
-                        Submit a dream for the communal <strong>Reverie House</strong> lore
+                        Submit a dream for the communal <strong>Reverie House</strong> canon
                     </p>
                 </div>
                 
@@ -128,7 +128,7 @@ class ShareLore {
                             <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            <span>Add to Shared Lore</span>
+                            <span>SHARE LORE</span>
                         </button>
                     </div>
                     
@@ -137,7 +137,7 @@ class ShareLore {
                         <div class="share-character-card">
                             <div class="share-character-content">
                                 <div class="share-character-info">
-                                    <div class="share-character-label">Mark as Persona</div>
+                                    <div class="share-character-label">Character Account</div>
                                     <div class="share-character-description">Note this dreamweaver and their entire history as eligible for lore and canon applications, at the pervue of reverie.house loremasters.</div>
                                 </div>
                                 <label class="character-toggle">

@@ -9466,6 +9466,7 @@ def set_primary_name():
     
     Requires OAuth token. Swaps the primary name with one from alts.
     Both names remain active as subdomains, but primary determines canonical identity.
+    Also updates the handle to reflect the new primary name.
     """
     try:
         print("🔄 [API] /api/user/set-primary-name called")
@@ -9473,6 +9474,7 @@ def set_primary_name():
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
         if not token:
+            print("❌ [API] No authorization token provided")
             return jsonify({'error': 'Authorization token required'}), 401
         
         # Validate token and get user DID
@@ -9483,45 +9485,74 @@ def set_primary_name():
             return jsonify({'error': 'Invalid or expired token'}), 401
         
         print(f"✅ [API] Token validated for user: {user_did}")
+        print(f"   Current handle from token: {handle}")
         
         # Get requested name from request
         data = request.get_json()
         if not data or 'name' not in data:
+            print("❌ [API] No name in request body")
             return jsonify({'error': 'name required'}), 400
         
         requested_name = data['name'].strip().lower()
         if not requested_name:
             return jsonify({'error': 'Name cannot be empty'}), 400
         
-        print(f"📝 [API] Swapping to primary name: {requested_name}")
+        print(f"📝 [API] Requested name: {requested_name}")
         
         # Get current dreamer data
         from core.database import DatabaseManager
         
         db = DatabaseManager()
         
-        cursor = db.execute("SELECT name, alts FROM dreamers WHERE did = %s", (user_did,))
+        cursor = db.execute("SELECT name, handle, alts FROM dreamers WHERE did = %s", (user_did,))
         dreamer = cursor.fetchone()
         
         if not dreamer:
+            print(f"❌ [API] User not found: {user_did}")
             return jsonify({'error': 'User not found'}), 404
         
         current_name = dreamer['name']
+        current_handle = dreamer['handle']
         current_alts = dreamer['alts'] or ''
+        
+        print(f"📋 [API] Current state:")
+        print(f"   name: {current_name}")
+        print(f"   handle: {current_handle}")
+        print(f"   alts: {current_alts}")
         
         # Check if requested name is already primary
         if current_name == requested_name:
+            print(f"ℹ️ [API] Name '{requested_name}' is already primary")
+            # Still update handle if it's out of sync
+            expected_handle = f"{requested_name}.reverie.house"
+            if current_handle != expected_handle:
+                print(f"⚠️ [API] Handle out of sync, fixing: {current_handle} → {expected_handle}")
+                db.execute(
+                    "UPDATE dreamers SET handle = %s, updated_at = %s WHERE did = %s",
+                    (expected_handle, int(time.time()), user_did)
+                )
+                return jsonify({
+                    'success': True,
+                    'message': 'Handle synchronized',
+                    'primary_name': current_name,
+                    'alt_names': current_alts,
+                    'handle': expected_handle
+                })
             return jsonify({
                 'success': True,
                 'message': 'Name is already primary',
                 'primary_name': current_name,
-                'alt_names': current_alts
+                'alt_names': current_alts,
+                'handle': current_handle
             })
         
         # Parse alts and verify requested name exists
         alt_list = [a.strip() for a in current_alts.split(',') if a.strip()]
         
+        print(f"📋 [API] Parsed alt list: {alt_list}")
+        
         if requested_name not in alt_list:
+            print(f"❌ [API] Name '{requested_name}' not in alts: {alt_list}")
             return jsonify({'error': f'Name "{requested_name}" is not in your alternate names'}), 400
         
         # Swap: remove requested from alts, add current to alts
@@ -9529,21 +9560,128 @@ def set_primary_name():
         alt_list.append(current_name)
         new_alts = ', '.join(alt_list)
         
-        # Update database
+        # Build new handle
+        new_handle = f"{requested_name}.reverie.house"
+        
+        print(f"🔄 [API] Swapping:")
+        print(f"   name: {current_name} → {requested_name}")
+        print(f"   handle: {current_handle} → {new_handle}")
+        print(f"   alts: {current_alts} → {new_alts}")
+        
+        # ============================================================
+        # Step 1: Update handle on the PDS (AT Protocol)
+        # ============================================================
+        print(f"🔄 [API] Step 1: Updating handle on PDS...")
+        
+        # Get user's app password for PDS authentication
+        cursor = db.execute("""
+            SELECT app_password_hash, pds_url FROM user_credentials
+            WHERE did = %s
+        """, (user_did,))
+        cred_row = cursor.fetchone()
+        
+        if not cred_row or not cred_row['app_password_hash']:
+            print(f"❌ [API] No app password stored for user")
+            return jsonify({
+                'error': 'App password required to change handle. Please connect your app password first.',
+                'needs_credentials': True
+            }), 400
+        
+        # Decrypt app password
+        app_password = decrypt_password(cred_row['app_password_hash'])
+        pds_url = cred_row.get('pds_url') or 'https://reverie.house'
+        
+        # Authenticate with PDS
+        try:
+            print(f"   Authenticating with PDS at {pds_url}...")
+            session_response = requests.post(
+                f"{pds_url}/xrpc/com.atproto.server.createSession",
+                json={
+                    'identifier': user_did,
+                    'password': app_password
+                },
+                timeout=10
+            )
+            
+            if session_response.status_code != 200:
+                print(f"❌ [API] PDS auth failed: {session_response.status_code}")
+                print(f"   Response: {session_response.text}")
+                return jsonify({
+                    'error': 'Failed to authenticate with PDS. Your app password may have been revoked.',
+                    'needs_credentials': True
+                }), 400
+            
+            session_data = session_response.json()
+            access_token = session_data.get('accessJwt')
+            
+            if not access_token:
+                print(f"❌ [API] No access token in PDS response")
+                return jsonify({'error': 'PDS authentication returned no token'}), 500
+            
+            print(f"   ✅ Authenticated with PDS")
+            
+            # Update handle on PDS
+            print(f"   Calling com.atproto.identity.updateHandle...")
+            update_response = requests.post(
+                f"{pds_url}/xrpc/com.atproto.identity.updateHandle",
+                json={'handle': new_handle},
+                headers={'Authorization': f'Bearer {access_token}'},
+                timeout=15
+            )
+            
+            if update_response.status_code != 200:
+                print(f"❌ [API] Handle update failed: {update_response.status_code}")
+                print(f"   Response: {update_response.text}")
+                return jsonify({
+                    'error': f'Failed to update handle on PDS: {update_response.text}',
+                    'details': update_response.text
+                }), 400
+            
+            print(f"   ✅ Handle updated on PDS: {new_handle}")
+            
+        except requests.exceptions.Timeout:
+            print(f"❌ [API] PDS request timed out")
+            return jsonify({'error': 'PDS request timed out. Please try again.'}), 504
+        except Exception as pds_error:
+            print(f"❌ [API] PDS error: {pds_error}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'PDS error: {str(pds_error)}'}), 500
+        
+        # ============================================================
+        # Step 2: Update our database
+        # ============================================================
+        print(f"🔄 [API] Step 2: Updating database...")
+        
         db.execute(
-            "UPDATE dreamers SET name = %s, alts = %s, updated_at = %s WHERE did = %s",
-            (requested_name, new_alts, int(time.time()), user_did)
+            "UPDATE dreamers SET name = %s, handle = %s, alts = %s, updated_at = %s WHERE did = %s",
+            (requested_name, new_handle, new_alts, int(time.time()), user_did)
         )
         
-        print(f"✅ [API] Name swapped: {current_name} → {requested_name}")
-        print(f"   New alts: {new_alts}")
+        print(f"   ✅ Database updated")
         
-        # Note: No need to rebuild Caddy - caddybuilder already creates subdomains
-        # for both primary name AND all alts, so both names already work
-        # Note: No need to recalculate status - status doesn't depend on name choice
+        # ============================================================
+        # Step 3: Request network crawl for faster propagation
+        # ============================================================
+        print(f"🔄 [API] Step 3: Requesting network crawl...")
+        try:
+            import subprocess
+            result = subprocess.run(
+                ['sudo', 'pdsadmin', 'request-crawl', 'bsky.network'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0:
+                print(f"   ✅ Crawl requested successfully")
+            else:
+                print(f"   ⚠️ Crawl request failed: {result.stderr}")
+        except Exception as crawl_error:
+            print(f"   ⚠️ Could not request crawl: {crawl_error}")
+            # Non-fatal - handle will still propagate eventually
         
         audit_log(
-            event_type='name_swapped',
+            event_type='handle_changed',
             endpoint='/api/user/set-primary-name',
             method='POST',
             user_ip=get_client_ip(),
@@ -9552,12 +9690,17 @@ def set_primary_name():
             user_agent=request.headers.get('User-Agent')
         )
         
-        print("✅ [API] Primary name swap complete")
+        print("✅ [API] Handle change complete!")
+        print(f"   Old: {current_handle}")
+        print(f"   New: {new_handle}")
+        
         return jsonify({
             'success': True,
-            'message': f'Primary name changed to "{requested_name}"',
+            'message': f'Handle changed to "{new_handle}"',
             'primary_name': requested_name,
-            'alt_names': new_alts
+            'alt_names': new_alts,
+            'handle': new_handle,
+            'pds_updated': True
         })
         
     except Exception as e:

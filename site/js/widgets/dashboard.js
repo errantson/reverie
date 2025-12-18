@@ -2721,22 +2721,38 @@ class Dashboard {
         const select = document.getElementById('handleSelect');
         const btn = document.getElementById('handleConfirmBtn');
         
-        if (!select || !btn) return;
+        if (!select || !btn) {
+            console.error('❌ [Dashboard] Handle select or button not found');
+            return;
+        }
         
         const selectedHandle = select.value;
-        if (!selectedHandle) return;
+        if (!selectedHandle) {
+            console.error('❌ [Dashboard] No handle selected');
+            return;
+        }
         
-        // Extract the name portion from handle (e.g., "cousin" from "cousin.reverie.house")
+        // Extract the name portion from handle (e.g., "libre" from "libre.reverie.house")
         const name = selectedHandle.replace('.reverie.house', '');
         
+        console.log('🔄 [Dashboard] changeHandle() called');
+        console.log('   Selected handle:', selectedHandle);
+        console.log('   Extracted name:', name);
+        console.log('   Current dreamerData.name:', this.dreamerData.name);
+        console.log('   Current dreamerData.handle:', this.dreamerData.handle);
+        
         btn.disabled = true;
-        btn.textContent = '...';
+        btn.textContent = 'ADOPT';
         
         try {
             const token = await this.getOAuthToken();
             if (!token) {
+                console.error('❌ [Dashboard] No auth token');
                 throw new Error('Please login');
             }
+            
+            console.log('📤 [Dashboard] Sending request to /api/user/set-primary-name');
+            console.log('   Payload:', { name: name });
             
             const response = await fetch('/api/user/set-primary-name', {
                 method: 'POST',
@@ -2747,21 +2763,49 @@ class Dashboard {
                 body: JSON.stringify({ name: name })
             });
             
+            console.log('📥 [Dashboard] Response status:', response.status);
+            
             if (!response.ok) {
                 const error = await response.json();
+                console.error('❌ [Dashboard] API error:', error);
+                
+                // Check if app password is needed
+                if (error.needs_credentials) {
+                    alert('To change your handle, you need to connect an app password first.\n\nGo to Controls → Connect App Password');
+                    btn.textContent = 'ADOPT';
+                    btn.disabled = false;
+                    return;
+                }
+                
                 throw new Error(error.error || 'Failed to change handle');
             }
             
             const result = await response.json();
+            console.log('✅ [Dashboard] API response:', result);
             
-            // Update local data
-            this.dreamerData.handle = selectedHandle;
+            // Check if PDS was updated
+            if (result.pds_updated) {
+                console.log('✅ [Dashboard] Handle updated on PDS!');
+            }
             
-            // Dispatch event to notify other components
+            // Update all local data
+            this.dreamerData.name = result.primary_name;
+            this.dreamerData.handle = result.handle || selectedHandle;
+            this.dreamerData.alt_names = result.alt_names;
+            
+            console.log('📋 [Dashboard] Updated local data:');
+            console.log('   name:', this.dreamerData.name);
+            console.log('   handle:', this.dreamerData.handle);
+            console.log('   alt_names:', this.dreamerData.alt_names);
+            
+            // Update visible UI elements
+            this.updateHandleDisplays(result.handle || selectedHandle, result.primary_name, result.alt_names);
+            
+            // Dispatch event to notify other components (header, etc.)
             window.dispatchEvent(new CustomEvent('handle-changed', { 
                 detail: { 
-                    newHandle: selectedHandle,
-                    newName: name,
+                    newHandle: result.handle || selectedHandle,
+                    newName: result.primary_name,
                     primaryName: result.primary_name,
                     altNames: result.alt_names
                 } 
@@ -2771,16 +2815,60 @@ class Dashboard {
             btn.style.background = '#00b894';
             
             setTimeout(async () => {
-                btn.textContent = 'CHANGE';
+                btn.textContent = 'ADOPT';
                 btn.style.background = '';
                 btn.disabled = false;
+                // Rebuild the tools section to update the dropdown with new options
+                await this.renderRolesCharacterSection();
             }, 1500);
             
         } catch (error) {
-            console.error('Failed to change handle:', error);
-            alert('Failed to change handle. Please try again.');
-            btn.textContent = 'CHANGE';
+            console.error('❌ [Dashboard] Failed to change handle:', error);
+            alert('Failed to change handle: ' + error.message);
+            btn.textContent = 'ADOPT';
             btn.disabled = false;
+        }
+    }
+
+    /**
+     * Update all visible handle/name displays after a handle change
+     */
+    updateHandleDisplays(newHandle, newName, newAlts) {
+        console.log('🎨 [Dashboard] Updating UI displays:');
+        console.log('   newHandle:', newHandle);
+        console.log('   newName:', newName);
+        console.log('   newAlts:', newAlts);
+        
+        // Update handle in details tab
+        const handleLinks = document.querySelectorAll('a[href*="bsky.app/profile"]');
+        handleLinks.forEach(link => {
+            if (link.textContent.startsWith('@')) {
+                link.textContent = `@${newHandle}`;
+                link.href = `https://bsky.app/profile/${newHandle}`;
+                console.log('   Updated handle link:', newHandle);
+            }
+        });
+        
+        // Update name in details tab
+        const nameRows = document.querySelectorAll('.account-info-row');
+        for (const row of nameRows) {
+            const label = row.querySelector('.dashboard-info-label');
+            if (!label) continue;
+            
+            if (label.textContent === 'Name') {
+                const valueEl = row.querySelector('.dashboard-info-value');
+                if (valueEl) {
+                    valueEl.textContent = newName;
+                    console.log('   Updated Name field:', newName);
+                }
+            } else if (label.textContent === 'Pseudonyms') {
+                const valueEl = row.querySelector('.dashboard-info-value');
+                if (valueEl) {
+                    valueEl.innerHTML = this.renderAltNames(newAlts);
+                    valueEl.title = newAlts || 'none';
+                    console.log('   Updated Pseudonyms:', newAlts);
+                }
+            }
         }
     }
 
@@ -3106,6 +3194,12 @@ class Dashboard {
             
             // Handle Selector Tool - build available handles from name + alts
             const availableHandles = [];
+            console.log('🔧 [Dashboard] Building handle list from:', {
+                name: this.dreamerData.name,
+                alt_names: this.dreamerData.alt_names,
+                current_handle: this.dreamerData.handle
+            });
+            
             if (this.dreamerData.name) {
                 availableHandles.push(`${this.dreamerData.name}.reverie.house`);
             }
@@ -3114,6 +3208,8 @@ class Dashboard {
                 alts.forEach(alt => availableHandles.push(`${alt}.reverie.house`));
             }
             const currentHandle = this.dreamerData.handle || '';
+            
+            console.log('🔧 [Dashboard] Available handles:', availableHandles);
             
             if (availableHandles.length > 0) {
                 html += `
@@ -3127,6 +3223,8 @@ class Dashboard {
                         </button>
                     </div>
                 `;
+            } else {
+                console.log('⚠️ [Dashboard] No handles available - Handle tool not shown');
             }
             
             // Check if mapper is available (for tools that need it)
