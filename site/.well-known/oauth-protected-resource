@@ -1,11 +1,12 @@
 {
   "resource": "https://reverie.house",
   "authorization_servers": [
-    "https://auth.reverie.house"
+    "https://reverie.house"
   ],
   "scopes_supported": [
     "atproto",
-    "transition:generic"
+    "transition:generic",
+    "transition:chat.bsky"
   ],
   "bearer_methods_supported": [
     "header"

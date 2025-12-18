@@ -18,7 +18,7 @@ class Dashboard {
         if (!document.querySelector('link[href*="css/widgets/dashboard.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/css/widgets/dashboard.css?v=27';
+            link.href = '/css/widgets/dashboard.css?v=28';
             document.head.appendChild(link);
         }
         
@@ -701,11 +701,11 @@ class Dashboard {
                                                     maxlength="300"
                                                 >${d.description || d.bio || ''}</textarea>
                                                 <div class="dashboard-bio-actions">
-                                                    <button class="bio-save-btn" id="saveBioBtn" onclick="window.dashboardWidget.saveBio()">
-                                                        Save Bio
+                                                    <button class="bio-action-btn" id="saveBioBtn" onclick="window.dashboardWidget.saveBio()">
+                                                        Save
                                                     </button>
-                                                    <button class="bio-sync-btn" id="syncBioBtn" onclick="window.dashboardWidget.syncBioFromBluesky()" title="Fetch your current bio from Bluesky">
-                                                        ↻ Sync from Bluesky
+                                                    <button class="bio-action-btn" id="syncBioBtn" onclick="window.dashboardWidget.syncBioFromBluesky()" title="Fetch your current bio from Bluesky">
+                                                        Sync
                                                     </button>
                                                     <span class="dashboard-description-status" id="descriptionStatus"></span>
                                                 </div>
@@ -726,8 +726,8 @@ class Dashboard {
                                                            id="bookAuthorInput" 
                                                            placeholder="Author Name"
                                                            maxlength="100">
-                                                    <button class="recently-read-btn" id="addBookButton" onclick="window.dashboardWidget.addBook()">
-                                                        Update Book
+                                                    <button class="bio-action-btn" id="addBookButton" onclick="window.dashboardWidget.addBook()">
+                                                        Update
                                                     </button>
                                                 </div>
                                             </div>
