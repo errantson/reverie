@@ -3241,6 +3241,19 @@
     font-weight: 700;
 }
 
+.row-entry.row-dreamstyler {
+    background: var(--role-dreamstyler-light) !important;
+}
+
+.row-entry.row-dreamstyler:nth-child(even) {
+    background: var(--role-dreamstyler-medium) !important;
+}
+
+.row-entry.row-dreamstyler .cell.key {
+    color: var(--role-dreamstyler) !important;
+    font-weight: 700;
+}
+
 .row-entry.row-name {
     background: rgba(60, 120, 200, 0.08) !important;
 }

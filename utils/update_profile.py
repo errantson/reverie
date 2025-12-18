@@ -41,7 +41,7 @@ def _get_user_credentials(did: str):
     
     # Try new user_credentials table first
     cred = db.fetch_one(
-        "SELECT app_password_hash, pds_url FROM user_credentials WHERE did = %s AND is_valid = TRUE",
+        "SELECT app_password_hash, pds_url FROM user_credentials WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''",
         (did,)
     )
     

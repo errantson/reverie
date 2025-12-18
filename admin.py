@@ -6653,7 +6653,7 @@ def activate_greeter():
             print(f"🔐 Attempting to use existing credentials...")
             existing_cred = db_manager.fetch_one("""
                 SELECT app_password_hash, pds_url FROM user_credentials
-                WHERE did = %s AND is_valid = TRUE
+                WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
             """, (user_did,))
             if existing_cred:
                 print(f"  ✓ Found existing credentials")
@@ -7188,7 +7188,7 @@ def activate_mapper():
         # Get existing credentials
         existing_cred = db_manager.fetch_one("""
             SELECT app_password_hash FROM user_credentials
-            WHERE did = %s AND is_valid = TRUE
+            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
         """, (user_did,))
         
         if not existing_cred:
@@ -7551,7 +7551,7 @@ def activate_cogitarian():
         # Get existing credentials
         existing_cred = db_manager.fetch_one("""
             SELECT app_password_hash FROM user_credentials
-            WHERE did = %s AND is_valid = TRUE
+            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
         """, (user_did,))
         
         if not existing_cred:
@@ -7562,7 +7562,7 @@ def activate_cogitarian():
         # ===== UNIFIED SYSTEM (PRIMARY) =====
         print(f"💾 Updating unified user_roles table...")
         
-        # Check if someone else is actively working as cogitarian (conflict check)
+        # Check if someone else is actively working as mapper (conflict check)
         conflict = db_manager.fetch_one("""
             SELECT did FROM user_roles
             WHERE role = 'cogitarian' AND status = 'active' AND did != %s
@@ -7904,7 +7904,7 @@ def activate_provisioner():
         # Get existing credentials
         existing_cred = db_manager.fetch_one("""
             SELECT app_password_hash FROM user_credentials
-            WHERE did = %s AND is_valid = TRUE
+            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
         """, (user_did,))
         
         if not existing_cred:
@@ -8114,6 +8114,279 @@ def step_down_provisioner():
         print(f"  ✓ Removed from legacy work table")
         
         print(f"✅ Provisioner step-down complete for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': False
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# DREAMSTYLER WORK ENDPOINTS (Multi-worker role)
+# ============================================================================
+
+@app.route('/api/work/dreamstyler/status')
+@rate_limit()
+def get_dreamstyler_status():
+    """Get current dreamstyler work status - supports multiple active workers"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        valid, user_did, handle = validate_work_token(token)
+        
+        db_manager = DatabaseManager()
+        row = db_manager.fetch_one("""
+            SELECT workers, status, forced_retirement, worker_limit, created_at, updated_at
+            FROM work 
+            WHERE role = 'dreamstyler' 
+            LIMIT 1
+        """)
+        
+        if not row:
+            return jsonify({
+                'success': True,
+                'is_worker': False,
+                'current_worker': None,
+                'all_workers': [],
+                'role_info': None
+            })
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        # Check if the logged-in user is a dreamstyler
+        is_worker = False
+        worker_status = None
+        current_worker = None
+        
+        if user_did:
+            for worker in workers:
+                if worker.get('did') == user_did:
+                    is_worker = True
+                    worker_status = worker.get('status', 'working')
+                    current_worker = worker
+                    break
+        
+        # Include role info in response
+        role_info = {
+            'role': 'dreamstyler',
+            'status': row['status'],
+            'forced_retirement': row['forced_retirement'],
+            'worker_limit': row['worker_limit'],  # 0 = unlimited
+            'workers': workers,
+            'worker_count': len(workers),
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at']
+        }
+        
+        return jsonify({
+            'success': True,
+            'is_worker': is_worker,
+            'status': worker_status,
+            'current_worker': {
+                'did': current_worker['did'],
+                'status': current_worker.get('status', 'working')
+            } if current_worker else None,
+            'all_workers': [{
+                'did': w['did'],
+                'status': w.get('status', 'working')
+            } for w in workers],
+            'role_info': role_info
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/dreamstyler/activate', methods=['POST'])
+@rate_limit()
+def activate_dreamstyler():
+    """Activate as dreamstyler - multi-worker role, no conflict check"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        data = request.get_json() or {}
+        use_existing = data.get('use_existing_credentials', True)
+        
+        print(f"\n{'='*80}")
+        print(f"✨ DREAMSTYLER ACTIVATION REQUEST")
+        print(f"{'='*80}")
+        print(f"Session DID: {user_did}")
+        print(f"Session handle: {handle}")
+        print(f"Use existing credentials: {use_existing}")
+        print(f"{'='*80}\n")
+        
+        # Get existing credentials
+        existing_cred = db_manager.fetch_one("""
+            SELECT app_password_hash FROM user_credentials
+            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
+        """, (user_did,))
+        
+        if not existing_cred:
+            return jsonify({'error': 'No stored credentials found. Please connect your app password first.'}), 400
+        
+        password_hash = existing_cred['app_password_hash']
+        
+        # ===== UNIFIED SYSTEM (PRIMARY) =====
+        print(f"💾 Updating unified user_roles table...")
+        
+        # No conflict check for dreamstyler - multiple workers allowed
+        
+        # Add/update role in user_roles table
+        existing_role = db_manager.fetch_one("""
+            SELECT 1 FROM user_roles WHERE did = %s AND role = 'dreamstyler'
+        """, (user_did,))
+        
+        if existing_role:
+            db_manager.execute("""
+                UPDATE user_roles
+                SET status = 'active', activated_at = CURRENT_TIMESTAMP, deactivated_at = NULL
+                WHERE did = %s AND role = 'dreamstyler'
+            """, (user_did,))
+            print(f"  ✓ Reactivated dreamstyler role")
+        else:
+            db_manager.execute("""
+                INSERT INTO user_roles (did, role, status)
+                VALUES (%s, 'dreamstyler', 'active')
+            """, (user_did,))
+            print(f"  ✓ Created dreamstyler role")
+        
+        # ===== LEGACY SYSTEM (BACKWARD COMPATIBILITY) =====
+        print(f"💾 Updating legacy work table...")
+        
+        work_row = db_manager.fetch_one("""
+            SELECT workers, status FROM work
+            WHERE role = 'dreamstyler'
+        """)
+        
+        if not work_row:
+            return jsonify({'error': 'Dreamstyler role not found in work table'}), 404
+        
+        workers = json.loads(work_row['workers']) if work_row['workers'] else []
+        
+        # Check if user is already in workers array
+        already_active = any(w['did'] == user_did for w in workers)
+        
+        if already_active:
+            # Update their status to working
+            for w in workers:
+                if w['did'] == user_did:
+                    w['status'] = 'working'
+                    break
+            print(f"  ✓ Updated existing worker to 'working'")
+        else:
+            # Add new worker
+            new_worker = {
+                'did': user_did,
+                'status': 'working',
+                'passhash': password_hash
+            }
+            workers.append(new_worker)
+            print(f"  ✓ Added new dreamstyler (total: {len(workers)})")
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'dreamstyler'
+        """, (json.dumps(workers), int(time.time())))
+        
+        # Add first-time work canon entry
+        add_first_time_work_canon(
+            db_manager, 
+            user_did, 
+            'dreamstyler',
+            'became a Dreamstyler',
+            'dreamstyler'
+        )
+        
+        print(f"✅ Dreamstyler activated for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': True,
+            'status': 'working'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/dreamstyler/step-down', methods=['POST'])
+@rate_limit()
+def step_down_dreamstyler():
+    """Step down as dreamstyler"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        print(f"📝 DREAMSTYLER STEP-DOWN: {user_did}")
+        
+        # Unified system
+        db_manager.execute("""
+            UPDATE user_roles
+            SET status = 'inactive', deactivated_at = CURRENT_TIMESTAMP
+            WHERE did = %s AND role = 'dreamstyler'
+        """, (user_did,))
+        print(f"  ✓ Deactivated dreamstyler role in unified system")
+        
+        # Legacy system
+        cursor = db_manager.execute("SELECT workers FROM work WHERE role = 'dreamstyler'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Dreamstyler role not found'}), 404
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        updated_workers = [w for w in workers if w['did'] != user_did]
+        
+        if len(updated_workers) == len(workers):
+            return jsonify({'error': 'You are not a current dreamstyler'}), 403
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'dreamstyler'
+        """, (json.dumps(updated_workers), int(time.time())))
+        print(f"  ✓ Removed from legacy work table (remaining: {len(updated_workers)})")
+        
+        print(f"✅ Dreamstyler step-down complete for {user_did}")
         
         return jsonify({
             'success': True,
@@ -8356,17 +8629,24 @@ def connect_user_credentials():
         
         print(f"🔐 Connecting app password for {user_handle} ({user_did})")
         
-        # Check if credential already exists and is valid
+        # Check if credential already exists with a password hash
+        # Truth source: app_password_hash exists and is not empty
         existing = db_manager.fetch_one("""
-            SELECT is_valid FROM user_credentials WHERE did = %s
+            SELECT app_password_hash FROM user_credentials WHERE did = %s
         """, (user_did,))
         
-        if existing and existing.get('is_valid'):
+        has_existing_password = (
+            existing and 
+            existing.get('app_password_hash') is not None and 
+            existing.get('app_password_hash') != ''
+        )
+        
+        if has_existing_password:
             print(f"⚠️ Valid credential already exists, user should disconnect first")
             return jsonify({'error': 'App password already connected. Disconnect first to update.'}), 409
         
         if existing:
-            print(f"🔄 Existing credential found but invalid (is_valid={existing.get('is_valid')}), will update")
+            print(f"🔄 Existing row found but no password hash, will update")
         
         # Validate password with WorkerNetworkClient
         try:
@@ -8557,17 +8837,17 @@ def get_credentials_status():
             print(f"{'='*80}\n")
             return jsonify(response_data)
         
-        # Check if credentials are valid and password exists
+        # Truth source: app_password_hash exists and is not empty
+        # No need for is_valid flag - if password is there, it's valid
+        # Workerwatch will purge (set to NULL) if invalid
         has_valid_credentials = (
             cred.get('app_password_hash') is not None and
-            bool(cred.get('app_password_hash')) and  # Not empty string
-            cred.get('is_valid', False)
+            bool(cred.get('app_password_hash'))  # Not empty string
         )
         
-        print(f"🔍 Credential validation:")
+        print(f"🔍 Credential validation (password-based, no flag check):")
         print(f"   - app_password_hash is not None: {cred.get('app_password_hash') is not None}")
         print(f"   - app_password_hash bool: {bool(cred.get('app_password_hash'))}")
-        print(f"   - is_valid: {cred.get('is_valid', False)}")
         print(f"   - FINAL has_valid_credentials: {has_valid_credentials}")
         
         response_data = {

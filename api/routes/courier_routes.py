@@ -388,12 +388,13 @@ def retry_auth_failed_posts():
         
         db = DatabaseManager()
         
-        # Verify user has valid credentials now
+        # Verify user has valid credentials now (password hash exists)
         cred = db.execute('''
-            SELECT is_valid FROM user_credentials WHERE did = ?
+            SELECT app_password_hash FROM user_credentials 
+            WHERE did = ? AND app_password_hash IS NOT NULL AND app_password_hash != ''
         ''', (user_did,)).fetchone()
         
-        if not cred or not cred['is_valid']:
+        if not cred:
             return jsonify({
                 'status': 'error',
                 'error': 'Please reconnect your app password first'

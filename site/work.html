@@ -110,13 +110,13 @@
                 <!-- Loading State -->
                 <div id="sidebar-loading" class="sidebar-loading">
                     <div class="loading-spinner"></div>
-                    <div class="loading-text">Checking session...</div>
+                    <div id="loading-state-text" class="loading-text">Checking session...</div>
                 </div>
 
                 <!-- Guest State -->
                 <div id="sidebar-guest" class="sidebar-guest" style="display: none;">
                     <div class="guest-message">
-                        <p>Login to take on work</p>
+                        <p>Only dreamweavers of Reverie House may self-elect for workshop roles.</p>
                     </div>
                     <button class="sidebar-login-btn" onclick="triggerLogin()">
                         Dreamweaver Login
@@ -185,6 +185,16 @@
                         </svg>
                         <span class="role-tab-name">Provisioner</span>
                     </button>
+                    <button class="role-tab" data-role="dreamstyler" onclick="selectRole('dreamstyler')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+                            <path d="M20 3v4"></path>
+                            <path d="M22 5h-4"></path>
+                            <path d="M4 17v2"></path>
+                            <path d="M5 18H3"></path>
+                        </svg>
+                        <span class="role-tab-name">Dreamstyler</span>
+                    </button>
                 </div>
 
                 <!-- Mobile Role Selector -->
@@ -194,6 +204,7 @@
                         <option value="mapper">Mapper</option>
                         <option value="cogitarian">Cogitarian</option>
                         <option value="provisioner">Provisioner</option>
+                        <option value="dreamstyler">Dreamstyler</option>
                     </select>
                 </div>
 
@@ -240,6 +251,16 @@
                             </p>
                             <p class="role-description">
                                 When another dreamer at <b>Reverie House</b> feels the real pangs of hunger, it is <b>Head of Pantry</b> who will remotely try to ease their burden with food.
+                            </p>
+                        </div>
+                        
+                        <!-- Dreamstyler Description -->
+                        <div id="dreamstyler-description" class="role-desc-content" style="display: none;">
+                            <p class="role-description">
+                                There is a wide difference between the aesthetics of dreams, and a highly visioned <b class="role-text-dreamstyler">Dreamstyler</b> is versatile enough to help shape the dreams of others.
+                            </p>
+                            <p class="role-description">
+                                Because there are so many tastes, there are many types of <b class="role-text-dreamstyler">Dreamstyler</b> and <b class="role-text-dreamstyler">Reverie House</b> makes no distinction. Let yourself and talent be known to others, but maintain your own designs however you must.
                             </p>
                         </div>
                     </div>
@@ -448,6 +469,50 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Dreamstyler Content Section -->
+                <div id="dreamstyler-content-section" class="dreamstyler-content-container" style="display: none;">
+                    <div class="dreamstyler-content-grid">
+                        <!-- Left: Active Dreamstylers List -->
+                        <div class="repo-card dreamstyler-list-card">
+                            <div class="repo-card-header">
+                                <div class="repo-card-title">Active Dreamstylers</div>
+                            </div>
+                            <div id="dreamstyler-list" class="dreamstyler-list">
+                                <div class="dreamstyler-loading">Loading dreamstylers...</div>
+                            </div>
+                            <div class="dreamstyler-footer">
+                                <p class="dreamstyler-footer-text">Dreamstylers don't retire.</p>
+                                <p class="dreamstyler-footer-text">They just stop.</p>
+                                <p class="dreamstyler-footer-text">Appreciate them while here.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Right: Aesthetic Adjustments + Unfinished Dreams -->
+                        <div class="repo-data-box">
+                            <h3 class="repo-data-header">Aesthetic Adjustments</h3>
+                            <div id="dreamstyler-adjustments-content" class="repo-data-content">
+                                <div class="commits-section">
+                                    <div class="commit-row placeholder-row">
+                                        <span class="commit-message">Tangled integration pending...</span>
+                                        <span class="commit-meta">soon</span>
+                                    </div>
+                                </div>
+                                <div class="contributors-section unfinished-dreams-section">
+                                    <div class="contributors-label">Unfinished Dreams</div>
+                                    <div id="unfinished-dreams-list" class="contributors-list">
+                                        <a href="https://flawed.center" target="_blank" class="dream-circle" title="flawed.center">
+                                            <span class="dream-circle-text">FC</span>
+                                        </a>
+                                        <a href="https://chaos.observer" target="_blank" class="dream-circle" title="chaos.observer">
+                                            <span class="dream-circle-text">CO</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -497,14 +562,19 @@
             greeter: null,
             mapper: null,
             cogitarian: null,
-            provisioner: null
+            provisioner: null,
+            dreamstyler: null
         };
         let currentTab = 'greeter';
         let spectrumPreviewWidget = null; // Global spectrum preview widget instance
         
         // Restore tab from localStorage on page load
         const savedTab = localStorage.getItem('work_current_tab');
-        if (savedTab && ['greeter', 'mapper', 'cogitarian'].includes(savedTab)) {
+        const hasAdminForRestore = !!localStorage.getItem('admin_token');
+        // Only allow dreamstyler if admin, provisioner needs check later when statuses load
+        const allowedSavedTabs = ['greeter', 'mapper', 'cogitarian', 'provisioner'];
+        if (hasAdminForRestore) allowedSavedTabs.push('dreamstyler');
+        if (savedTab && allowedSavedTabs.includes(savedTab)) {
             currentTab = savedTab;
         }
         let currentRole = 'greeter'; // Track selected role
@@ -512,37 +582,46 @@
         let isInitializing = false; // Prevent duplicate initialization
         let profileLoaded = false; // Track if profile is ready
 
-        // Hide provisioner UI unless user is an admin (admin login stores `admin_token` in localStorage).
+        // Provisioner and Dreamstyler UI visibility: only for admins (or the provisioner themselves for provisioner tab)
         function enforceProvisionerVisibility() {
-            const hasAdmin = !!localStorage.getItem('admin_token');
+            const hasAdminAccess = !!localStorage.getItem('admin_token');
+            const isProvisioner = roleStatuses.provisioner && roleStatuses.provisioner.is_worker;
+            const shouldShowProvisioner = hasAdminAccess || isProvisioner;
+            const shouldShowDreamstyler = hasAdminAccess; // Dreamstyler only visible with /admin
+            
             const provButton = document.querySelector('.role-tab[data-role="provisioner"]');
-            const provOption = document.querySelector('#role-selector-mobile option[value="provisioner"]');
-            const provContent = document.getElementById('provisioner-content-section');
-            const provDesc = document.getElementById('provisioner-description');
-
-            if (!hasAdmin) {
-                if (provButton) provButton.style.display = 'none';
-                if (provOption) provOption.remove();
-                if (provContent) provContent.style.display = 'none';
-                if (provDesc) provDesc.style.display = 'none';
-                if (currentRole === 'provisioner') {
-                    // fallback to greeter if provisioner was selected
-                    selectRole('greeter');
-                }
-            } else {
-                if (provButton) provButton.style.display = '';
-                // Ensure the mobile selector has the option (if it was removed earlier)
-                if (provOption === null) {
-                    const mobileSelector = document.getElementById('role-selector-mobile');
-                    if (mobileSelector) {
-                        const exists = Array.from(mobileSelector.options).some(o => o.value === 'provisioner');
-                        if (!exists) {
-                            const opt = document.createElement('option');
-                            opt.value = 'provisioner';
-                            opt.text = 'Provisioner';
-                            mobileSelector.appendChild(opt);
-                        }
+            if (provButton) provButton.style.display = shouldShowProvisioner ? 'flex' : 'none';
+            
+            const dreamButton = document.querySelector('.role-tab[data-role="dreamstyler"]');
+            if (dreamButton) dreamButton.style.display = shouldShowDreamstyler ? 'flex' : 'none';
+            
+            // Handle mobile selector
+            const mobileSelector = document.getElementById('role-selector-mobile');
+            if (mobileSelector) {
+                // Provisioner
+                const existingProvOption = Array.from(mobileSelector.options).find(o => o.value === 'provisioner');
+                if (shouldShowProvisioner) {
+                    if (!existingProvOption) {
+                        const opt = document.createElement('option');
+                        opt.value = 'provisioner';
+                        opt.text = 'Provisioner';
+                        mobileSelector.appendChild(opt);
                     }
+                } else if (existingProvOption) {
+                    existingProvOption.remove();
+                }
+                
+                // Dreamstyler
+                const existingDreamOption = Array.from(mobileSelector.options).find(o => o.value === 'dreamstyler');
+                if (shouldShowDreamstyler) {
+                    if (!existingDreamOption) {
+                        const opt = document.createElement('option');
+                        opt.value = 'dreamstyler';
+                        opt.text = 'Dreamstyler';
+                        mobileSelector.appendChild(opt);
+                    }
+                } else if (existingDreamOption) {
+                    existingDreamOption.remove();
                 }
             }
         }
@@ -552,8 +631,7 @@
             if (ev.key === 'admin_token') enforceProvisionerVisibility();
         });
         window.addEventListener('oauth:profile-loaded', () => enforceProvisionerVisibility());
-        // Run once at load
-        enforceProvisionerVisibility();
+        // enforceProvisionerVisibility is called in DOMContentLoaded to ensure elements exist
 
         // Role selection function
         function selectRole(role) {
@@ -598,7 +676,8 @@
                 'greeter': 'CURRENT GREETER:',
                 'mapper': 'CURRENT MAPPER:',
                 'cogitarian': 'CURRENT COGITARIAN:',
-                'provisioner': 'CURRENT PROVISIONER:'
+                'provisioner': 'CURRENT PROVISIONER:',
+                'dreamstyler': 'ACTIVE DREAMSTYLERS:'
             };
             document.getElementById('worker-label').textContent = labels[role];
             
@@ -614,6 +693,8 @@
                 hideMapperContent();
                 // Hide provisioner content for cogitarian
                 hideProvisionerContent();
+                // Hide dreamstyler content for cogitarian
+                hideDreamstylerContent();
                 // Show cogitarian content
                 showCogitarianContent();
             } else if (role === 'mapper') {
@@ -630,6 +711,8 @@
                 hideCogitarianContent();
                 // Hide provisioner content for mapper
                 hideProvisionerContent();
+                // Hide dreamstyler content for mapper
+                hideDreamstylerContent();
                 // Show mapper content
                 showMapperContent();
             } else if (role === 'greeter') {
@@ -647,6 +730,8 @@
                 hideCogitarianContent();
                 // Hide provisioner content for greeter
                 hideProvisionerContent();
+                // Hide dreamstyler content for greeter
+                hideDreamstylerContent();
             } else if (role === 'provisioner') {
                 // Load role status for provisioner
                 loadRoleStatus(role);
@@ -655,10 +740,22 @@
                 hideSpectrumPreview();
                 hideMapperContent();
                 hideCogitarianContent();
+                hideDreamstylerContent();
                 // Show provisioner content
                 showProvisionerContent();
                 // Populate food request form with user data
                 populateFoodRequestForm();
+            } else if (role === 'dreamstyler') {
+                // Load role status for dreamstyler
+                loadRoleStatus(role);
+                // Hide all other content
+                hideEventStack();
+                hideSpectrumPreview();
+                hideMapperContent();
+                hideCogitarianContent();
+                hideProvisionerContent();
+                // Show dreamstyler content
+                showDreamstylerContent();
             } else {
                 // Load role status for the selected role
                 loadRoleStatus(role);
@@ -786,6 +883,132 @@
         
         function hideProvisionerContent() {
             const container = document.getElementById('provisioner-content-section');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        function showDreamstylerContent() {
+            const container = document.getElementById('dreamstyler-content-section');
+            if (container) {
+                container.style.display = 'block';
+                // Load dreamstyler list and repo data
+                loadDreamstylerList();
+                loadRepoData(); // Still load commits for right column
+            }
+        }
+        
+        async function loadDreamstylerList() {
+            const listContainer = document.getElementById('dreamstyler-list');
+            if (!listContainer) return;
+            
+            try {
+                // Get dreamstyler status to find all workers
+                const response = await fetch('/api/work/dreamstyler/status');
+                if (!response.ok) {
+                    listContainer.innerHTML = '<div class="dreamstyler-empty">Could not load dreamstylers</div>';
+                    return;
+                }
+                
+                const data = await response.json();
+                const workers = data.all_workers || [];
+                
+                if (workers.length === 0) {
+                    listContainer.innerHTML = '<div class="dreamstyler-empty">No active dreamstylers</div>';
+                    return;
+                }
+                
+                // Fetch details for each worker
+                const workerDetails = await Promise.all(workers.map(async (worker) => {
+                    try {
+                        const dreamerResponse = await fetch(`/api/dreamers/${worker.did}`);
+                        if (dreamerResponse.ok) {
+                            const dreamer = await dreamerResponse.json();
+                            return {
+                                did: worker.did,
+                                handle: dreamer.handle || 'unknown',
+                                displayName: dreamer.display_name || dreamer.handle || 'Unknown',
+                                avatar: dreamer.avatar || '/assets/default-avatar.png',
+                                color: dreamer.color_hex || '#9e75e5'
+                            };
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch dreamer:', e);
+                    }
+                    return {
+                        did: worker.did,
+                        handle: 'unknown',
+                        displayName: 'Unknown',
+                        avatar: '/assets/default-avatar.png',
+                        color: '#9e75e5'
+                    };
+                }));
+                
+                // Build the list HTML
+                const listHTML = workerDetails.map(w => {
+                    // Calculate lighter background from user color
+                    const bgColor = w.color + '20'; // 20 is hex for ~12% opacity
+                    return `
+                        <div class="dreamstyler-row" style="background: ${bgColor}; border-left: 3px solid ${w.color};">
+                            <a href="/dreamer.html?did=${w.did}" class="dreamstyler-link dreamer-link" data-did="${w.did}">
+                                <img src="${w.avatar}" alt="${w.handle}" class="dreamstyler-avatar" style="border-color: ${w.color};">
+                                <span class="dreamstyler-name" style="color: ${w.color};">${w.displayName}</span>
+                            </a>
+                            <button class="dreamstyler-entreat-btn" style="background: ${w.color}; border-color: ${w.color};" onclick="entreatDreamstyler('${w.handle}')">ENTREAT</button>
+                        </div>
+                    `;
+                }).join('');
+                
+                listContainer.innerHTML = listHTML;
+                
+                // Initialize dreamer hover
+                setTimeout(() => {
+                    if (window.DreamerHover) window.DreamerHover.init();
+                }, 100);
+                
+            } catch (error) {
+                console.error('Failed to load dreamstyler list:', error);
+                listContainer.innerHTML = '<div class="dreamstyler-empty">Error loading dreamstylers</div>';
+            }
+        }
+        
+        // Entreat a dreamstyler with a randomized plea
+        function entreatDreamstyler(handle) {
+            const openers = [
+                "O magnificent @" + handle + ",",
+                "Dearest @" + handle + ", keeper of pixels,",
+                "🙏 @" + handle + ", legendary stylist of dreams,",
+                "Humble plea to @" + handle + ":",
+                "@" + handle + "! Aesthetic oracle!",
+                "To the illustrious @" + handle + ",",
+                "⚡ @" + handle + ", CSS wizard extraordinaire,",
+                "Most gracious @" + handle + ","
+            ];
+            
+            const pleas = [
+                "I beseech thee to grace my unfinished dream with thy miraculous touch.",
+                "might you bestow upon my humble project the gift of your aesthetic mastery?",
+                "my dream yearns for the divine intervention of your design sensibilities.",
+                "would you honor me by casting your visionary gaze upon my pitiful CSS?",
+                "I throw myself at your mercy, hoping for but a crumb of your styling genius.",
+                "please, if it pleases you, consider blessing my creation with your talent.",
+                "I am but a dreamer lost in the void. Only you can save my gradients.",
+                "my hover states are a disaster. You are my only hope.",
+                "the shadows... they are all wrong. I need your wisdom.",
+                "might your legendary skills bring harmony to my chaotic stylesheet?"
+            ];
+            
+            const opener = openers[Math.floor(Math.random() * openers.length)];
+            const plea = pleas[Math.floor(Math.random() * pleas.length)];
+            const message = opener + " " + plea;
+            
+            // Open Bluesky compose with the message
+            const bskyUrl = "https://bsky.app/intent/compose?text=" + encodeURIComponent(message);
+            window.open(bskyUrl, '_blank');
+        }
+        
+        function hideDreamstylerContent() {
+            const container = document.getElementById('dreamstyler-content-section');
             if (container) {
                 container.style.display = 'none';
             }
@@ -1222,25 +1445,22 @@
             }
             
             isInitializing = true;
-            console.log('🔐 Work: Profile loaded event received');
             currentSession = event.detail.session;
             profileLoaded = true;
             sessionCheckComplete = true;
             
             // Now we have complete profile data, load all role statuses and update UI
-            console.log('🔄 [FLOW] oauth:profile-loaded → Loading all role statuses');
             await loadRoleStatus('greeter');
             await loadRoleStatus('mapper');
             await loadRoleStatus('cogitarian');
             await loadRoleStatus('provisioner');
-            console.log('🔄 [FLOW] oauth:profile-loaded → updateUI()');
+            await loadRoleStatus('dreamstyler');
             updateUI();
             isInitializing = false;
         });
 
         // Listen for OAuth login events (fired first, before profile loads)
         document.addEventListener('oauth:login', async (event) => {
-            console.log('🔐 Work: Login event received');
             // Just store the session - we'll wait for profile-loaded to update UI
             currentSession = event.detail.session;
             
@@ -1249,12 +1469,13 @@
         });
 
         window.addEventListener('oauth:logout', async () => {
-            console.log('🔓 Work: User logged out');
             currentSession = null;
             roleStatuses = {
                 greeter: null,
                 mapper: null,
-                cogitarian: null
+                cogitarian: null,
+                provisioner: null,
+                dreamstyler: null
             };
             sessionCheckComplete = true;
             profileLoaded = false;
@@ -1286,6 +1507,7 @@
                         await loadRoleStatus('mapper');
                         await loadRoleStatus('cogitarian');
                         await loadRoleStatus('provisioner');
+                        await loadRoleStatus('dreamstyler');
                         updateUI();
                         
                         isInitializing = false;
@@ -1303,9 +1525,10 @@
         // Check if already logged in on page load - with retries
         document.addEventListener('DOMContentLoaded', () => {
             let attempts = 0;
-            const maxAttempts = 5; // Reduced from 10 to 5
+            const maxAttempts = 5;
             
-            console.log('🔄 [FLOW] DOMContentLoaded → Page initialization');
+            // Show/hide admin-only tabs based on access
+            enforceProvisionerVisibility();
             
             // Check URL path for direct role navigation (e.g., /work/greeter, /work/mapper)
             const pathParts = window.location.pathname.split('/');
@@ -1315,18 +1538,16 @@
             const hashRole = window.location.hash.replace('#', '');
             
             // Build allowed roles list
-            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner'];
+            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler'];
             
             let initialTab = null;
             
             // Priority 1: Hash fragment (from redirects)
             if (allowedRoles.includes(hashRole)) {
-                console.log('🔄 [FLOW] Hash specifies role:', hashRole);
                 initialTab = hashRole;
             }
             // Priority 2: URL path
             else if (allowedRoles.includes(urlRole)) {
-                console.log('🔄 [FLOW] URL specifies role:', urlRole);
                 initialTab = urlRole;
             } 
             // Priority 3: Saved tab
@@ -1334,7 +1555,6 @@
                 // Restore saved tab if any
                 const savedTab = localStorage.getItem('work_current_tab');
                 if (savedTab && allowedRoles.includes(savedTab)) {
-                    console.log('🔄 [FLOW] Restoring saved tab:', savedTab);
                     initialTab = savedTab;
                 }
             }
@@ -1367,11 +1587,11 @@
             updateOriginCoordinateExample();
             
             // Load all role statuses immediately (works without login)
-            console.log('🔄 [FLOW] DOMContentLoaded → Loading all role statuses');
             loadRoleStatus('greeter');
             loadRoleStatus('mapper');
             loadRoleStatus('cogitarian');
             loadRoleStatus('provisioner');
+            loadRoleStatus('dreamstyler');
             
             // Load greeting events for greeter tab
             loadGreetingEvents();
@@ -1459,50 +1679,30 @@
             setupWorkEvents();
             
             // Set initial loading state
-            document.getElementById('loading-state-text').textContent = 'Checking session...';
+            const loadingStateText = document.getElementById('loading-state-text');
+            if (loadingStateText) loadingStateText.textContent = 'Checking session...';
             
             // Check immediately first
             checkSession().then(found => {
                 if (found) {
-                    console.log('✅ [FLOW] Session found immediately!');
                     return;
                 }
                 
                 // If not found, start interval checks
-                const checkInterval = setInterval(async () => {
+                const sessionCheckInterval = setInterval(async () => {
                     attempts++;
                     
-                    console.log(`🔍 Work: Session check attempt ${attempts}/${maxAttempts}`);
                     const found = await checkSession();
                     if (found) {
-                        console.log('✅ Work: Session found!');
-                        clearInterval(checkInterval);
+                        clearInterval(sessionCheckInterval);
                     } else if (attempts >= maxAttempts) {
                         // No session found after max attempts
-                        console.log('⚠️ Work: No session found after max attempts');
                         sessionCheckComplete = true;
                         updateUI();
-                        clearInterval(checkInterval);
+                        clearInterval(sessionCheckInterval);
                     }
-                }, 300); // Increased to 300ms to reduce frequency
+                }, 300); // 300ms interval
             });
-            
-            const checkInterval = setInterval(async () => {
-                attempts++;
-                
-                console.log(`🔍 Work: Session check attempt ${attempts}/${maxAttempts}`);
-                const found = await checkSession();
-                if (found) {
-                    console.log('✅ Work: Session found!');
-                    clearInterval(checkInterval);
-                } else if (attempts >= maxAttempts) {
-                    // No session found after max attempts
-                    console.log('⚠️ Work: No session found after max attempts');
-                    sessionCheckComplete = true;
-                    updateUI();
-                    clearInterval(checkInterval);
-                }
-            }, 200); // Check every 200ms
         });
 
         // Safe login trigger that double-checks session before showing popup
@@ -1588,7 +1788,6 @@
             // Check if we're using the old work.html structure or new work.html structure
             // work.html doesn't have these elements, so skip if they don't exist
             if (!loadingState || !userStatus || !guestPrompt) {
-                console.log('ℹ️ [updateUI] Using work.html sidebar structure, skipping legacy UI updates');
                 return;
             }
 
@@ -1647,11 +1846,13 @@
             console.log('   roleStatuses.mapper:', roleStatuses.mapper);
             console.log('   roleStatuses.cogitarian:', roleStatuses.cogitarian);
             console.log('   roleStatuses.provisioner:', roleStatuses.provisioner);
+            console.log('   roleStatuses.dreamstyler:', roleStatuses.dreamstyler);
             
             if (roleStatuses.greeter && roleStatuses.greeter.is_worker) actualUserRole = 'greeter';
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) actualUserRole = 'mapper';
             else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) actualUserRole = 'cogitarian';
             else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) actualUserRole = 'provisioner';
+            else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) actualUserRole = 'dreamstyler';
             
             console.log('   → actualUserRole determined:', actualUserRole);
             
@@ -1664,39 +1865,51 @@
             const isWorkerForSelectedRole = selectedRoleStatus && selectedRoleStatus.is_worker;
             const status = selectedRoleStatus?.status;
             
-            console.log('═══════════════════════════════════════════════');
-            console.log('🎯 [UI UPDATE] Called at', new Date().toISOString());
-            console.log('🔧 [UI UPDATE] currentRole (selected tab):', currentRole);
-            console.log('🔧 [UI UPDATE] actualUserRole:', actualUserRole);
-            console.log('🔧 [UI UPDATE] viewingOwnRole:', viewingOwnRole);
-            console.log('🔧 [UI UPDATE] hasRole:', hasRole);
-            console.log('🔧 [UI UPDATE] isWorkerForSelectedRole:', isWorkerForSelectedRole);
-            console.log('🔧 [UI UPDATE] selectedRoleStatus:', selectedRoleStatus);
-            console.log('🔧 [UI UPDATE] status:', status);
-            console.log('🔧 [UI UPDATE] currentSession DID:', currentSession.sub || currentSession.did);
-            console.log('═══════════════════════════════════════════════');
-            
             // Show worker status card ONLY if viewing own role
             if (isWorkerForSelectedRole && viewingOwnRole) {
-                console.log('✅ [UI] Showing worker status card for', currentRole);
-                
                 // Skip if elements don't exist (work.html uses different structure)
                 if (!userStatus || !activateBtn) {
-                    console.log('ℹ️ [UI] Using work.html structure - worker UI managed by sidebar');
                     return;
                 }
                 
                 const displayName = currentSession.profile?.displayName || userHandle;
                 const avatar = currentSession.profile?.avatar || '/assets/icon.png';
                 
-                // Status display - just show the actual status value
-                const statusValue = status === 'working' ? 'working' : 'retiring';
-                
                 // Get role title from config
                 const currentRoleConfig = roleConfigs[currentRole];
                 const roleTitle = currentRoleConfig ? currentRoleConfig.title : currentRole;
+                const isMultiWorkerRole = currentRoleConfig?.multiWorker === true;
+                
+                // Status display - multi-worker roles don't have retiring status
+                const statusValue = isMultiWorkerRole ? 'active' : (status === 'working' ? 'working' : 'retiring');
                 
                 // Build card matching the not-volunteering style
+                // Multi-worker roles show simpler UI (just Step Down, no retiring)
+                const volunteerSectionContent = isMultiWorkerRole 
+                    ? `<div class="volunteer-prompt">
+                           <h4>You are currently ${roleTitle}</h4>
+                           <p>Thank you for working!</p>
+                           <p>You may step down at any time.</p>
+                       </div>
+                       <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                           <button class="action-button" onclick="deactivateRole('${currentRole}')" style="background: #5d4a37; border-color: #5d4a37;">Step Down</button>
+                       </div>`
+                    : `<div class="volunteer-prompt">
+                           <h4>You are currently ${roleTitle}</h4>
+                           <p>Thank you for working!</p>
+                           <p>${status === 'working' 
+                               ? 'You may begin retiring, or step down immediately.' 
+                               : 'You are already marked as retiring.<br>You will be replaced when someone new volunteers.'}</p>
+                       </div>
+                       <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                           ${status === 'working' 
+                               ? `<button class="action-button" onclick="setRoleRetiring('${currentRole}')" style="background: #8b7355; border-color: #8b7355;">Begin Retiring</button>
+                                  <button class="action-button" onclick="deactivateRole('${currentRole}')" style="background: #5d4a37; border-color: #5d4a37;">Step Down</button>`
+                               : `<button class="action-button" onclick="showAlreadyWorkingMessage()" style="background: #999; border-color: #999; opacity: 0.6; cursor: not-allowed;">Continue Working</button>
+                                  <button class="action-button" onclick="deactivateRole('${currentRole}')" style="background: #5d4a37; border-color: #5d4a37;">Step Down</button>`
+                           }
+                       </div>`;
+                
                 userStatus.innerHTML = `
                     <div class="user-status-card not-volunteering">
                         <div class="profile-section">
@@ -1717,21 +1930,7 @@
                             </div>
                         </div>
                         <div class="volunteer-section">
-                            <div class="volunteer-prompt">
-                                <h4>You are currently ${roleTitle}</h4>
-                                <p>Thank you for working!</p>
-                                <p>${status === 'working' 
-                                    ? 'You may begin retiring, or step down immediately.' 
-                                    : 'You are already marked as retiring.<br>You will be replaced when someone new volunteers.'}</p>
-                            </div>
-                            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                                ${status === 'working' 
-                                    ? `<button class="action-button" onclick="setRoleRetiring('${currentRole}')" style="background: #8b7355; border-color: #8b7355;">Begin Retiring</button>
-                                       <button class="action-button" onclick="deactivateRole('${currentRole}')" style="background: #5d4a37; border-color: #5d4a37;">Step Down</button>`
-                                    : `<button class="action-button" onclick="showAlreadyWorkingMessage()" style="background: #999; border-color: #999; opacity: 0.6; cursor: not-allowed;">Continue Working</button>
-                                       <button class="action-button" onclick="deactivateRole('${currentRole}')" style="background: #5d4a37; border-color: #5d4a37;">Step Down</button>`
-                                }
-                            </div>
+                            ${volunteerSectionContent}
                         </div>
                     </div>
                 `;
@@ -1815,6 +2014,19 @@
                         retiringText: 'is ready to retire, if you\'re ready to replace them.',
                         notRetiredText: 'is not yet ready to retire.',
                         comingSoon: false
+                    },
+                    'dreamstyler': {
+                        title: roleConfigs.dreamstyler.title,
+                        description: 'Helps shape the aesthetic elements and translate the dreams of others within our wild mindscape.',
+                        buttonText: 'BECOME DREAMSTYLER',
+                        replaceText: 'BECOME DREAMSTYLER',  // Same as button - no replacement concept
+                        onclickHandler: 'openWorkerModal(\'dreamstyler\')',
+                        workerNamePlaceholder: 'dreamstyler-name-placeholder',
+                        activeNamePlaceholder: 'dreamstyler-name-placeholder-active',
+                        retiringText: '',  // No retiring for multi-worker
+                        notRetiredText: '',  // No retiring for multi-worker
+                        comingSoon: false,
+                        multiWorker: true  // Flag for multi-worker role
                     }
                 };
                 
@@ -1830,23 +2042,28 @@
                 let workerName = '';
                 let replacementNotice = '';
                 
-                if (isRetiringWorker && selectedRoleData?.role_info?.workers?.length > 0) {
-                    const workerDid = selectedRoleData.role_info.workers[0].did;
-                    // Fetch worker name from dreamers (we'll need to do this async)
-                    // For now, use a placeholder - we'll update this after fetching
-                    replacementNotice = `
-                        <div class="replacement-notice retiring" style="margin-top: 0.75rem; text-align: center; font-size: 0.9rem; color: white;">
-                            <span id="${config.workerNamePlaceholder}">Loading...</span> ${config.retiringText}
-                        </div>
-                    `;
-                } else if (isActiveWorker && selectedRoleData?.role_info?.workers?.length > 0) {
-                    const workerDid = selectedRoleData.role_info.workers[0].did;
-                    // Simple white text for active worker
-                    replacementNotice = `
-                        <div class="replacement-notice active" style="margin-top: 0.75rem; text-align: center; font-size: 0.9rem; color: white;">
-                            <span id="${config.activeNamePlaceholder}">Loading...</span> ${config.notRetiredText}
-                        </div>
-                    `;
+                // Skip retiring/active notices for multi-worker roles (dreamstyler)
+                const isMultiWorkerRole = config.multiWorker === true;
+                
+                if (!isMultiWorkerRole) {
+                    if (isRetiringWorker && selectedRoleData?.role_info?.workers?.length > 0) {
+                        const workerDid = selectedRoleData.role_info.workers[0].did;
+                        // Fetch worker name from dreamers (we'll need to do this async)
+                        // For now, use a placeholder - we'll update this after fetching
+                        replacementNotice = `
+                            <div class="replacement-notice retiring" style="margin-top: 0.75rem; text-align: center; font-size: 0.9rem; color: white;">
+                                <span id="${config.workerNamePlaceholder}">Loading...</span> ${config.retiringText}
+                            </div>
+                        `;
+                    } else if (isActiveWorker && selectedRoleData?.role_info?.workers?.length > 0) {
+                        const workerDid = selectedRoleData.role_info.workers[0].did;
+                        // Simple white text for active worker
+                        replacementNotice = `
+                            <div class="replacement-notice active" style="margin-top: 0.75rem; text-align: center; font-size: 0.9rem; color: white;">
+                                <span id="${config.activeNamePlaceholder}">Loading...</span> ${config.notRetiredText}
+                            </div>
+                        `;
+                    }
                 }
                 
                 // Check if user has a different role and create subtitle
@@ -1859,7 +2076,9 @@
                 }
                 
                 // For coming soon roles or conflicting roles, show disabled button
-                const isDisabled = config.comingSoon || isActiveWorker || hasConflictingRole;
+                // Multi-worker roles (dreamstyler) don't disable when there are active workers
+                const shouldDisableForActiveWorker = isActiveWorker && !isMultiWorkerRole;
+                const isDisabled = config.comingSoon || shouldDisableForActiveWorker || hasConflictingRole;
                 const disabledStyles = isDisabled ? 'disabled style="opacity: 0.6; cursor: not-allowed; background: #999; border-color: #999;"' : '';
                 const buttonOnclick = (config.comingSoon || hasConflictingRole) ? '' : `onclick="${config.onclickHandler}"`;
                 
@@ -1884,7 +2103,7 @@
                                 <p>${config.description}</p>
                             </div>
                             <button class="action-button volunteer-now-btn" ${buttonOnclick} ${disabledStyles}>
-                                <span class="btn-text">${isRetiringWorker ? config.replaceText : config.buttonText}</span>
+                                <span class="btn-text">${(isRetiringWorker && !isMultiWorkerRole) ? config.replaceText : config.buttonText}</span>
                             </button>
                             ${buttonSubtitle}
                             ${replacementNotice}
@@ -1894,8 +2113,8 @@
                 `;
                 userStatus.style.display = 'block';
                 
-                // Fetch and update worker name if there's a current worker
-                if ((isRetiringWorker || isActiveWorker) && selectedRoleData?.role_info?.workers?.length > 0) {
+                // Fetch and update worker name if there's a current worker (skip for multi-worker roles)
+                if (!isMultiWorkerRole && (isRetiringWorker || isActiveWorker) && selectedRoleData?.role_info?.workers?.length > 0) {
                     const workerDid = selectedRoleData.role_info.workers[0].did;
                     updateGreeterNameInNotice(workerDid);
 
@@ -1957,48 +2176,31 @@
 
         async function loadRoleStatus(role) {
             try {
-                const startTime = performance.now();
-                console.log(`🌐 [API] Starting ${role} status fetch at`, new Date().toISOString());
-                
                 // Get token - use same priority as credentials check and activation
                 // Priority: backend session token > PDS accessJwt
                 let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
-                let tokenSource = 'backend';
                 
                 if (!token && currentSession && currentSession.accessJwt) {
                     token = currentSession.accessJwt;
-                    tokenSource = 'pds-jwt';
                 }
 
                 const headers = {};
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
-                    console.log(`🔑 Work: Using ${tokenSource} token for ${role} auth`);
-                } else {
-                    console.info(`Work: No token found, ${role} API will return public info only`);
                 }
 
-                console.log(`🔄 Work: Loading ${role} status...`);
-                const fetchStart = performance.now();
                 const response = await fetch(`/api/work/${role}/status`, {
                     headers: headers
                 });
-                const fetchDuration = performance.now() - fetchStart;
-                console.log(`⏱️ [API] ${role} status fetch took ${fetchDuration.toFixed(0)}ms (status: ${response.status})`);
 
                 if (response.ok) {
                     const data = await response.json();
-                    const totalDuration = performance.now() - startTime;
-                    console.log(`✅ [API] ${role} status loaded (total: ${totalDuration.toFixed(0)}ms):`, data);
-                    console.log(`📝 [STATE] Setting ${role}Status:`, data);
                     roleStatuses[role] = data;
                     
                     // Update worker display if this is the current role and we got role_info
                     if (role === currentRole && data.role_info) {
-                        console.log(`👤 [FLOW] Calling updateWorkerDisplay() for ${role}`);
                         updateWorkerDisplay(data.role_info, role);
                     } else if (role === currentRole) {
-                        console.log(`⚠️ [STATE] No role_info in ${role} response`);
                         // No role_info in response, show None
                         const workerDisplay = document.getElementById('worker-display');
                         if (workerDisplay) {
@@ -2038,11 +2240,8 @@
         async function updateWorkerDisplay(roleInfo, role = 'greeter') {
             const workerDisplay = document.getElementById('worker-display');
             
-            console.log('🔧 Work: updateWorkerDisplay called with:', roleInfo);
-            
             if (!roleInfo.workers || roleInfo.workers.length === 0) {
-                console.log('⚠️ Work: No workers found in role_info');
-                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : 'Provisioner';
+                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : role === 'provisioner' ? 'Provisioner' : 'Dreamstyler';
                 
                 // Reset worker card borders to default when no worker
                 const workerCard = document.querySelector('.role-worker-card');
@@ -2059,9 +2258,13 @@
                     'greeter': 'var(--role-greeter)',
                     'mapper': 'var(--role-mapper)',
                     'cogitarian': 'var(--role-cogitarian)',
-                    'provisioner': 'var(--role-provisioner)'
+                    'provisioner': 'var(--role-provisioner)',
+                    'dreamstyler': 'var(--role-dreamstyler)'
                 };
                 const roleColor = roleColors[role] || 'var(--role-greeter)';
+                
+                // Dreamstyler shows different message when empty
+                const emptyMessage = role === 'dreamstyler' ? 'No Active Dreamstylers' : 'No Current Worker';
                 
                 workerDisplay.innerHTML = `
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5" style="margin: 0 auto; display: block;">
@@ -2070,7 +2273,7 @@
                         <path d="M6.168 18.849A4 4 0 0 1 10 16h4a4 4 0 0 1 3.834 2.855" />
                     </svg>
                     <div style="text-align: center; margin-top: 0.5rem;">
-                        <span style="color: #999; font-size: 0.75rem; display: block; margin-bottom: 0.5rem;">No Current Worker</span>
+                        <span style="color: #999; font-size: 0.75rem; display: block; margin-bottom: 0.5rem;">${emptyMessage}</span>
                         <button class="become-role-btn" onclick="openWorkerModal('${role}')" style="
                             background: ${roleColor};
                             color: white;
@@ -2085,6 +2288,12 @@
                         ">Become ${roleTitle}</button>
                     </div>
                 `;
+                return;
+            }
+
+            // Special handling for multi-worker roles (dreamstyler)
+            if (role === 'dreamstyler') {
+                await updateMultiWorkerDisplay(roleInfo, role);
                 return;
             }
 
@@ -2159,6 +2368,95 @@
                     </a>
                 `;
             }
+        }
+
+        // Display multiple workers for multi-worker roles (like dreamstyler)
+        async function updateMultiWorkerDisplay(roleInfo, role) {
+            const workerDisplay = document.getElementById('worker-display');
+            const workers = roleInfo.workers || [];
+            const roleColor = 'var(--role-dreamstyler)';
+            
+            // Set card border color
+            const workerCard = document.querySelector('.role-worker-card');
+            const workerCardHeader = document.querySelector('.worker-card-header');
+            if (workerCard) workerCard.style.borderColor = roleColor;
+            if (workerCardHeader) workerCardHeader.style.borderColor = roleColor;
+            
+            // Check if current user is already a worker for this role
+            const currentUserDID = currentSession?.sub || currentSession?.did;
+            const isCurrentUserWorker = currentUserDID && workers.some(w => w.did === currentUserDID);
+            
+            // Fetch all worker info in parallel
+            const workerInfoPromises = workers.map(async (worker) => {
+                try {
+                    const response = await fetch(`/api/dreamers/${worker.did}`);
+                    if (response.ok) {
+                        const dreamer = await response.json();
+                        return {
+                            did: worker.did,
+                            handle: dreamer.handle || 'unknown',
+                            displayName: dreamer.display_name || dreamer.handle || 'Unknown',
+                            avatar: dreamer.avatar || '/assets/default-avatar.png',
+                            color: dreamer.color_hex || '#9e75e5'
+                        };
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch dreamer:', e);
+                }
+                return {
+                    did: worker.did,
+                    handle: 'unknown',
+                    displayName: 'Unknown',
+                    avatar: '/assets/default-avatar.png',
+                    color: '#9e75e5'
+                };
+            });
+            
+            const workerInfos = await Promise.all(workerInfoPromises);
+            
+            // Build compact list of workers
+            const workerListHTML = workerInfos.map(w => `
+                <a href="/dreamer.html?did=${w.did}" 
+                   class="dreamer-link" 
+                   data-did="${w.did}"
+                   style="display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; text-decoration: none;">
+                    <img src="${w.avatar}" alt="${w.handle}" 
+                         style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid ${w.color}; object-fit: cover;">
+                    <span style="color: ${w.color}; font-weight: 500; font-size: 0.9rem;">${w.displayName}</span>
+                    <span style="color: #999; font-size: 0.8rem;">@${w.handle}</span>
+                </a>
+            `).join('');
+            
+            // Only show "Become Dreamstyler" button if user is NOT already a dreamstyler
+            const becomeButton = isCurrentUserWorker ? '' : `
+                    <button class="become-role-btn" onclick="openWorkerModal('dreamstyler')" style="
+                        background: var(--role-dreamstyler);
+                        color: white;
+                        border: none;
+                        padding: 0.4rem 0.8rem;
+                        font-size: 0.75rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-top: 0.5rem;
+                    ">Become Dreamstyler</button>`;
+            
+            workerDisplay.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 150px; overflow-y: auto;">
+                    ${workerListHTML}
+                </div>
+                <div style="text-align: center; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(158, 117, 229, 0.2);">
+                    <span style="color: #999; font-size: 0.7rem;">${workers.length} active dreamstyler${workers.length !== 1 ? 's' : ''}</span>
+                    ${becomeButton}
+                </div>
+            `;
+            
+            // Initialize dreamer-hover
+            setTimeout(() => {
+                if (window.DreamerHover) window.DreamerHover.init();
+            }, 100);
         }
 
         // LEGACY: Wrapper for backward compatibility
@@ -2270,6 +2568,21 @@
                 confirmTitle: 'Become Head of Pantry?',
                 confirmMessage: 'As Head of Pantry, you will help ease the hunger of dreamers in need.',
                 activationMessage: 'You are now Head of Pantry\nThank you for working!\nPlease stop if it feels like work.',
+                showExamples: false,
+                getExamples: () => []
+            },
+            dreamstyler: {
+                title: 'Dreamstyler',
+                description: 'There is a wide difference between the aesthetics of dreams, and a highly visioned Dreamstyler is versatile enough to help shape or translate the dreams of others.<br><br>Because there are so many tastes, there are many types of Dreamstyler and Reverie House makes no distinction. Let yourself be known to others, and maintain your own designs.',
+                exampleLabel: 'Style Examples',
+                appPasswordName: 'Dreamstyler',
+                passwordPurpose: 'for aesthetic work',
+                roleName: 'Dreamstyler',
+                roleNameLower: 'dreamstyler',
+                buttonText: 'BECOME DREAMSTYLER',
+                confirmTitle: 'Become Dreamstyler?',
+                confirmMessage: 'As Dreamstyler, you will help shape the aesthetic elements of Reverie House.',
+                activationMessage: 'You are now a Dreamstyler\nThank you for working!\nPlease stop if it feels like work.',
                 showExamples: false,
                 getExamples: () => []
             }
@@ -2646,6 +2959,7 @@
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) userCurrentRole = 'mapper';
             else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
             else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) userCurrentRole = 'provisioner';
+            else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) userCurrentRole = 'dreamstyler';
             
             if (userCurrentRole && userCurrentRole !== role) {
                 const currentRoleConfig = roleConfigs[userCurrentRole];
@@ -2657,12 +2971,15 @@
             currentModalRole = role;
             
             // Check if there's already an active worker for this role
-            const statusResponse = await fetch(`/api/work/${role}/status`);
-            if (statusResponse.ok) {
-                const statusData = await statusResponse.json();
-                if (statusData.activeWorker && statusData.activeWorker !== currentSession.did) {
-                    showCelebration(`There is already an active ${config.roleNameLower}`, 'error');
-                    return;
+            // (Skip this check for dreamstyler since it's multi-worker)
+            if (role !== 'dreamstyler') {
+                const statusResponse = await fetch(`/api/work/${role}/status`);
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    if (statusData.activeWorker && statusData.activeWorker !== currentSession.did) {
+                        showCelebration(`There is already an active ${config.roleNameLower}`, 'error');
+                        return;
+                    }
                 }
             }
             
@@ -3362,6 +3679,14 @@
         }
         
         async function setRoleRetiring(role) {
+            // Multi-worker roles don't support retiring - they just step down
+            const config = roleConfigs[role];
+            if (config?.multiWorker === true) {
+                console.log('⚠️ setRoleRetiring called for multi-worker role:', role);
+                showCelebration('This role does not support retiring status.', 'error');
+                return;
+            }
+            
             try {
                 // Get token - use same priority as other API calls
                 // Priority: backend session token > PDS accessJwt

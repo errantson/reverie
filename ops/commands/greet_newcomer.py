@@ -161,19 +161,19 @@ def greet_newcomer(replies: List[Dict], quest_config: Dict, verbose: bool = Fals
         if verbose:
             print(f"   ❌ {error_msg}")
         
-        # If using new system, mark credential as invalid
+        # If using new system, purge the invalid credential (set password hash to NULL)
         if greeter_source == 'unified_credentials':
             try:
                 db.execute("""
                     UPDATE user_credentials
-                    SET is_valid = FALSE
+                    SET app_password_hash = NULL, password_hash = NULL
                     WHERE did = %s
                 """, (worker_client.worker_did,))
                 if verbose:
-                    print(f"   ⚠️  Marked credential as invalid in database")
+                    print(f"   ⚠️  Purged invalid credential from database")
             except Exception as e:
                 if verbose:
-                    print(f"   ⚠️  Failed to mark credential invalid: {e}")
+                    print(f"   ⚠️  Failed to purge invalid credential: {e}")
         
         return result
     
@@ -187,7 +187,7 @@ def greet_newcomer(replies: List[Dict], quest_config: Dict, verbose: bool = Fals
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE user_credentials
-                    SET last_verified = CURRENT_TIMESTAMP, is_valid = TRUE
+                    SET last_verified = CURRENT_TIMESTAMP
                     WHERE did = %s
                 """, (worker_client.worker_did,))
                 

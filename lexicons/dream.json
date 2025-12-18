@@ -1,0 +1,49 @@
+{
+  "lexicon": 1,
+  "id": "house.reverie.dream",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A dream - an experiential website in the reverie.house ecosystem. Posted by the dream creator to their own PDS.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["domain", "title", "createdAt"],
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "The domain of the dream (e.g., 'flawed.center'). No protocol prefix.",
+            "maxLength": 253
+          },
+          "title": {
+            "type": "string",
+            "description": "The display title of the dream.",
+            "maxGraphemes": 100,
+            "maxLength": 1000
+          },
+          "description": {
+            "type": "string",
+            "description": "A brief description of the dream.",
+            "maxGraphemes": 300,
+            "maxLength": 3000
+          },
+          "tangledRepo": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI to the sh.tangled.repo record for this dream's source code."
+          },
+          "status": {
+            "type": "string",
+            "description": "The current state of the dream.",
+            "knownValues": ["dreaming", "awake", "archived"],
+            "default": "dreaming"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

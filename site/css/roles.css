@@ -29,6 +29,12 @@
     --role-provisioner-light: rgba(218, 165, 32, 0.12);
     --role-provisioner-medium: rgba(218, 165, 32, 0.25);
     --role-provisioner-dark: rgb(184, 134, 11);
+    
+    /* Dreamstyler - Lavender purple (aesthetics, creativity) */
+    --role-dreamstyler: rgb(158, 117, 229);
+    --role-dreamstyler-light: rgba(158, 117, 229, 0.12);
+    --role-dreamstyler-medium: rgba(158, 117, 229, 0.25);
+    --role-dreamstyler-dark: rgb(120, 85, 180);
 }
 
 /* Role-specific utility classes */
@@ -36,11 +42,13 @@
 .role-bg-mapper { background-color: var(--role-mapper-light) !important; }
 .role-bg-cogitarian { background-color: var(--role-cogitarian-light) !important; }
 .role-bg-provisioner { background-color: var(--role-provisioner-light) !important; }
+.role-bg-dreamstyler { background-color: var(--role-dreamstyler-light) !important; }
 
 .role-text-greeter { color: var(--role-greeter) !important; }
 .role-text-mapper { color: var(--role-mapper) !important; }
 .role-text-cogitarian { color: var(--role-cogitarian) !important; }
 .role-text-provisioner { color: var(--role-provisioner) !important; }
+.role-text-dreamstyler { color: var(--role-dreamstyler) !important; }
 
 /* Spectrum preview helper text styling moved here so role color tokens are available */
 .spectrum-preview-helper-text {

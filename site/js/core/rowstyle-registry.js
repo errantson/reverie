@@ -427,6 +427,28 @@ const RowStyleRegistry = {
             return (event.color_source === 'role' && event.key === 'provisioner') || (event.type === 'work' && event.key === 'provisioner');
         }
     },
+
+    dreamstyler: {
+        name: "dreamstyler",
+        description: "Lavender purple for dreamstyler work",
+        category: "role",
+        rendering: {
+            cssClasses: ['row-entry', 'color-role', 'role-dreamstyler', 'intensity-highlight'],
+            cssFiles: ['color-rows.css', 'roles.css'],
+            cssVariables: ['--role-dreamstyler', '--role-dreamstyler-light', '--role-dreamstyler-medium', '--role-dreamstyler-dark'],
+            effects: [],
+            appearance: {
+                background: 'Lavender purple gradient (vibrant to light to transparent)',
+                border: '3px solid lavender (--role-dreamstyler)',
+                color: 'Deep purple',
+                animation: 'None',
+                special: 'Creative and visionary tones for dreamstyler role'
+            }
+        },
+        matches: (event) => {
+            return (event.color_source === 'role' && event.key === 'dreamstyler') || (event.type === 'work' && event.key === 'dreamstyler');
+        }
+    },
     
     // =========================================================================
     // OCTANT STYLES (Generated dynamically)
@@ -513,7 +535,7 @@ function computeRowStyle(event) {
         // User color variations
         'user-highlight', 'user',
         // Role styles
-        'greeter', 'mapper', 'cogitarian', 'provisioner',
+        'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler',
         // Octant styles (checked dynamically)
         ...['adaptive', 'chaotic', 'intended', 'prepared', 'contented', 'assertive', 'ordered', 'guarded', 'equilibrium', 'confused', 'singling', 'uncertain']
     ];

@@ -668,6 +668,49 @@
     color: inherit !important;
 }
 
+/* Dreamstyler - Lavender purple tones */
+.row-entry.color-role.role-dreamstyler.intensity-none {
+    border-left: 2px solid var(--role-dreamstyler);
+    color: color-mix(in srgb, var(--role-dreamstyler) 80%, #333);
+}
+
+.row-entry.color-role.role-dreamstyler.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--role-dreamstyler-light) 0%,
+        transparent 100%
+    );
+    border-left: 2px solid var(--role-dreamstyler);
+    border-right: none;
+    color: color-mix(in srgb, var(--role-dreamstyler) 95%, #000);
+}
+
+.row-entry.color-role.role-dreamstyler.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--role-dreamstyler-medium) 0%,
+        var(--role-dreamstyler-light) 100%
+    );
+    border-left: 3px solid var(--role-dreamstyler);
+    border-right: none;
+    box-shadow: inset 0 0 0 1px var(--role-dreamstyler-light);
+    color: color-mix(in srgb, var(--role-dreamstyler) 90%, #000);
+    font-weight: 500;
+}
+
+/* Apply dreamstyler color uniformly to all cells */
+.row-entry.color-role.role-dreamstyler .cell,
+.row-entry.color-role.role-dreamstyler .cell * {
+    color: inherit;
+}
+
+/* Force event text to inherit dreamstyler color */
+.row-entry.color-role.role-dreamstyler .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-role.role-dreamstyler.intensity-highlight .cell span,
+.row-entry.color-role.role-dreamstyler.intensity-special .cell span {
+    color: inherit !important;
+}
+
 /* ============================================================================
    OCTANT COLOR SYSTEM (Spectrum-based coloring)
    ============================================================================ */
