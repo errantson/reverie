@@ -8739,13 +8739,14 @@ def send_provisioner_request():
         if not cursor.fetchone():
             return jsonify({'error': 'Provisioner is no longer active'}), 400
         
-        # Get provisioner's handle for the message
+        # Get provisioner's handle and name for the message
         cursor = db_manager.execute("""
-            SELECT handle FROM dreamers WHERE did = %s
+            SELECT handle, name FROM dreamers WHERE did = %s
         """, (provisioner_did,))
         
         prov_row = cursor.fetchone()
         provisioner_handle = prov_row['handle'] if prov_row else 'provisioner'
+        provisioner_name = prov_row['name'].capitalize() if prov_row and prov_row['name'] else 'friend'
         
         # Get requester's handle and app password
         if not user_handle:
@@ -8889,7 +8890,7 @@ def send_provisioner_request():
             ).convo
             
             # Compose the message
-            message_text = f"Hey @{provisioner_handle}, if you're around to help, I'm in {city} and could use some free food whenever it's available. Thanks in advance!"
+            message_text = f"Hey, {provisioner_name}! If you're around to help, I'm in {city} and could use some free food whenever it's available. Thanks in advance."
             
             # Send the message
             print(f"📤 Sending message to {provisioner_handle}...")

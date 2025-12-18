@@ -108,6 +108,13 @@ class Dashboard {
             document.head.appendChild(deleteAccountScript);
         }
         
+        // Load change handle widget
+        if (!document.querySelector('script[src*="js/widgets/changehandle.js"]')) {
+            const changeHandleScript = document.createElement('script');
+            changeHandleScript.src = '/js/widgets/changehandle.js';
+            document.head.appendChild(changeHandleScript);
+        }
+        
         // Load calendar widget CSS
         if (!document.querySelector('link[href*="css/calendar.css"]')) {
             const calendarCss = document.createElement('link');
@@ -618,12 +625,6 @@ class Dashboard {
                     <!-- Left Column: Heading and Controls -->
                     <div class="dashboard-card">
                         <div class="spectrum-heading-combined">
-                            <div class="kindred-section">
-                                <div id="kindredContainer" class="kindred-container">
-                                    ${await this.renderKindred()}
-                                </div>
-                            </div>
-                            
                             <!-- Condensed Roles/Character Section -->
                             <div class="roles-character-section" id="rolesCharacterSection">
                                 <!-- Will be populated by JS -->
@@ -742,9 +743,18 @@ class Dashboard {
                                 </div>
                                 
                                 <div class="dashboard-tab-content" id="messagesContent" style="display: none;">
-                                    <div class="dashboard-messages-container" id="dashboardMessagesContainer">
-                                        <!-- Messages will be loaded here -->
-                                        <div class="dashboard-messages-loading">Loading messages...</div>
+                                    <div class="messages-with-kindred-layout">
+                                        <div class="messages-main-panel">
+                                            <div class="dashboard-messages-container" id="dashboardMessagesContainer">
+                                                <!-- Messages will be loaded here -->
+                                                <div class="dashboard-messages-loading">Loading messages...</div>
+                                            </div>
+                                        </div>
+                                        <div class="messages-kindred-sidebar">
+                                            <div id="kindredContainer" class="kindred-container">
+                                                ${await this.renderKindred()}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -2692,6 +2702,73 @@ class Dashboard {
         }
     }
 
+    async changeHandle() {
+        const select = document.getElementById('handleSelect');
+        const btn = document.getElementById('handleConfirmBtn');
+        
+        if (!select || !btn) return;
+        
+        const selectedHandle = select.value;
+        if (!selectedHandle) return;
+        
+        // Extract the name portion from handle (e.g., "cousin" from "cousin.reverie.house")
+        const name = selectedHandle.replace('.reverie.house', '');
+        
+        btn.disabled = true;
+        btn.textContent = '...';
+        
+        try {
+            const token = await this.getOAuthToken();
+            if (!token) {
+                throw new Error('Please login');
+            }
+            
+            const response = await fetch('/api/user/set-primary-name', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: name })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to change handle');
+            }
+            
+            const result = await response.json();
+            
+            // Update local data
+            this.dreamerData.handle = selectedHandle;
+            
+            // Dispatch event to notify other components
+            window.dispatchEvent(new CustomEvent('handle-changed', { 
+                detail: { 
+                    newHandle: selectedHandle,
+                    newName: name,
+                    primaryName: result.primary_name,
+                    altNames: result.alt_names
+                } 
+            }));
+            
+            btn.textContent = 'OK';
+            btn.style.background = '#00b894';
+            
+            setTimeout(async () => {
+                btn.textContent = 'CHANGE';
+                btn.style.background = '';
+                btn.disabled = false;
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Failed to change handle:', error);
+            alert('Failed to change handle. Please try again.');
+            btn.textContent = 'CHANGE';
+            btn.disabled = false;
+        }
+    }
+
     initMiniSpectrum() {
         const canvas = document.getElementById('dashboardMiniCanvas');
         if (!canvas || !this.dreamerData) return;
@@ -3011,6 +3088,31 @@ class Dashboard {
                     </button>
                 </div>
             `;
+            
+            // Handle Selector Tool - build available handles from name + alts
+            const availableHandles = [];
+            if (this.dreamerData.name) {
+                availableHandles.push(`${this.dreamerData.name}.reverie.house`);
+            }
+            if (this.dreamerData.alt_names) {
+                const alts = this.dreamerData.alt_names.split(',').map(a => a.trim()).filter(a => a);
+                alts.forEach(alt => availableHandles.push(`${alt}.reverie.house`));
+            }
+            const currentHandle = this.dreamerData.handle || '';
+            
+            if (availableHandles.length > 0) {
+                html += `
+                    <div class="tool-row handle-tool">
+                        <span class="tool-label">Handle</span>
+                        <select class="handle-select" id="handleSelect">
+                            ${availableHandles.map(h => `<option value="${h}" ${h === currentHandle ? 'selected' : ''}>@${h}</option>`).join('')}
+                        </select>
+                        <button class="tool-btn handle-set-btn" id="handleConfirmBtn" onclick="window.dashboardWidget.changeHandle()">
+                            CHANGE
+                        </button>
+                    </div>
+                `;
+            }
             
             // Check if mapper is available (for tools that need it)
             let mapperAvailable = false;
@@ -4139,7 +4241,6 @@ class Dashboard {
             
             if (sorted.length === 0) {
                 // Empty state - single centered message that fills the full height
-                const emptyIcon = this.messagesPagination.showingDismissed ? '🗑️' : '📭';
                 const emptyText = this.messagesPagination.showingDismissed ? 'Trash Is Empty' : 'No Messages Yet';
                 const emptySubtext = this.messagesPagination.showingDismissed 
                     ? 'delete messages to place them in trash'
@@ -4147,7 +4248,6 @@ class Dashboard {
                 
                 html += `
                     <div class="dashboard-messages-empty-full">
-                        <div style="font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem;">${emptyIcon}</div>
                         <div style="opacity: 0.6; font-size: 0.875rem;">${emptyText}</div>
                         <div style="font-size: 0.75rem; opacity: 0.5; margin-top: 0.25rem;">
                             ${emptySubtext}
@@ -4173,7 +4273,7 @@ class Dashboard {
                 <div class="dashboard-messages-nav">
                     <button class="dashboard-messages-nav-btn dashboard-messages-trash-btn" 
                             onclick="window.dashboardWidget.toggleMessagesTrash()">
-                        ${this.messagesPagination.showingDismissed ? '← Back to Messages' : '🗑️ Trash'}
+                        ${this.messagesPagination.showingDismissed ? '← Back to Messages' : 'Trash'}
                     </button>
                     <div class="dashboard-messages-nav-right">
                         <button class="dashboard-messages-nav-btn" 

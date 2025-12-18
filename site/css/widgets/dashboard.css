@@ -498,6 +498,26 @@
     min-width: 50px;
 }
 
+/* Handle Tool */
+.tool-row.handle-tool {
+    gap: 8px;
+}
+
+.tool-row.handle-tool .handle-select {
+    flex: 1;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border: 1px solid #d0c7f0;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    height: 28px;
+}
+
+.tool-row.handle-tool .handle-set-btn {
+    min-width: 60px;
+}
+
 .tool-label {
     font-weight: 600;
     color: #666;
@@ -1274,6 +1294,53 @@
 }
 
 /* Messages Tab Content */
+/* Split layout for messages + kindred sidebar */
+.messages-with-kindred-layout {
+    display: flex;
+    gap: 12px;
+    min-height: 200px;
+}
+
+.messages-main-panel {
+    flex: 1;
+    min-width: 0;
+}
+
+.messages-kindred-sidebar {
+    width: 140px;
+    flex-shrink: 0;
+    padding-left: 12px;
+    border-left: 1px solid #e0e0e0;
+}
+
+.messages-kindred-sidebar .kindred-container {
+    margin-top: 0;
+}
+
+.messages-kindred-sidebar .section-title-kindred {
+    font-size: 0.7rem;
+    margin-bottom: 6px;
+}
+
+.messages-kindred-sidebar .dashboard-kindred-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.messages-kindred-sidebar .dashboard-kindred-card {
+    padding: 2px 4px;
+}
+
+.messages-kindred-sidebar .dashboard-kindred-avatar {
+    width: 18px;
+    height: 18px;
+}
+
+.messages-kindred-sidebar .dashboard-kindred-name {
+    font-size: 0.65rem;
+}
+
 .dashboard-messages-container {
     display: flex;
     flex-direction: column;

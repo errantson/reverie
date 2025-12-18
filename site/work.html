@@ -79,6 +79,7 @@
     <script src="/js/widgets/stepdown.js" defer></script>
     <script src="/js/widgets/upload_avatar.js" defer onerror="console.error('Failed to load upload_avatar.js')"></script>
     <script src="/js/widgets/apppassreq.js" defer></script>
+    <script src="/js/widgets/changehandle.js" defer></script>
 </head>
 <body>
     <div id="header-container"></div>
@@ -549,7 +550,7 @@
             <div class="city-modal-preview">
                 <div class="preview-label">Message Preview:</div>
                 <div id="messagePreview" class="preview-text">
-                    Hey @<span class="preview-handle">provisioner</span>, if you're around to help, I'm in <span class="preview-city">...</span> and could use some free food whenever it's available. Thanks in advance!
+                    Hey, <span class="preview-handle">Donatella</span>! If you're around to help, I'm in <span class="preview-city">...</span> and could use some free food whenever it's available. Thanks in advance.
                 </div>
             </div>
             
@@ -1095,6 +1096,43 @@
                 return;
             }
             
+            // Gate: Check if user has a .reverie.house handle
+            const userHandle = currentSession.profile?.handle || currentSession.handle || '';
+            if (!userHandle.endsWith('.reverie.house')) {
+                console.log('🚫 [Food Request] User does not have a .reverie.house handle:', userHandle);
+                
+                // Get provisioner handle for the message
+                let provisionerHandle = 'the Head of Pantry';
+                const provStatus = roleStatuses.provisioner;
+                if (provStatus && provStatus.current_worker) {
+                    // Try to get the provisioner's handle
+                    try {
+                        const provResponse = await fetch(`/api/dreamers/${provStatus.current_worker.did}`);
+                        if (provResponse.ok) {
+                            const provData = await provResponse.json();
+                            provisionerHandle = provData.handle || 'the Head of Pantry';
+                        }
+                    } catch (e) {
+                        console.warn('Could not fetch provisioner handle:', e);
+                    }
+                }
+                
+                // Show the changehandle widget to let them switch handles
+                if (window.changeHandleWidget) {
+                    window.changeHandleWidget.show({
+                        reason: 'food_request',
+                        provisionerHandle: provisionerHandle,
+                        onSuccess: () => {
+                            // Retry the food request after handle change
+                            requestFoodPickup();
+                        }
+                    });
+                } else {
+                    showCelebration('Food requests are only available to dreamweavers using their .reverie.house handle.\n\nPlease switch to your Reverie House handle and try again.', 'error');
+                }
+                return;
+            }
+            
             // Check if there's an active provisioner
             const provisionerStatus = roleStatuses.provisioner;
             if (!provisionerStatus || !provisionerStatus.current_worker) {
@@ -1279,16 +1317,20 @@
             if (provisionerStatus && provisionerStatus.current_worker) {
                 const provisionerDid = provisionerStatus.current_worker.did;
                 
-                // Fetch provisioner's handle
+                // Fetch provisioner's name
                 try {
                     const response = await fetch(`/api/dreamers/${provisionerDid}`);
                     if (response.ok) {
                         const dreamer = await response.json();
-                        handlePreview.textContent = dreamer.handle || 'provisioner';
+                        // Use name (capitalized) for a friendly greeting
+                        const name = dreamer.name ? 
+                            dreamer.name.charAt(0).toUpperCase() + dreamer.name.slice(1) : 
+                            'friend';
+                        handlePreview.textContent = name;
                     }
                 } catch (error) {
-                    console.error('Error fetching provisioner handle:', error);
-                    handlePreview.textContent = 'provisioner';
+                    console.error('Error fetching provisioner name:', error);
+                    handlePreview.textContent = 'friend';
                 }
             }
             
@@ -4161,6 +4203,10 @@
 
         // Celebration popup and bubble system
         function showCelebration(message, type = 'success', buttonText = 'OKAY') {
+            // Remove any existing celebration overlays to prevent stacking
+            const existingOverlays = document.querySelectorAll('.celebration-overlay');
+            existingOverlays.forEach(overlay => overlay.remove());
+            
             // Convert \n to <br> for multi-line messages
             const formattedMessage = message.replace(/\n/g, '<br>');
             

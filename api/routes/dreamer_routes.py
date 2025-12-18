@@ -341,7 +341,7 @@ def get_dreamer_by_did(did):
                 d.did, d.handle, d.name, d.display_name, d.description,
                 d.server, d.avatar, d.banner,
                 d.followers_count, d.follows_count, d.posts_count,
-                d.created_at, d.arrival, d.heading, d.color_hex, d.phanera,
+                d.created_at, d.arrival, d.heading, d.color_hex, d.phanera, d.alts,
                 s.oblivion, s.authority, s.skeptic, s.receptive, s.liberty, s.entropy, s.octant,
                 s.origin_oblivion, s.origin_authority, s.origin_skeptic,
                 s.origin_receptive, s.origin_liberty, s.origin_entropy, s.origin_octant
@@ -393,6 +393,7 @@ def get_dreamer_by_did(did):
             'heading': dreamer['heading'],
             'color_hex': dreamer['color_hex'],
             'phanera': dreamer['phanera'],
+            'alt_names': dreamer['alts'] or '',
             'spectrum': spectrum
         })
         
