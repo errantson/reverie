@@ -1217,12 +1217,66 @@
     font-style: italic;
 }
 
-.dashboard-description-status {
+.dashboard-bio-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-top: 8px;
-    font-size: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.bio-save-btn {
+    padding: 6px 14px;
+    background: var(--reverie-core-color, #734ba1);
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.bio-save-btn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.bio-save-btn:active:not(:disabled) {
+    opacity: 0.7;
+}
+
+.bio-save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.bio-sync-btn {
+    padding: 6px 10px;
+    background: transparent;
+    color: var(--reverie-core-color, #734ba1);
+    border: 1px solid var(--reverie-core-color, #734ba1);
+    border-radius: 0;
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bio-sync-btn:hover:not(:disabled) {
+    background: var(--reverie-core-color, #734ba1);
+    color: white;
+}
+
+.bio-sync-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dashboard-description-status {
+    font-size: 0.75rem;
     color: #666;
     font-style: italic;
-    min-height: 20px;
+    white-space: nowrap;
 }
 
 /* Recently Read Section */

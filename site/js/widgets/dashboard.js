@@ -18,7 +18,7 @@ class Dashboard {
         if (!document.querySelector('link[href*="css/widgets/dashboard.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/css/widgets/dashboard.css?v=26';
+            link.href = '/css/widgets/dashboard.css?v=27';
             document.head.appendChild(link);
         }
         
@@ -700,7 +700,15 @@ class Dashboard {
                                                     placeholder="Add a description about yourself..."
                                                     maxlength="300"
                                                 >${d.description || d.bio || ''}</textarea>
-                                                <div class="dashboard-description-status" id="descriptionStatus"></div>
+                                                <div class="dashboard-bio-actions">
+                                                    <button class="bio-save-btn" id="saveBioBtn" onclick="window.dashboardWidget.saveBio()">
+                                                        Save Bio
+                                                    </button>
+                                                    <button class="bio-sync-btn" id="syncBioBtn" onclick="window.dashboardWidget.syncBioFromBluesky()" title="Fetch your current bio from Bluesky">
+                                                        ↻ Sync from Bluesky
+                                                    </button>
+                                                    <span class="dashboard-description-status" id="descriptionStatus"></span>
+                                                </div>
                                             </div>
                                         </div>
                                         
@@ -4702,84 +4710,160 @@ class Dashboard {
         const newTextarea = textarea.cloneNode(true);
         textarea.parentNode.replaceChild(newTextarea, textarea);
         
-        let saveTimer = null;
-        
-        const saveDescription = async () => {
-            const newDescription = newTextarea.value.trim();
+        // Track if bio has been modified (for showing unsaved indicator)
+        newTextarea.addEventListener('input', () => {
+            const currentValue = newTextarea.value.trim();
+            const originalValue = (this.dreamerData.description || this.dreamerData.bio || '').trim();
             
-            // Don't save if unchanged
-            if (newDescription === (this.dreamerData.description || this.dreamerData.bio || '')) {
+            if (currentValue !== originalValue) {
+                statusEl.textContent = 'Unsaved changes';
+                statusEl.style.color = '#f59e0b';
+            } else {
                 statusEl.textContent = '';
+            }
+        });
+    }
+    
+    /**
+     * Save bio to Reverie database (and optionally to Bluesky if app password connected)
+     */
+    async saveBio() {
+        const textarea = document.getElementById('descriptionTextarea');
+        const statusEl = document.getElementById('descriptionStatus');
+        const saveBtn = document.getElementById('saveBioBtn');
+        
+        if (!textarea || !statusEl) return;
+        
+        const newDescription = textarea.value.trim();
+        
+        // Don't save if unchanged
+        if (newDescription === (this.dreamerData.description || this.dreamerData.bio || '')) {
+            statusEl.textContent = 'No changes';
+            statusEl.style.color = '#666';
+            setTimeout(() => { statusEl.textContent = ''; }, 1500);
+            return;
+        }
+        
+        // Disable button during save
+        if (saveBtn) saveBtn.disabled = true;
+        statusEl.textContent = 'Saving...';
+        statusEl.style.color = '#666';
+        
+        try {
+            const token = await this.getOAuthToken();
+            if (!token) {
+                throw new Error('You must be logged in to update description');
+            }
+            
+            const response = await fetch('/api/user/update-description', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    did: this.session.did,
+                    description: newDescription
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update description');
+            }
+            
+            const result = await response.json();
+            console.log('✅ [Dashboard] Bio saved:', result);
+            
+            // Update local data
+            this.dreamerData.description = newDescription;
+            
+            // Success feedback
+            statusEl.textContent = 'Saved ✓';
+            statusEl.style.color = '#22c55e';
+            
+            setTimeout(() => {
+                statusEl.textContent = '';
+            }, 2000);
+            
+        } catch (error) {
+            console.error('❌ [Dashboard] Error saving bio:', error);
+            statusEl.textContent = `Error: ${error.message}`;
+            statusEl.style.color = '#ef4444';
+            
+            setTimeout(() => {
+                statusEl.textContent = '';
+            }, 3000);
+        } finally {
+            if (saveBtn) saveBtn.disabled = false;
+        }
+    }
+    
+    /**
+     * Sync bio from user's current Bluesky profile
+     */
+    async syncBioFromBluesky() {
+        const textarea = document.getElementById('descriptionTextarea');
+        const statusEl = document.getElementById('descriptionStatus');
+        const syncBtn = document.getElementById('syncBioBtn');
+        
+        if (!textarea || !statusEl) return;
+        
+        const did = this.session?.did;
+        if (!did) {
+            statusEl.textContent = 'Not logged in';
+            statusEl.style.color = '#ef4444';
+            setTimeout(() => { statusEl.textContent = ''; }, 2000);
+            return;
+        }
+        
+        // Disable button during sync
+        if (syncBtn) syncBtn.disabled = true;
+        statusEl.textContent = 'Fetching from Bluesky...';
+        statusEl.style.color = '#666';
+        
+        try {
+            // Fetch profile from Bluesky public API
+            const response = await fetch(
+                `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
+            );
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch Bluesky profile');
+            }
+            
+            const profile = await response.json();
+            const blueskyBio = profile.description || '';
+            
+            // Check if different from current
+            const currentBio = textarea.value.trim();
+            if (blueskyBio.trim() === currentBio) {
+                statusEl.textContent = 'Already in sync';
+                statusEl.style.color = '#22c55e';
+                setTimeout(() => { statusEl.textContent = ''; }, 2000);
                 return;
             }
             
-            statusEl.textContent = 'Saving...';
-            statusEl.style.color = '#666';
+            // Update textarea with Bluesky bio
+            textarea.value = blueskyBio;
             
-            try {
-                const token = await this.getOAuthToken();
-                if (!token) {
-                    throw new Error('You must be logged in to update description');
-                }
-                
-                const response = await fetch('/api/user/update-description', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        did: this.session.did,
-                        description: newDescription
-                    })
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to update description');
-                }
-                
-                const result = await response.json();
-                console.log('✅ [Dashboard] Description saved:', result);
-                
-                // Update local data
-                this.dreamerData.description = newDescription;
-                
-                // Success feedback
-                statusEl.textContent = 'Saved ✓';
-                statusEl.style.color = '#22c55e';
-                
-                setTimeout(() => {
-                    statusEl.textContent = '';
-                }, 2000);
-                
-            } catch (error) {
-                console.error('❌ [Dashboard] Error saving description:', error);
-                statusEl.textContent = `Error: ${error.message}`;
-                statusEl.style.color = '#ef4444';
-                
-                setTimeout(() => {
-                    statusEl.textContent = '';
-                }, 3000);
-            }
-        };
-        
-        // Auto-save on input with debounce
-        newTextarea.addEventListener('input', () => {
-            if (saveTimer) clearTimeout(saveTimer);
-            statusEl.textContent = 'Typing...';
-            statusEl.style.color = '#999';
+            // Show synced indicator
+            statusEl.textContent = 'Synced! Click Save to keep changes';
+            statusEl.style.color = '#f59e0b';
             
-            saveTimer = setTimeout(() => {
-                saveDescription();
-            }, 1000); // Save 1 second after user stops typing
-        });
-        
-        // Also save on blur (when clicking away)
-        newTextarea.addEventListener('blur', () => {
-            if (saveTimer) clearTimeout(saveTimer);
-            saveDescription();
-        });
+            console.log('✅ [Dashboard] Bio synced from Bluesky:', blueskyBio.substring(0, 50) + '...');
+            
+        } catch (error) {
+            console.error('❌ [Dashboard] Error syncing bio from Bluesky:', error);
+            statusEl.textContent = `Error: ${error.message}`;
+            statusEl.style.color = '#ef4444';
+            
+            setTimeout(() => {
+                statusEl.textContent = '';
+            }, 3000);
+        } finally {
+            if (syncBtn) syncBtn.disabled = false;
+        }
     }
     
     // ============================================================================

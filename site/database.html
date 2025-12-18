@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,6 +31,7 @@
     <link rel="stylesheet" href="css/color-rows.css">
     <link rel="stylesheet" href="css/souvenirs.css">
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    
     <!-- Core utilities (must load first) -->
     <script src="js/core/color-manager.js"></script>
     <script src="js/core/rowstyle-registry.js?v=1765642342"></script>
@@ -44,13 +44,14 @@
     <script src="js/widgets/login.js" defer></script>
     <script src="js/widgets/drawer.js" defer></script>
 </head>
-<body>
+<body class="database-page">
     <div id="header-container"></div>
     
     <div class="database-layout">
-        <div class="database-left-column">
-            <div class="left-column-section mindscape-section" style="border-bottom: none;">
-                <div class="section-title" style="text-align: center; border-bottom: none; margin-bottom: 12px; font-size: 1.1em; letter-spacing: 1px;">OUR WILD MINDSCAPE</div>
+        <!-- Left Sidebar: Stats Panel -->
+        <aside class="database-left-column">
+            <section class="left-column-section mindscape-section">
+                <h2 class="section-title" style="text-align: center; border-bottom: none; margin-bottom: 12px; font-size: 1.1em; letter-spacing: 1px;">OUR WILD MINDSCAPE</h2>
                 <div class="mindscape-stat-box large">
                     <div class="mindscape-stat-count" id="idle-dreamers-count">---</div>
                     <div class="mindscape-stat-label">Idle Dreamers</div>
@@ -65,9 +66,9 @@
                         <div class="mindscape-stat-label">Residents</div>
                     </div>
                 </div>
-            </div>
+            </section>
             
-            <div class="left-column-section">
+            <section class="left-column-section">
                 <div class="stat-item">
                     <span class="stat-label">Total Events</span>
                     <span class="stat-value" id="stat-events">0</span>
@@ -80,7 +81,7 @@
                     <span class="stat-label">Lore Events</span>
                     <span class="stat-value" id="stat-lore">0</span>
                 </div>
-                <div style="border-top: 1px solid var(--border); margin: 12px 0;"></div>
+                <div class="stat-divider"></div>
                 <div class="stat-item">
                     <span class="stat-label">Souvenirs</span>
                     <span class="stat-value" id="stat-souvenirs">0</span>
@@ -93,10 +94,9 @@
                     <span class="stat-label">Workers</span>
                     <span class="stat-value" id="stat-workers">0</span>
                 </div>
-                <div style="border-top: 1px solid var(--border); margin: 12px 0;"></div>
-            </div>
+            </section>
             
-            <div class="left-column-section">
+            <section class="left-column-section">
                 <div class="stat-item">
                     <span class="stat-label">Dream Storage</span>
                     <span class="operations-status">
@@ -118,11 +118,12 @@
                         <div class="operations-light" id="ops-firehose-light"></div>
                     </span>
                 </div>
-            </div>
-        </div>
+            </section>
+        </aside>
         
-        <div class="database-main-content">
-            <div class="page-header-fixed">
+        <!-- Main Content: Event History -->
+        <main class="database-main-content">
+            <header class="page-header-fixed">
                 <button class="db-btn" onclick="resetFilters()" title="Reset filters and refresh" style="padding:6px 8px;">
                     <svg class="db-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px;">
                         <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -150,96 +151,61 @@
                 </select>
                 <input type="text" id="search" placeholder="Search database..." class="db-search-input" oninput="applyFilters()">
                 <div id="current-epoch" style="margin-left: auto; font-family: monospace; font-size: 0.95em; font-weight: 700; color: #9ca3af; letter-spacing: -1px; white-space: nowrap;">---</div>
-            </div>
+            </header>
             
             <div id="rows-container">
-                <!-- Rows will be displayed here -->
+                <!-- Event rows rendered by EventStack -->
             </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        // Debug function to log row positioning and column alignment
-        function logRowPositions(label) {
-            console.log(`🔍 [Database] ${label} - Row positions:`);
-            const rows = document.querySelectorAll('#rows-container .row-entry');
-            rows.forEach((row, idx) => {
-                const rect = row.getBoundingClientRect();
-                const cells = row.querySelectorAll('.cell');
-                const cellPositions = Array.from(cells).map((cell, cellIdx) => ({
-                    class: cell.className,
-                    left: cell.offsetLeft,
-                    width: cell.offsetWidth,
-                    text: cell.textContent.substring(0, 20) + (cell.textContent.length > 20 ? '...' : '')
-                }));
+        // Global state
+        let allData = {};
+        let filteredData = {};
+        const searchFields = ['name', 'event', 'uri', 'type', 'key'];
 
-                console.log(`  Row ${idx}:`, {
-                    classes: row.className,
-                    top: rect.top,
-                    left: rect.left,
-                    width: rect.width,
-                    height: rect.height,
-                    cells: cellPositions
-                });
-            });
-        }
-
-        // Make logging function globally available
-        window.logRowPositions = logRowPositions;
-        
-        // Table configuration - simplified to only support events (history)
-        const tableConfig = {
-            events: {
-                title: 'History',
-                icon: '📜',
-                columns: ['epoch', 'type', 'avatar', 'canon', 'key', 'uri'],
-                searchFields: ['name', 'event', 'uri', 'type', 'key']
-            }
-        };
-
-        // Initialize
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            // Initialize RowStyleEngine
-            if (!window.rowStyleEngine) {
+            // Initialize RowStyleEngine if not already done
+            if (!window.rowStyleEngine && window.RowStyleEngine) {
                 window.rowStyleEngine = new RowStyleEngine();
             }
             
             setupSearch();
-            
-            // Load data and render events table
             await loadAllData();
-            renderTable('events');
-        });        // Reload data when page becomes visible (fixes tab switching issue)
+            renderEvents();
+            
+            // Start epoch counter
+            updateCurrentEpoch();
+            setInterval(updateCurrentEpoch, 1000);
+        });
+
+        // Reload data when page becomes visible (tab switching)
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
-                console.log('🔍 [Database] Page became visible, reloading data');
-                // Page is now visible, reload data
-                fetch('/api/database/all')
-                    .then(r => r.json())
-                    .then(data => {
-                        allData = data.tables || {};
-                        document.getElementById('last-updated').textContent = new Date().toLocaleString();
-                        const stats = data.stats || {};
-                        const total = Object.values(stats).reduce((sum, count) => sum + count, 0);
-                        document.getElementById('total-records').textContent = total.toLocaleString();
-                        renderTable('events');
-                    })
-                    .catch(err => console.error('Error reloading data:', err));
+                loadAllData().then(() => renderEvents());
             }
         });
 
-        // Idle dreamers fetcher with caching
+        // Update current epoch display
+        function updateCurrentEpoch() {
+            const epochEl = document.getElementById('current-epoch');
+            if (epochEl) {
+                epochEl.textContent = Math.floor(Date.now() / 1000);
+            }
+        }
+
+        // Fetch idle dreamers with caching
         async function fetchIdleDreamers() {
             const CACHE_KEY = 'reverie_idle_dreamers';
             const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
             
-            // Check localStorage cache
             try {
                 const cached = localStorage.getItem(CACHE_KEY);
                 if (cached) {
                     const data = JSON.parse(cached);
                     if (Date.now() - data.timestamp < CACHE_TTL) {
-                        console.log('📊 Using cached idle dreamers:', data.count);
                         return data.count;
                     }
                 }
@@ -247,31 +213,23 @@
                 console.warn('Cache read error:', err);
             }
             
-            // Fetch fresh data via our proxy endpoint
             try {
                 const response = await fetch('/api/bsky-stats', {
-                    signal: AbortSignal.timeout(5000) // 5 second timeout
+                    signal: AbortSignal.timeout(5000)
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`API returned ${response.status}`);
-                }
+                if (!response.ok) throw new Error('API error');
                 
                 const data = await response.json();
                 const count = data.last_user_count;
                 
                 if (count && typeof count === 'number') {
-                    // Cache the result
                     try {
                         localStorage.setItem(CACHE_KEY, JSON.stringify({
-                            count: count,
+                            count,
                             timestamp: Date.now()
                         }));
-                    } catch (err) {
-                        console.warn('Cache write error:', err);
-                    }
-                    
-                    console.log('📊 Fetched fresh idle dreamers:', count);
+                    } catch (err) {}
                     return count;
                 }
             } catch (err) {
@@ -281,50 +239,28 @@
             return null;
         }
 
-        function updateCurrentEpoch() {
-            const currentEpoch = Math.floor(Date.now() / 1000);
-            const epochElement = document.getElementById('current-epoch');
-            if (epochElement) {
-                epochElement.textContent = currentEpoch;
-            }
-        }
-
-        // Update epoch every second
-        setInterval(updateCurrentEpoch, 1000);
-
+        // Fetch operations status
         async function fetchOperationsStatus() {
             try {
                 const response = await fetch('/api/operations-status');
                 const status = await response.json();
                 
-                // Update PDS
-                const pdsText = document.getElementById('ops-pds-text');
-                const pdsLight = document.getElementById('ops-pds-light');
-                if (pdsText && pdsLight) {
-                    pdsText.textContent = status.pds?.active ? '(active)' : '(felled)';
-                    pdsLight.className = 'operations-light ' + (status.pds?.active ? 'active' : 'inactive');
-                }
+                const updateStatus = (id, isActive) => {
+                    const textEl = document.getElementById('ops-' + id + '-text');
+                    const lightEl = document.getElementById('ops-' + id + '-light');
+                    if (textEl) textEl.textContent = isActive ? '(active)' : '(felled)';
+                    if (lightEl) lightEl.className = 'operations-light ' + (isActive ? 'active' : 'inactive');
+                };
                 
-                // Update Caddy
-                const caddyText = document.getElementById('ops-caddy-text');
-                const caddyLight = document.getElementById('ops-caddy-light');
-                if (caddyText && caddyLight) {
-                    caddyText.textContent = status.caddy?.active ? '(active)' : '(felled)';
-                    caddyLight.className = 'operations-light ' + (status.caddy?.active ? 'active' : 'inactive');
-                }
-                
-                // Update Firehose
-                const firehoseText = document.getElementById('ops-firehose-text');
-                const firehoseLight = document.getElementById('ops-firehose-light');
-                if (firehoseText && firehoseLight) {
-                    firehoseText.textContent = status.firehose?.active ? '(active)' : '(felled)';
-                    firehoseLight.className = 'operations-light ' + (status.firehose?.active ? 'active' : 'inactive');
-                }
+                updateStatus('pds', status.pds?.active);
+                updateStatus('caddy', status.caddy?.active);
+                updateStatus('firehose', status.firehose?.active);
             } catch (error) {
                 console.warn('Could not fetch operations status:', error);
             }
         }
 
+        // Load all data from API
         async function loadAllData() {
             try {
                 const response = await fetch('/api/database/all');
@@ -332,753 +268,76 @@
                 
                 allData = data.tables || {};
                 
-                // Fetch idle dreamers directly from external API with caching
+                // Update idle dreamers
                 const idleDreamers = await fetchIdleDreamers();
-                const idleElement = document.getElementById('idle-dreamers-count');
-                if (idleDreamers && idleElement) {
-                    idleElement.textContent = idleDreamers.toLocaleString();
-                } else if (idleElement) {
-                    idleElement.textContent = '???';
+                const idleEl = document.getElementById('idle-dreamers-count');
+                if (idleEl) idleEl.textContent = idleDreamers ? idleDreamers.toLocaleString() : '???';
+                
+                // Update dreamweavers count
+                const dreamweaversEl = document.getElementById('dreamweavers-count');
+                if (dreamweaversEl && allData.dreamers) {
+                    dreamweaversEl.textContent = allData.dreamers.length.toLocaleString();
                 }
                 
-                // Update dreamweavers count (total users)
-                const dreamweaversElement = document.getElementById('dreamweavers-count');
-                if (dreamweaversElement && allData.dreamers) {
-                    dreamweaversElement.textContent = allData.dreamers.length.toLocaleString();
-                }
-                
-                // Update residents count (reverie.house server users)
-                const residentsElement = document.getElementById('residents-count');
-                if (residentsElement && allData.dreamers) {
+                // Update residents count
+                const residentsEl = document.getElementById('residents-count');
+                if (residentsEl && allData.dreamers) {
                     const residents = allData.dreamers.filter(d => 
                         d.server && d.server.includes('reverie.house')
                     ).length;
-                    residentsElement.textContent = residents.toLocaleString();
+                    residentsEl.textContent = residents.toLocaleString();
                 }
                 
-                // Enrich dreamers with souvenirs from awards table
-                if (allData.dreamers && allData.awards) {
-                    console.log('💫 Enriching dreamers with souvenirs and spectrum data...');
-                    const souvenirsByDid = {};
-                    allData.awards.forEach(ds => {
-                        if (!souvenirsByDid[ds.did]) {
-                            souvenirsByDid[ds.did] = {};
-                        }
-                        souvenirsByDid[ds.did][ds.souvenir_key] = ds.earned_epoch;
-                    });
-                    
-                    console.log('💫 souvenirsByDid map:', Object.keys(souvenirsByDid).length, 'dreamers with souvenirs');
-                    
-                    // Add souvenirs to each dreamer
-                    allData.dreamers.forEach(dreamer => {
-                        dreamer.souvenirs = souvenirsByDid[dreamer.did] || {};
-                        
-                        // Also ensure spectrum is an object if scores exist
-                        if (dreamer.entropy !== undefined || dreamer.oblivion !== undefined) {
-                            dreamer.spectrum = {
-                                entropy: dreamer.entropy || 0,
-                                oblivion: dreamer.oblivion || 0,
-                                liberty: dreamer.liberty || 0,
-                                authority: dreamer.authority || 0,
-                                receptive: dreamer.receptive || 0,
-                                skeptic: dreamer.skeptic || 0,
-                                octant: dreamer.octant
-                            };
-                            console.log('💫 Built spectrum for', dreamer.name, ':', dreamer.spectrum);
-                        }
-                    });
-                    
-                    console.log('💫 Enrichment complete');
-                }
-                
-                // Update current epoch (unix timestamp) and keep it live
-                updateCurrentEpoch();
-                
-                // Update left column statistics
+                // Calculate and update statistics
                 const stats = data.stats || {};
+                const events = allData.events || [];
+                
                 document.getElementById('stat-events').textContent = (stats.events || 0).toLocaleString();
+                document.getElementById('stat-canon').textContent = events.filter(e => e.canon === 1 || e.key === 'canon').length.toLocaleString();
+                document.getElementById('stat-lore').textContent = events.filter(e => e.type === 'lore').length.toLocaleString();
+                document.getElementById('stat-souvenirs').textContent = events.filter(e => e.type === 'souvenir').length.toLocaleString();
                 
-                // Calculate additional statistics from events data
-                if (allData.events) {
-                    const canonCount = allData.events.filter(e => e.canon === 1 || e.key === 'canon').length;
-                    const loreCount = allData.events.filter(e => e.type === 'lore').length;
-                    const souvenirCount = allData.events.filter(e => e.type === 'souvenir').length;
-                    
-                    // Count unique dream keys (not total dream events)
-                    const uniqueDreamKeys = new Set();
-                    allData.events.forEach(e => {
-                        if (e.type === 'dream' && e.key) {
-                            uniqueDreamKeys.add(e.key);
-                        }
-                    });
-                    const dreamCount = uniqueDreamKeys.size;
-                    
-                    document.getElementById('stat-canon').textContent = canonCount.toLocaleString();
-                    document.getElementById('stat-lore').textContent = loreCount.toLocaleString();
-                    document.getElementById('stat-souvenirs').textContent = souvenirCount.toLocaleString();
-                    document.getElementById('stat-dreams').textContent = dreamCount.toLocaleString();
-                }
+                // Count unique dreams
+                const uniqueDreams = new Set(events.filter(e => e.type === 'dream' && e.key).map(e => e.key));
+                document.getElementById('stat-dreams').textContent = uniqueDreams.size.toLocaleString();
                 
-                // Count active workers (working + retiring status)
+                // Count active workers
                 if (allData.dreamers) {
-                    const activeWorkers = allData.dreamers.filter(d => 
+                    const workers = allData.dreamers.filter(d => 
                         d.status === 'working' || d.status === 'retiring'
                     ).length;
-                    document.getElementById('stat-workers').textContent = activeWorkers.toLocaleString();
+                    document.getElementById('stat-workers').textContent = workers.toLocaleString();
                 }
                 
-                // Fetch and update operations status
+                // Fetch operations status
                 fetchOperationsStatus();
-                
-                // Note: Table selection is now handled in DOMContentLoaded after await
                 
             } catch (error) {
                 console.error('Error loading data:', error);
                 showError('Unable to connect to database API.');
             }
-        }        function renderTable(tableName) {
-            const config = tableConfig[tableName];
-            const data = allData[tableName] || [];
-            
+        }
+
+        // Render events using EventStack
+        function renderEvents(eventsToRender = null) {
             const container = document.getElementById('rows-container');
+            const events = eventsToRender || allData.events || [];
             
-            if (data.length === 0) {
-                container.innerHTML = `
-                    <div class="row-entry" style="text-align: center; color: var(--text-dim); display: block;">
-                        No data available in this table yet.
-                    </div>
-                `;
+            if (events.length === 0) {
+                container.innerHTML = '<div class="empty-state">No events found matching your criteria.</div>';
                 return;
             }
             
-            // Use EventStack for events table
-            if (tableName === 'events' && window.EventStack) {
+            // Use EventStack widget for consistent rendering
+            if (window.EventStack) {
                 const eventStack = new EventStack();
-                eventStack.render(data, container);
-                return;
-            }
-            
-            // Build data rows
-            let html = '';
-            
-            // Build data rows
-            data.forEach((row, idx) => {
-                // Special styling for library rows
-                const isHeaderRow = tableName === 'library' && row.type === 'header';
-                const isBookRow = tableName === 'library' && row.type === 'book';
-                const isChapterRow = tableName === 'library' && row.type === 'chapter';
-                
-                // Skip header rows completely
-                if (isHeaderRow) return;
-                
-                const rowClass = isBookRow ? 'row-entry book-row' : 
-                                 isChapterRow ? 'row-entry chapter-row' :
-                                 'row-entry';
-                
-                // Determine row click behavior via data attributes (no inline onclick)
-                // This enables clean event delegation without conflicts
-                let rowClickData = {};
-                
-                // Make souvenir rows clickable
-                if (tableName === 'souvenirs' && row.key) {
-                    rowClickData.action = 'navigate';
-                    rowClickData.url = `/souvenirs?key=${encodeURIComponent(row.key)}`;
-                }
-                
-                // Make events rows clickable to URL (if exists)
-                if (tableName === 'events' && row.url && !rowClickData.action) {
-                    if (row.url.includes('bsky.app')) {
-                        // Check if it's a profile URL (arrival events) or post URL
-                        if (row.url.includes('/profile/') && !row.url.includes('/post/')) {
-                            // Profile URL - navigate to internal dreamer page
-                            const didMatch = row.url.match(/profile\/(did:plc:[a-z0-9]+)/);
-                            if (didMatch && didMatch[1]) {
-                                rowClickData.action = 'navigate';
-                                rowClickData.url = `/dreamer?did=${encodeURIComponent(didMatch[1])}`;
-                            }
-                        } else {
-                            // Post URL - use showPost popup
-                            rowClickData.action = 'showpost';
-                            rowClickData.url = row.url;
-                        }
-                    } else if (row.url.startsWith('/')) {
-                        // Internal URL (like /order or /work/mapper) - navigate directly
-                        rowClickData.action = 'navigate';
-                        rowClickData.url = row.url;
-                    } else {
-                        // External URL - open in new tab
-                        rowClickData.action = 'external';
-                        rowClickData.url = row.url;
-                    }
-                }
-                
-                // Don't make dreamer rows clickable - individual columns handle their own clicks
-                // This prevents interference with click-to-copy DID and other column features
-                
-                // Make chapter rows clickable to chapter page
-                if (isChapterRow && tableName === 'library') {
-                    const bookId = row.book_id || '';
-                    const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
-                    const chapterUrl = bookId ? `/books/${bookId}/${chapterNum}` : '';
-                    if (chapterUrl) {
-                        rowClickData.action = 'navigate';
-                        rowClickData.url = chapterUrl;
-                    }
-                }
-                
-                // Make book rows open TOC (via toc.js if available)
-                if (isBookRow && tableName === 'library') {
-                    const bookId = row.id || '';
-                    if (bookId) {
-                        // Convert book ID to the format expected by TOC.js
-                        const tocBookId = bookId === 'seeker' ? 'seekers-reverie' : 'princes-reverie';
-                        rowClickData.action = 'toc';
-                        rowClickData.bookId = tocBookId;
-                    }
-                }
-                
-                // Build style attribute combining cursor, canon colors, dream colors, and color system
-                let rowStyles = [];
-                if (rowClickData.action) rowStyles.push('cursor: pointer');
-                
-                const rowStyleAttr = rowStyles.length > 0 ? ` style="${rowStyles.join('; ')}"` : '';
-                
-                // Build data attributes for click handling (event delegation)
-                let dataAttrs = '';
-                if (rowClickData.action) {
-                    dataAttrs += ` data-row-action="${rowClickData.action}"`;
-                    if (rowClickData.url) {
-                        dataAttrs += ` data-row-url="${rowClickData.url.replace(/"/g, '&quot;')}"`;
-                    }
-                    if (rowClickData.bookId) {
-                        dataAttrs += ` data-book-id="${rowClickData.bookId}"`;
-                    }
-                }
-                
-                html += `<div class="${rowClass}"${rowStyleAttr}${dataAttrs}>`;                // For chapter rows, render author (chapter #) first, then title
-                if (isChapterRow && tableName === 'library') {
-                    // Render chapter number first
-                    const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
-                    html += `<div class="cell author">${chapterNum}.</div>`;
-                    
-                    // Render chapter title second (plain text, row is clickable)
-                    html += `<div class="cell title">${row.title || ''}</div>`;
-                } else {
-                    // Normal column rendering for all other rows
-                    config.columns.forEach(col => {
-                    const value = row[col];
-                    let displayValue = '';
-                    
-                    // Skip columns for chapter rows except author (chapter #) and title
-                    if (isChapterRow && tableName === 'library' && col !== 'author' && col !== 'title') {
-                        return; // Don't render this cell for chapters
-                    }
-                    
-                    // Handle synthetic 'canon' column first (before null check)
-                    if (col === 'canon' && tableName === 'events') {
-                        // Display unified "name event" for canon table with links
-                        const name = row.name || 'unknown';
-                        const event = row.event || 'an event occurred';
-                        const did = row.did || '';
-                        const url = row.url || '';
-                        
-                        // Name links to dreamer page (stop propagation to prevent row click)
-                        const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
-                        
-                        // Event text is non-clickable (row click will open URL)
-                        const eventText = `<span style="font-style: italic; color: var(--text-secondary);">${event}</span>`;
-                        
-                        displayValue = `<span style="white-space: normal;">${nameLink} ${eventText}</span>`;
-                    } else if (col === 'author' && tableName === 'library') {
-                        // Show author for book rows with link to dreamer page OR chapter numbers
-                        // Handle BEFORE null check since chapters have null author but need to show chapter #
-                        if (isBookRow && value) {
-                            // Check if author is a DID
-                            if (value.startsWith('did:')) {
-                                // Find the dreamer name from allData
-                                const dreamer = allData.dreamers?.find(d => d.did === value);
-                                const authorName = dreamer?.name || 'unknown';
-                                displayValue = `<a href="/dreamer?did=${encodeURIComponent(value)}" style="color: inherit; text-decoration: none; font-weight: 500;">${authorName}</a>`;
-                            } else {
-                                displayValue = value;
-                            }
-                        } else if (isChapterRow) {
-                            // Show chapter number for chapter rows
-                            const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
-                            displayValue = `<span style="color: var(--text-dim); font-family: monospace; font-weight: 600;">${chapterNum}.</span>`;
-                        } else {
-                            displayValue = '';
-                        }
-                    } else if (value === null || value === undefined) {
-                        if (col === 'avatar') {
-                            // Show default icon face for missing avatar
-                            displayValue = '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'avatar') {
-                        // Display avatar image or default icon - clickable to dreamer page with dreamer-link class
-                        const dreamerLink = (tableName === 'dreamers' || tableName === 'events') && row.did ? `/dreamer?did=${encodeURIComponent(row.did)}` : '#';
-                        if (value) {
-                            displayValue = (tableName === 'dreamers' || tableName === 'events') && row.did ? 
-                                `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()"><img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>` :
-                                `<img src="${value}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
-                        } else {
-                            displayValue = (tableName === 'dreamers' || tableName === 'events') && row.did ?
-                                `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()"><img src="/assets/icon_face.png" class="avatar-img" alt="avatar" style="cursor: pointer;"></a>` :
-                                '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
-                        }
-                    } else if (col === 'icon') {
-                        // Display souvenir icon (image)
-                        if (value && tableName === 'souvenirs') {
-                            displayValue = `<img src="${value}" alt="icon" style="width: 32px; height: 32px; object-fit: contain;" onerror="this.src='/assets/icon.png'">`;
-                        } else {
-                            displayValue = value ? value : '—';
-                        }
-                    } else if (col === 'cover') {
-                        // Display book cover image (only for book rows)
-                        if (value && tableName === 'library' && isBookRow) {
-                            displayValue = `<img src="${value}" alt="cover" style="width: 50px; height: auto; object-fit: contain; border-radius: 4px;" onerror="this.style.display='none'">`;
-                        } else {
-                            displayValue = '';
-                        }
-                    } else if (col === 'title' && tableName === 'library') {
-                        // Display book title (bold) or chapter title with link
-                        if (isBookRow) {
-                            displayValue = `<span style="font-weight: 600; font-size: 1.05em;">${value || '—'}</span>`;
-                        } else if (isChapterRow) {
-                            const bookId = row.book_id || '';
-                            const chapterNum = String(row.chapter_order || '?').padStart(2, '0');
-                            const chapterUrl = bookId ? `/books/${bookId}/${chapterNum}` : '';
-                            if (chapterUrl) {
-                                displayValue = `<a href="${chapterUrl}" style="color: inherit; text-decoration: none;">${value}</a>`;
-                            } else {
-                                displayValue = value || '';
-                            }
-                        } else {
-                            displayValue = value || '';
-                        }
-                    } else if (col === 'pages' && tableName === 'library') {
-                        // Only show pages for book rows
-                        if (isBookRow && value) {
-                            displayValue = value;
-                        } else {
-                            displayValue = '';
-                        }
-                    } else if (col === 'release' && tableName === 'library') {
-                        // Format release date for books (only book rows)
-                        if (isBookRow && typeof value === 'number') {
-                            const date = new Date(value * 1000);
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                            const year = date.getFullYear();
-                            displayValue = `${month}/${year}`;
-                        } else if (isBookRow && !value) {
-                            displayValue = '<span style="color: var(--text-dim);">TBD</span>';
-                        } else {
-                            displayValue = '';
-                        }
-                    } else if (col === 'epub' && tableName === 'library') {
-                        // Display epub download link (only for book rows)
-                        if (isBookRow && value) {
-                            const filename = value.split('/').pop();
-                            displayValue = `<a href="/${value}" download="${filename}" onclick="event.stopPropagation()" style="color: var(--primary); text-decoration: none;">📥 EPUB</a>`;
-                        } else {
-                            displayValue = '';
-                        }
-                    } else if (col === 'keepers') {
-                        // Display keeper count for souvenirs
-                        if (tableName === 'souvenirs' && typeof value === 'number') {
-                            displayValue = `<span style="font-weight: 600; color: var(--primary);">${value}</span>`;
-                        } else {
-                            displayValue = value || '0';
-                        }
-                    } else if (col === 'phanera') {
-                        // Display phanera image if available
-                        if (value) {
-                            displayValue = `<img src="${value}" class="phanera-img" alt="phanera art" onerror="this.style.display='none'">`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'did') {
-                        // Display full DID and make clickable to copy
-                        displayValue = `<span title="Click to copy: ${value}" onclick="copyToClipboard('${value}')" style="cursor: pointer; user-select: none; font-size: 0.75em;">${value}</span>`;
-                    } else if (col === 'souvenirs' && tableName === 'dreamers') {
-                        // Display souvenir icons like in dreamer-hover
-                        if (row.souvenirs && Object.keys(row.souvenirs).length > 0) {
-                            // We need to fetch souvenirs data to get icons
-                            // For now, we'll use a placeholder that will be filled in after render
-                            displayValue = `<div class="souvenir-icons-placeholder" data-did="${encodeURIComponent(row.did)}"></div>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'spectrum' && tableName === 'dreamers') {
-                        // Display spectrum scores with hover labels for each
-                        console.log('🎨 Rendering spectrum for:', row.name, 'spectrum:', row.spectrum);
-                        if (row.spectrum) {
-                            const s = row.spectrum;
-                            const spectrumData = [
-                                { key: 'entropy', value: s.entropy, label: 'Entropy' },
-                                { key: 'oblivion', value: s.oblivion, label: 'Oblivion' },
-                                { key: 'liberty', value: s.liberty, label: 'Liberty' },
-                                { key: 'authority', value: s.authority, label: 'Authority' },
-                                { key: 'receptive', value: s.receptive, label: 'Receptive' },
-                                { key: 'skeptic', value: s.skeptic, label: 'Skeptic' }
-                            ];
-                            const scoreSpans = spectrumData.map(item => {
-                                const score = item.value !== undefined ? String(item.value).padStart(2, '0') : '—';
-                                return `<span class="spectrum-score" data-label="${item.label}">${score}</span>`;
-                            }).join(' ');
-                            displayValue = `<div style="font-family: monospace; font-size: 1em; color: #333;">${scoreSpans}</div>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'octant' && tableName === 'dreamers') {
-                        // Display octant from database or calculate if needed
-                        if (row.spectrum && window.OctantUtil) {
-                            // Use calculateOctant for proper color calculation with intensity
-                            const octantData = window.OctantUtil.calculateOctant(row.spectrum);
-                            
-                            if (octantData && octantData.code) {
-                                displayValue = `<span style="font-family: var(--font-sans); font-weight: 600; color: ${octantData.color}; font-size: 1em;" title="${octantData.code}">${octantData.name}</span>`;
-                            } else {
-                                displayValue = '<span style="color: var(--text-dim);">—</span>';
-                            }
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'handle') {
-                        // Red color for handle.invalid, outlink to bsky profile for valid handles with dreamer-link class
-                        // Always show @ prefix
-                        if (value && value.includes('handle.invalid')) {
-                            displayValue = `<span class="handle-invalid">@${value}</span>`;
-                        } else if (value && tableName === 'dreamers' && row.did) {
-                            displayValue = `<a href="https://bsky.app/profile/${value}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color: inherit; text-decoration: underline;">@${value}</a>`;
-                        } else if (value) {
-                            displayValue = `@${value}`;
-                        } else {
-                            displayValue = value;
-                        }
-                    } else if (col === 'name') {
-                        // Make name clickable to dreamer page with dreamer-link class
-                        if (value && (tableName === 'dreamers' || tableName === 'events') && row.did) {
-                            displayValue = `<a href="/dreamer?did=${encodeURIComponent(row.did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(row.did)}" onclick="event.stopPropagation()" style="color: inherit; text-decoration: underline; font-weight: 500;">${value}</a>`;
-                        } else {
-                            displayValue = value;
-                        }
-                    } else if (col === 'event' && tableName === 'events') {
-                        // Display event with larger text, no truncation
-                        displayValue = value || '<span style="color: var(--text-dim);">—</span>';
-                    } else if (col === 'uri' && tableName === 'events') {
-                        // Display just the final endpoint of the URI as raw characters
-                        if (value) {
-                            let endpoint;
-                            // Handle stripe: prefix
-                            if (value.startsWith('stripe:')) {
-                                endpoint = value.substring(7); // Remove "stripe:" prefix
-                            } else if (value.includes('/')) {
-                                // Extract last segment from path
-                                const parts = value.split('/');
-                                endpoint = parts[parts.length - 1];
-                            } else {
-                                endpoint = value;
-                            }
-                            displayValue = `<span style="font-family: monospace; font-size: 0.9em;">${endpoint}</span>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'description') {
-                        // Show truncated bio with ellipsis
-                        if (value) {
-                            const truncated = value.length > 80 ? value.substring(0, 80) + '...' : value;
-                            displayValue = `<span title="${value}" style="font-size: 0.9em; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${truncated}</span>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'epoch' && tableName === 'spectrum_snapshots' && typeof value === 'number') {
-                        // Format epoch timestamp for spectrum_snapshots
-                        const date = new Date(value * 1000);
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = String(date.getFullYear()).slice(-2);
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const minutes = String(date.getMinutes()).padStart(2, '0');
-                        displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
-                    } else if (col === 'timestamp' && typeof value === 'number') {
-                        // Format timestamp for other tables
-                        const date = new Date(value * 1000);
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = String(date.getFullYear()).slice(-2);
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const minutes = String(date.getMinutes()).padStart(2, '0');
-                        displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
-                    } else if (col === 'operation' && tableName === 'spectrum_snapshots') {
-                        // Format operation type with badge
-                        if (value) {
-                            const colors = {
-                                'world_tick': '#6b4fa1',
-                                'world_tick_loop': '#8b7ba8',
-                                'world_display': '#4a90a4',
-                                'manual': '#e67e22'
-                            };
-                            const color = colors[value] || '#999';
-                            const displayText = value.replace(/_/g, ' ').replace('world ', '');
-                            displayValue = `<span style="background: ${color}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${displayText}</span>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'avg_distance_from_origin' && tableName === 'spectrum_snapshots') {
-                        // Format average distance
-                        if (typeof value === 'number') {
-                            displayValue = `<span style="font-family: monospace; color: var(--primary); font-weight: 600;">${value.toFixed(2)}</span>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'total_distance_traveled' && tableName === 'spectrum_snapshots') {
-                        // Format distance traveled with delta indicator
-                        if (typeof value === 'number') {
-                            if (value > 0) {
-                                displayValue = `<span style="font-family: monospace; color: #27ae60; font-weight: 600;">+${value.toFixed(2)}</span>`;
-                            } else {
-                                displayValue = `<span style="font-family: monospace; color: var(--text-dim); font-weight: 600;">${value.toFixed(2)}</span>`;
-                            }
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'operation_type') {
-                        // Format operation type with badge (legacy)
-                        if (value) {
-                            const colors = {
-                                'tick': '#6b4fa1',
-                                'tick_loop': '#8b7ba8',
-                                'show_state': '#4a90a4'
-                            };
-                            const color = colors[value] || '#999';
-                            displayValue = `<span style="background: ${color}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${value.replace('_', ' ')}</span>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col === 'dreamer_count' && typeof value === 'number') {
-                        // Format dreamer count
-                        displayValue = `<span style="font-weight: 600; color: var(--primary);">${value} dreamers</span>`;
-                    } else if (col === 'id' && tableName === 'spectrum_snapshots') {
-                        // Make ID clickable to view snapshot details
-                        displayValue = `<a href="#" onclick="viewSnapshotDetails(${value}); return false;" style="color: var(--primary); font-weight: 600; text-decoration: underline;">#${value}</a>`;
-                    } else if (col === 'arrival' && typeof value === 'number') {
-                        // Format arrival as microtext like last_change
-                        const date = new Date(value * 1000);
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = String(date.getFullYear()).slice(-2);
-                        displayValue = `${day}/${month}/${year}`;
-                    } else if (col === 'heading' && tableName === 'dreamers') {
-                        // Format heading
-                        if (value) {
-                            displayValue = `<span style="font-family: monospace; font-weight: 600;">${value}</span>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">drift</span>';
-                        }
-                    } else if (col === 'last_change' && typeof value === 'number') {
-                        // Format last heading change timestamp as microtext
-                        const date = new Date(value * 1000);
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = String(date.getFullYear()).slice(-2);
-                        displayValue = `${day}/${month}/${year}`;
-                    } else if (col === 'entropy' || col === 'oblivion' || col === 'liberty' || col === 'authority' || col === 'receptive' || col === 'skeptic') {
-                        // Format spectrum scores (should not appear in dreamers table anymore)
-                        if (typeof value === 'number') {
-                            displayValue = `<span style="font-weight: 600; color: var(--primary);">${value}</span>`;
-                        } else {
-                            displayValue = '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (col.includes('epoch') && typeof value === 'number') {
-                        // Format epoch timestamps
-                        const date = new Date(value * 1000);
-                        if (tableName === 'events') {
-                            // For events table, show full date and time
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                            const year = String(date.getFullYear()).slice(-2);
-                            const hours = String(date.getHours()).padStart(2, '0');
-                            const minutes = String(date.getMinutes()).padStart(2, '0');
-                            displayValue = `${day}/${month}/${year} ${hours}:${minutes}`;
-                        } else {
-                            displayValue = date.toLocaleDateString();
-                        }
-                    } else if (col === 'key' && tableName === 'events') {
-                        // Apply appropriate coloring based on event type
-                        if (value === 'greeter') {
-                            displayValue = `<span style="color: var(--role-greeter); font-weight: 600;">${value}</span>`;
-                        } else if (value === 'mapper') {
-                            displayValue = `<span style="color: var(--role-mapper); font-weight: 600;">${value}</span>`;
-                        } else if (value === 'cogitarian') {
-                            displayValue = `<span style="color: var(--role-cogitarian); font-weight: 600;">${value}</span>`;
-                        } else if (value === 'origin' && row.origin_octant) {
-                            // For origin events, use the origin_octant color
-                            const octantColor = `var(--octant-${row.origin_octant}-dark)`;
-                            displayValue = `<span style="color: ${octantColor}; font-weight: 600;">${value}</span>`;
-                        } else if (value === 'canon' && row.color_hex) {
-                            // Canon rows use user color
-                            displayValue = `<span style="color: ${row.color_hex}; font-weight: 600;">${value}</span>`;
-                        } else {
-                            displayValue = value || '<span style="color: var(--text-dim);">—</span>';
-                        }
-                    } else if (typeof value === 'number') {
-                        displayValue = value.toLocaleString();
-                    } else if (typeof value === 'boolean') {
-                        displayValue = value ? '✓' : '✗';
-                    } else if (typeof value === 'string' && value.length > 80) {
-                        displayValue = `<span title="${value}">${value.substring(0, 80)}...</span>`;
-                    } else {
-                        displayValue = value;
-                    }
-                    const extraClass = ` ${col}`;
-                    html += `<div class="cell${extraClass}">${displayValue}</div>`;
-                    });
-                } // End else block for normal column rendering
-                
-                html += '</div>';
-            });
-            
-            console.log('🔍 [Database] HTML generation complete, total HTML length:', html.length);
-            console.log('🔍 [Database] Setting container innerHTML');
-
-            container.innerHTML = html;
-
-            console.log('🔍 [Database] Container updated, applying effects...');
-
-            // Apply effects using RowStyle engine FIRST (before attaching event listeners)
-            // This prevents DOM manipulation from interfering with click handlers
-            if (window.rowStyleEngine) {
-                console.log('🔍 [Database] Applying RowStyleEngine effects');
-                window.rowStyleEngine.applyEffects(container);
-                console.log('🔍 [Database] RowStyleEngine effects applied');
+                eventStack.render(events, container);
             } else {
-                console.log('🔍 [Database] RowStyleEngine not available, applying legacy effects');
-                // Fallback to legacy method
-                applySnakeCharmerEffect();
-            }
-
-            console.log('🔍 [Database] Effects applied, attaching event listeners');
-
-            console.log('🔍 [Database] Effects applied, attaching event listeners');
-
-            // Add unified event delegation for all row clicks (safer than inline onclick)
-            // This must happen AFTER effects are applied to avoid interference
-            container.querySelectorAll('[data-row-action]').forEach(row => {
-                row.addEventListener('click', function(e) {
-                    console.log('🔍 [Database] Row click detected:', {
-                        action: this.getAttribute('data-row-action'),
-                        url: this.getAttribute('data-row-url'),
-                        bookId: this.getAttribute('data-book-id'),
-                        rowClasses: this.className,
-                        rowStyles: this.style.cssText
-                    });
-
-                    logRowPositions('BEFORE_POPUP_CLICK');
-
-                    // Check if click originated from an actual interactive element
-                    // snake-word spans have pointer-events: none so they won't be targets
-                    const interactiveElement = e.target.closest('a[href], button');
-                    if (interactiveElement && interactiveElement !== this) {
-                        console.log('[Database] Click intercepted by nested element:', interactiveElement);
-                        return; // Let the nested element handle it
-                    }
-                    
-                    const action = this.getAttribute('data-row-action');
-                    const url = this.getAttribute('data-row-url');
-                    const bookId = this.getAttribute('data-book-id');
-                    
-                    console.log('[Database] Row click -', action, ':', url || bookId);
-                    
-                    switch (action) {
-                        case 'navigate':
-                            if (url) window.location.href = url;
-                            break;
-                        case 'external':
-                            if (url) window.open(url, '_blank');
-                            break;
-                        case 'showpost':
-                            if (url) {
-                                console.log('[Database] Calling showPost with:', url);
-                                if (window.showPost) {
-                                    window.showPost(url);
-                                    // Log positions after popup opens
-                                    setTimeout(() => logRowPositions('AFTER_POPUP_OPEN'), 100);
-                                } else {
-                                    console.error('[Database] window.showPost not available!');
-                                }
-                            }
-                            break;
-                        case 'toc':
-                            if (bookId) {
-                                if (window.booksWidget && window.booksWidget.toc) {
-                                    window.booksWidget.toc.show(bookId);
-                                } else {
-                                    window.location.href = '/library';
-                                }
-                            }
-                            break;
-                    }
-                });
-            });
-            
-            // Populate souvenir icons after render (for dreamers table)
-            if (tableName === 'dreamers') {
-                populateSouvenirIcons();
+                container.innerHTML = '<div class="empty-state">EventStack widget not loaded. Please refresh the page.</div>';
             }
         }
 
-        function applySnakeCharmerEffect() {
-            // Find all strange souvenir rows
-            const strangeRows = document.querySelectorAll('.souvenir-strange.intensity-highlight, .souvenir-strange.intensity-special');
-            
-            strangeRows.forEach(row => {
-                // Get all cells in the row (including key cell for wobble)
-                const cells = row.querySelectorAll('.cell');
-                
-                cells.forEach((cell, cellIndex) => {
-                    // Skip if cell only contains images or empty content
-                    const hasOnlyImages = cell.querySelectorAll('img').length > 0 && !cell.textContent.trim();
-                    if (hasOnlyImages) return;
-                    
-                    let wordIndex = 0;
-                    
-                    // Recursively process all text nodes within the cell
-                    function processNode(node) {
-                        if (node.nodeType === Node.TEXT_NODE) {
-                            const text = node.textContent;
-                            const wordParts = text.split(/(\s+)/);
-                            const fragment = document.createDocumentFragment();
-                            
-                            wordParts.forEach(part => {
-                                if (part.trim()) {
-                                    const wordSpan = document.createElement('span');
-                                    wordSpan.textContent = part;
-                                    wordSpan.className = 'snake-word';
-                                    const totalDelay = (cellIndex * 8 + wordIndex * 2) * 0.1;
-                                    wordSpan.style.animationDelay = `${totalDelay}s`;
-                                    fragment.appendChild(wordSpan);
-                                    wordIndex++;
-                                } else if (part) {
-                                    fragment.appendChild(document.createTextNode(part));
-                                }
-                            });
-                            
-                            node.parentNode.replaceChild(fragment, node);
-                        } else if (node.nodeType === Node.ELEMENT_NODE) {
-                            // Recursively process child nodes
-                            Array.from(node.childNodes).forEach(child => processNode(child));
-                        }
-                    }
-                    
-                    // Process all child nodes of the cell
-                    Array.from(cell.childNodes).forEach(node => processNode(node));
-                });
-            });
-        }
-
+        // Setup search functionality
         function setupSearch() {
             const searchInput = document.getElementById('search');
             let searchTimeout;
@@ -1086,98 +345,112 @@
             searchInput.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    performSearch(e.target.value);
+                    applyFilters();
                 }, 300);
             });
         }
 
+        // Apply filters and search
         function applyFilters() {
             const filterValue = document.getElementById('filter-type').value;
+            const searchQuery = document.getElementById('search').value.toLowerCase().trim();
             
-            if (filterValue === 'all') {
-                renderTable('events');
-                return;
+            let events = allData.events || [];
+            
+            // Apply type/key filter
+            if (filterValue !== 'all') {
+                if (filterValue.includes(':')) {
+                    const [field, value] = filterValue.split(':');
+                    events = events.filter(row => row[field] === value);
+                } else {
+                    events = events.filter(row => row.type === filterValue || row.key === filterValue);
+                }
             }
             
-            const rows = allData['events'] || [];
-            let filtered;
-            
-            // Parse filter format: "type:arrival" or "key:canon"
-            if (filterValue.includes(':')) {
-                const [field, value] = filterValue.split(':');
-                filtered = rows.filter(row => row[field] === value);
-            } else {
-                // Fallback for simple values (backwards compatibility)
-                filtered = rows.filter(row => row.type === filterValue || row.key === filterValue);
-            }
-            
-            const temp = allData['events'];
-            allData['events'] = filtered;
-            renderTable('events');
-            allData['events'] = temp;
-        }
-
-        function resetFilters() {
-            // Reset dropdown to "All Events"
-            document.getElementById('filter-type').value = 'all';
-            
-            // Clear search box
-            document.getElementById('search').value = '';
-            
-            // Reset filtered data and reload
-            filteredData = {};
-            loadAllData();
-        }
-
-        function performSearch(query) {
-            if (!query.trim()) {
-                filteredData = {};
-                renderTable('events');
-                return;
-            }
-            
-            query = query.toLowerCase();
-            
-            // Search events table only
-            const config = tableConfig['events'];
-            const rows = allData['events'] || [];
-            
-            filteredData['events'] = rows.filter(row => {
-                return config.searchFields.some(field => {
-                    const value = row[field];
-                    return value && String(value).toLowerCase().includes(query);
+            // Apply search filter
+            if (searchQuery) {
+                events = events.filter(row => {
+                    return searchFields.some(field => {
+                        const value = row[field];
+                        return value && String(value).toLowerCase().includes(searchQuery);
+                    });
                 });
-            });
+            }
             
-            const temp = allData['events'];
-            allData['events'] = filteredData['events'] || [];
-            renderTable('events');
-            allData['events'] = temp;
+            renderEvents(events);
         }
 
+        // Reset all filters
+        function resetFilters() {
+            document.getElementById('filter-type').value = 'all';
+            document.getElementById('search').value = '';
+            filteredData = {};
+            loadAllData().then(() => renderEvents());
+        }
+
+        // Show error message
         function showError(message) {
             const error = document.createElement('div');
-            error.style.cssText = 'background: var(--danger); color: white; padding: 10px 20px; font-size: 0.85em; font-family: monospace; border-bottom: 1.5px solid var(--border);';
-            error.innerHTML = `<strong>⚠️ Error:</strong> ${message}`;
-            document.body.insertBefore(error, document.getElementById('header-container').nextSibling);
-            
+            error.className = 'error-toast';
+            error.innerHTML = '<strong>⚠️ Error:</strong> ' + message;
+            document.body.appendChild(error);
             setTimeout(() => error.remove(), 5000);
         }
 
+        // Copy to clipboard utility
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                // Show temporary success message
                 const msg = document.createElement('div');
-                msg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--success, #28a745); color: white; padding: 12px 24px; border-radius: 6px; z-index: 10000; font-size: 0.9em; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
-                msg.textContent = '✓ DID copied to clipboard';
+                msg.className = 'copy-toast';
+                msg.textContent = '✓ Copied to clipboard';
                 document.body.appendChild(msg);
                 setTimeout(() => msg.remove(), 1500);
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-            });
+            }).catch(err => console.error('Failed to copy:', err));
         }
-
     </script>
-
+    
+    <style>
+        /* Additional inline styles for toasts and empty state */
+        .empty-state {
+            text-align: center;
+            color: var(--text-dim);
+            padding: 40px 20px;
+            font-family: monospace;
+            font-style: italic;
+        }
+        
+        .error-toast {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--danger, #F44336);
+            color: white;
+            padding: 12px 24px;
+            font-size: 0.9em;
+            font-family: monospace;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .copy-toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--success, #28a745);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            z-index: 10000;
+            font-size: 0.9em;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .stat-divider {
+            border-top: 1px solid var(--border);
+            margin: 12px 0;
+        }
+    </style>
 </body>
 </html>
