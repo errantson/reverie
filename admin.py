@@ -8456,20 +8456,9 @@ def send_provisioner_request():
             req_row = cursor.fetchone()
             user_handle = req_row['handle'] if req_row else 'dreamer'
         
-        # For DM sending, we'll use the OAuth access token directly
-        # The user is already authenticated via OAuth, so we can use their session
+        # For DM sending, we need the user's app password to authenticate with their PDS
         try:
-            # Create AT Protocol client using the OAuth token
-            # The token from validate_work_token is the OAuth JWT
-            client = Client()
-            
-            # Use the token directly - it's the accessJwt from OAuth
-            print(f"🔐 Using OAuth session for {user_handle} to send DM...")
-            
-            # We need to set the session manually since we have the JWT
-            # The AT Protocol SDK expects us to login, but we already have the token
-            # So we'll use a workaround: login with the stored credentials if available,
-            # or guide the user to create an app password
+            print(f"🔐 Preparing to send DM for {user_handle}...")
             
             # Check if user has stored credentials
             cursor = db_manager.execute("""
@@ -8486,12 +8475,38 @@ def send_provisioner_request():
                 }), 400
             
             encrypted_password = cred_row['app_password_hash']
+            pds_url = cred_row.get('pds_url')
+            
+            # If no PDS URL stored, resolve from DID document
+            if not pds_url:
+                try:
+                    did_response = requests.get(
+                        f"https://plc.directory/{user_did}",
+                        timeout=5
+                    )
+                    if did_response.status_code == 200:
+                        did_doc = did_response.json()
+                        services = did_doc.get('service', [])
+                        for service in services:
+                            if service.get('id') == '#atproto_pds':
+                                pds_url = service.get('serviceEndpoint')
+                                print(f"🔍 Resolved PDS from DID document: {pds_url}")
+                                break
+                except Exception as e:
+                    print(f"⚠️ Failed to resolve PDS from DID: {e}")
+            
+            if not pds_url:
+                pds_url = 'https://bsky.social'
+                print(f"⚠️ Using fallback PDS: {pds_url}")
+            else:
+                print(f"🔐 Using PDS: {pds_url}")
             
             # Decrypt the app password
             app_password = decrypt_password(encrypted_password)
             
-            # Create AT Protocol client and login as the requester
-            print(f"🔐 Logging in as {user_handle} to send DM...")
+            # Create AT Protocol client with the correct PDS base URL
+            print(f"🔐 Logging in as {user_handle} to send DM via {pds_url}...")
+            client = Client(base_url=pds_url)
             client.login(user_handle, app_password)
             
             # Create chat proxy client

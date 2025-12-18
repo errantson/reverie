@@ -207,10 +207,11 @@ class MapperhoseMonitor:
             app_password = decrypt_password(result['app_password_hash'])
             
             if app_password:
-                self.mapper_client = Client()
+                # mappy.reverie.house is hosted on reverie.house PDS
+                self.mapper_client = Client(base_url='https://reverie.house')
                 self.mapper_client.login('mappy.reverie.house', app_password)
                 if self.verbose:
-                    print(f"🔐 Mapper client authenticated as mappy.reverie.house")
+                    print(f"🔐 Mapper client authenticated as mappy.reverie.house via reverie.house PDS")
             else:
                 print(f"⚠️  Failed to decrypt credentials for mappy.reverie.house - retry messages disabled")
                 

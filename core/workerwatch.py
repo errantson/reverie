@@ -122,9 +122,10 @@ class WorkerhoseMonitor:
             if not pds_url:
                 pds_url = 'https://bsky.social'
             
-            # For local reverie.house PDS, need to use internal Docker network URL
-            if 'reverie.house' in pds_url:
-                pds_url = 'http://reverie_pds:3333'
+            # For local reverie.house PDS, use the public external URL
+            # (internal Docker network may not be accessible from all containers)
+            if pds_url and 'reverie.house' in pds_url:
+                pds_url = 'https://reverie.house'
             
             if self.verbose:
                 print(f"      🔐 Validating against PDS: {pds_url}")

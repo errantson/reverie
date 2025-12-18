@@ -92,7 +92,7 @@ class GreeterhoseMonitor:
             
             # Get greeter credentials (isilme)
             cursor = db.execute("""
-                SELECT d.handle, uc.app_password_hash 
+                SELECT d.handle, d.did, uc.app_password_hash, uc.pds_url
                 FROM dreamers d
                 JOIN user_credentials uc ON d.did = uc.did
                 JOIN user_roles ur ON d.did = ur.did
@@ -105,9 +105,35 @@ class GreeterhoseMonitor:
                 try:
                     # Decrypt the app password
                     app_password = decrypt_password(creds['app_password_hash'])
+                    
+                    # Get PDS URL from credentials or resolve from DID
+                    pds_url = creds.get('pds_url')
+                    if not pds_url:
+                        # Resolve from DID document
+                        try:
+                            import requests
+                            did_response = requests.get(
+                                f"https://plc.directory/{creds['did']}",
+                                timeout=5
+                            )
+                            if did_response.status_code == 200:
+                                did_doc = did_response.json()
+                                for service in did_doc.get('service', []):
+                                    if service.get('id') == '#atproto_pds':
+                                        pds_url = service.get('serviceEndpoint')
+                                        break
+                        except Exception as e:
+                            if self.verbose:
+                                print(f"⚠️  Failed to resolve PDS from DID: {e}")
+                    
+                    if not pds_url:
+                        pds_url = 'https://bsky.social'
+                    
+                    # Create authenticated client with correct PDS
+                    self.client = Client(base_url=pds_url)
                     self.client.login(creds['handle'], app_password)
                     if self.verbose:
-                        print(f"🔐 Authenticated as @{creds['handle']}")
+                        print(f"🔐 Authenticated as @{creds['handle']} via {pds_url}")
                 except FileNotFoundError:
                     # Encryption key not available - skip auth, use public API
                     if self.verbose:
