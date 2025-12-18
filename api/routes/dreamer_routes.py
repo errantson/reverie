@@ -908,12 +908,16 @@ def calculate_spectrum():
         
         # Store dreamer data immediately for smooth UX
         # Image will be generated and uploaded by the frontend client
+        # NOTE: Only create dreamers if AUTO_CREATE_DREAMERS is enabled
+        # Otherwise, dreamers are only created when users actually log in
+        from config import Config
+        
         try:
             # 1. Store/update dreamer in database if not already present
             cursor = db.execute("SELECT did FROM dreamers WHERE did = %s", (did,))
             existing_dreamer = cursor.fetchone()
             
-            if not existing_dreamer:
+            if not existing_dreamer and Config.AUTO_CREATE_DREAMERS:
                 print(f"📝 Storing new dreamer in database: {handle} ({did})")
                 now = int(time.time())
                 
@@ -992,6 +996,10 @@ def calculate_spectrum():
                     int(time.time())
                 ))
                 print(f"✅ Stored spectrum data for {handle}")
+            elif not existing_dreamer:
+                # New dreamer but AUTO_CREATE_DREAMERS is disabled
+                # Don't store anything - they need to actually log in first
+                print(f"⏭️  Skipping dreamer creation for {handle} (AUTO_CREATE_DREAMERS=false)")
             else:
                 # Update existing dreamer with latest profile data
                 db.execute("""

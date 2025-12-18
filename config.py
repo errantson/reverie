@@ -45,6 +45,10 @@ class Config:
     ## PROFILE UPDATES - Enable profile updates in reverie cycle (false = skip, rely on firehose)
     PROFILE_UPDATES = os.getenv('PROFILE_UPDATES', 'true').lower() in ('true', '1', 'yes', 'on')
 
+    ## AUTO_CREATE_DREAMERS - Auto-create dreamer records when someone views a profile via /spectrum/calculate
+    ## When disabled (default), dreamers are only created when users actually log in
+    AUTO_CREATE_DREAMERS = os.getenv('AUTO_CREATE_DREAMERS', 'false').lower() in ('true', '1', 'yes', 'on')
+
     ## Backup settings
     REVERIE_BACKUP_COUNT = int(os.getenv('REVERIE_BACKUP_COUNT', '3'))  # Keep only N most recent backups
 
