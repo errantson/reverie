@@ -64,9 +64,9 @@ def user_canon_not_equals(thread_result: Dict, quest_config: Dict, canon_key: st
             if not author_did:
                 continue
             
-            # Check if this user's canon entry has a DIFFERENT value or doesn't exist
+            # Check if this user's event entry has a DIFFERENT value or doesn't exist
             result = db.fetch_one(
-                "SELECT event FROM canon WHERE did = %s AND key = %s",
+                "SELECT event FROM events WHERE did = %s AND key = %s ORDER BY epoch DESC LIMIT 1",
                 (author_did, canon_key)
             )
             

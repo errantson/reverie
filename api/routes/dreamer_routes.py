@@ -867,6 +867,20 @@ def calculate_spectrum():
         if dreamer_data:
             server = dreamer_data['server']
         
+        # If no server in DB, resolve PDS from DID document
+        if not server and did:
+            try:
+                did_response = requests.get(f"https://plc.directory/{did}", timeout=5)
+                if did_response.status_code == 200:
+                    did_doc = did_response.json()
+                    for service in did_doc.get('service', []):
+                        if service.get('id') == '#atproto_pds':
+                            server = service.get('serviceEndpoint')
+                            print(f"🔍 Resolved PDS for {handle}: {server}")
+                            break
+            except Exception as e:
+                print(f"⚠️ Failed to resolve PDS from DID: {e}")
+        
         # Calculate spectrum using the algorithm
         spectrum_manager = SpectrumManager(db)
         spectrum_values = spectrum_manager.generate_spectrum(did, server or '')
@@ -901,19 +915,57 @@ def calculate_spectrum():
             
             if not existing_dreamer:
                 print(f"📝 Storing new dreamer in database: {handle} ({did})")
-                # Store basic dreamer record (without spectrum columns - those go in spectrum table)
+                now = int(time.time())
+                
+                # Fetch account creation date from DID audit log
+                arrival_timestamp = now  # fallback
+                try:
+                    audit_response = requests.get(f"https://plc.directory/{did}/log/audit", timeout=5)
+                    if audit_response.status_code == 200:
+                        audit_log = audit_response.json()
+                        if audit_log and len(audit_log) > 0:
+                            created_at_str = audit_log[0].get('createdAt')
+                            if created_at_str:
+                                from datetime import datetime
+                                dt = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                                arrival_timestamp = int(dt.timestamp())
+                                print(f"📅 Using account creation date as arrival: {created_at_str} ({arrival_timestamp})")
+                except Exception as e:
+                    print(f"⚠️ Failed to fetch DID creation date, using current time: {e}")
+                
+                # Store basic dreamer record with arrival timestamp
                 db.execute("""
-                    INSERT INTO dreamers (did, handle, name, display_name, avatar, server, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    INSERT INTO dreamers (did, handle, name, display_name, avatar, server, arrival, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
                 """, (
                     did,
                     handle,
                     handle.split('.')[0],  # Extract name from handle
                     display_name or handle,
                     avatar,
-                    server or ''
+                    server or '',
+                    arrival_timestamp,  # account creation from DID
+                    now   # updated_at
                 ))
                 print(f"✅ Stored dreamer data for {handle}")
+                
+                # Create arrival event - "found our wild mindscape"
+                db.execute("""
+                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    did,
+                    'found our wild mindscape',
+                    'arrival',
+                    'arrival',
+                    f"{did}/app.bsky.actor.profile/self",
+                    f"https://bsky.app/profile/{did}",
+                    arrival_timestamp,  # account creation time as event epoch
+                    now,                # created_at is when we recorded it
+                    'user',
+                    'highlight'
+                ))
+                print(f"✅ Created arrival event for {handle}")
                 
                 # Store spectrum data in spectrum table
                 db.execute("""

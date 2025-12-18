@@ -560,7 +560,7 @@ class Drawer {
     loadDashboard() {
         if (!window.Dashboard) {
             const script = document.createElement('script');
-            script.src = '/js/widgets/dashboard.js?v=26';
+            script.src = '/js/widgets/dashboard.js?v=27';
             script.onload = () => {
                 // Load composer widget for standalone post composition
                 if (!window.ComposerWidget) {

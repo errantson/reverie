@@ -53,9 +53,9 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
     try:
         db = get_db_manager()
         
-        # Calculate this user's patronage from canon table
+        # Calculate this user's patronage from events table
         order_data = db.fetch_all("""
-            SELECT event FROM canon WHERE type = 'order' AND did = %s
+            SELECT event FROM events WHERE type = 'order' AND did = %s
         """, (did,))
         
         POINTS_PER_BOOK = 150  # Flat contribution points per book
@@ -81,7 +81,7 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
         if patronage > 0:
             # Get all patronage scores
             all_orders = db.fetch_all("""
-                SELECT did, event FROM canon WHERE type = 'order'
+                SELECT did, event FROM events WHERE type = 'order'
             """)
             
             patronage_by_did = {}

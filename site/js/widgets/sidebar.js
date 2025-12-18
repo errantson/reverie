@@ -89,10 +89,12 @@ class Sidebar {
                     <div class="autofill-container"></div>   
                 </div>
             </div>
+            <!-- Invitation box temporarily hidden
             <div class="invitation-text">
                 Are you a dreamweaver?<br>
                 <a href="https://bsky.app/profile/reverie.house/post/3lljjzcydwc25" target="_blank">Introduce Yourself</a>
             </div>
+            -->
         `;
     }
     initialize() {
@@ -373,7 +375,7 @@ class Sidebar {
                 }
                 
                 return `
-                    <div class="active-dreamer-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
+                    <div class="recent-arrival-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
@@ -529,7 +531,7 @@ class Sidebar {
                 }
                 
                 return `
-                    <div class="recent-arrival-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
+                    <div class="active-dreamer-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
@@ -694,9 +696,9 @@ class Sidebar {
             }).join('');
             
             // Add click handlers
-            container.querySelectorAll('.dreamer-link').forEach(link => {
-                link.addEventListener('click', () => {
-                    const did = decodeURIComponent(link.dataset.dreamerDid);
+            container.querySelectorAll('.great-patron-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const did = decodeURIComponent(item.dataset.did);
                     window.location.href = `${window.location.pathname}?did=${encodeURIComponent(did)}`;
                 });
             });
@@ -856,8 +858,8 @@ class Sidebar {
             this.dreamers.filter(d => d.name.toLowerCase().includes(query.toLowerCase())) :
             this.dreamers.slice().sort(() => Math.random() - 0.5);
         
-        // Limit to 3 results
-        results = results.slice(0, 3);
+        // Limit to 4 results
+        results = results.slice(0, 4);
         
         results.forEach((match, index) => {
             const item = document.createElement('div');       

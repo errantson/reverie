@@ -928,13 +928,28 @@ class Profile {
         const isReverieHouse = serverClean === 'reverie.house';
         const isBskyNetwork = serverClean.endsWith('bsky.network');
         
-        const serverLabel = 'Domain';
-        // Remove 'pds.' prefix for cleaner display
-        const serverDisplay = serverClean.replace(/^pds\./, '');
-        // For custom PDS, link to the actual domain instead of the PDS URL
-        const serverLinkUrl = serverClean.startsWith('pds.') 
-            ? 'https://' + serverClean.replace(/^pds\./, '')
-            : serverUrl;
+        // Determine server label and display based on type
+        let serverLabel = 'Domain';
+        let serverDisplay = serverClean;
+        let serverLinkUrl = serverUrl;
+        
+        if (isReverieHouse) {
+            serverLabel = 'Residence';
+            serverDisplay = 'reverie.house';
+        } else if (isBskyNetwork) {
+            // Extract homestar name (e.g., "porcini" from "porcini.us-east.host.bsky.network")
+            serverLabel = 'Homestar';
+            const homestarMatch = serverClean.match(/^([^.]+)\./);
+            serverDisplay = homestarMatch ? homestarMatch[1] : serverClean;
+            serverLinkUrl = 'https://bsky.app';  // Link to Bluesky for bsky.network users
+        } else {
+            // Custom PDS - remove 'pds.' prefix for cleaner display
+            serverDisplay = serverClean.replace(/^pds\./, '');
+            // For custom PDS, link to the actual domain instead of the PDS URL
+            serverLinkUrl = serverClean.startsWith('pds.') 
+                ? 'https://' + serverClean.replace(/^pds\./, '')
+                : serverUrl;
+        }
         
         const renderAltNames = (alts) => {
             if (!alts || alts === 'none') return '<span style="opacity: 0.5;">none</span>';

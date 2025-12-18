@@ -64,9 +64,9 @@ def user_canon_equals(thread_result: Dict, quest_config: Dict, canon_key: str, c
             if not author_did:
                 continue
             
-            # Check if this user has a canon entry with this key=value
+            # Check if this user has an event entry with this key=value
             result = db.fetch_one(
-                "SELECT event FROM canon WHERE did = %s AND key = %s",
+                "SELECT event FROM events WHERE did = %s AND key = %s ORDER BY epoch DESC LIMIT 1",
                 (author_did, canon_key)
             )
             

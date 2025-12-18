@@ -521,11 +521,21 @@ class Dashboard {
     }
 
     getServerLabel(server) {
+        const serverClean = (server || 'https://reverie.house').replace(/^https?:\/\//, '');
+        if (serverClean === 'reverie.house') {
+            return 'Residence';
+        } else if (serverClean.endsWith('bsky.network')) {
+            return 'Homestar';
+        }
         return 'Domain';
     }
     
     getServerUrl(server) {
         const serverClean = (server || 'https://reverie.house').replace(/^https?:\/\//, '');
+        // For bsky.network homestars, link to Bluesky
+        if (serverClean.endsWith('bsky.network')) {
+            return 'https://bsky.app';
+        }
         // For custom PDS (pds.domain.com), link to the actual domain
         if (serverClean.startsWith('pds.')) {
             return 'https://' + serverClean.replace(/^pds\./, '');
@@ -536,6 +546,11 @@ class Dashboard {
     
     getServerDisplay(server) {
         const serverClean = (server || 'reverie.house').replace(/^https?:\/\//, '');
+        // For bsky.network homestars, extract the homestar name (e.g., "porcini" from "porcini.us-east.host.bsky.network")
+        if (serverClean.endsWith('bsky.network')) {
+            const homestarMatch = serverClean.match(/^([^.]+)\./);
+            return homestarMatch ? homestarMatch[1] : serverClean;
+        }
         // Remove 'pds.' prefix for cleaner display
         return serverClean.replace(/^pds\./, '');
     }
@@ -5345,24 +5360,58 @@ class Dashboard {
             }
         }
         
-        // Detect URLs
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        
-        while ((match = urlRegex.exec(text)) !== null) {
+        // Detect URLs - including bare domains like reverie.house
+        // Pattern matches:
+        // 1. URLs with http:// or https://
+        // 2. URLs starting with www.
+        // 3. Bare domains like reverie.house at word boundary (not preceded by @)
+        // First pass: full URLs with protocol
+        const urlWithProtocol = /https?:\/\/[^\s]+/g;
+        while ((match = urlWithProtocol.exec(text)) !== null) {
             const url = match[0];
             const start = this.getByteOffset(text, match.index);
             const end = this.getByteOffset(text, match.index + url.length);
             
             facets.push({
-                index: {
-                    byteStart: start,
-                    byteEnd: end
-                },
-                features: [{
-                    $type: 'app.bsky.richtext.facet#link',
-                    uri: url
-                }]
+                index: { byteStart: start, byteEnd: end },
+                features: [{ $type: 'app.bsky.richtext.facet#link', uri: url }]
             });
+        }
+        
+        // Second pass: www URLs
+        const wwwUrls = /www\.[^\s]+/g;
+        while ((match = wwwUrls.exec(text)) !== null) {
+            const url = match[0];
+            const start = this.getByteOffset(text, match.index);
+            const end = this.getByteOffset(text, match.index + url.length);
+            
+            facets.push({
+                index: { byteStart: start, byteEnd: end },
+                features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'https://' + url }]
+            });
+        }
+        
+        // Third pass: bare domains (like reverie.house, biblio.bond)
+        // Must be at start of string or preceded by whitespace (not @ for mentions)
+        const bareDomains = /(?:^|(?<=\s))([a-zA-Z0-9-]+\.)+(?:house|com|org|net|io|dev|app|social|me|co|farm|bond|center|ca|quest|town)(?:\/[^\s]*)?/g;
+        while ((match = bareDomains.exec(text)) !== null) {
+            const url = match[0];
+            // Skip if this URL position was already matched by protocol URLs
+            const start = this.getByteOffset(text, match.index);
+            const end = this.getByteOffset(text, match.index + url.length);
+            
+            // Check if this range overlaps with existing facets
+            const overlaps = facets.some(f => 
+                (start >= f.index.byteStart && start < f.index.byteEnd) ||
+                (end > f.index.byteStart && end <= f.index.byteEnd)
+            );
+            
+            if (!overlaps) {
+                facets.push({
+                    index: { byteStart: start, byteEnd: end },
+                    features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'https://' + url }]
+                });
+            }
         }
         
         return facets.length > 0 ? facets : null;
@@ -5410,8 +5459,14 @@ class Dashboard {
         html = html.replace(/@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?/g, 
             '<span class="richtext-mention">$&</span>');
         
-        // Detect and highlight URLs
-        html = html.replace(/(https?:\/\/[^\s]+)/g, 
+        // Detect and highlight URLs - including bare domains
+        // First handle full URLs with protocol
+        html = html.replace(/(https?:\/\/[^\s<]+)/g, 
+            '<span class="richtext-link">$1</span>');
+        
+        // Then handle bare domains (careful not to double-match)
+        // Match common TLDs when not already wrapped in a span
+        html = html.replace(/(?<!span class="richtext-link">)(?<!https?:\/\/)((?:[a-zA-Z0-9-]+\.)+(?:house|com|org|net|io|dev|app|social|me|co|farm|bond|center|ca|quest|town)(?:\/[^\s<]*)?)/g, 
             '<span class="richtext-link">$1</span>');
         
         // Convert line breaks
@@ -6382,7 +6437,17 @@ class Dashboard {
                 if (isOAuthSession) {
                     // OAuth path - post directly via OAuth client
                     console.log('📬 [Compose] Using OAuth client');
-                    result = await window.oauthManager.createPost(postText);
+                    
+                    // Detect facets for the post (mentions and links)
+                    const facets = await this.detectFacets(postText);
+                    if (facets && facets.length > 0) {
+                        console.log('🔗 [Compose] Detected facets for OAuth post:', facets.length);
+                    }
+                    
+                    // Build custom record with facets if detected
+                    const customRecord = facets ? { facets: facets } : null;
+                    
+                    result = await window.oauthManager.createPost(postText, customRecord);
                     console.log('✅ [Compose] Post created via OAuth:', result);
                 } else if (pdsSessionStr) {
                     // PDS session - post directly to PDS using stored accessJwt
@@ -6532,7 +6597,7 @@ class Dashboard {
                     console.log('🏷️ [Compose] Applying lore label to post:', result.uri);
                     try {
                         const token = await this.getOAuthToken();
-                        const labelResponse = await fetch('/api/lore/label', {
+                        const labelResponse = await fetch('/api/lore/apply-label', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -6540,6 +6605,7 @@ class Dashboard {
                             },
                             body: JSON.stringify({
                                 uri: result.uri,
+                                userDid: userDid,
                                 label: 'lore:reverie.house'
                             })
                         });

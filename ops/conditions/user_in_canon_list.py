@@ -64,9 +64,9 @@ def user_in_canon_list(thread_result: Dict, quest_config: Dict, canon_key: str, 
             if not author_did:
                 continue
             
-            # Check if this user's canon value is in the allowed list
+            # Check if this user's event value is in the allowed list
             result = db.fetch_one(
-                "SELECT event FROM canon WHERE did = %s AND key = %s",
+                "SELECT event FROM events WHERE did = %s AND key = %s ORDER BY epoch DESC LIMIT 1",
                 (author_did, canon_key)
             )
             
