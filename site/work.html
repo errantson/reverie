@@ -468,6 +468,25 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <!-- Provisioner Tools (only visible to active provisioner) -->
+                    <div id="provisioner-tools-section" class="provisioner-tools-container" style="display: none; margin-top: 1rem;">
+                        <div class="provisioner-box" style="background: rgba(100, 100, 100, 0.1);">
+                            <h3 class="provisioner-box-title">🔧 Provisioner Tools</h3>
+                            <p class="provisioner-box-text">
+                                <b>Sync Follows:</b> Follow all reverie.house dreamers so they can DM you.
+                                <br><i>This runs automatically when you activate, but you can run it manually if needed.</i>
+                            </p>
+                            <button class="provisioner-box-button" id="sync-follows-btn" onclick="syncProvisionerFollows()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="m3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+                                </svg>
+                                Sync Follows
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Dreamstyler Content Section -->
@@ -1360,6 +1379,10 @@
                 } else {
                     if (data.needs_credentials) {
                         showCelebration('You need to activate a work role first to send direct messages.\n\nPlease activate any role (like Provisioner) to enable DM functionality.', 'error');
+                    } else if (data.dm_restricted) {
+                        // Provisioner has DM settings that block incoming messages
+                        const provHandle = data.provisioner_handle || 'the provisioner';
+                        showCelebration(`The Head of Pantry (@${provHandle}) has DM settings that require them to follow you first.\n\nPlease either:\n• Ask them to follow you on Bluesky, or\n• Wait for them to update their DM settings\n\nThen try again.`, 'error');
                     } else {
                         showCelebration(data.error || 'Failed to send request', 'error');
                     }
@@ -1411,6 +1434,79 @@
             });
         }
         
+        async function syncProvisionerFollows() {
+            console.log('🔄 [Provisioner] Sync follows clicked');
+            
+            const syncBtn = document.getElementById('sync-follows-btn');
+            if (syncBtn) {
+                syncBtn.disabled = true;
+                syncBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="m3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+                    </svg>
+                    Syncing...
+                `;
+            }
+            
+            try {
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                if (!token && currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                }
+                
+                const response = await fetch('/api/work/provisioner/sync-follows', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let message = `Follow sync complete!\n\n`;
+                    message += `✅ Followed: ${data.followed}\n`;
+                    message += `🗑️ Unfollowed: ${data.unfollowed}\n`;
+                    message += `📋 Already following: ${data.already_following}`;
+                    if (data.errors && data.errors.length > 0) {
+                        message += `\n⚠️ Errors: ${data.errors.length}`;
+                    }
+                    showCelebration(message, 'success');
+                } else {
+                    showCelebration(data.error || 'Failed to sync follows', 'error');
+                }
+            } catch (error) {
+                console.error('Error syncing follows:', error);
+                showCelebration('Network error. Please try again.', 'error');
+            } finally {
+                if (syncBtn) {
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="m3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+                        </svg>
+                        Sync Follows
+                    `;
+                }
+            }
+        }
+        
+        function updateProvisionerToolsVisibility() {
+            const toolsSection = document.getElementById('provisioner-tools-section');
+            if (!toolsSection) return;
+            
+            // Only show tools if user is the active provisioner
+            const provisionerStatus = roleStatuses.provisioner;
+            const isActiveProvisioner = provisionerStatus && provisionerStatus.is_worker;
+            
+            toolsSection.style.display = isActiveProvisioner ? 'block' : 'none';
+        }
+        
         function updateRoleActions(role) {
             const activateBtn = document.getElementById('activate-btn');
             if (!activateBtn) return;
@@ -1456,6 +1552,7 @@
             await loadRoleStatus('provisioner');
             await loadRoleStatus('dreamstyler');
             updateUI();
+            updateProvisionerToolsVisibility();
             isInitializing = false;
         });
 

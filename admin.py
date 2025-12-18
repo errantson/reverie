@@ -7981,6 +7981,16 @@ def activate_provisioner():
         
         print(f"✅ Provisioner activated for {user_did}")
         
+        # Auto-sync follows to ensure provisioner can receive DMs from all dreamers
+        # This runs in the background after activation
+        try:
+            print(f"🔄 Starting follow sync for new provisioner...")
+            sync_results = sync_reverie_follows(user_did, handle, db_manager)
+            print(f"   Followed {sync_results['followed']} dreamers")
+        except Exception as sync_error:
+            print(f"⚠️ Follow sync failed (non-critical): {sync_error}")
+            # Don't fail activation if sync fails
+        
         return jsonify({
             'success': True,
             'is_worker': True,
@@ -8118,6 +8128,295 @@ def step_down_provisioner():
         return jsonify({
             'success': True,
             'is_worker': False
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+def sync_reverie_follows(user_did, user_handle, db_manager):
+    """
+    Sync follows for a user to match reverie.house dreamers.
+    
+    - Follows all dreamers with .reverie.house handles
+    - Unfollows anyone without a .reverie.house handle
+    
+    This ensures users with "following only" DM settings can receive DMs from all dreamers.
+    
+    Args:
+        user_did: DID of the user to sync follows for
+        user_handle: Handle of the user (for login)
+        db_manager: Database manager instance
+        
+    Returns:
+        dict with 'followed', 'unfollowed', 'errors' counts
+    """
+    from atproto import Client
+    
+    print(f"\n{'='*80}")
+    print(f"🔄 SYNCING REVERIE FOLLOWS FOR {user_handle}")
+    print(f"{'='*80}")
+    
+    results = {
+        'followed': 0,
+        'unfollowed': 0,
+        'already_following': 0,
+        'errors': [],
+        'skipped': 0
+    }
+    
+    try:
+        # Get user's credentials
+        cred_row = db_manager.fetch_one("""
+            SELECT app_password_hash, pds_url FROM user_credentials
+            WHERE did = %s AND app_password_hash IS NOT NULL
+        """, (user_did,))
+        
+        if not cred_row or not cred_row['app_password_hash']:
+            results['errors'].append('No stored credentials found')
+            return results
+        
+        # Resolve PDS URL
+        pds_url = cred_row.get('pds_url')
+        if not pds_url:
+            try:
+                did_response = requests.get(f"https://plc.directory/{user_did}", timeout=5)
+                if did_response.status_code == 200:
+                    did_doc = did_response.json()
+                    for service in did_doc.get('service', []):
+                        if service.get('id') == '#atproto_pds':
+                            pds_url = service.get('serviceEndpoint')
+                            break
+            except Exception:
+                pass
+        
+        if not pds_url:
+            pds_url = 'https://bsky.social'
+        
+        # Login
+        app_password = decrypt_password(cred_row['app_password_hash'])
+        client = Client(base_url=pds_url)
+        client.login(user_handle, app_password)
+        print(f"✅ Logged in as {user_handle}")
+        
+        # Get all reverie.house dreamers (the target follow list)
+        cursor = db_manager.execute("""
+            SELECT did, handle FROM dreamers 
+            WHERE handle LIKE '%%.reverie.house'
+            AND did != %s
+        """, (user_did,))
+        
+        reverie_dreamers = {row['did']: row['handle'] for row in cursor.fetchall()}
+        print(f"📋 Found {len(reverie_dreamers)} reverie.house dreamers to follow")
+        
+        # Get current follows
+        current_follows = {}  # did -> follow record uri
+        follows_cursor = None
+        
+        print(f"📥 Fetching current follows...")
+        while True:
+            try:
+                follows_response = client.app.bsky.graph.get_follows(
+                    {'actor': user_did, 'limit': 100, 'cursor': follows_cursor}
+                )
+                
+                for follow in follows_response.follows:
+                    current_follows[follow.did] = follow
+                
+                follows_cursor = follows_response.cursor
+                if not follows_cursor:
+                    break
+            except Exception as e:
+                print(f"⚠️ Error fetching follows: {e}")
+                break
+        
+        print(f"📊 Currently following {len(current_follows)} accounts")
+        
+        # Determine who to follow and unfollow
+        reverie_dids = set(reverie_dreamers.keys())
+        following_dids = set(current_follows.keys())
+        
+        to_follow = reverie_dids - following_dids
+        to_unfollow = following_dids - reverie_dids
+        
+        print(f"➕ Need to follow: {len(to_follow)}")
+        print(f"➖ Need to unfollow: {len(to_unfollow)}")
+        
+        # Follow reverie dreamers we're not following
+        for did in to_follow:
+            handle = reverie_dreamers.get(did, did)
+            try:
+                client.follow(did)
+                results['followed'] += 1
+                print(f"  ✅ Followed {handle}")
+                # Small delay to avoid rate limiting
+                import time
+                time.sleep(0.1)
+            except Exception as e:
+                error_str = str(e)
+                if 'duplicate' in error_str.lower() or 'already' in error_str.lower():
+                    results['already_following'] += 1
+                else:
+                    results['errors'].append(f"Failed to follow {handle}: {error_str}")
+                    print(f"  ❌ Failed to follow {handle}: {e}")
+        
+        # Unfollow non-reverie accounts
+        for did in to_unfollow:
+            follow_info = current_follows.get(did)
+            if not follow_info:
+                continue
+            
+            handle = follow_info.handle if hasattr(follow_info, 'handle') else did
+            
+            # Skip if it's a reverie.house handle we missed
+            if handle and handle.endswith('.reverie.house'):
+                results['skipped'] += 1
+                continue
+            
+            try:
+                # To unfollow, we need to delete the follow record
+                # First, get the follow record URI
+                # We need to find the actual follow record in our repo
+                follow_records = client.app.bsky.graph.follow.list(client.me.did, limit=100)
+                
+                for record in follow_records.records:
+                    if hasattr(record, 'value') and hasattr(record.value, 'subject'):
+                        if record.value.subject == did:
+                            # Delete this follow record
+                            client.delete_record(record.uri)
+                            results['unfollowed'] += 1
+                            print(f"  🗑️ Unfollowed {handle}")
+                            break
+                
+                import time
+                time.sleep(0.1)
+            except Exception as e:
+                # Don't treat unfollow failures as critical
+                print(f"  ⚠️ Could not unfollow {handle}: {e}")
+                results['skipped'] += 1
+        
+        print(f"\n{'='*80}")
+        print(f"✅ SYNC COMPLETE")
+        print(f"   Followed: {results['followed']}")
+        print(f"   Unfollowed: {results['unfollowed']}")
+        print(f"   Already following: {results['already_following']}")
+        print(f"   Skipped: {results['skipped']}")
+        print(f"   Errors: {len(results['errors'])}")
+        print(f"{'='*80}\n")
+        
+        return results
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        results['errors'].append(str(e))
+        return results
+
+
+@app.route('/api/work/provisioner/sync-follows', methods=['POST'])
+@rate_limit()
+def sync_provisioner_follows():
+    """
+    Sync the provisioner's follows to match reverie.house dreamers.
+    
+    This ensures the provisioner follows all dreamers (so they can receive DMs)
+    and unfollows anyone who is not a dreamer.
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        # Verify user is the active provisioner
+        provisioner_check = db_manager.fetch_one("""
+            SELECT 1 FROM user_roles
+            WHERE did = %s AND role = 'provisioner' AND status = 'active'
+        """, (user_did,))
+        
+        if not provisioner_check:
+            return jsonify({'error': 'You must be the active provisioner to sync follows'}), 403
+        
+        # Get handle if not provided
+        if not handle:
+            dreamer_row = db_manager.fetch_one(
+                "SELECT handle FROM dreamers WHERE did = %s", (user_did,)
+            )
+            handle = dreamer_row['handle'] if dreamer_row else None
+        
+        if not handle:
+            return jsonify({'error': 'Could not determine your handle'}), 400
+        
+        # Perform the sync
+        results = sync_reverie_follows(user_did, handle, db_manager)
+        
+        return jsonify({
+            'success': True,
+            'followed': results['followed'],
+            'unfollowed': results['unfollowed'],
+            'already_following': results['already_following'],
+            'skipped': results['skipped'],
+            'errors': results['errors']
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/sync-reverie-follows', methods=['POST'])
+@rate_limit()
+def admin_sync_reverie_follows():
+    """
+    Admin endpoint to sync follows for the reverie.house account.
+    
+    This ensures reverie.house follows all dreamers (matching the provisioner behavior).
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        # Verify admin token
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        # Check if it's an admin token
+        admin_session = verify_admin_token(token)
+        if not admin_session:
+            return jsonify({'error': 'Admin access required'}), 403
+        
+        db_manager = DatabaseManager()
+        
+        # Get the reverie.house account DID
+        reverie_row = db_manager.fetch_one(
+            "SELECT did FROM dreamers WHERE handle = 'reverie.house' OR handle = 'reverie.reverie.house'"
+        )
+        
+        if not reverie_row:
+            return jsonify({'error': 'reverie.house account not found'}), 404
+        
+        reverie_did = reverie_row['did']
+        
+        # Perform the sync
+        results = sync_reverie_follows(reverie_did, 'reverie.house', db_manager)
+        
+        return jsonify({
+            'success': True,
+            'followed': results['followed'],
+            'unfollowed': results['unfollowed'],
+            'already_following': results['already_following'],
+            'skipped': results['skipped'],
+            'errors': results['errors']
         })
         
     except Exception as e:
@@ -8513,7 +8812,77 @@ def send_provisioner_request():
             dm_client = client.with_bsky_chat_proxy()
             dm = dm_client.chat.bsky.convo
             
-            # Get or create conversation with the provisioner
+            # Step 1: Check if DM can be sent to the provisioner
+            # The provisioner may have chat settings that only allow messages from people they follow
+            print(f"🔍 Checking chat availability with provisioner...")
+            try:
+                # Try to get conversation availability first
+                availability = dm.get_convo_availability(
+                    models.ChatBskyConvoGetConvoAvailability.Params(members=[provisioner_did])
+                )
+                can_chat = availability.can_chat if hasattr(availability, 'can_chat') else True
+                print(f"   Chat availability: can_chat={can_chat}")
+            except Exception as avail_error:
+                # If we can't check availability, try to proceed anyway
+                print(f"⚠️ Could not check chat availability: {avail_error}")
+                can_chat = True  # Optimistic - try anyway
+            
+            # Step 2: If chat is blocked, have the provisioner follow the requester first
+            if not can_chat:
+                print(f"🔗 Provisioner has restricted DM settings. Attempting to establish follow relationship...")
+                
+                # Get provisioner's credentials so they can follow the requester
+                cursor = db_manager.execute("""
+                    SELECT app_password_hash, pds_url FROM user_credentials
+                    WHERE did = %s
+                """, (provisioner_did,))
+                
+                prov_cred_row = cursor.fetchone()
+                
+                if prov_cred_row and prov_cred_row['app_password_hash']:
+                    try:
+                        # Resolve provisioner's PDS
+                        prov_pds_url = prov_cred_row.get('pds_url')
+                        if not prov_pds_url:
+                            try:
+                                prov_did_response = requests.get(
+                                    f"https://plc.directory/{provisioner_did}",
+                                    timeout=5
+                                )
+                                if prov_did_response.status_code == 200:
+                                    prov_did_doc = prov_did_response.json()
+                                    prov_services = prov_did_doc.get('service', [])
+                                    for service in prov_services:
+                                        if service.get('id') == '#atproto_pds':
+                                            prov_pds_url = service.get('serviceEndpoint')
+                                            break
+                            except Exception:
+                                pass
+                        
+                        if not prov_pds_url:
+                            prov_pds_url = 'https://bsky.social'
+                        
+                        # Login as provisioner and follow the requester
+                        prov_password = decrypt_password(prov_cred_row['app_password_hash'])
+                        prov_client = Client(base_url=prov_pds_url)
+                        prov_client.login(provisioner_handle, prov_password)
+                        
+                        # Have provisioner follow the requester
+                        print(f"🤝 Provisioner following requester {user_did}...")
+                        prov_client.follow(user_did)
+                        print(f"✅ Provisioner now follows requester")
+                        
+                        # Wait a moment for the follow to propagate
+                        import time
+                        time.sleep(0.5)
+                        
+                    except Exception as follow_error:
+                        print(f"⚠️ Could not establish follow relationship: {follow_error}")
+                        # Continue anyway - the DM might still fail, but we'll get a better error
+                else:
+                    print(f"⚠️ Provisioner has no stored credentials to establish follow relationship")
+            
+            # Step 3: Get or create conversation with the provisioner
             print(f"💬 Getting conversation with provisioner {provisioner_did}...")
             convo = dm.get_convo_for_members(
                 models.ChatBskyConvoGetConvoForMembers.Params(members=[provisioner_did])
@@ -8542,10 +8911,22 @@ def send_provisioner_request():
             })
             
         except Exception as auth_error:
+            error_str = str(auth_error)
             print(f"❌ AT Protocol error: {auth_error}")
             import traceback
             traceback.print_exc()
-            return jsonify({'error': f'Failed to send message: {str(auth_error)}'}), 500
+            
+            # Provide a more helpful error message for DM restriction issues
+            if 'recipient requires incoming messages' in error_str.lower() or \
+               'cannot chat' in error_str.lower() or \
+               'requires incoming messages to come from someone they follow' in error_str:
+                return jsonify({
+                    'error': 'The provisioner has DM settings that require you to be followed first. Please ask them to follow you on Bluesky, or try again later.',
+                    'dm_restricted': True,
+                    'provisioner_handle': provisioner_handle
+                }), 400
+            
+            return jsonify({'error': f'Failed to send message: {error_str}'}), 500
         
     except Exception as e:
         import traceback
@@ -9726,6 +10107,9 @@ def serve_admin(filename):
 
 if __name__ == '__main__':
     import sys
+    import threading
+    import time as time_module
+    
     port = 4444  # Use different default port
     
     if len(sys.argv) > 1 and sys.argv[1].startswith('--port'):
@@ -9738,6 +10122,93 @@ if __name__ == '__main__':
     print(f"DID-based authentication enabled")
     print("Zowell.exe integration ready")
     print("Audit logging enabled (if available) (audit.db)")
+    
+    # =========================================================================
+    # BACKGROUND FOLLOW SYNC WORKER
+    # Keeps Provisioner and reverie.house following all dreamers
+    # =========================================================================
+    def follow_sync_worker(interval_seconds=3600):
+        """
+        Background worker that syncs follows for:
+        1. The active Provisioner (if any)
+        2. The reverie.house account
+        
+        Runs every interval_seconds (default: 1 hour)
+        """
+        print(f"🔄 Follow sync worker started (interval: {interval_seconds}s)")
+        
+        # Wait a bit before first run to let the app fully start
+        time_module.sleep(30)
+        
+        while True:
+            try:
+                from core.database import DatabaseManager
+                db_manager = DatabaseManager()
+                
+                print(f"\n{'='*60}")
+                print(f"🔄 SCHEDULED FOLLOW SYNC - {time_module.strftime('%Y-%m-%d %H:%M:%S')}")
+                print(f"{'='*60}")
+                
+                # 1. Sync reverie.house account
+                try:
+                    reverie_row = db_manager.fetch_one(
+                        "SELECT did FROM dreamers WHERE handle = 'reverie.house' OR handle = 'reverie.reverie.house'"
+                    )
+                    if reverie_row:
+                        print(f"\n📌 Syncing reverie.house follows...")
+                        results = sync_reverie_follows(reverie_row['did'], 'reverie.house', db_manager)
+                        print(f"   ✓ reverie.house: followed {results['followed']}, unfollowed {results['unfollowed']}")
+                    else:
+                        print(f"   ⚠️ reverie.house account not found")
+                except Exception as e:
+                    print(f"   ❌ reverie.house sync failed: {e}")
+                
+                # 2. Sync active Provisioner
+                try:
+                    provisioner_row = db_manager.fetch_one("""
+                        SELECT ur.did, d.handle 
+                        FROM user_roles ur
+                        JOIN dreamers d ON ur.did = d.did
+                        WHERE ur.role = 'provisioner' AND ur.status = 'active'
+                        LIMIT 1
+                    """)
+                    if provisioner_row:
+                        print(f"\n📌 Syncing Provisioner ({provisioner_row['handle']}) follows...")
+                        results = sync_reverie_follows(
+                            provisioner_row['did'], 
+                            provisioner_row['handle'], 
+                            db_manager
+                        )
+                        print(f"   ✓ Provisioner: followed {results['followed']}, unfollowed {results['unfollowed']}")
+                    else:
+                        print(f"   ℹ️ No active Provisioner to sync")
+                except Exception as e:
+                    print(f"   ❌ Provisioner sync failed: {e}")
+                
+                print(f"\n{'='*60}")
+                print(f"✅ Follow sync complete. Next run in {interval_seconds}s")
+                print(f"{'='*60}\n")
+                
+            except Exception as e:
+                print(f"❌ Follow sync worker error: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            # Wait for next interval
+            time_module.sleep(interval_seconds)
+    
+    # Start the follow sync worker in a background thread
+    try:
+        sync_thread = threading.Thread(
+            target=follow_sync_worker, 
+            args=(3600,),  # Run every hour
+            daemon=True,
+            name="FollowSyncWorker"
+        )
+        sync_thread.start()
+        print("🔄 Follow sync worker started (runs hourly)")
+    except Exception as e:
+        print(f"⚠️ Failed to start follow sync worker: {e}")
     
     # Dream enrichment worker disabled (dream_queue service removed)
     # try:

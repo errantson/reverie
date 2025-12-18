@@ -2100,6 +2100,31 @@ body[data-current-role="cogitarian"] .action-button.primary {
     transform: translateY(0);
 }
 
+.provisioner-box-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.provisioner-box-button:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.provisioner-box-button .spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.provisioner-tools-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
 
 /* ============================================
    DREAMSTYLER LIST STYLES
