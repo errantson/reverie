@@ -133,21 +133,32 @@
     height: 28px;
 }
 
-/* Pulse effect for new users or unread messages */
+/* Pulse effect - always gently pulses to attract attention */
 .helper-pulse {
     position: absolute;
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.5);
     pointer-events: none;
-    opacity: 0;
+    animation: gentle-pulse 3s ease-in-out infinite;
 }
 
-/* Only animate when has-unread or needs-attention */
+/* Stronger pulse for has-unread or needs-attention */
 .errantson-helper.has-unread .helper-pulse,
 .errantson-helper.needs-attention .helper-pulse {
     animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes gentle-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.3;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.6;
+    }
 }
 
 @keyframes pulse-ring {
@@ -157,7 +168,7 @@
     }
     100% {
         transform: scale(1.5);
-        opacity: 0.8;
+        opacity: 0;
     }
 }
 

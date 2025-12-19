@@ -518,6 +518,96 @@
     min-width: 60px;
 }
 
+/* App Password Tool - styled like other tools */
+.tool-row.app-password-tool {
+    gap: 8px;
+}
+
+.tool-row.app-password-tool .tool-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 100px;
+}
+
+.tool-row.app-password-tool .tool-label svg {
+    flex-shrink: 0;
+}
+
+.tool-row.app-password-tool.connected {
+    background: linear-gradient(135deg, #f0fff4 0%, #f8f6ff 100%);
+    border-left-color: #28a745;
+}
+
+.tool-row.app-password-tool .app-password-status {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tool-row.app-password-tool .app-password-date {
+    font-weight: 400;
+    font-style: italic;
+    font-size: 0.7rem;
+    color: #28a745;
+}
+
+.tool-row.app-password-tool .app-password-input {
+    flex: 1;
+    min-width: 140px;
+    max-width: 170px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    text-align: center;
+    border: 1px solid #d0c7f0;
+    background: white;
+    transition: all 0.2s;
+    height: 28px;
+    box-sizing: border-box;
+}
+
+.tool-row.app-password-tool .app-password-input:focus {
+    outline: none;
+    border-color: var(--reverie-core-color, #734ba1);
+    box-shadow: 0 0 0 2px rgba(115, 75, 161, 0.1);
+}
+
+.tool-row.app-password-tool .app-password-input::placeholder {
+    color: #bbb;
+    letter-spacing: 2px;
+}
+
+.tool-row.app-password-tool .connect-btn {
+    min-width: 70px;
+}
+
+.tool-row.app-password-tool .disconnect-btn {
+    min-width: 85px;
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.tool-row.app-password-tool .disconnect-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.tool-row.app-password-tool .create-btn {
+    min-width: 32px;
+    padding: 4px 8px;
+}
+
+.tool-row.app-password-tool .create-btn svg {
+    opacity: 0.7;
+}
+
+.tool-row.app-password-tool .create-btn:hover svg {
+    opacity: 1;
+}
+
 .tool-label {
     font-weight: 600;
     color: #666;
@@ -604,6 +694,15 @@
     gap: 6px;
 }
 
+/* Keep app-password row on a single line when possible */
+.app-password-row {
+    flex-wrap: nowrap;
+}
+
+.app-password-label {
+    flex: 0 0 auto;
+}
+
 .app-password-date {
     font-weight: 400;
     font-style: italic;
@@ -614,7 +713,7 @@
 .app-password-row.disconnected {
     justify-content: flex-start;
     gap: 6px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .character-toggle {
@@ -664,8 +763,8 @@
 
 /* App Password Input */
 .app-password-inline-input {
-    flex: 1;
-    min-width: 160px;
+    flex: 1 1 140px;
+    min-width: 140px;
     max-width: 180px;
     padding: 6px 8px;
     font-size: 0.75rem;
@@ -834,19 +933,19 @@
 
 /* Responsive adjustments for app password row */
 @media (max-width: 768px) {
-    .app-password-row.disconnected {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
+    .tool-row.app-password-tool.disconnected {
+        flex-wrap: wrap;
     }
     
-    .app-password-inline-input {
-        max-width: 100%;
+    .tool-row.app-password-tool .app-password-input {
+        flex: 1 1 100%;
+        order: 1;
     }
     
-    .app-password-row.disconnected > .connect-btn-small,
-    .app-password-row.disconnected > .create-btn-small {
+    .tool-row.app-password-tool .tool-btn.connect-btn,
+    .tool-row.app-password-tool .tool-btn.create-btn {
         flex: 1;
+        order: 2;
     }
 }
 
@@ -4993,13 +5092,36 @@
 }
 
 /* Disabled compose tab */
-.dashboard-tab[disabled] {
+.dashboard-tab[disabled],
+.dashboard-tab.disabled-tab {
     opacity: 0.5;
-    cursor: not-allowed;
 }
 
-.dashboard-tab[disabled]:hover {
-    background: transparent;
+.dashboard-tab.disabled-tab:hover {
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+/* Disabled tool rows (for Side Door visitors) - visually greyed but clickable */
+.disabled-tool {
+    opacity: 0.5;
+}
+
+.disabled-tool:hover {
+    opacity: 0.7;
+}
+
+.disabled-tool select,
+.disabled-tool input {
+    cursor: pointer;
+}
+
+.character-toggle.disabled {
+    opacity: 0.5;
+}
+
+.character-toggle.disabled:hover {
+    opacity: 0.7;
 }
 
 /* ========================================================================

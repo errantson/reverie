@@ -10,6 +10,7 @@ class AppPasswordRequest {
         this.modal = null;
         this.onSubmit = null;
         this.config = null;
+        this.escapeHandler = null;
     }
 
     /**
@@ -35,11 +36,22 @@ class AppPasswordRequest {
         this.modal = document.createElement('div');
         this.modal.id = 'app-password-request-modal';
         this.modal.className = 'modal';
+        
+        // Stop all events from propagating to layers below
         this.modal.onclick = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            // Only close if clicking the overlay itself, not the content
             if (e.target === this.modal) {
                 this.close();
             }
         };
+        
+        // Prevent any mouse events from reaching layers below
+        this.modal.onmousedown = (e) => e.stopPropagation();
+        this.modal.onmouseup = (e) => e.stopPropagation();
+        this.modal.ontouchstart = (e) => e.stopPropagation();
+        this.modal.ontouchend = (e) => e.stopPropagation();
 
         // Apply role color class if provided
         const roleClass = this.config.roleColor ? `role-${this.config.roleColor}` : '';
@@ -376,16 +388,35 @@ class AppPasswordRequest {
         const submitBtn = document.getElementById('app-password-request-submit');
 
         if (submitBtn) {
-            submitBtn.onclick = () => this.handleSubmit();
+            submitBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.handleSubmit();
+            };
         }
 
         if (input) {
             input.addEventListener('keypress', (e) => {
+                e.stopPropagation();
                 if (e.key === 'Enter') {
                     this.handleSubmit();
                 }
             });
+            
+            // Prevent keydown from propagating (especially Escape)
+            input.addEventListener('keydown', (e) => {
+                e.stopPropagation();
+            });
         }
+        
+        // Handle Escape key to close modal - but stop propagation so drawer doesn't close
+        this.escapeHandler = (e) => {
+            if (e.key === 'Escape' && this.modal) {
+                e.stopPropagation();
+                e.preventDefault();
+                this.close();
+            }
+        };
+        document.addEventListener('keydown', this.escapeHandler, true); // Use capture phase
     }
 
     async handleSubmit() {
@@ -423,6 +454,12 @@ class AppPasswordRequest {
     }
 
     close() {
+        // Remove escape key handler
+        if (this.escapeHandler) {
+            document.removeEventListener('keydown', this.escapeHandler, true);
+            this.escapeHandler = null;
+        }
+        
         if (this.modal) {
             this.modal.remove();
             this.modal = null;

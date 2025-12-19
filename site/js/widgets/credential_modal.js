@@ -2,6 +2,7 @@ class AppPasswordModal {
     constructor() {
         this.userColor = '#734ba1';
         this.onSuccess = null;
+        this.escapeHandler = null;
     }
 
     setUserColor(color) {
@@ -114,6 +115,12 @@ class AppPasswordModal {
         const submitBtn = modal.querySelector('.app-password-submit-btn');
         const cancelBtn = modal.querySelector('.app-password-cancel-btn');
         
+        // Stop all events from propagating to layers below
+        modal.addEventListener('mousedown', (e) => e.stopPropagation());
+        modal.addEventListener('mouseup', (e) => e.stopPropagation());
+        modal.addEventListener('touchstart', (e) => e.stopPropagation());
+        modal.addEventListener('touchend', (e) => e.stopPropagation());
+        
         // Auto-format app password as user types
         input.addEventListener('input', (e) => {
             let value = e.target.value.replace(/-/g, '').replace(/\s/g, '');
@@ -123,14 +130,24 @@ class AppPasswordModal {
             e.target.value = formatted;
         });
         
+        // Prevent keydown from propagating
+        input.addEventListener('keydown', (e) => e.stopPropagation());
+        
         // Submit button
-        submitBtn.addEventListener('click', () => this.handleSubmit());
+        submitBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.handleSubmit();
+        });
         
         // Cancel button
-        cancelBtn.addEventListener('click', () => this.close());
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.close();
+        });
         
-        // Close on overlay click
+        // Close on overlay click (but stop propagation)
         modal.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (e.target === modal) {
                 this.close();
             }
@@ -138,10 +155,21 @@ class AppPasswordModal {
         
         // Enter key to submit
         input.addEventListener('keypress', (e) => {
+            e.stopPropagation();
             if (e.key === 'Enter') {
                 this.handleSubmit();
             }
         });
+        
+        // Handle Escape key - stop propagation so drawer doesn't close
+        this.escapeHandler = (e) => {
+            if (e.key === 'Escape' && document.querySelector('.app-password-modal')) {
+                e.stopPropagation();
+                e.preventDefault();
+                this.close();
+            }
+        };
+        document.addEventListener('keydown', this.escapeHandler, true);
     }
 
     async handleSubmit() {
@@ -220,18 +248,41 @@ class AppPasswordModal {
         const confirmBtn = modal.querySelector('.app-password-disconnect-confirm-btn');
         const cancelBtn = modal.querySelector('.app-password-cancel-btn');
         
+        // Stop all events from propagating to layers below
+        modal.addEventListener('mousedown', (e) => e.stopPropagation());
+        modal.addEventListener('mouseup', (e) => e.stopPropagation());
+        modal.addEventListener('touchstart', (e) => e.stopPropagation());
+        modal.addEventListener('touchend', (e) => e.stopPropagation());
+        
         // Cancel button
-        cancelBtn.addEventListener('click', () => this.close());
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.close();
+        });
         
         // Confirm button
-        confirmBtn.addEventListener('click', () => this.handleDisconnect(confirmBtn));
+        confirmBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.handleDisconnect(confirmBtn);
+        });
         
-        // Close on overlay click
+        // Close on overlay click (but stop propagation)
         modal.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (e.target === modal) {
                 this.close();
             }
         });
+        
+        // Handle Escape key - stop propagation so drawer doesn't close
+        this.escapeHandler = (e) => {
+            if (e.key === 'Escape' && document.querySelector('.app-password-modal')) {
+                e.stopPropagation();
+                e.preventDefault();
+                this.close();
+            }
+        };
+        document.addEventListener('keydown', this.escapeHandler, true);
     }
 
     async handleDisconnect(button) {
@@ -281,6 +332,12 @@ class AppPasswordModal {
     }
 
     close() {
+        // Remove escape key handler
+        if (this.escapeHandler) {
+            document.removeEventListener('keydown', this.escapeHandler, true);
+            this.escapeHandler = null;
+        }
+        
         const modal = document.querySelector('.app-password-modal');
         if (modal) {
             modal.remove();

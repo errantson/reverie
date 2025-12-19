@@ -12941,6 +12941,7 @@ class CS {
   }
   async init() {
     return this.initPromise ? this.initPromise : (this.initPromise = (async () => {
+      var e, r;
       try {
         this.client = new xd.BrowserOAuthClient({
           clientMetadata: {
@@ -12958,22 +12959,22 @@ class CS {
           },
           handleResolver: "https://bsky.social"
         }), console.log("✅ OAuth client created");
-        const e = await this.client.init();
-        if (e) {
-          const { session: r, state: n } = e;
-          this.currentSession = r, n != null ? (console.log(`✅ ${r.sub} authenticated (state: ${n})`), await this.loadProfile(r), await this.autoRegister(r.sub), window.dispatchEvent(new CustomEvent("oauth:login", {
+        const n = await this.client.init();
+        if (n) {
+          const { session: a, state: s } = n;
+          this.currentSession = a, s != null ? (console.log(`✅ ${a.sub} authenticated (state: ${s})`), await this.loadProfile(a), await this.autoRegister(a.sub), window.dispatchEvent(new CustomEvent("oauth:login", {
             detail: { session: this.currentSession }
-          }))) : (console.log(`✅ ${r.sub} restored (previous session)`), await this.loadProfile(r), await this.autoRegister(r.sub));
+          })), localStorage.getItem("mainDoorLogin") === "true" && (localStorage.removeItem("mainDoorLogin"), console.log("🚪 Main Door login - prompting for credentials"), setTimeout(() => this._promptForCredentials(), 500))) : (console.log(`✅ ${a.sub} restored (previous session)`), await this.loadProfile(a), await this.autoRegister(a.sub));
         }
-        this.client.addEventListener("deleted", (r) => {
-          var s;
-          const { sub: n, cause: a } = r.detail;
-          console.error(`❌ Session for ${n} deleted (cause: ${a})`), ((s = this.currentSession) == null ? void 0 : s.sub) === n && (this.currentSession = null, window.dispatchEvent(new CustomEvent("oauth:logout", {
-            detail: { sub: n, cause: a }
+        this.client.addEventListener("deleted", (a) => {
+          var i;
+          const { sub: s, cause: o } = a.detail;
+          console.error(`❌ Session for ${s} deleted (cause: ${o})`), ((i = this.currentSession) == null ? void 0 : i.sub) === s && (this.currentSession = null, window.dispatchEvent(new CustomEvent("oauth:logout", {
+            detail: { sub: s, cause: o }
           })));
         }), console.log("✅ OAuth manager initialized");
-      } catch (e) {
-        throw console.error("❌ OAuth init error:", e), e;
+      } catch (n) {
+        throw ((e = n.message) == null ? void 0 : e.includes("rejected")) || ((r = n.message) == null ? void 0 : r.includes("cancelled")) || console.error("❌ OAuth init error:", n), n;
       }
     })(), this.initPromise);
   }
@@ -13046,25 +13047,28 @@ class CS {
       return !1;
     }
   }
-  async login(e, r = null) {
-    var a;
+  async login(e, r = null, n = {}) {
+    var o;
     await this.ensureInitialized(), console.log("🔐 Starting OAuth login for:", e), e = e.trim().toLowerCase(), e.startsWith("@") && (e = e.substring(1));
-    let n = r;
-    if (!n) {
-      const s = sessionStorage.getItem("oauth_return_to");
-      s && (n = s, sessionStorage.removeItem("oauth_return_to"), console.log("🏠 Using saved return destination:", n));
+    const a = n.scope || "atproto transition:generic";
+    console.log("🔑 Requesting scope:", a);
+    let s = r;
+    if (!s) {
+      const i = sessionStorage.getItem("oauth_return_to");
+      i && (s = i, sessionStorage.removeItem("oauth_return_to"), console.log("🏠 Using saved return destination:", s));
     }
-    if (!n) {
-      const s = window.location.pathname;
-      s !== "/" && s !== "/index.html" && !s.includes("/oauth-callback") ? n = s + window.location.search : n = "/story";
+    if (!s) {
+      const i = window.location.pathname;
+      i !== "/" && i !== "/index.html" && !i.includes("/oauth-callback") ? s = i + window.location.search : s = "/story";
     }
-    console.log("🏠 Will return to:", n);
+    console.log("🏠 Will return to:", s);
     try {
       await this.client.signIn(e, {
-        state: n
+        state: s,
+        scope: a
       });
-    } catch (s) {
-      throw console.error("❌ OAuth login error:", s), (a = s.message) != null && a.includes("back") ? new Error("Login cancelled") : s;
+    } catch (i) {
+      throw console.error("❌ OAuth login error:", i), (o = i.message) != null && o.includes("back") ? new Error("Login cancelled") : i;
     }
   }
   getSession() {
@@ -13091,7 +13095,7 @@ class CS {
       const a = await this._resolveDIDDocument(this.currentSession.sub);
       if (!a || !a.service)
         throw new Error("Could not resolve PDS endpoint");
-      const s = a.service.find((f) => f.id === "#atproto_pds" || f.type === "AtprotoPersonalDataServer");
+      const s = a.service.find((d) => d.id === "#atproto_pds" || d.type === "AtprotoPersonalDataServer");
       if (!s || !s.serviceEndpoint)
         throw new Error("No PDS service found in DID document");
       const o = s.serviceEndpoint;
@@ -13103,60 +13107,123 @@ class CS {
         ...r || {}
       };
       if (n) {
-        const f = await this._getPostCID(n, o);
-        if (!f)
+        const d = await this._getPostCID(n, o);
+        if (!d)
           throw new Error("Failed to fetch parent post CID");
         i.reply = {
           root: {
             uri: n,
-            cid: f
+            cid: d
           },
           parent: {
             uri: n,
-            cid: f
+            cid: d
           }
-        }, console.log("   Reply metadata added (parent CID:", f + ")");
+        }, console.log("   Reply metadata added (parent CID:", d + ")");
       }
       i.facets && (console.log("   Resolving DIDs for facets..."), i.facets = await this._resolveFacetDIDs(i.facets));
-      const d = "/xrpc/com.atproto.repo.createRecord", u = {
-        repo: this.currentSession.sub,
-        collection: "app.bsky.feed.post",
-        record: i
-      };
-      console.log("   Creating record at:", o + d);
-      let l;
-      if (this.currentSession.accessJwt) {
-        console.log("   Using PDS session for post");
-        l = await fetch(o + d, {
+      const c = localStorage.getItem("pds_session");
+      if (c) {
+        const d = JSON.parse(c), u = `${o}/xrpc/com.atproto.repo.createRecord`, l = {
+          repo: d.did,
+          collection: "app.bsky.feed.post",
+          record: i
+        };
+        console.log("   Creating record via PDS session at:", u);
+        const m = await fetch(u, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${this.currentSession.accessJwt}`
+            Authorization: `Bearer ${d.accessJwt}`
           },
-          body: JSON.stringify(u)
+          body: JSON.stringify(l)
         });
+        if (!m.ok) {
+          const _ = await m.text();
+          throw new Error(`Post creation failed (${m.status}): ${_}`);
+        }
+        const f = await m.json();
+        return console.log("✅ Post created:", f.uri), {
+          uri: f.uri,
+          cid: f.cid
+        };
       } else {
-        console.log("   Using OAuth session for post");
-        const c = await this.client.restore(this.currentSession.sub);
-        l = await c.fetchHandler(d, {
+        console.log("   OAuth-only session, checking for stored credentials...");
+        const d = this.currentSession.sub || this.currentSession.did, u = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(d)}`);
+        if (!(u.ok ? await u.json() : { has_credentials: !1 }).has_credentials && (console.log("   No stored credentials, prompting for app password..."), !await this._requestCredentials(d)))
+          throw new Error("App password required to post");
+        const m = localStorage.getItem("oauth_token"), f = await fetch("/api/post/create", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            Authorization: m ? `Bearer ${m}` : ""
           },
-          body: JSON.stringify(u)
+          body: JSON.stringify({
+            user_did: d,
+            record: i
+          })
         });
+        if (!f.ok) {
+          const g = await f.json();
+          throw new Error(g.error || `Post creation failed: ${f.status}`);
+        }
+        const _ = await f.json();
+        return console.log("✅ Post created via server:", _.uri), {
+          uri: _.uri,
+          cid: _.cid
+        };
       }
-      if (!l.ok) {
-        const f = await l.text();
-        throw new Error(`Post creation failed (${l.status}): ${f}`);
-      }
-      const m = await l.json();
-      return console.log("✅ Post created:", m.uri), {
-        uri: m.uri,
-        cid: m.cid
-      };
     } catch (a) {
       throw console.error("❌ Failed to create post:", a), a;
+    }
+  }
+  async _requestCredentials(e) {
+    return new Promise((r) => {
+      if (!window.appPasswordRequest) {
+        console.error("❌ AppPasswordRequest widget not available"), r(!1);
+        return;
+      }
+      window.appPasswordRequest.show({
+        title: "Connect Account",
+        description: "<p>To post from Reverie House, we need permission to act on your behalf.</p>",
+        featureName: "posting"
+      }, async (n) => {
+        try {
+          const a = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(e)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ app_password: n })
+          });
+          if (!a.ok) {
+            const s = await a.json();
+            throw new Error(s.error || "Failed to store credentials");
+          }
+          console.log("✅ Credentials stored successfully"), r(!0);
+        } catch (a) {
+          throw console.error("❌ Failed to store credentials:", a), a;
+        }
+      });
+    });
+  }
+  async _promptForCredentials() {
+    const e = this.getSession();
+    if (!e) {
+      console.warn("⚠️ No session for credential prompt");
+      return;
+    }
+    try {
+      const r = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(e.sub || e.did)}`);
+      if (r.ok && (await r.json()).has_credentials) {
+        console.log("✅ Already has stored credentials");
+        return;
+      }
+    } catch (r) {
+      console.warn("Could not check credential status:", r);
+    }
+    try {
+      await this._requestCredentials(e.sub || e.did), console.log("✅ Main Door credentials setup complete");
+    } catch (r) {
+      console.warn("⚠️ Credential prompt cancelled or failed:", r);
     }
   }
   async uploadBlob(e, r = "image/png") {
@@ -13170,30 +13237,15 @@ class CS {
       const a = n.service.find((u) => u.id === "#atproto_pds" || u.type === "AtprotoPersonalDataServer");
       if (!a || !a.serviceEndpoint)
         throw new Error("No PDS service found in DID document");
-      const s = a.serviceEndpoint, i = "/xrpc/com.atproto.repo.uploadBlob";
+      const s = a.serviceEndpoint, o = await this.client.restore(this.currentSession.sub), i = "/xrpc/com.atproto.repo.uploadBlob";
       console.log("   Uploading to:", s + i);
-      let c;
-      if (this.currentSession.accessJwt) {
-        console.log("   Using PDS session for upload");
-        c = await fetch(s + i, {
-          method: "POST",
-          headers: {
-            "Content-Type": r,
-            "Authorization": `Bearer ${this.currentSession.accessJwt}`
-          },
-          body: e
-        });
-      } else {
-        console.log("   Using OAuth session for upload");
-        const o = await this.client.restore(this.currentSession.sub);
-        c = await o.fetchHandler(i, {
-          method: "POST",
-          headers: {
-            "Content-Type": r
-          },
-          body: e
-        });
-      }
+      const c = await o.fetchHandler(i, {
+        method: "POST",
+        headers: {
+          "Content-Type": r
+        },
+        body: e
+      });
       if (!c.ok) {
         const u = await c.text();
         throw new Error(`Blob upload failed (${c.status}): ${u}`);

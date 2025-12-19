@@ -6415,123 +6415,28 @@ def step_down_from_work(role):
         return jsonify({'error': str(e)}), 500
 
 
-# Helper function for work endpoints to validate both admin and OAuth tokens
 def validate_work_token(token):
     """
-    Validate token for work endpoints - supports both admin sessions and OAuth JWT
+    Validate token for work endpoints.
+    
+    All login methods (Resident, Awakened, Guest) create Reverie session tokens
+    via auth.create_session(). This function validates those session tokens.
+    
     Returns: (valid, user_did, handle)
-    
-    SECURITY: For OAuth JWT tokens, we verify:
-    1. Token is properly signed by the PDS
-    2. Token hasn't expired
-    3. The 'sub' (subject) claim matches the DID in the token
     """
-    import jwt
-    from jwt import PyJWKClient
-    
-    print(f"\n🔐 [validate_work_token] Starting validation...")
-    
     if not token:
         print(f"❌ [validate_work_token] No token provided")
         return False, None, None
     
-    print(f"🔍 [validate_work_token] Token length: {len(token)} chars")
-    
-    # First try admin session validation
-    print(f"🔍 [validate_work_token] Attempting admin session validation...")
+    # Validate session token
     valid, did, handle = auth.validate_session(token)
     if valid:
-        print(f"✅ [validate_work_token] Admin session VALID - DID: {did}, Handle: {handle}")
+        print(f"✅ [validate_work_token] Session VALID - DID: {did}, Handle: {handle}")
         return True, did, handle
-    else:
-        print(f"⚠️  [validate_work_token] Not a valid admin session")
     
-    # Try decoding as JWT (OAuth accessJwt from AT Protocol)
-    print(f"🔍 [validate_work_token] Attempting OAuth JWT validation...")
-    try:
-        # Decode the header to check if it's a JWT
-        try:
-            header = jwt.get_unverified_header(token)
-            print(f"📋 [validate_work_token] JWT header: {header}")
-        except Exception as e:
-            # Not a valid JWT
-            print(f"❌ [validate_work_token] Not a valid JWT - {e}")
-            return False, None, None
-        
-        # Decode without verification first to get the DID (to find the PDS)
-        unverified = jwt.decode(token, options={"verify_signature": False})
-        user_did = unverified.get('sub')  # 'sub' claim contains the DID
-        
-        print(f"📋 [validate_work_token] JWT claims decoded:")
-        print(f"   - sub (DID): {user_did}")
-        print(f"   - iss (issuer): {unverified.get('iss')}")
-        print(f"   - exp (expiry): {unverified.get('exp')}")
-        print(f"   - scope: {unverified.get('scope')}")
-        print(f"   - aud (audience): {unverified.get('aud')}")
-        
-        if not user_did:
-            print(f"❌ [validate_work_token] JWT missing 'sub' claim")
-            return False, None, None
-        
-        # SECURITY CHECK: Verify the token is actually signed by a PDS
-        # For AT Protocol tokens, we need to fetch the DID document to get the PDS endpoint
-        # and verify the signature against the PDS's public key
-        
-        # Get the issuer (iss claim) - this should be the PDS URL
-        issuer = unverified.get('iss')
-        
-        if not issuer:
-            # AT Protocol JWT tokens may not have 'iss' - check for 'scope' instead
-            scope = unverified.get('scope')
-            print(f"⚠️  [validate_work_token] No issuer found, checking scope-based auth...")
-            print(f"   - Scope: {scope}")
-            
-            # For AT Protocol, if we have a valid 'sub' (DID), accept it
-            # This is safe because we're only accepting tokens from our own PDS
-            if user_did and user_did.startswith('did:'):
-                print(f"✅ [validate_work_token] OAuth JWT VALID - DID: {user_did} (scope-based)")
-                return True, user_did, None
-            
-            print(f"❌ [validate_work_token] JWT token missing 'iss' claim and invalid DID")
-            return False, None, None
-        
-        # For now, we'll verify basic JWT structure and expiry
-        # TODO: Implement full PDS signature verification using the PDS's public key
-        
-        # Check token expiration
-        exp = unverified.get('exp')
-        if exp:
-            import time
-            if time.time() > exp:
-                print(f"[SECURITY] JWT token expired - rejecting")
-                return False, None, None
-        
-        # CRITICAL: Until we implement full signature verification,
-        # we check if the token was issued by a known PDS
-        # This is a temporary measure - proper signature verification is needed
-        
-        # Validate issuer matches expected PDS format
-        if not issuer.startswith('http://') and not issuer.startswith('https://'):
-            print(f"[SECURITY] JWT issuer not a valid URL: {issuer}")
-            return False, None, None
-        
-        # For production, we should verify the signature using the PDS public key
-        # For now, we accept tokens from known PDS endpoints with proper structure
-        print(f"[AUTH] OAuth JWT accepted for DID: {user_did} from issuer: {issuer}")
-        
-        return True, user_did, None  # OAuth tokens don't have handle in backend
-        
-    except jwt.ExpiredSignatureError:
-        print(f"[SECURITY] JWT token expired")
-        return False, None, None
-    except jwt.InvalidTokenError as e:
-        print(f"[SECURITY] Invalid JWT token: {e}")
-        return False, None, None
-    except Exception as e:
-        print(f"[SECURITY] JWT validation error: {e}")
-        return False, None, None
-    
+    print(f"❌ [validate_work_token] Invalid session token")
     return False, None, None
+
 
 @app.route('/api/work/greeter/status')
 @rate_limit()

@@ -167,6 +167,15 @@ class Dashboard {
     }
 
     /**
+     * Check if current user logged in via Side Door (minimal OAuth scope)
+     * Side Door users can only read, not write (no posting, handle changes, etc.)
+     * @returns {boolean} True if user logged in via Side Door
+     */
+    isSideDoorUser() {
+        return localStorage.getItem('sideDoorLogin') === 'true';
+    }
+
+    /**
      * Show login required modal
      * @param {string} action - User-facing description of the action
      */
@@ -578,6 +587,9 @@ class Dashboard {
 
         const d = this.dreamerData;
         
+        // Check if user logged in via Side Door (read-only visitor)
+        const isSideDoor = this.isSideDoorUser();
+        
         const canonHtml = await this.renderCanonLog();
         const souvenirBoxHtml = await this.renderSouvenirBox();
         
@@ -651,14 +663,14 @@ class Dashboard {
                         <div class="system-controls-content">
                             <div class="system-control-section">
                                 <div class="dashboard-tabs">
-                                    <button class="dashboard-tab active" id="composeTab" onclick="window.dashboardWidget.switchTab('compose')">
+                                    <button class="dashboard-tab ${isSideDoor ? 'disabled-tab' : 'active'}" id="composeTab" onclick="window.dashboardWidget.switchTab('compose')">
                                         <svg class="tab-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: relative; top: 3px;">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                         </svg>
                                         Compose
                                     </button>
-                                    <button class="dashboard-tab" id="detailsTab" onclick="window.dashboardWidget.switchTab('details')">
+                                    <button class="dashboard-tab ${isSideDoor ? 'disabled-tab' : ''}" id="detailsTab" onclick="window.dashboardWidget.switchTab('details')">
                                         <svg class="tab-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: relative; top: 3px;">
                                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                             <circle cx="12" cy="7" r="4"></circle>
@@ -862,8 +874,9 @@ class Dashboard {
         // Initialize roles/character section
         setTimeout(() => this.renderRolesCharacterSection(), 100);
         
-        // Load compose tab (since it's the default active tab)
-        setTimeout(() => this.switchTab('compose'), 150);
+        // Load default tab - Messages for Side Door users, Compose for full access
+        const defaultTab = this.isSideDoorUser() ? 'messages' : 'compose';
+        setTimeout(() => this.switchTab(defaultTab), 150);
         
         // Initialize message badge count
         setTimeout(() => this.updateInitialMessageBadge(), 200);
@@ -1034,6 +1047,15 @@ class Dashboard {
     
     handleShareLore() {
         console.log('📝 [Dashboard] Share Lore button clicked');
+        
+        // Check if Side Door user - prompt for credentials
+        if (this.isSideDoorUser()) {
+            console.log('🚪 Side Door user - prompting for credentials for share lore');
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
         
         // Check if user is logged in
         const session = window.oauthManager?.getSession?.();
@@ -1584,10 +1606,10 @@ class Dashboard {
             
             const currentHeadingDid = this.dreamerData?.heading_dreamer_did;
             
-            // Build title with conditional message
+            // Build title with conditional message - put "(no kindred yet)" on its own line
             const titleHtml = hasKindred 
                 ? '<div class="section-title-kindred">Kindred</div>'
-                : '<div class="section-title-kindred">Kindred <span style="font-style: italic; font-weight: normal; opacity: 0.6; font-size: 0.7rem; text-transform: lowercase;">(no kindred yet)</span></div>';
+                : '<div class="section-title-kindred">Kindred<br><span style="font-style: italic; font-weight: normal; opacity: 0.6; font-size: 0.7rem; text-transform: lowercase;">(no kindred yet)</span></div>';
             
             return `
                 ${titleHtml}
@@ -2726,6 +2748,15 @@ class Dashboard {
     }
 
     async changeHandle() {
+        // Check if Side Door user - prompt for credentials
+        if (this.isSideDoorUser()) {
+            console.log('🚪 Side Door user - prompting for credentials for handle change');
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
+        
         const select = document.getElementById('handleSelect');
         const btn = document.getElementById('handleConfirmBtn');
         
@@ -3168,9 +3199,47 @@ class Dashboard {
             // Build HTML - Tools section first, then Controls
             let html = '';
             
+            // Check if user is a Side Door visitor (minimal permissions)
+            const isSideDoor = this.isSideDoorUser();
+            
             // Tools Section
             html += '<div class="section-title-tools">Tools</div>';
             html += '<div class="tools-list">';
+            
+            // Handle Selector Tool FIRST - build available handles from name + alts
+            const availableHandles = [];
+            console.log('🔧 [Dashboard] Building handle list from:', {
+                name: this.dreamerData.name,
+                alt_names: this.dreamerData.alt_names,
+                current_handle: this.dreamerData.handle
+            });
+            
+            if (this.dreamerData.name) {
+                availableHandles.push(`${this.dreamerData.name}.reverie.house`);
+            }
+            if (this.dreamerData.alt_names) {
+                const alts = this.dreamerData.alt_names.split(',').map(a => a.trim()).filter(a => a);
+                alts.forEach(alt => availableHandles.push(`${alt}.reverie.house`));
+            }
+            const currentHandle = this.dreamerData.handle || '';
+            
+            console.log('🔧 [Dashboard] Available handles:', availableHandles);
+            
+            if (availableHandles.length > 0) {
+                html += `
+                    <div class="tool-row handle-tool ${isSideDoor ? 'disabled-tool' : ''}">
+                        <span class="tool-label">Handle</span>
+                        <select class="handle-select" id="handleSelect">
+                            ${availableHandles.map(h => `<option value="${h}" ${h === currentHandle ? 'selected' : ''}>@${h}</option>`).join('')}
+                        </select>
+                        <button class="tool-btn handle-set-btn ${isSideDoor ? 'unavailable' : ''}" id="handleConfirmBtn" onclick="window.dashboardWidget.changeHandle()">
+                            ${isSideDoor ? 'VISITING' : 'CHANGE'}
+                        </button>
+                    </div>
+                `;
+            } else {
+                console.log('⚠️ [Dashboard] No handles available - Handle tool not shown');
+            }
             
             // Heading Selector Tool
             const currentHeading = this.dreamerData.heading || '';
@@ -3200,41 +3269,6 @@ class Dashboard {
                 </div>
             `;
             
-            // Handle Selector Tool - build available handles from name + alts
-            const availableHandles = [];
-            console.log('🔧 [Dashboard] Building handle list from:', {
-                name: this.dreamerData.name,
-                alt_names: this.dreamerData.alt_names,
-                current_handle: this.dreamerData.handle
-            });
-            
-            if (this.dreamerData.name) {
-                availableHandles.push(`${this.dreamerData.name}.reverie.house`);
-            }
-            if (this.dreamerData.alt_names) {
-                const alts = this.dreamerData.alt_names.split(',').map(a => a.trim()).filter(a => a);
-                alts.forEach(alt => availableHandles.push(`${alt}.reverie.house`));
-            }
-            const currentHandle = this.dreamerData.handle || '';
-            
-            console.log('🔧 [Dashboard] Available handles:', availableHandles);
-            
-            if (availableHandles.length > 0) {
-                html += `
-                    <div class="tool-row handle-tool">
-                        <span class="tool-label">Handle</span>
-                        <select class="handle-select" id="handleSelect">
-                            ${availableHandles.map(h => `<option value="${h}" ${h === currentHandle ? 'selected' : ''}>@${h}</option>`).join('')}
-                        </select>
-                        <button class="tool-btn handle-set-btn" id="handleConfirmBtn" onclick="window.dashboardWidget.changeHandle()">
-                            CHANGE
-                        </button>
-                    </div>
-                `;
-            } else {
-                console.log('⚠️ [Dashboard] No handles available - Handle tool not shown');
-            }
-            
             // Check if mapper is available (for tools that need it)
             let mapperAvailable = false;
             try {
@@ -3258,13 +3292,13 @@ class Dashboard {
                 </div>
             `;
             
-            // Share Lore Tool
+            // Share Lore Tool - requires write access
             html += `
-                <div class="tool-row">
+                <div class="tool-row ${isSideDoor ? 'disabled-tool' : ''}">
                     <span class="tool-label">Share Lore</span>
-                    <button class="tool-btn available" 
+                    <button class="tool-btn ${isSideDoor ? 'unavailable' : 'available'}" 
                             onclick="window.dashboardWidget.handleShareLore()">
-                        USE TOOL
+                        ${isSideDoor ? 'VISITING' : 'USE TOOL'}
                     </button>
                 </div>
             `;
@@ -3275,11 +3309,11 @@ class Dashboard {
             html += '<div class="section-title-controls">Controls</div>';
             html += '<div class="roles-character-list">';
             
-            // Show character toggle at the top
+            // Show character toggle at the top - greyed for Side Door users but clickable
             html += `
-                <div class="character-row">
+                <div class="character-row ${isSideDoor ? 'disabled-tool' : ''}">
                     <span class="character-label">Approved for Lore</span>
-                    <label class="character-toggle">
+                    <label class="character-toggle ${isSideDoor ? 'disabled' : ''}">
                         <input type="checkbox" 
                                id="characterToggle" 
                                ${isCharacter ? 'checked' : ''}
@@ -3310,7 +3344,7 @@ class Dashboard {
                 });
             }
             
-            // App password connection row (now inside the list)
+            // App password connection row - styled like a tool row
             if (isConnected) {
                 // Format the date as MM/DD/YY
                 let dateString = 'unknown';
@@ -3325,7 +3359,7 @@ class Dashboard {
                 html += `
                     <div class="app-password-row connected">
                         <span class="app-password-label">
-                            App Password
+                            App Pass
                             <span class="app-password-date">updated ${dateString}</span>
                         </span>
                         <button class="disconnect-btn-small" onclick="window.dashboardWidget.disconnectAppPassword()">
@@ -3336,6 +3370,7 @@ class Dashboard {
             } else {
                 html += `
                     <div class="app-password-row disconnected">
+                        <span class="app-password-label">App Pass</span>
                         <input type="text" 
                                id="appPasswordInline" 
                                class="app-password-inline-input"
@@ -3347,9 +3382,6 @@ class Dashboard {
                                spellcheck="false">
                         <button class="connect-btn-small" onclick="window.dashboardWidget.connectAppPassword()">
                             CONNECT
-                        </button>
-                        <button class="create-btn-small" onclick="window.open('https://bsky.app/settings/app-passwords', '_blank')" title="Create a new app password on Bluesky">
-                            CREATE
                         </button>
                     </div>
                 `;
@@ -3401,6 +3433,18 @@ class Dashboard {
     }
     
     async toggleCharacter(enabled) {
+        // Check if Side Door user - prompt for credentials
+        if (this.isSideDoorUser()) {
+            console.log('🚪 Side Door user - prompting for credentials for character toggle');
+            // Revert the checkbox to its previous state
+            const checkbox = document.getElementById('characterToggle');
+            if (checkbox) checkbox.checked = !enabled;
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
+        
         try {
             // Get auth token
             const token = await this.getOAuthToken();
@@ -4201,6 +4245,15 @@ class Dashboard {
     switchTab(tabName) {
         console.log(`🔄 [Dashboard] Switching to ${tabName} tab`);
         
+        // Check if Side Door user is trying to access write-only tabs
+        if (this.isSideDoorUser() && (tabName === 'compose' || tabName === 'details')) {
+            console.log('🚪 Side Door user - prompting for credentials to access', tabName);
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
+        
         // Clear schedule refresh interval if leaving compose tab
         if (this.currentTab === 'compose' && tabName !== 'compose' && this.scheduleRefreshInterval) {
             clearInterval(this.scheduleRefreshInterval);
@@ -4728,6 +4781,15 @@ class Dashboard {
      * Save bio to Reverie database (and optionally to Bluesky if app password connected)
      */
     async saveBio() {
+        // Check if Side Door user - prompt for credentials
+        if (this.isSideDoorUser()) {
+            console.log('🚪 Side Door user - prompting for credentials for save bio');
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
+        
         const textarea = document.getElementById('descriptionTextarea');
         const statusEl = document.getElementById('descriptionStatus');
         const saveBtn = document.getElementById('saveBioBtn');
@@ -4803,6 +4865,15 @@ class Dashboard {
      * Sync bio from user's current Bluesky profile
      */
     async syncBioFromBluesky() {
+        // Check if Side Door user - prompt for credentials
+        if (this.isSideDoorUser()) {
+            console.log('🚪 Side Door user - prompting for credentials for sync bio');
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
+        
         const textarea = document.getElementById('descriptionTextarea');
         const statusEl = document.getElementById('descriptionStatus');
         const syncBtn = document.getElementById('syncBioBtn');
@@ -5037,6 +5108,15 @@ class Dashboard {
     }
     
     async addBook() {
+        // Check if Side Door user - prompt for credentials
+        if (this.isSideDoorUser()) {
+            console.log('🚪 Side Door user - prompting for credentials for add book');
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
+        
         const titleInput = document.getElementById('bookTitleInput');
         const authorInput = document.getElementById('bookAuthorInput');
         const addButton = document.getElementById('addBookButton');

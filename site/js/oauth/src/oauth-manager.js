@@ -41,6 +41,12 @@ class OAuthManager {
                         window.dispatchEvent(new CustomEvent('oauth:login', { 
                             detail: { session: this.currentSession } 
                         }))
+                        // Check if this was a Main Door login - prompt for credentials
+                        if (localStorage.getItem('mainDoorLogin') === 'true') {
+                            localStorage.removeItem('mainDoorLogin')
+                            console.log('🚪 Main Door login - prompting for credentials')
+                            setTimeout(() => this._promptForCredentials(), 500)
+                        }
                     } else {
                         console.log(`✅ ${session.sub} restored (previous session)`)
                         await this.loadProfile(session)
@@ -59,7 +65,11 @@ class OAuthManager {
                 })
                 console.log('✅ OAuth manager initialized')
             } catch (error) {
-                console.error('❌ OAuth init error:', error)
+                // Suppress "user rejected" as it's not really an error
+                const isUserCancel = error.message?.includes('rejected') || error.message?.includes('cancelled')
+                if (!isUserCancel) {
+                    console.error('❌ OAuth init error:', error)
+                }
                 throw error
             }
         })()
@@ -158,13 +168,17 @@ class OAuthManager {
         }
     }
 
-    async login(handle, returnTo = null) {
+    async login(handle, returnTo = null, options = {}) {
         await this.ensureInitialized()
         console.log('🔐 Starting OAuth login for:', handle)
         handle = handle.trim().toLowerCase()
         if (handle.startsWith('@')) {
             handle = handle.substring(1)
         }
+        
+        // Determine scope - Main Door gets full access, Side Door gets minimal
+        const scope = options.scope || 'atproto transition:generic'
+        console.log('🔑 Requesting scope:', scope)
         
         // Determine return URL - use provided value, or check sessionStorage, or use current page, or default to /story
         let state = returnTo
@@ -194,6 +208,7 @@ class OAuthManager {
         try {
             await this.client.signIn(handle, {
                 state: state,
+                scope: scope,
             })
         } catch (error) {
             console.error('❌ OAuth login error:', error)
@@ -294,34 +309,150 @@ class OAuthManager {
                 record.facets = await this._resolveFacetDIDs(record.facets)
             }
             
-            const session = await this.client.restore(this.currentSession.sub)
-            const createUrl = `/xrpc/com.atproto.repo.createRecord`
-            const payload = {
-                repo: this.currentSession.sub,
-                collection: 'app.bsky.feed.post',
-                record: record
-            }
-            console.log('   Creating record at:', pdsUrl + createUrl)
-            const response = await session.fetchHandler(createUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            })
-            if (!response.ok) {
-                const error = await response.text()
-                throw new Error(`Post creation failed (${response.status}): ${error}`)
-            }
-            const result = await response.json()
-            console.log('✅ Post created:', result.uri)
-            return {
-                uri: result.uri,
-                cid: result.cid
+            // Check if this is a PDS session (has accessJwt) or OAuth-only session
+            // PDS sessions can post directly, OAuth sessions need stored credentials
+            const pdsSession = localStorage.getItem('pds_session');
+            if (pdsSession) {
+                // Use PDS session directly
+                const session = JSON.parse(pdsSession);
+                const createUrl = `${pdsUrl}/xrpc/com.atproto.repo.createRecord`;
+                const payload = {
+                    repo: session.did,
+                    collection: 'app.bsky.feed.post',
+                    record: record
+                };
+                console.log('   Creating record via PDS session at:', createUrl);
+                const response = await fetch(createUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.accessJwt}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Post creation failed (${response.status}): ${error}`);
+                }
+                const result = await response.json();
+                console.log('✅ Post created:', result.uri);
+                return {
+                    uri: result.uri,
+                    cid: result.cid
+                };
+            } else {
+                // OAuth-only session - use server-side credentials
+                console.log('   OAuth-only session, checking for stored credentials...');
+                
+                // Check if we have stored credentials
+                const userDid = this.currentSession.sub || this.currentSession.did;
+                const statusResponse = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
+                const statusData = statusResponse.ok ? await statusResponse.json() : { has_credentials: false };
+                
+                if (!statusData.has_credentials) {
+                    // Prompt for app password
+                    console.log('   No stored credentials, prompting for app password...');
+                    const credentialsStored = await this._requestCredentials(userDid);
+                    if (!credentialsStored) {
+                        throw new Error('App password required to post');
+                    }
+                }
+                
+                // Post via server-side API using stored credentials
+                const token = localStorage.getItem('oauth_token');
+                const postResponse = await fetch('/api/post/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify({
+                        user_did: userDid,
+                        record: record
+                    })
+                });
+                
+                if (!postResponse.ok) {
+                    const error = await postResponse.json();
+                    throw new Error(error.error || `Post creation failed: ${postResponse.status}`);
+                }
+                
+                const result = await postResponse.json();
+                console.log('✅ Post created via server:', result.uri);
+                return {
+                    uri: result.uri,
+                    cid: result.cid
+                };
             }
         } catch (error) {
             console.error('❌ Failed to create post:', error)
             throw error
+        }
+    }
+    
+    async _requestCredentials(userDid) {
+        return new Promise((resolve) => {
+            if (!window.appPasswordRequest) {
+                console.error('❌ AppPasswordRequest widget not available');
+                resolve(false);
+                return;
+            }
+            
+            window.appPasswordRequest.show({
+                title: 'Connect Account',
+                description: `<p>To post from Reverie House, we need permission to act on your behalf.</p>`,
+                featureName: 'posting'
+            }, async (appPassword) => {
+                try {
+                    const response = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ app_password: appPassword })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to store credentials');
+                    }
+                    
+                    console.log('✅ Credentials stored successfully');
+                    resolve(true);
+                } catch (error) {
+                    console.error('❌ Failed to store credentials:', error);
+                    throw error;
+                }
+            });
+        });
+    }
+    
+    async _promptForCredentials() {
+        // Called after Main Door login to immediately prompt for credentials
+        const session = this.getSession();
+        if (!session) {
+            console.warn('⚠️ No session for credential prompt');
+            return;
+        }
+        
+        // Check if already has credentials
+        try {
+            const statusResp = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(session.sub || session.did)}`);
+            if (statusResp.ok) {
+                const status = await statusResp.json();
+                if (status.has_credentials) {
+                    console.log('✅ Already has stored credentials');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Could not check credential status:', e);
+        }
+        
+        // Prompt for credentials
+        try {
+            await this._requestCredentials(session.sub || session.did);
+            console.log('✅ Main Door credentials setup complete');
+        } catch (error) {
+            console.warn('⚠️ Credential prompt cancelled or failed:', error);
         }
     }
     

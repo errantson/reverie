@@ -1,7 +1,15 @@
 """
 🌜 REVERIE ESSENTIAL
-Post Routes - Immediate Post Creation
-Handles both OAuth and App Password authentication
+Post Routes - Server-side Post Creation
+
+This module handles server-side posting using stored app passwords.
+Frontend posting is handled directly by:
+- oauthManager.createPost() for OAuth users
+- Direct PDS calls using accessJwt for PDS session users
+
+This endpoint is primarily for:
+- Background/scheduled posting (Courier service has its own implementation)
+- Server-initiated posts where user is not actively logged in
 """
 
 from flask import Blueprint, request, jsonify
@@ -165,7 +173,10 @@ def apply_lore_label(post_uri, user_did, lore_type='observation', canon_id=None)
 @bp.route('/post', methods=['POST'])
 def create_immediate_post():
     """
-    Create an immediate post - handles both OAuth and App Password auth
+    Create a post using stored app password credentials.
+    
+    Note: Frontend handles posting directly via OAuth or PDS session.
+    This endpoint is for server-side posting where stored credentials are required.
     
     Query params:
         user_did: User's DID (required)
@@ -175,10 +186,6 @@ def create_immediate_post():
         is_lore: Whether to apply lore label (optional, default false)
         lore_type: Type of lore (optional, default 'observation')
         canon_id: Canon event ID to link (optional)
-        
-    Auth:
-        - OAuth: Reads accessJwt from session (via cookie or header)
-        - App Password: Uses stored encrypted app password
     """
     try:
         data = request.json
@@ -201,83 +208,58 @@ def create_immediate_post():
         lore_type = data.get('lore_type', 'observation')
         canon_id = data.get('canon_id')
         
-        # Try to get OAuth session first (preferred method)
-        access_jwt = None
-        pds = 'https://bsky.social'  # Default PDS
-        use_app_password = True  # Default to app password (OAuth tokens from frontend are NOT Bluesky access tokens)
+        # Get stored credentials
+        print(f"🔐 [Post] Fetching stored credentials for {user_did}")
+        encrypted_password, handle, stored_pds = get_user_credentials(user_did)
         
-        # Check for Authorization header (Reverie OAuth token - NOT a Bluesky access token)
-        # NOTE: The frontend sends a Reverie OAuth token, which is for auth with Reverie API,
-        # but we need a Bluesky access JWT to post. So we always use app password for now.
-        auth_header = request.headers.get('Authorization')
+        if not encrypted_password or not handle:
+            return jsonify({
+                'status': 'error',
+                'error': 'No stored credentials. This endpoint requires a connected app password.'
+            }), 401
         
-        # Determine user's PDS
-        db = DatabaseManager()
-        cursor = db.execute('SELECT server, handle FROM dreamers WHERE did = %s', (user_did,))
-        row = cursor.fetchone()
+        # Determine PDS
+        pds = stored_pds or 'https://bsky.social'
+        if not stored_pds:
+            db = DatabaseManager()
+            cursor = db.execute('SELECT server FROM dreamers WHERE did = %s', (user_did,))
+            row = cursor.fetchone()
+            if row and row['server']:
+                server = row['server']
+                pds = server if server.startswith('http') else f'https://{server}'
         
-        if row and row['server']:
-            server = row['server']
-            if not server.startswith('http'):
-                server = f'https://{server}'
-            pds = server
-            print(f"🏠 [Post] User's PDS: {pds}")
+        print(f"🏠 [Post] PDS: {pds}")
         
-        print(f"🔐 [Post] Using app password authentication (OAuth token from frontend is not a Bluesky access JWT)")
+        # Decrypt app password
+        try:
+            app_password = decrypt_password(encrypted_password)
+        except Exception as e:
+            print(f"❌ [Post] Decryption failed: {e}")
+            return jsonify({
+                'status': 'error',
+                'error': 'App password needs to be reconnected.',
+                'error_code': 'INVALID_CREDENTIALS'
+            }), 401
         
-        # If we need app password (either no OAuth or wrong PDS), get it
-        if use_app_password:
-            print(f"🔐 [Post] Fetching app password credentials")
-            encrypted_password, handle, stored_pds = get_user_credentials(user_did)
-            
-            if not encrypted_password or not handle:
-                return jsonify({
-                    'status': 'error',
-                    'error': 'No credentials available. Please connect an app password or log in with OAuth.'
-                }), 401
-            
-            # Use stored PDS if available
-            if stored_pds:
-                pds = stored_pds
-                print(f"🏠 [Post] Using stored PDS: {pds}")
-            
-            # Decrypt app password
-            try:
-                app_password = decrypt_password(encrypted_password)
-            except Exception as e:
-                print(f"❌ [Post] Decryption failed: {e}")
-                return jsonify({
-                    'status': 'error',
-                    'error': 'App password needs to be reconnected. Please go to Dashboard → Details tab and connect your app password again.',
-                    'error_code': 'INVALID_CREDENTIALS'
-                }), 401
-            
-            # Create session with app password
-            session_data = create_bsky_session_with_app_password(handle, app_password)
-            if not session_data:
-                return jsonify({
-                    'status': 'error',
-                    'error': 'Failed to create session with app password'
-                }), 401
-            
-            access_jwt = session_data.get('accessJwt')
-            # Only override PDS from session if we don't have stored_pds
-            if not stored_pds:
-                pds = session_data.get('didDoc', {}).get('service', [{}])[0].get('serviceEndpoint', pds)
-            print(f"✅ [Post] Created session with app password, PDS: {pds}")
+        # Create session with app password
+        session_data = create_bsky_session_with_app_password(handle, app_password)
+        if not session_data:
+            return jsonify({
+                'status': 'error',
+                'error': 'Failed to create session with stored credentials'
+            }), 401
+        
+        access_jwt = session_data.get('accessJwt')
+        print(f"✅ [Post] Session created for {handle}")
         
         # Create the post
-        print(f"📝 [Post] Creating post on {pds} for {user_did}")
-        print(f"📝 [Post] Post text length: {len(text)} chars")
-        print(f"📝 [Post] Access JWT present: {bool(access_jwt)}")
-        print(f"📝 [Post] PDS URL: {pds}")
         result = create_post_with_token(access_jwt, pds, user_did, text)
         
         if not result:
             print(f"❌ [Post] create_post_with_token returned None")
             return jsonify({
                 'status': 'error',
-                'error': 'Failed to create post on Bluesky. Check server logs for details.'
+                'error': 'Failed to create post on Bluesky.'
             }), 500
         
         post_uri = result.get('uri')
@@ -298,6 +280,126 @@ def create_immediate_post():
         
     except Exception as e:
         print(f"❌ [Post] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+
+@bp.route('/post/create', methods=['POST'])
+def create_post_with_record():
+    """
+    Create a post using stored credentials with full record object.
+    Used by OAuth-only sessions that need server-side posting.
+    
+    Body:
+        user_did: User's DID (required)
+        record: Full post record object (required)
+    """
+    try:
+        data = request.json
+        user_did = data.get('user_did')
+        record = data.get('record')
+        
+        if not user_did:
+            return jsonify({
+                'status': 'error',
+                'error': 'user_did is required'
+            }), 400
+        
+        if not record or not record.get('text'):
+            return jsonify({
+                'status': 'error',
+                'error': 'Post record with text is required'
+            }), 400
+        
+        # Get stored credentials
+        print(f"🔐 [Post/Create] Fetching stored credentials for {user_did}")
+        encrypted_password, handle, stored_pds = get_user_credentials(user_did)
+        
+        if not encrypted_password or not handle:
+            return jsonify({
+                'status': 'error',
+                'error': 'No stored credentials',
+                'code': 'credentials_required'
+            }), 401
+        
+        # Determine PDS
+        pds = stored_pds or 'https://bsky.social'
+        if not stored_pds:
+            db = DatabaseManager()
+            cursor = db.execute('SELECT server FROM dreamers WHERE did = %s', (user_did,))
+            row = cursor.fetchone()
+            if row and row['server']:
+                server = row['server']
+                pds = server if server.startswith('http') else f'https://{server}'
+        
+        print(f"🏠 [Post/Create] PDS: {pds}")
+        
+        # Decrypt app password
+        try:
+            app_password = decrypt_password(encrypted_password)
+        except Exception as e:
+            print(f"❌ [Post/Create] Decryption failed: {e}")
+            return jsonify({
+                'status': 'error',
+                'error': 'App password needs to be reconnected.',
+                'code': 'invalid_credentials'
+            }), 401
+        
+        # Create session with app password
+        session_data = create_bsky_session_with_app_password(handle, app_password)
+        if not session_data:
+            return jsonify({
+                'status': 'error',
+                'error': 'Failed to create session with stored credentials'
+            }), 401
+        
+        access_jwt = session_data.get('accessJwt')
+        print(f"✅ [Post/Create] Session created for {handle}")
+        
+        # Ensure record has required fields
+        if '$type' not in record:
+            record['$type'] = 'app.bsky.feed.post'
+        if 'createdAt' not in record:
+            record['createdAt'] = datetime.utcnow().isoformat() + 'Z'
+        
+        # Create the post
+        print(f"📤 [Post/Create] Sending to {pds}/xrpc/com.atproto.repo.createRecord")
+        response = requests.post(
+            f'{pds}/xrpc/com.atproto.repo.createRecord',
+            headers={
+                'Authorization': f'Bearer {access_jwt}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'repo': user_did,
+                'collection': 'app.bsky.feed.post',
+                'record': record
+            },
+            timeout=15
+        )
+        
+        if response.status_code != 200:
+            print(f"❌ [Post/Create] Failed: {response.status_code} - {response.text}")
+            return jsonify({
+                'status': 'error',
+                'error': f'Post creation failed: {response.status_code}'
+            }), 500
+        
+        result = response.json()
+        print(f"✅ [Post/Create] Created: {result.get('uri')}")
+        
+        return jsonify({
+            'status': 'success',
+            'uri': result.get('uri'),
+            'cid': result.get('cid')
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ [Post/Create] Error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({

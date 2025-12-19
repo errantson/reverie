@@ -549,43 +549,83 @@ class LoginWidget {
         loginBox.className = 'login-box';
         const coreColor = getComputedStyle(document.documentElement)
             .getPropertyValue('--reverie-core-color').trim() || this.coreColor || '#87408d';
+        
         loginBox.innerHTML = `
-            <div class="login-content">
+            <div class="login-content login-compact">
                 <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
                 <div class="login-form">
-                    <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #888; text-align: center;">enter your name or handle</p>
-                    <div class="login-handle-input-group" style="margin-bottom: 0.5rem;">
+                    <p class="login-prompt-text">enter your name or handle</p>
+                    <div class="login-handle-input-group">
                         <span class="login-handle-prefix">@</span>
                         <input 
                             type="text" 
-                            id="loginHandleQuick" 
+                            id="loginHandle" 
                             class="login-handle-input" 
                             placeholder="loading..."
-                            autocomplete="off"
+                            autocomplete="username"
                             autocapitalize="off"
                             spellcheck="false"
                         >
                     </div>
-                    <button id="loginBluesky" class="login-method-btn login-bluesky-btn" style="margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <img src="/assets/bluesky.png" alt="" style="width: 20px; height: 20px;">
-                        <span>Visit Reverie House</span>
-                    </button>
-                    <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: #888; text-align: center;">residents and dreamweavers only</p>
-                    <button id="loginInviteKey" class="login-method-btn login-reverie-btn" style="margin-top: 0rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <img src="/assets/icon.png" alt="" style="width: 20px; height: 20px;">
-                        <span>Become a Resident</span>
-                    </button>
+                    <div id="loginPasswordGroup" class="login-password-group">
+                        <div class="login-handle-input-group">
+                            <span class="login-handle-prefix">🔑</span>
+                            <input 
+                                type="password" 
+                                id="loginPassword" 
+                                class="login-handle-input" 
+                                placeholder="app-password"
+                                autocomplete="current-password"
+                                autocapitalize="off"
+                                spellcheck="false"
+                            >
+                        </div>
+                    </div>
+                    <div id="loginStatusMessage" class="login-status-message">
+                        <img src="/assets/icon.png" alt="" style="width: 16px; height: 16px;">
+                        <span>enter your handle to continue</span>
+                    </div>
+                    <div class="login-buttons-row">
+                        <button id="loginSideDoor" class="login-side-door-btn" disabled>
+                            <span id="loginSideDoorText">Side Door</span>
+                            <span class="login-side-door-sub">(just visiting)</span>
+                        </button>
+                        <button id="loginSubmit" class="login-method-btn login-main-btn" disabled>
+                            <span id="loginSubmitText">Main Entrance</span>
+                        </button>
+                    </div>
+                    <div class="login-new-section">
+                        <p class="login-new-text">new to our wild mindscape?</p>
+                        <button id="loginBecomeResident" class="login-method-btn login-become-btn" style="border-color: ${coreColor}; color: ${coreColor};">
+                            <img src="/assets/icon.png" alt="" style="width: 16px; height: 16px;">
+                            <span>Become a Dreamweaver</span>
+                        </button>
+                    </div>
                 </div>
-                <button id="loginCancel" class="login-cancel-btn">Cancel</button>
+                <button id="loginCancel" class="login-cancel-btn">Close</button>
             </div>
         `;
+        
         overlay.appendChild(loginBox);
         document.body.appendChild(overlay);
         setTimeout(() => {
             overlay.classList.add('visible');
             loginBox.classList.add('visible');
         }, 10);
-        const quickHandleInput = document.getElementById('loginHandleQuick');
+        
+        const handleInput = document.getElementById('loginHandle');
+        const passwordInput = document.getElementById('loginPassword');
+        const passwordGroup = document.getElementById('loginPasswordGroup');
+        const statusMessage = document.getElementById('loginStatusMessage');
+        const submitBtn = document.getElementById('loginSubmit');
+        const submitText = document.getElementById('loginSubmitText');
+        const sideDoorBtn = document.getElementById('loginSideDoor');
+        const sideDoorText = document.getElementById('loginSideDoorText');
+        
+        let authMode = null;
+        let resolvedHandle = null;
+        let useSideDoor = false;  // Track if user chose side door
+        let checkTimeout = null;
         
         // Fetch dreamer names and rotate them in the placeholder
         (async () => {
@@ -600,946 +640,446 @@ class LoginWidget {
                     
                     if (names.length > 0) {
                         let currentIndex = 0;
+                        handleInput.placeholder = `${names[0]} or handle.bsky.social`;
                         
-                        // Set initial placeholder
-                        quickHandleInput.placeholder = `${names[0]} or name.bsky.social`;
-                        
-                        // Rotate names every 3 seconds with fade effect
                         const rotatePlaceholder = () => {
-                            // Don't rotate if user is typing
-                            if (document.activeElement === quickHandleInput && quickHandleInput.value.length > 0) {
-                                return;
-                            }
-                            
-                            // Fade out
-                            quickHandleInput.style.transition = 'opacity 0.3s ease';
-                            quickHandleInput.style.opacity = '0.5';
-                            
+                            if (document.activeElement === handleInput && handleInput.value.length > 0) return;
+                            handleInput.style.transition = 'opacity 0.3s ease';
+                            handleInput.style.opacity = '0.5';
                             setTimeout(() => {
-                                // Change placeholder
                                 currentIndex = (currentIndex + 1) % names.length;
-                                quickHandleInput.placeholder = `${names[currentIndex]} or name.bsky.social`;
-                                
-                                // Fade in
-                                quickHandleInput.style.opacity = '1';
+                                handleInput.placeholder = `${names[currentIndex]} or handle.bsky.social`;
+                                handleInput.style.opacity = '1';
                             }, 300);
                         };
                         
-                        // Start rotation
                         const rotationInterval = setInterval(rotatePlaceholder, 3000);
-                        
-                        // Stop rotation when input gets focus with value
-                        quickHandleInput.addEventListener('input', () => {
-                            if (quickHandleInput.value.length > 0) {
-                                clearInterval(rotationInterval);
-                                quickHandleInput.style.opacity = '1';
-                            }
-                        });
-                        
-                        // Clean up on overlay removal
-                        overlay.addEventListener('remove', () => {
-                            clearInterval(rotationInterval);
-                        });
+                        overlay.addEventListener('remove', () => clearInterval(rotationInterval));
                     } else {
-                        quickHandleInput.placeholder = 'name or name.bsky.social';
+                        handleInput.placeholder = 'name or handle.bsky.social';
                     }
                 } else {
-                    quickHandleInput.placeholder = 'name or name.bsky.social';
+                    handleInput.placeholder = 'name or handle.bsky.social';
                 }
             } catch (error) {
-                console.error('Failed to load dreamer names:', error);
-                quickHandleInput.placeholder = 'name or name.bsky.social';
+                handleInput.placeholder = 'name or handle.bsky.social';
             }
         })();
         
-        document.getElementById('loginBluesky').addEventListener('click', async () => {
-            let handle = quickHandleInput.value.trim();
+        // Check handle as user types
+        const checkHandle = async (inputValue) => {
+            let handle = inputValue.replace(/^@/, '').trim();
             if (!handle) {
-                quickHandleInput.focus();
+                resetStatus();
                 return;
             }
-            if (handle.startsWith('@')) {
-                handle = handle.substring(1);
-            }
-            if (handle.includes('did:plc:') || handle.includes('did:web:')) {
-                const didMatch = handle.match(/(did:(?:plc|web):[a-zA-Z0-9]+)/);
-                if (didMatch) {
-                    handle = didMatch[1];
-                }
+            
+            // Show checking status
+            statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
+            statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
+            statusMessage.style.color = '#555';
+            statusMessage.innerHTML = `
+                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px; animation: spin 2s linear infinite;">
+                <span>Checking...</span>
+            `;
+            if (!document.getElementById('spin-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'spin-keyframes';
+                style.textContent = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+                document.head.appendChild(style);
             }
             
-            // If no dot and not a DID, check database for name match first
-            if (!handle.includes('.') && !handle.startsWith('did:')) {
-                console.log(`🔍 No dot in handle "${handle}", checking database for name match...`);
-                try {
+            try {
+                // Check database for name match first (only for inputs without a dot)
+                if (!handle.includes('.') && !handle.startsWith('did:')) {
                     const dbResponse = await fetch('/api/database/all');
                     if (dbResponse.ok) {
                         const dbData = await dbResponse.json();
                         const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
                         const dreamerByName = dreamers.find(d => d.name && d.name.toLowerCase() === handle.toLowerCase());
-                        
                         if (dreamerByName && dreamerByName.handle) {
-                            console.log(`   ✅ Found dreamer by name: ${dreamerByName.name} -> ${dreamerByName.handle}`);
+                            // Found exact name match in database - use their handle
                             handle = dreamerByName.handle;
                         } else {
-                            console.log(`   ❌ No dreamer found with name "${handle}", using fallback: ${handle}.bsky.social`);
-                            handle = `${handle}.bsky.social`;
-                        }
-                    } else {
-                        // Database check failed, use bsky.social fallback
-                        console.log(`   ⚠️ Database check failed, using fallback: ${handle}.bsky.social`);
-                        handle = `${handle}.bsky.social`;
-                    }
-                } catch (error) {
-                    console.error('   ❌ Database check error:', error);
-                    // On error, use bsky.social fallback
-                    console.log(`   ⚠️ Using fallback due to error: ${handle}.bsky.social`);
-                    handle = `${handle}.bsky.social`;
-                }
-            }
-            
-            // Now determine which auth flow to use based on PDS endpoint
-            // Resolve handle to check PDS service endpoint
-            // First, normalize the handle (replace @ with .)
-            handle = handle.replace('@', '.');
-            
-            console.log(`🔍 Checking PDS endpoint for ${handle}...`);
-            try {
-                // Resolve handle to DID
-                const didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
-                if (didResponse.ok) {
-                    const didData = await didResponse.json();
-                    const did = didData.did;
-                    console.log(`   DID: ${did}`);
-                    
-                    // Fetch DID document to find PDS
-                    let didDocResponse;
-                    if (did.startsWith('did:web:')) {
-                        // did:web DIDs are resolved from the domain's .well-known directory
-                        const domain = did.replace('did:web:', '');
-                        const didDocUrl = `https://${domain}/.well-known/did.json`;
-                        console.log(`   Resolving did:web from ${didDocUrl}`);
-                        didDocResponse = await fetch(didDocUrl);
-                    } else {
-                        // did:plc DIDs are resolved from PLC directory
-                        didDocResponse = await fetch(`https://plc.directory/${did}`);
-                    }
-                    if (didDocResponse.ok) {
-                        const didDoc = await didDocResponse.json();
-                        const service = didDoc.service?.find(s => s.id === '#atproto_pds');
-                        const serviceEndpoint = service?.serviceEndpoint || '';
-                        console.log(`   PDS endpoint: ${serviceEndpoint}`);
-                        
-                        // Route based on PDS endpoint
-                        // If it's bsky.network, use OAuth
-                        // If it's anything else (reverie.house or foreign PDS), use dreamweaver login
-                        if (serviceEndpoint.includes('bsky.network')) {
-                            console.log(`   📤 bsky.network detected - using OAuth`);
-                            overlay.classList.remove('visible');
-                            loginBox.classList.remove('visible');
-                            setTimeout(() => overlay.remove(), 300);
-                            await this.oauthManager.login(handle);
-                            return;
-                        } else {
-                            console.log(`   🏠 Non-bsky.network PDS detected - routing to dreamweaver login`);
-                            overlay.classList.remove('visible');
-                            loginBox.classList.remove('visible');
-                            setTimeout(() => {
-                                overlay.remove();
-                                this.showDreamweaverLoginForm(handle);
-                            }, 300);
+                            // No name match found - wait for user to type a complete handle
+                            // Don't auto-append .bsky.social for partial input
+                            statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
+                            statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
+                            statusMessage.style.color = '#888';
+                            statusMessage.innerHTML = `
+                                <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
+                                <span>enter full handle (eg. name.bsky.social)</span>
+                            `;
+                            submitBtn.disabled = true;
+                            submitBtn.style.opacity = '0.5';
+                            submitBtn.style.cursor = 'not-allowed';
                             return;
                         }
-                    }
-                }
-            } catch (error) {
-                console.error('   ❌ PDS check error:', error);
-            }
-            
-            // Fallback: if PDS check fails, try OAuth (will handle errors appropriately)
-            console.log(`   ⚠️ PDS check failed, defaulting to OAuth`);
-            overlay.classList.remove('visible');
-            loginBox.classList.remove('visible');
-            setTimeout(() => overlay.remove(), 300);
-            try {
-                await this.oauthManager.login(handle);
-            } catch (error) {
-                console.error('OAuth login error:', error);
-                this.showMessage('Login Failed', error.message || 'Unable to start login process', true);
-            }
-        });
-        quickHandleInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('loginBluesky').click();
-            }
-        });
-        document.getElementById('loginInviteKey').addEventListener('click', () => {
-            overlay.classList.remove('visible');
-            loginBox.classList.remove('visible');
-            setTimeout(() => {
-                overlay.remove();
-                // Show the CreateDreamer widget
-                if (window.CreateDreamer) {
-                    const createDreamer = new window.CreateDreamer();
-                    createDreamer.show({
-                        onSuccess: (result) => {
-                            console.log('✅ Account created:', result);
-                        },
-                        onCancel: () => {
-                            console.log('❌ Account creation cancelled');
-                        }
-                    });
-                } else {
-                    console.error('CreateDreamer widget not loaded');
-                    this.showMessage('Error', 'Account creation system not available', true);
-                }
-            }, 300);
-        });
-        document.getElementById('loginCancel').addEventListener('click', () => {
-            overlay.classList.remove('visible');
-            loginBox.classList.remove('visible');
-            setTimeout(() => overlay.remove(), 300);
-            
-            // Dispatch cancel event
-            window.dispatchEvent(new CustomEvent('oauth:cancel'));
-            console.log('📢 [login.js] Dispatched oauth:cancel event');
-        });
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
-                
-                // Dispatch cancel event
-                window.dispatchEvent(new CustomEvent('oauth:cancel'));
-                console.log('📢 [login.js] Dispatched oauth:cancel event (overlay click)');
-            }
-        });
-    }
-    showBlueskyLoginForm(prefilledHandle = '') {
-        const overlay = document.createElement('div');
-        overlay.className = 'login-overlay';
-        const loginBox = document.createElement('div');
-        loginBox.className = 'login-box';
-        loginBox.innerHTML = `
-            <div class="login-content">
-                <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
-                <h2 class="login-title">login via bluesky</h2>
-                <div class="login-form">
-                    <div class="login-handle-input-group">
-                        <span class="login-handle-prefix">@</span>
-                        <input 
-                            type="text" 
-                            id="loginHandle" 
-                            class="login-handle-input" 
-                            placeholder="name.bsky.social"
-                            value="${prefilledHandle}"
-                            autocomplete="off"
-                            autocapitalize="off"
-                            spellcheck="false"
-                        >
-                    </div>
-                    <button id="loginEnter" class="login-method-btn login-bluesky-btn">
-                        <span id="loginText">Login via Bluesky</span>
-                    </button>
-                </div>
-                <button id="loginBack" class="login-cancel-btn">Back</button>
-                <p class="login-help-text">
-                    Using <a href="https://atproto.com/specs/oauth" target="_blank" class="login-help-link">AT Protocol OAuth</a>. No passwords stored.
-                </p>
-            </div>
-        `;
-        overlay.appendChild(loginBox);
-        document.body.appendChild(overlay);
-        setTimeout(() => {
-            overlay.classList.add('visible');
-            loginBox.classList.add('visible');
-        }, 10);
-        const handleInput = document.getElementById('loginHandle');
-        const handleGroup = document.querySelector('.login-handle-input-group');
-        const enterBtn = document.getElementById('loginEnter');
-        const loginText = document.getElementById('loginText');
-        setTimeout(() => {
-            handleInput.focus();
-            if (prefilledHandle) {
-                handleInput.setSelectionRange(handleInput.value.length, handleInput.value.length);
-            }
-        }, 100);
-        handleInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                enterBtn.click();
-            }
-        });
-        const handleLogin = async () => {
-            let handle = handleInput.value.trim();
-            if (!handle) {
-                handleInput.focus();
-                handleGroup.classList.add('error-shake');
-                setTimeout(() => handleGroup.classList.remove('error-shake'), 500);
-                return;
-            }
-            if (handle.startsWith('@')) {
-                handle = handle.substring(1);
-            }
-            if (!handle.includes('.')) {
-                handle = `${handle}.bsky.social`;
-            }
-            loginText.textContent = 'Connecting...';
-            enterBtn.disabled = true;
-            handleInput.disabled = true;
-            try {
-                await this.oauthManager.login(handle);
-            } catch (error) {
-                console.error('Login error:', error);
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => {
-                    overlay.remove();
-                    this.showMessage('Login Failed', error.message || 'Unable to connect. Please check your handle and try again.', true);
-                }, 300);
-            }
-        };
-        enterBtn.addEventListener('click', handleLogin);
-        document.getElementById('loginBack').addEventListener('click', () => {
-            overlay.classList.remove('visible');
-            loginBox.classList.remove('visible');
-            setTimeout(() => {
-                overlay.remove();
-                this.showLoginPopupEnabled();
-            }, 300);
-        });
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
-            }
-        });
-    }
-    showDreamweaverLoginForm(prefilledUsername = '') {
-        const overlay = document.createElement('div');
-        overlay.className = 'login-overlay';
-        const loginBox = document.createElement('div');
-        loginBox.className = 'login-box';
-        const coreColor = getComputedStyle(document.documentElement)
-            .getPropertyValue('--reverie-core-color').trim() || this.coreColor || '#87408d';
-        loginBox.innerHTML = `
-            <div class="login-content">
-                <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
-                <h2 class="login-title">dreamweaver login</h2>
-                <div class="login-form">
-                    <div class="login-handle-input-group" style="margin-bottom: 0.75rem;">
-                        <span class="login-handle-prefix">@</span>
-                        <input 
-                            type="text" 
-                            id="dwHandle" 
-                            class="login-handle-input" 
-                            placeholder="handle.domain"
-                            value=""
-                            autocomplete="username"
-                            autocapitalize="off"
-                            spellcheck="false"
-                        >
-                    </div>
-                    <div id="dwPasswordGroup" style="margin-bottom: 1rem; display: none;">
-                        <div class="login-handle-input-group">
-                            <span class="login-handle-prefix">🔑</span>
-                            <input 
-                                type="password" 
-                                id="dwPassword" 
-                                class="login-handle-input" 
-                                placeholder="app-password"
-                                autocomplete="current-password"
-                                autocapitalize="off"
-                                spellcheck="false"
-                            >
-                        </div>
-                    </div>
-                    <div id="dwStatusMessage" style="margin-bottom: 1rem; padding: 10px 14px; border-radius: 4px; font-size: 0.875rem; text-align: center; line-height: 1.5; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(135, 64, 141, 0.05); border: 1px solid rgba(135, 64, 141, 0.2); color: #555;">
-                        <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
-                        <span>residents and dreamweavers only</span>
-                    </div>
-                    <button id="dwLoginSubmit" class="login-method-btn login-reverie-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
-                        <span id="dwLoginText">Enter</span>
-                    </button>
-                    <button id="dwLoginBack" class="login-cancel-btn" style="margin-top: 0.75rem;">Cancel</button>
-                </div>
-                <div id="dwPasswordInfo" class="login-info-box" style="background: rgba(135, 64, 141, 0.02); border: 1px solid rgba(135, 64, 141, 0.12); padding: 8px 12px; margin-top: 1rem; border-radius: 4px; display: none;">
-                    <p style="margin: 0; font-size: 0.75rem; color: #777; line-height: 1.4;">
-                        <strong style="color: ${coreColor};">App passwords</strong> are secure tokens you generate from your account settings.
-                    </p>
-                </div>
-                <p class="login-help-text" style="margin-top: 0.875rem; margin-bottom: 0; border-top: 1px solid rgba(135, 64, 141, 0.08); padding-top: 0.875rem; font-size: 0.8rem;">
-                    Don't have an account? <a href="mailto:books@reverie.house" class="login-help-link" style="font-weight: 600; color: ${coreColor};">Request a key</a>
-                </p>
-            </div>
-        `;
-        overlay.appendChild(loginBox);
-        document.body.appendChild(overlay);
-        setTimeout(() => {
-            overlay.classList.add('visible');
-            loginBox.classList.add('visible');
-        }, 10);
-        const handleInput = document.getElementById('dwHandle');
-        const passwordInput = document.getElementById('dwPassword');
-        const passwordGroup = document.getElementById('dwPasswordGroup');
-        const passwordInfo = document.getElementById('dwPasswordInfo');
-        const statusMessage = document.getElementById('dwStatusMessage');
-        const submitBtn = document.getElementById('dwLoginSubmit');
-        const loginText = document.getElementById('dwLoginText');
-        let authMode = null;
-        let resolvedDid = null;
-        
-        // Pre-fill if username provided
-        if (prefilledUsername) {
-            handleInput.value = prefilledUsername;
-        }
-        
-        // Simple input validation - just ensure valid handle characters
-        handleInput.addEventListener('input', (e) => {
-            // Allow alphanumeric, dots, hyphens, underscores
-            let value = handleInput.value;
-            value = value.replace(/[^a-zA-Z0-9._-]/g, '');
-            if (value !== handleInput.value) {
-                const cursorPos = handleInput.selectionStart;
-                handleInput.value = value;
-                handleInput.setSelectionRange(cursorPos - 1, cursorPos - 1);
-            }
-        });
-
-        setTimeout(() => {
-            handleInput.focus();
-            if (prefilledUsername) {
-                handleInput.setSelectionRange(handleInput.value.length, handleInput.value.length);
-            }
-        }, 100);
-
-        if (prefilledUsername) {
-            setTimeout(() => checkHandle(prefilledUsername), 100);
-        }
-
-        let checkTimeout;
-        handleInput.addEventListener('input', () => {
-            clearTimeout(checkTimeout);
-            const fullValue = handleInput.value.trim();
-
-            if (!fullValue || !fullValue.includes('.')) {
-                passwordGroup.style.display = 'none';
-                passwordInfo.style.display = 'none';
-                statusMessage.style.display = 'flex';
-                statusMessage.style.alignItems = 'center';
-                statusMessage.style.justifyContent = 'center';
-                statusMessage.style.gap = '8px';
-                statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
-                statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
-                statusMessage.style.color = '#555';
-                statusMessage.innerHTML = `
-                    <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
-                    <span>Enter your full handle (eg. @name.reverie.house)</span>
-                `;
-                submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
-                submitBtn.style.background = '';
-                submitBtn.style.borderColor = '';
-                submitBtn.style.color = '';
-                loginText.textContent = 'Enter';
-                authMode = null;
-                resolvedDid = null;
-                return;
-            }
-
-            checkTimeout = setTimeout(() => checkHandle(fullValue), 500);
-        }, true);
-
-        const checkHandle = async (handleValue) => {
-            let handle = handleValue.replace(/^@/, '').trim();
-            
-            console.log('🚀 === DREAMWEAVER LOGIN CHECK START ===');
-            console.log(`   Handle input: "${handleValue}"`);
-            console.log(`   Cleaned handle: "${handle}"`);
-            
-            statusMessage.style.display = 'flex';
-            statusMessage.style.alignItems = 'center';
-            statusMessage.style.justifyContent = 'center';
-            statusMessage.style.gap = '8px';
-            statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
-            statusMessage.style.border = 'rgba(135, 64, 141, 0.2)';
-            statusMessage.style.color = '#555';
-            statusMessage.innerHTML = `
-                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px; animation: spin 2s linear infinite;">
-                <span>Checking account...</span>
-            `;
-            if (!document.getElementById('spin-keyframes')) {
-                const style = document.createElement('style');
-                style.id = 'spin-keyframes';
-                style.textContent = `
-                    @keyframes spin {
-                        from { transform: rotate(0deg); }
-                        to { transform: rotate(360deg); }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-            try {
-                let dreamerInDb = null;
-                let wasNameLookup = false;
-                
-                try {
-                    console.log(`🔍 STEP 1: Checking database for handle: "${handle}"`);
-                    const dbResponse = await fetch('/api/database/all');
-                    console.log(`   Database API response status: ${dbResponse.status} ${dbResponse.statusText}`);
-                    if (!dbResponse.ok) {
-                        console.error(`   ❌ Database API error: ${dbResponse.status}`);
                     } else {
-                        const dbData = await dbResponse.json();
-                        console.log(`   ✅ Database API returned data`);
-                        const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
-                        console.log(`   📊 Total dreamers in database: ${dreamers.length}`);
-                        if (dreamers.length > 0) {
-                            console.log(`   🔍 Searching for handle="${handle}" in dreamers...`);
-                            console.log(`   First few dreamers:`, dreamers.slice(0, 3).map(d => ({name: d.name, handle: d.handle})));
-                        }
-                        
-                        // If no dot in handle, assume it's a name and look up by name
-                        if (!handle.includes('.')) {
-                            console.log(`   💡 No dot in input, treating as name lookup...`);
-                            dreamerInDb = dreamers.find(d => d.name && d.name.toLowerCase() === handle.toLowerCase());
-                            if (dreamerInDb) {
-                                console.log(`   🎯 FOUND by name!`);
-                                console.log(`      Name: ${dreamerInDb.name}`);
-                                console.log(`      Handle: ${dreamerInDb.handle}`);
-                                console.log(`      DID: ${dreamerInDb.did}`);
-                                // Replace the handle input with the actual handle
-                                handle = dreamerInDb.handle;
-                                handleInput.value = handle;
-                                wasNameLookup = true;
-                            } else {
-                                console.log(`   ❌ NOT found in database by name`);
-                            }
-                        } else {
-                            // Search by handle
-                            dreamerInDb = dreamers.find(d => d.handle === handle);
-                            if (dreamerInDb) {
-                                console.log(`   🎯 FOUND in database!`);
-                                console.log(`      Name: ${dreamerInDb.name}`);
-                                console.log(`      Handle: ${dreamerInDb.handle}`);
-                                console.log(`      DID: ${dreamerInDb.did}`);
-                            } else {
-                                console.log(`   ❌ NOT found in database by handle`);
-                            }
-                        }
-                    }
-                } catch (dbError) {
-                    console.error('   ❌ Database check exception:', dbError);
-                }
-                console.log(`🔍 STEP 2: Resolving handle to DID via public resolver`);
-                
-                // Always use public resolver first to convert handle to DID
-                // This works for any handle regardless of which PDS it's on
-                let didResponse;
-                try {
-                    didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
-                } catch (publicError) {
-                    console.log(`   ⚠️ Public resolver failed, trying PLC directory...`);
-                    // Fallback: try to resolve via PLC directory if we have a DID pattern
-                    throw new Error('Unable to resolve handle');
-                }
-                
-                console.log(`   Handle resolution response status: ${didResponse.status} ${didResponse.statusText}`);
-                if (!didResponse.ok) {
-                    console.log(`   ❌ Handle NOT found via public resolver (404)`);
-                    console.log(`   🔍 STEP 3: Checking if name exists in database...`);
-                    console.log(`   dreamerInDb =`, dreamerInDb ? 'FOUND' : 'null');
-                    if (dreamerInDb) {
-                        console.log(`   ✅ RESULT: Handle not adopted - user exists but hasn't set .reverie.house handle`);
-                        console.log(`      Current handle: ${dreamerInDb.handle}`);
-                        console.log(`      Should adopt: ${handle}`);
-                        statusMessage.style.display = 'flex';
-                        statusMessage.style.alignItems = 'center';
-                        statusMessage.style.justifyContent = 'center';
-                        statusMessage.style.gap = '8px';
-                        statusMessage.style.background = 'rgba(255, 159, 64, 0.05)';
-                        statusMessage.style.border = '1px solid rgba(255, 159, 64, 0.3)';
-                        statusMessage.style.color = '#e67e22';
-                        statusMessage.style.textAlign = 'left';
-                        statusMessage.style.lineHeight = '1.5';
-                        statusMessage.style.flexDirection = 'column';
-                        statusMessage.style.alignItems = 'flex-start';
+                        // Database check failed - require full handle
+                        statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
+                        statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
+                        statusMessage.style.color = '#888';
                         statusMessage.innerHTML = `
-                            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px;">
-                                <strong>Handle not adopted</strong>
-                            </div>
-                            <span style="font-size: 0.8rem;">Your current handle: <strong>@${dreamerInDb.handle}</strong></span>
-                            <span style="font-size: 0.8rem;">
-                                <a href="https://bsky.app/settings/account" target="_blank" style="color: #e67e22; text-decoration: underline;">Change your handle</a> to <strong>${handle}</strong> to enter
-                            </span>
+                            <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
+                            <span>enter full handle (eg. name.bsky.social)</span>
                         `;
                         submitBtn.disabled = true;
                         submitBtn.style.opacity = '0.5';
                         submitBtn.style.cursor = 'not-allowed';
-                        passwordGroup.style.display = 'none';
-                        passwordInfo.style.display = 'none';
-                        authMode = null;
                         return;
                     }
-                    console.log(`   ❌ RESULT: Account not found - doesn't exist in database or ATProto`);
-                    statusMessage.style.display = 'flex';
-                    statusMessage.style.alignItems = 'center';
-                    statusMessage.style.justifyContent = 'center';
-                    statusMessage.style.gap = '8px';
-                    statusMessage.style.background = 'rgba(217, 72, 72, 0.05)';
-                    statusMessage.style.border = '1px solid rgba(217, 72, 72, 0.2)';
-                    statusMessage.style.color = '#d94848';
-                    statusMessage.style.flexDirection = 'row';
-                    statusMessage.style.textAlign = 'center';
-                    statusMessage.innerHTML = `
-                        <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px;">
-                        <span>Account not found</span>
-                    `;
-                    submitBtn.disabled = true;
-                    submitBtn.style.opacity = '0.5';
-                    submitBtn.style.cursor = 'not-allowed';
-                    submitBtn.style.background = '';
-                    submitBtn.style.borderColor = '';
-                    passwordGroup.style.display = 'none';
-                    passwordInfo.style.display = 'none';
-                    authMode = null;
+                }
+                
+                // Resolve handle to DID
+                const didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
+                if (!didResponse.ok) {
+                    showNotFound();
                     return;
                 }
                 
-                console.log(`   ✅ Handle resolved to DID!`);
                 const didData = await didResponse.json();
-                resolvedDid = didData.did;
-                console.log(`   DID: ${resolvedDid}`);
+                const did = didData.did;
+                resolvedHandle = handle;
                 
-                console.log(`🔍 STEP 3: Fetching DID document to find PDS service endpoint...`);
+                // Fetch DID document to find PDS
                 let didDocResponse;
-                if (resolvedDid.startsWith('did:web:')) {
-                    // did:web DIDs are resolved from the domain's .well-known directory
-                    const domain = resolvedDid.replace('did:web:', '');
-                    const didDocUrl = `https://${domain}/.well-known/did.json`;
-                    console.log(`   Resolving did:web from ${didDocUrl}`);
-                    didDocResponse = await fetch(didDocUrl);
+                if (did.startsWith('did:web:')) {
+                    const domain = did.replace('did:web:', '');
+                    didDocResponse = await fetch(`https://${domain}/.well-known/did.json`);
                 } else {
-                    // did:plc DIDs are resolved from PLC directory
-                    didDocResponse = await fetch(`https://plc.directory/${resolvedDid}`);
+                    didDocResponse = await fetch(`https://plc.directory/${did}`);
                 }
+                
+                if (!didDocResponse.ok) {
+                    showNotFound();
+                    return;
+                }
+                
                 const didDoc = await didDocResponse.json();
                 const service = didDoc.service?.find(s => s.id === '#atproto_pds');
                 const serviceEndpoint = service?.serviceEndpoint || '';
-                console.log(`   Service endpoint: ${serviceEndpoint}`);
                 
-                // Check if the handle in database matches what's in ATProto
-                if (dreamerInDb && dreamerInDb.handle !== handle) {
-                    console.log(`   ⚠️ RESULT: Handle adopted but not in database - user changed handle`);
-                    console.log(`      Database handle: ${dreamerInDb.handle}`);
-                    console.log(`      ATProto handle: ${handle}`);
-                    statusMessage.style.display = 'flex';
-                    statusMessage.style.alignItems = 'center';
-                    statusMessage.style.justifyContent = 'center';
-                    statusMessage.style.gap = '8px';
-                    statusMessage.style.background = 'rgba(255, 159, 64, 0.05)';
-                    statusMessage.style.border = '1px solid rgba(255, 159, 64, 0.3)';
-                    statusMessage.style.color = '#e67e22';
-                    statusMessage.style.textAlign = 'left';
-                    statusMessage.style.lineHeight = '1.5';
-                    statusMessage.style.flexDirection = 'column';
-                    statusMessage.style.alignItems = 'flex-start';
-                    statusMessage.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                            <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px;">
-                            <strong>Handle not adopted</strong>
-                        </div>
-                        <span style="font-size: 0.8rem;">Your current handle: <strong>@${dreamerInDb.handle}</strong></span>
-                        <span style="font-size: 0.8rem;">
-                            <a href="https://bsky.app/settings/account" target="_blank" style="color: #e67e22; text-decoration: underline;">Change your handle</a> to <strong>${handle}</strong> to enter
-                        </span>
-                    `;
-                    submitBtn.disabled = true;
-                    submitBtn.style.opacity = '0.5';
-                    submitBtn.style.cursor = 'not-allowed';
+                // Get heraldry from the heraldry system (includes reverie.house and bsky.network)
+                let heraldry = window.heraldrySystem ? window.heraldrySystem.getByServer(serviceEndpoint) : null;
+                let accountIcon = heraldry ? heraldry.icon : '/assets/wild_mindscape.png';
+                let accountColor = heraldry ? heraldry.color : '#2d3748';
+                let accountName = heraldry ? heraldry.fullName : 'Honoured Guest';
+                
+                // Residents use password auth (OAuth same-origin doesn't work with PDS)
+                // Everyone else uses OAuth
+                if (serviceEndpoint === 'https://reverie.house') {
+                    authMode = 'pds';
+                    // Fetch resident's personal color from the database
+                    try {
+                        const dbResponse = await fetch('/api/database/all');
+                        if (dbResponse.ok) {
+                            const dbData = await dbResponse.json();
+                            const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
+                            const resident = dreamers.find(d => d.did === did);
+                            if (resident && resident.color_hex) {
+                                accountColor = resident.color_hex;
+                                console.log(`🎨 [Login] Found resident color: ${accountColor}`);
+                            }
+                        }
+                    } catch (colorError) {
+                        console.warn('🎨 [Login] Could not fetch resident color:', colorError);
+                    }
+                    // Show password field for residents
+                    passwordGroup.style.display = 'block';
+                    // Hide side door for residents (they already have full access)
+                    sideDoorBtn.classList.remove('visible');
+                    setTimeout(() => passwordInput.focus(), 100);
+                } else {
+                    authMode = 'oauth';
                     passwordGroup.style.display = 'none';
-                    passwordInfo.style.display = 'none';
-                    authMode = null;
-                    return;
+                    // Show side door for OAuth users (guests/awakened)
+                    sideDoorBtn.classList.add('visible');
+                    sideDoorBtn.disabled = false;
+                    sideDoorBtn.style.borderColor = accountColor;
+                    sideDoorBtn.style.color = accountColor;
                 }
                 
-                // Determine authentication mode based on service endpoint
-                // Three modes: reverie.house (resident), bsky.network (oauth), foreign PDS (guest)
+                // Convert color to rgba for backgrounds
+                const hexToRgba = (hex, alpha) => {
+                    const r = parseInt(hex.slice(1,3), 16);
+                    const g = parseInt(hex.slice(3,5), 16);
+                    const b = parseInt(hex.slice(5,7), 16);
+                    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                };
+                
+                // Apply styling based on heraldry
+                statusMessage.style.background = hexToRgba(accountColor, 0.05);
+                statusMessage.style.border = `1px solid ${hexToRgba(accountColor, 0.2)}`;
+                statusMessage.style.color = accountColor;
+                statusMessage.innerHTML = `
+                    <img src="${accountIcon}" alt="" style="width: 16px; height: 16px;">
+                    <strong>${accountName}</strong>
+                `;
+                
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+                submitBtn.style.background = accountColor;
+                submitBtn.style.borderColor = accountColor;
+                submitBtn.style.color = 'white';
+                
+                // Determine button text based on account type
                 if (serviceEndpoint === 'https://reverie.house') {
-                    // Resident Dreamweaver on our PDS - use password auth
-                    console.log(`   ✅ RESULT: Resident Dreamweaver (PDS account on ${serviceEndpoint})`);
-                    authMode = 'pds';
-                    statusMessage.style.display = 'flex';
-                    statusMessage.style.alignItems = 'center';
-                    statusMessage.style.justifyContent = 'center';
-                    statusMessage.style.gap = '8px';
-                    statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
-                    statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
-                    statusMessage.style.color = coreColor;
-                    statusMessage.innerHTML = `
-                        <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
-                        <strong>Resident Dreamweaver</strong>
-                    `;
-                    passwordGroup.style.display = 'block';
-                    passwordInfo.style.display = 'block';
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    submitBtn.style.cursor = 'pointer';
-                    submitBtn.style.background = coreColor;
-                    submitBtn.style.borderColor = coreColor;
-                    submitBtn.style.color = 'white';
-                    loginText.textContent = 'Welcome Home';
-                    setTimeout(() => passwordInput.focus(), 100);
+                    submitText.textContent = 'Welcome Home';
                 } else if (serviceEndpoint.includes('bsky.network')) {
-                    // Bluesky network - use OAuth
-                    console.log(`   ✅ RESULT: Awakened Dreamweaver (OAuth account on ${serviceEndpoint})`);
-                    authMode = 'oauth';
-                    statusMessage.style.display = 'flex';
-                    statusMessage.style.alignItems = 'center';
-                    statusMessage.style.justifyContent = 'center';
-                    statusMessage.style.gap = '8px';
-                    statusMessage.style.background = 'rgba(66, 153, 225, 0.05)';
-                    statusMessage.style.border = '1px solid rgba(66, 153, 225, 0.2)';
-                    statusMessage.style.color = '#4299e1';
-                    statusMessage.innerHTML = `
-                        <img src="/assets/bluesky.png" alt="" style="width: 18px; height: 18px;">
-                        <strong>Awakened Dreamweaver</strong>
-                    `;
-                    passwordGroup.style.display = 'none';
-                    passwordInfo.style.display = 'none';
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    submitBtn.style.cursor = 'pointer';
-                    submitBtn.style.background = '#4299e1';
-                    submitBtn.style.borderColor = '#4299e1';
-                    submitBtn.style.color = 'white';
-                    loginText.textContent = 'Welcome Back';
+                    submitText.textContent = 'Continue with Bluesky';
                 } else {
-                    // Foreign PDS - use password auth to their PDS
-                    console.log(`   ✅ RESULT: Honoured Guest (Foreign PDS account on ${serviceEndpoint})`);
-                    authMode = 'foreign-pds';
-                    // Store the foreign PDS endpoint for later use
-                    handleInput.dataset.foreignPds = serviceEndpoint;
-                    
-                    // Get heraldry for this server
-                    console.log(`🛡️ [LOGIN] Looking up heraldry for server: ${serviceEndpoint}`);
-                    console.log(`🛡️ [LOGIN] window.heraldrySystem exists:`, !!window.heraldrySystem);
-                    const heraldry = window.heraldrySystem ? window.heraldrySystem.getByServer(serviceEndpoint) : null;
-                    console.log(`🛡️ [LOGIN] Heraldry result:`, heraldry);
-                    const guestIcon = heraldry ? heraldry.icon : '/assets/wild_mindscape.png';
-                    const guestColor = heraldry ? heraldry.color : '#2d3748';
-                    const guestName = heraldry ? heraldry.fullName : 'Honoured Guest';
-                    const guestBg = heraldry ? `rgba(${parseInt(guestColor.slice(1,3),16)}, ${parseInt(guestColor.slice(3,5),16)}, ${parseInt(guestColor.slice(5,7),16)}, 0.05)` : 'rgba(45, 55, 72, 0.05)';
-                    const guestBorder = heraldry ? `rgba(${parseInt(guestColor.slice(1,3),16)}, ${parseInt(guestColor.slice(3,5),16)}, ${parseInt(guestColor.slice(5,7),16)}, 0.3)` : 'rgba(45, 55, 72, 0.3)';
-                    
-                    statusMessage.style.display = 'flex';
-                    statusMessage.style.alignItems = 'center';
-                    statusMessage.style.justifyContent = 'center';
-                    statusMessage.style.gap = '8px';
-                    statusMessage.style.background = guestBg;
-                    statusMessage.style.border = `1px solid ${guestBorder}`;
-                    statusMessage.style.color = guestColor;
-                    statusMessage.innerHTML = `
-                        <img src="${guestIcon}" alt="" style="width: 18px; height: 18px;">
-                        <strong>${guestName}</strong>
-                    `;
-                    passwordGroup.style.display = 'block';
-                    passwordInfo.style.display = 'block';
-                    passwordInfo.innerHTML = '<small style="color: rgba(45, 55, 72, 0.7);">Enter an <a href="https://bsky.app/settings/app-passwords" target="_blank" style="color: #2d3748; text-decoration: underline; font-weight: 600;">app password</a> from your account settings</small>';
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    submitBtn.style.cursor = 'pointer';
-                    submitBtn.style.background = guestColor;
-                    submitBtn.style.borderColor = guestColor;
-                    submitBtn.style.color = 'white';
-                    loginText.textContent = 'Enter as Guest';
-                    setTimeout(() => passwordInput.focus(), 100);
+                    submitText.textContent = 'Enter as Guest';
                 }
             } catch (error) {
-                console.error('❌ Handle check error:', error);
-                console.error('   Error stack:', error.stack);
-                statusMessage.style.display = 'flex';
-                statusMessage.style.alignItems = 'center';
-                statusMessage.style.justifyContent = 'center';
-                statusMessage.style.gap = '8px';
-                statusMessage.style.background = 'rgba(217, 72, 72, 0.05)';
-                statusMessage.style.border = '1px solid rgba(217, 72, 72, 0.2)';
-                statusMessage.style.color = '#d94848';
-                statusMessage.style.flexDirection = 'row';
-                statusMessage.innerHTML = `
-                    <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px;">
-                    <span>Error checking account</span>
-                `;
-                submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
-                submitBtn.style.background = '';
-                submitBtn.style.borderColor = '';
-                passwordGroup.style.display = 'none';
-                passwordInfo.style.display = 'none';
-                authMode = null;
+                console.error('Handle check error:', error);
+                showError();
             }
         };
+        
+        const resetStatus = () => {
+            authMode = null;
+            resolvedHandle = null;
+            useSideDoor = false;
+            passwordGroup.style.display = 'none';
+            passwordInput.value = '';
+            sideDoorBtn.classList.remove('visible');
+            sideDoorBtn.disabled = true;
+            statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
+            statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
+            statusMessage.style.color = '#555';
+            statusMessage.innerHTML = `
+                <img src="/assets/icon.png" alt="" style="width: 16px; height: 16px;">
+                <span>enter your handle to continue</span>
+            `;
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.style.background = '';
+            submitBtn.style.borderColor = '';
+            submitBtn.style.color = '';
+            submitText.textContent = 'Main Entrance';
+        };
+        
+        const showNotFound = () => {
+            authMode = null;
+            passwordGroup.style.display = 'none';
+            passwordInput.value = '';
+            sideDoorBtn.classList.remove('visible');
+            statusMessage.style.background = 'rgba(217, 72, 72, 0.05)';
+            statusMessage.style.border = '1px solid rgba(217, 72, 72, 0.2)';
+            statusMessage.style.color = '#d94848';
+            statusMessage.innerHTML = `
+                <img src="/assets/icon_face.png" alt="" style="width: 16px; height: 16px;">
+                <span>Account not found</span>
+            `;
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        };
+        
+        const showError = () => {
+            authMode = null;
+            passwordGroup.style.display = 'none';
+            passwordInput.value = '';
+            sideDoorBtn.classList.remove('visible');
+            statusMessage.style.background = 'rgba(217, 72, 72, 0.05)';
+            statusMessage.style.border = '1px solid rgba(217, 72, 72, 0.2)';
+            statusMessage.style.color = '#d94848';
+            statusMessage.innerHTML = `
+                <img src="/assets/icon_face.png" alt="" style="width: 16px; height: 16px;">
+                <span>Error checking account</span>
+            `;
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        };
+        
+        // Debounced input handler
+        handleInput.addEventListener('input', () => {
+            clearTimeout(checkTimeout);
+            const value = handleInput.value.trim();
+            if (!value) {
+                resetStatus();
+                return;
+            }
+            checkTimeout = setTimeout(() => checkHandle(value), 500);
+        });
+        
+        // Handle Enter key
         handleInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 if (authMode === 'pds' && passwordGroup.style.display !== 'none') {
                     passwordInput.focus();
-                } else if (authMode === 'oauth' && !submitBtn.disabled) {
+                } else if (authMode && !submitBtn.disabled) {
                     submitBtn.click();
                 }
             }
         });
+        
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !submitBtn.disabled) {
                 submitBtn.click();
             }
         });
-        const doLogin = async () => {
-            const handle = handleInput.value.trim().replace(/^@/, '');
-            const password = passwordInput.value.trim();
+        
+        // Submit handler (Main Door - prompts for credentials after OAuth)
+        submitBtn.addEventListener('click', async () => {
+            if (!authMode || submitBtn.disabled) return;
             
-            if (!handle || !handle.includes('.')) {
-                handleInput.focus();
-                handleInput.parentElement.classList.add('error-shake');
-                setTimeout(() => handleInput.parentElement.classList.remove('error-shake'), 500);
-                return;
-            }
+            const handle = resolvedHandle || handleInput.value.trim().replace(/^@/, '');
             
             if (authMode === 'oauth') {
-                loginText.textContent = 'Starting OAuth...';
+                // OAuth flow for bsky.network and foreign PDS
+                // Main door = full access scope
+                localStorage.setItem('mainDoorLogin', 'true');
+                localStorage.removeItem('sideDoorLogin');
+                
+                submitText.textContent = 'Connecting...';
                 submitBtn.disabled = true;
-                handleInput.disabled = true;
                 overlay.classList.remove('visible');
                 loginBox.classList.remove('visible');
                 setTimeout(() => overlay.remove(), 300);
                 try {
-                    await this.oauthManager.login(handle);
+                    // Full scope for main door (default)
+                    await this.oauthManager.login(handle, null, { scope: 'atproto transition:generic' });
                 } catch (error) {
                     console.error('OAuth error:', error);
-                    this.showMessage('Login Failed', error.message || 'Unable to authenticate with Bluesky.', true);
+                    localStorage.removeItem('mainDoorLogin');
+                    this.showMessage('Login Failed', error.message || 'Unable to authenticate.', true);
                 }
-                return;
+            } else if (authMode === 'pds') {
+                // PDS login for residents (app password)
+                const password = passwordInput.value.trim();
+                if (!password) {
+                    passwordInput.focus();
+                    passwordInput.parentElement.classList.add('error-shake');
+                    setTimeout(() => passwordInput.parentElement.classList.remove('error-shake'), 500);
+                    return;
+                }
+                
+                submitText.textContent = 'Authenticating...';
+                submitBtn.disabled = true;
+                handleInput.disabled = true;
+                passwordInput.disabled = true;
+                
+                try {
+                    const response = await fetch('/api/reverie-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ handle, password })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!response.ok) {
+                        if (result.code === 'account_deactivated') {
+                            overlay.classList.remove('visible');
+                            loginBox.classList.remove('visible');
+                            setTimeout(() => overlay.remove(), 300);
+                            this.showDeactivatedPanel(result.former, result.events || [], handle);
+                            return;
+                        }
+                        throw new Error(result.error || 'Authentication failed');
+                    }
+                    
+                    // Store session
+                    if (result.token) localStorage.setItem('oauth_token', result.token);
+                    this.oauthManager.currentSession = result.session;
+                    localStorage.setItem('BSKY_AGENT(sub)', result.session.sub || result.session.did);
+                    localStorage.setItem('pds_session', JSON.stringify(result.session));
+                    
+                    window.dispatchEvent(new CustomEvent('oauth:login', { detail: { session: result.session } }));
+                    this.triggerUserLogin(result.session.did || result.session.sub);
+                    
+                    overlay.classList.remove('visible');
+                    loginBox.classList.remove('visible');
+                    setTimeout(() => overlay.remove(), 300);
+                    
+                    if (result.redirect) {
+                        window.location.href = result.redirect;
+                    } else {
+                        this.showMessage('Welcome Home', `Logged in as @${result.session.handle}`);
+                    }
+                } catch (error) {
+                    console.error('PDS login error:', error);
+                    submitBtn.disabled = false;
+                    handleInput.disabled = false;
+                    passwordInput.disabled = false;
+                    passwordInput.value = '';
+                    submitText.textContent = 'Welcome Home';
+                    this.showMessage('Login Failed', error.message || 'Invalid credentials.', true);
+                }
             }
-            if (!password) {
-                passwordInput.focus();
-                passwordInput.parentElement.classList.add('error-shake');
-                setTimeout(() => passwordInput.parentElement.classList.remove('error-shake'), 500);
-                return;
-            }
-            loginText.textContent = 'Authenticating...';
-            submitBtn.disabled = true;
-            handleInput.disabled = true;
-            passwordInput.disabled = true;
+        });
+        
+        // Side Door handler - OAuth only, minimal scope (just visiting)
+        sideDoorBtn.addEventListener('click', async () => {
+            if (!authMode || authMode !== 'oauth' || sideDoorBtn.disabled) return;
+            
+            const handle = resolvedHandle || handleInput.value.trim().replace(/^@/, '');
+            
+            // Mark this as a side door login (no credential prompt needed)
+            useSideDoor = true;
+            localStorage.setItem('sideDoorLogin', 'true');
+            localStorage.removeItem('mainDoorLogin');
+            
+            if (sideDoorText) sideDoorText.textContent = 'Opening...';
+            sideDoorBtn.disabled = true;
+            overlay.classList.remove('visible');
+            loginBox.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 300);
+            
             try {
-                // For foreign PDS, pass the PDS endpoint
-                const foreignPds = authMode === 'foreign-pds' ? handleInput.dataset.foreignPds : null;
-                console.log(`🔐 Attempting ${authMode === 'foreign-pds' ? 'foreign-pds' : 'reverie'}-login for:`, handle, foreignPds ? `at ${foreignPds}` : '');
-                const response = await fetch('/api/reverie-login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        handle, 
-                        password,
-                        foreign_pds: foreignPds
-                    })
-                });
-                console.log('📥 Login response status:', response.status);
-                const result = await response.json();
-                console.log('📦 Login result:', result);
-                const isDeactivated = result && (result.code === 'account_deactivated' || (result.error && typeof result.error === 'string' && result.error.toLowerCase().includes('deactiv')));
-                if (!response.ok && isDeactivated) {
-                    // Show specialized deactivated account panel if available
-                    console.log('🔒 Detected deactivated account response, showing panel');
-                    overlay.classList.remove('visible');
-                    loginBox.classList.remove('visible');
-                    setTimeout(() => overlay.remove(), 300);
-                    try {
-                        this.showDeactivatedPanel(result.former, result.events || [], handle);
-                    } catch (e) {
-                        this.showMessage('Login Failed', result.error || 'Account has been deactivated', true);
-                    }
-                    return;
-                }
-                if (!response.ok && result.error === 'oauth_required') {
-                    console.log('🔄 Handle on another server, switching to OAuth...');
-                    overlay.classList.remove('visible');
-                    loginBox.classList.remove('visible');
-                    setTimeout(() => overlay.remove(), 300);
-                    try {
-                        await this.oauthManager.login(handle);
-                    } catch (oauthError) {
-                        console.error('OAuth fallback error:', oauthError);
-                        this.showMessage('Login Failed', oauthError.message || 'Unable to authenticate with this handle.', true);
-                    }
-                    return;
-                }
-                if (!response.ok) {
-                    throw new Error(result.error || 'Authentication failed');
-                }
-                
-                // Store backend session token for authenticated API calls
-                if (result.token) {
-                    localStorage.setItem('oauth_token', result.token);
-                }
-                
-                // Store PDS session in a way compatible with OAuth manager
-                this.oauthManager.currentSession = result.session;
-                
-                // Store session data in localStorage for persistence
-                localStorage.setItem('BSKY_AGENT(sub)', result.session.sub || result.session.did);
-                localStorage.setItem('pds_session', JSON.stringify(result.session));
-                
-                // Dispatch login event so other components know we're logged in
-                window.dispatchEvent(new CustomEvent('oauth:login', { 
-                    detail: { session: result.session } 
-                }));
-                
-                // Trigger user_login pigeons
-                this.triggerUserLogin(result.session.did || result.session.sub);
-                
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
-                if (result.redirect) {
-                    window.location.href = result.redirect;
-                } else {
-                    this.showMessage('Welcome Home', `Logged in as @${result.session.handle}`);
-                }
+                // Minimal scope for side door - just identity
+                await this.oauthManager.login(handle, null, { scope: 'atproto' });
             } catch (error) {
-                console.error('Dreamweaver login error:', error);
-                submitBtn.disabled = false;
-                handleInput.disabled = false;
-                passwordInput.disabled = false;
-                passwordInput.value = '';
-                loginText.textContent = authMode === 'pds' ? 'Enter' : 'Enter via Bluesky';
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => {
-                    overlay.remove();
-                    this.showMessage('Login Failed', error.message || 'Invalid credentials. Please check your username and app password.', true);
-                }, 300);
+                console.error('Side door OAuth error:', error);
+                localStorage.removeItem('sideDoorLogin');
+                this.showMessage('Login Failed', error.message || 'Unable to authenticate.', true);
             }
-        };
-        submitBtn.addEventListener('click', doLogin);
-        document.getElementById('dwLoginBack').addEventListener('click', () => {
+        });
+        
+        // Become a Resident button
+        document.getElementById('loginBecomeResident').addEventListener('click', () => {
             overlay.classList.remove('visible');
             loginBox.classList.remove('visible');
             setTimeout(() => {
                 overlay.remove();
-                this.showLoginPopupEnabled();
+                if (window.CreateDreamer) {
+                    const createDreamer = new window.CreateDreamer();
+                    createDreamer.show({
+                        onSuccess: (result) => console.log('✅ Account created:', result),
+                        onCancel: () => console.log('❌ Account creation cancelled')
+                    });
+                } else {
+                    this.showMessage('Error', 'Account creation system not available', true);
+                }
             }, 300);
         });
+        
+        // Cancel button
+        document.getElementById('loginCancel').addEventListener('click', () => {
+            overlay.classList.remove('visible');
+            loginBox.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 300);
+            window.dispatchEvent(new CustomEvent('oauth:cancel'));
+        });
+        
+        // Click outside to close
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.classList.remove('visible');
                 loginBox.classList.remove('visible');
                 setTimeout(() => overlay.remove(), 300);
+                window.dispatchEvent(new CustomEvent('oauth:cancel'));
             }
         });
     }
+    
+    // REMOVED: showBlueskyLoginForm and showDreamweaverLoginForm - functionality merged into showLoginPopupEnabled()
+    
     showLogoutPopup(session) {
         const overlay = document.createElement('div');
         overlay.className = 'logout-overlay';

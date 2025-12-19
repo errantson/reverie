@@ -1,26 +1,19 @@
 import a from "./oauth-manager.js";
 (async () => {
-  const o = document.getElementById("status"), e = document.getElementById("error");
-  function n(t) {
-    o && (o.textContent = t), console.log("OAuth Callback:", t);
-  }
-  function r(t) {
-    e && (e.textContent = t), console.error("OAuth Callback Error:", t);
+  document.getElementById("status");
+  const n = document.getElementById("error");
+  function s(t, e = !1) {
+    n && (n.textContent = t, n.classList.remove("hidden")), e || console.warn("OAuth callback:", t);
   }
   try {
-    if (n("Processing authorization..."), await a.init(), a.getSession()) {
-      n("Login successful! Redirecting...");
-      const s = new URLSearchParams(window.location.search).get("state") || "/story";
-      console.log("🏠 Redirecting to:", s), setTimeout(() => {
-        window.location.href = s;
-      }, 500);
+    if (await a.init(), a.getSession()) {
+      const c = new URLSearchParams(window.location.search).get("state") || "/story";
+      window.location.replace(c);
     } else
-      r("No session created"), setTimeout(() => {
-        window.location.href = "/";
-      }, 2e3);
+      s("Login was cancelled", !0), setTimeout(() => window.location.replace("/"), 1500);
   } catch (t) {
-    console.error("Callback error:", t), r(`Login failed: ${t.message}`), setTimeout(() => {
-      window.location.href = "/";
-    }, 3e3);
+    let e = t.message || "Login failed";
+    const o = e.includes("rejected") || e.includes("cancelled");
+    o && (e = "Login was cancelled"), s(e, o), setTimeout(() => window.location.replace("/"), 1500);
   }
 })();

@@ -20,8 +20,8 @@
     border: 2px solid #87408d;
     border-radius: 0;
     box-shadow: 0 8px 32px rgba(135, 64, 141, 0.3);
-    padding: 32px;
-    max-width: 450px;
+    padding: 20px 24px;
+    max-width: 400px;
     width: 90%;
     text-align: center;
     transform: scale(0.9);
@@ -29,6 +29,114 @@
 }
 .login-box.visible, .logout-box.visible {
     transform: scale(1);
+}
+/* Compact layout */
+.login-content.login-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.login-content.login-compact .login-logo {
+    margin-bottom: 8px;
+}
+.login-content.login-compact .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.login-prompt-text {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #888;
+    text-align: center;
+}
+.login-handle-input-group {
+    margin-bottom: 0;
+}
+.login-password-group {
+    display: none;
+}
+.login-status-message {
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    text-align: center;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(135, 64, 141, 0.05);
+    border: 1px solid rgba(135, 64, 141, 0.2);
+    color: #555;
+}
+/* Buttons row - side door + main */
+.login-buttons-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.login-side-door-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 22%;
+    min-width: 70px;
+    padding: 2px 8px;
+    background: transparent;
+    border: 1px solid #aaa;
+    border-radius: 0;
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: #888;
+    cursor: not-allowed;
+    opacity: 0.4;
+    transition: all 0.2s ease;
+    text-align: center;
+    line-height: 1.2;
+}
+.login-side-door-btn.visible {
+    opacity: 0.8;
+    cursor: pointer;
+}
+.login-side-door-btn.visible:hover {
+    opacity: 1;
+    background: rgba(135, 64, 141, 0.05);
+}
+.login-side-door-sub {
+    font-size: 0.55rem;
+    opacity: 0.8;
+}
+.login-main-btn {
+    flex: 1;
+}
+.login-main-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+/* New section */
+.login-new-section {
+    border-top: 1px solid rgba(135, 64, 141, 0.1);
+    padding-top: 10px;
+    margin-top: 4px;
+}
+.login-new-text {
+    margin: 0 0 6px 0;
+    font-size: 0.7rem;
+    color: #888;
+    text-align: center;
+}
+.login-become-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent;
+    padding: 10px 16px;
+}
+.login-cancel-btn {
+    margin-top: 8px;
 }
 .login-box.login-disabled {
     max-width: 320px;
@@ -129,7 +237,8 @@
 }
 .login-logo {
     width: 50%;
-    margin-top: 0;
+    max-width: 180px;
+    margin: 0 auto 8px auto;
 }
 .login-title {
     margin: 0 0 0px 0;
@@ -142,7 +251,7 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
     margin-top: 20px;
 }
 .login-handle-row {
@@ -448,13 +557,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
-    padding: 14px 20px;
+    padding: 10px 16px;
     background: white;
     border: 2px solid #d0c7f0;
     border-radius: 0;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: #333;
     cursor: pointer;
@@ -463,12 +572,12 @@
 .login-method-btn:hover:not(:disabled) {
     background: #f8f5fc;
     border-color: #87408d;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(135, 64, 141, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(135, 64, 141, 0.2);
 }
 .login-method-btn:active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(135, 64, 141, 0.2);
+    box-shadow: 0 1px 4px rgba(135, 64, 141, 0.2);
 }
 .login-method-btn:disabled {
     opacity: 0.5;
@@ -524,14 +633,14 @@
 .login-cancel-btn {
     width: 100%;
     max-width: 200px;
-    padding: 10px;
+    padding: 6px;
     background: transparent;
-    color: #666;
+    color: #888;
     border: none;
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     cursor: pointer;
     transition: color 0.2s;
-    margin: 8px auto 0 auto;
+    margin: 4px auto 0 auto;
 }
 .login-cancel-btn:hover {
     color: #87408d;
@@ -595,4 +704,17 @@
 .become-dreamweaver-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* Error shake animation for password field */
+@keyframes error-shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+.error-shake {
+    animation: error-shake 0.5s ease;
+}
+.error-shake input {
+    border-color: #d94848 !important;
 }

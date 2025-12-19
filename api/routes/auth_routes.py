@@ -48,20 +48,19 @@ def rate_limit(requests_per_minute=100):
 @bp.route('/reverie-login', methods=['POST'])
 def reverie_login():
     """
-    Smart authentication for all PDS types:
+    Authentication for reverie.house PDS accounts.
+    
     - reverie.house PDS: Direct authentication to reverie.house
-    - Foreign PDS: Direct authentication to their PDS
-    - bsky.network: Requires OAuth (handled client-side)
+    - Foreign PDS / bsky.network: Requires OAuth (handled client-side)
     
     Expects: {
         "handle": "username.domain",
-        "password": "app-password",
-        "foreign_pds": "https://pds.example.com"  (optional, for foreign PDS)
+        "password": "app-password"
     }
     
     Returns: {
         "success": true,
-        "method": "pds" | "foreign-pds",
+        "method": "pds",
         "session": {...},
         "redirect": "/dreamers?name=..." | null
     }
@@ -70,12 +69,11 @@ def reverie_login():
         data = request.get_json()
         handle = data.get('handle', '').strip().lower()
         password = data.get('password', '')
-        foreign_pds = data.get('foreign_pds')  # Foreign PDS endpoint if provided
         
         if not handle:
             return jsonify({'error': 'Handle required'}), 400
         
-        print(f"Login attempt: handle={handle}, foreign_pds={foreign_pds}")
+        print(f"Login attempt: handle={handle}")
         
         # Resolve handle to DID and check PDS service endpoint
         import requests
@@ -122,30 +120,14 @@ def reverie_login():
             print(f"DID document fetch error: {e}")
             return jsonify({'error': 'Unable to fetch account information'}), 400
         
-        # Step 3: Determine which PDS to authenticate against
-        # Use foreign_pds if provided and matches service_endpoint, otherwise use service_endpoint
-        if foreign_pds:
-            # Foreign PDS authentication
-            if foreign_pds != service_endpoint:
-                print(f"Warning: Provided foreign_pds {foreign_pds} doesn't match service endpoint {service_endpoint}")
-                # Use the one from DID document as source of truth
-                pds = service_endpoint
-            else:
-                pds = foreign_pds
-            auth_method = 'foreign-pds'
-            print(f"🌍 Attempting foreign PDS authentication at {pds}")
-        elif service_endpoint == 'https://reverie.house':
-            # Reverie.house PDS authentication
+        # Step 3: Only allow reverie.house PDS - all others use OAuth
+        if service_endpoint == 'https://reverie.house':
             pds = service_endpoint
             auth_method = 'pds'
             print(f"🏠 Attempting reverie.house PDS authentication")
-        elif service_endpoint.startswith('https://') and 'bsky.network' in service_endpoint:
-            # bsky.network requires OAuth (shouldn't reach here from frontend)
-            print(f"Account is on bsky.network - OAuth required")
-            return jsonify({'error': 'oauth_required'}), 403
         else:
-            # Other PDS without foreign_pds parameter means something is wrong
-            print(f"Account is on {service_endpoint} but no foreign_pds parameter provided")
+            # All other PDS (bsky.network, foreign PDS) require OAuth
+            print(f"Account is on {service_endpoint} - OAuth required")
             return jsonify({'error': 'oauth_required'}), 403
         
         # Step 3.5: For reverie.house accounts, check if deactivated BEFORE attempting PDS auth
@@ -158,112 +140,112 @@ def reverie_login():
         # Debug: write initial request info
         try:
             with open('/tmp/reverie_login_debug.log', 'a') as f:
-                f.write(f"\n=== reverie-login called ===\nhandle={handle}, foreign_pds={foreign_pds}, did={did}, pds={service_endpoint if 'service_endpoint' in locals() else 'UNKNOWN'}\n")
+                f.write(f"\n=== reverie-login called ===\nhandle={handle}, did={did}, pds={service_endpoint if 'service_endpoint' in locals() else 'UNKNOWN'}\n")
         except Exception:
             pass
         
-        if auth_method == 'pds':  # Only check deactivation for reverie.house accounts
-            cursor = db.execute("""
-                SELECT deactivated 
-                FROM dreamers 
-                WHERE did = %s
-            """, (did,))
-            dreamer = cursor.fetchone()
+        # Check deactivation for reverie.house accounts
+        cursor = db.execute("""
+            SELECT deactivated 
+            FROM dreamers 
+            WHERE did = %s
+        """, (did,))
+        dreamer = cursor.fetchone()
+        try:
+            with open('/tmp/reverie_login_debug.log', 'a') as f:
+                f.write(f"dreamer_row={dreamer}\n")
+        except Exception:
+            pass
+        
+        if dreamer and dreamer.get('deactivated'):
+            print(f"❌ Login blocked: Account {handle} is deactivated")
+            # Try to include archived "formers" record and recent canon (events)
             try:
-                with open('/tmp/reverie_login_debug.log', 'a') as f:
-                    f.write(f"dreamer_row={dreamer}\n")
-            except Exception:
-                pass
-            
-            if dreamer and dreamer.get('deactivated'):
-                print(f"❌ Login blocked: Account {handle} is deactivated")
-                # Try to include archived "formers" record and recent canon (events)
+                former_cursor = db.execute(
+                    "SELECT did, handle, name, display_name, avatar_archived, avatar_url, profile_data FROM formers WHERE did = %s",
+                    (did,)
+                )
+                former_row = former_cursor.fetchone()
+                former = None
+                if not former_row and handle:
+                    # Try lookup by handle if DID lookup didn't return a formers record
+                    try:
+                        alt_cursor = db.execute(
+                            "SELECT did, handle, name, display_name, avatar_archived, avatar_url, profile_data FROM formers WHERE LOWER(handle) = LOWER(%s)",
+                            (handle,)
+                        )
+                        former_row = alt_cursor.fetchone()
+                        if former_row:
+                            print(f"  ℹ️ Found formers record by handle lookup for {handle}")
+                    except Exception as alt_e:
+                        print(f"  ⚠️ Error querying formers by handle: {alt_e}")
+
+                if former_row:
+                    # Prefer archived avatar if present
+                    avatar = former_row.get('avatar_archived') or former_row.get('avatar_url') or ''
+                    # profile_data may be stored as JSON text
+                    profile_data = former_row.get('profile_data')
+                    try:
+                        import json
+                        if profile_data and isinstance(profile_data, str):
+                            profile_data = json.loads(profile_data)
+                    except Exception:
+                        pass
+                    former = {
+                        'did': former_row.get('did'),
+                        'handle': former_row.get('handle'),
+                        'name': former_row.get('name'),
+                        'display_name': former_row.get('display_name'),
+                        'avatar': avatar,
+                        'profile': profile_data
+                    }
+
+                # Fetch recent events (canon) for this did
+                events = []
                 try:
-                    former_cursor = db.execute(
-                        "SELECT did, handle, name, display_name, avatar_archived, avatar_url, profile_data FROM formers WHERE did = %s",
+                    ev_cursor = db.execute(
+                        "SELECT id, epoch, event, type, key FROM events WHERE did = %s ORDER BY epoch DESC LIMIT 10",
                         (did,)
                     )
-                    former_row = former_cursor.fetchone()
-                    former = None
-                    if not former_row and handle:
-                        # Try lookup by handle if DID lookup didn't return a formers record
-                        try:
-                            alt_cursor = db.execute(
-                                "SELECT did, handle, name, display_name, avatar_archived, avatar_url, profile_data FROM formers WHERE LOWER(handle) = LOWER(%s)",
-                                (handle,)
-                            )
-                            former_row = alt_cursor.fetchone()
-                            if former_row:
-                                print(f"  ℹ️ Found formers record by handle lookup for {handle}")
-                        except Exception as alt_e:
-                            print(f"  ⚠️ Error querying formers by handle: {alt_e}")
-
-                    if former_row:
-                        # Prefer archived avatar if present
-                        avatar = former_row.get('avatar_archived') or former_row.get('avatar_url') or ''
-                        # profile_data may be stored as JSON text
-                        profile_data = former_row.get('profile_data')
-                        try:
-                            import json
-                            if profile_data and isinstance(profile_data, str):
-                                profile_data = json.loads(profile_data)
-                        except Exception:
-                            pass
-                        former = {
-                            'did': former_row.get('did'),
-                            'handle': former_row.get('handle'),
-                            'name': former_row.get('name'),
-                            'display_name': former_row.get('display_name'),
-                            'avatar': avatar,
-                            'profile': profile_data
-                        }
-
-                    # Fetch recent events (canon) for this did
+                    for er in ev_cursor.fetchall():
+                        events.append({
+                            'id': er.get('id'),
+                            'epoch': er.get('epoch'),
+                            'event': er.get('event'),
+                            'type': er.get('type'),
+                            'key': er.get('key')
+                        })
+                except Exception:
                     events = []
-                    try:
-                        ev_cursor = db.execute(
-                            "SELECT id, epoch, event, type, key FROM events WHERE did = %s ORDER BY epoch DESC LIMIT 10",
-                            (did,)
-                        )
-                        for er in ev_cursor.fetchall():
-                            events.append({
-                                'id': er.get('id'),
-                                'epoch': er.get('epoch'),
-                                'event': er.get('event'),
-                                'type': er.get('type'),
-                                'key': er.get('key')
-                            })
-                    except Exception:
-                        events = []
 
-                    payload = {
-                        'error': 'Account has been deactivated',
-                        'code': 'account_deactivated',
-                        'former': former,
-                        'events': events
-                    }
-                    # Debug: write what we found to a temp file for inspection
-                    try:
-                        with open('/tmp/formers_debug.log', 'a') as f:
-                            f.write('\n--- PAYLOAD DEBUG ---\n')
-                            f.write(f'handle={handle}, did={did}\n')
-                            f.write('former_row=' + (str(former_row) + '\n'))
-                            f.write('former=' + (str(former) + '\n'))
-                            f.write('events_count=' + str(len(events)) + '\n')
-                    except Exception as dbg_e:
-                        print('Could not write payload debug file:', dbg_e)
-                    return jsonify(payload), 403
-                except Exception as e:
-                    import traceback, time
-                    tb = traceback.format_exc()
-                    print(f"  ⚠️ Failed to load former record or events: {e}")
-                    try:
-                        with open('/tmp/formers_debug.log', 'a') as f:
-                            f.write(f"\n--- {time.asctime()} ---\nHandle: {handle}, DID: {did}\n")
-                            f.write(tb)
-                    except Exception as write_e:
-                        print(f"  ⚠️ Could not write debug log: {write_e}")
-                    return jsonify({'error': 'Account has been deactivated'}), 403
+                payload = {
+                    'error': 'Account has been deactivated',
+                    'code': 'account_deactivated',
+                    'former': former,
+                    'events': events
+                }
+                # Debug: write what we found to a temp file for inspection
+                try:
+                    with open('/tmp/formers_debug.log', 'a') as f:
+                        f.write('\n--- PAYLOAD DEBUG ---\n')
+                        f.write(f'handle={handle}, did={did}\n')
+                        f.write('former_row=' + (str(former_row) + '\n'))
+                        f.write('former=' + (str(former) + '\n'))
+                        f.write('events_count=' + str(len(events)) + '\n')
+                except Exception as dbg_e:
+                    print('Could not write payload debug file:', dbg_e)
+                return jsonify(payload), 403
+            except Exception as e:
+                import traceback, time
+                tb = traceback.format_exc()
+                print(f"  ⚠️ Failed to load former record or events: {e}")
+                try:
+                    with open('/tmp/formers_debug.log', 'a') as f:
+                        f.write(f"\n--- {time.asctime()} ---\nHandle: {handle}, DID: {did}\n")
+                        f.write(tb)
+                except Exception as write_e:
+                    print(f"  ⚠️ Could not write debug log: {write_e}")
+                return jsonify({'error': 'Account has been deactivated'}), 403
         
         # Try PDS authentication
         print(f"🔐 Attempting PDS authentication for {handle} at {pds}")
@@ -323,7 +305,7 @@ def reverie_login():
             
             return jsonify({
                 'success': True,
-                'method': auth_method,  # 'pds' or 'foreign-pds'
+                'method': 'pds',  # Only reverie.house PDS accounts use this endpoint
                 'session': enhanced_session,
                 'token': backend_token,  # Backend session token for authenticated API calls
                 'redirect': redirect_url

@@ -11,6 +11,26 @@ class HeraldrySystem {
     constructor() {
         // Known PDS server configurations
         this.registry = {
+            'reverie.house': {
+                id: 'reverie',
+                name: 'Reverie House',
+                fullName: 'Resident Dreamweaver',
+                icon: '/assets/icon.png',
+                color: '#87408d',
+                colorSecondary: '#6a2f70',
+                description: 'Home of dreams',
+                className: 'heraldry-reverie'
+            },
+            'bsky.network': {
+                id: 'bluesky',
+                name: 'Bluesky',
+                fullName: 'Awakened Dreamweaver',
+                icon: '/assets/bluesky.png',
+                color: '#4299e1',
+                colorSecondary: '#2b6cb0',
+                description: 'The Bluesky network',
+                className: 'heraldry-bluesky'
+            },
             'northsky.social': {
                 id: 'northsky',
                 name: 'Northsky',

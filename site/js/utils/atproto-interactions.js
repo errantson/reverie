@@ -3,11 +3,17 @@
  * 
  * Unified handlers for AT Protocol interactions (like, repost, reply)
  * that work with both OAuth sessions and PDS sessions.
+ * 
+ * For OAuth-only sessions (atproto scope only), write operations require
+ * stored app password credentials which are prompted on first use.
  */
 
 class ATProtoInteractions {
     constructor() {
         this.session = null;
+        this._credentialsCache = null; // Cache credentials check result
+        this._credentialsCacheTime = 0;
+        this._pendingCredentialsPromise = null; // Prevent duplicate prompts
     }
 
     /**
@@ -35,6 +41,157 @@ class ATProtoInteractions {
      */
     isPdsSession(session) {
         return session && session.accessJwt && !session.sub;
+    }
+
+    /**
+     * Check if user has stored credentials for write operations
+     * @returns {Promise<boolean>}
+     */
+    async hasStoredCredentials() {
+        const session = this.getSession();
+        if (!session) return false;
+        
+        const userDid = session.did || session.sub;
+        if (!userDid) return false;
+        
+        // Use cache if recent (30 seconds)
+        const now = Date.now();
+        if (this._credentialsCache !== null && (now - this._credentialsCacheTime) < 30000) {
+            return this._credentialsCache;
+        }
+        
+        try {
+            const response = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
+            if (response.ok) {
+                const data = await response.json();
+                this._credentialsCache = data.has_credentials === true;
+                this._credentialsCacheTime = now;
+                return this._credentialsCache;
+            }
+        } catch (error) {
+            console.warn('⚠️ [ATProto] Failed to check credentials status:', error);
+        }
+        
+        return false;
+    }
+
+    /**
+     * Request app password from user and store credentials
+     * @returns {Promise<boolean>} True if credentials were stored
+     */
+    async requestAndStoreCredentials() {
+        // Prevent duplicate prompts
+        if (this._pendingCredentialsPromise) {
+            return this._pendingCredentialsPromise;
+        }
+        
+        const session = this.getSession();
+        if (!session) {
+            throw new Error('No active session');
+        }
+        
+        const userDid = session.did || session.sub;
+        const handle = session.handle || 'your account';
+        
+        this._pendingCredentialsPromise = new Promise((resolve) => {
+            if (!window.appPasswordRequest) {
+                console.error('❌ [ATProto] AppPasswordRequest widget not available');
+                resolve(false);
+                return;
+            }
+            
+            window.appPasswordRequest.show({
+                title: 'Connect Account',
+                description: `<p>To interact with posts from Reverie House, we need permission to act on your behalf.</p>`,
+                featureName: 'interactions'
+            }, async (appPassword) => {
+                try {
+                    const response = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ app_password: appPassword })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to store credentials');
+                    }
+                    
+                    console.log('✅ [ATProto] Credentials stored successfully');
+                    this._credentialsCache = true;
+                    this._credentialsCacheTime = Date.now();
+                    resolve(true);
+                } catch (error) {
+                    console.error('❌ [ATProto] Failed to store credentials:', error);
+                    throw error;
+                }
+            });
+        });
+        
+        try {
+            return await this._pendingCredentialsPromise;
+        } finally {
+            this._pendingCredentialsPromise = null;
+        }
+    }
+
+    /**
+     * Ensure we have write capability - either PDS session or stored credentials
+     * Prompts for app password if needed
+     * @returns {Promise<boolean>}
+     */
+    async ensureWriteCapability() {
+        const session = this.getSession();
+        if (!session) {
+            throw new Error('No active session');
+        }
+        
+        // PDS sessions have direct write access
+        if (this.isPdsSession(session)) {
+            return true;
+        }
+        
+        // OAuth sessions need stored credentials for write operations
+        const hasCredentials = await this.hasStoredCredentials();
+        if (hasCredentials) {
+            return true;
+        }
+        
+        // Prompt for app password
+        console.log('🔐 [ATProto] OAuth-only session, requesting app password for write access');
+        return await this.requestAndStoreCredentials();
+    }
+
+    /**
+     * Execute a write operation using server-side credentials
+     * @param {string} action - The action to perform (like, unlike, repost, unrepost)
+     * @param {Object} params - Action parameters
+     * @returns {Promise<Object>}
+     */
+    async executeWithCredentials(action, params) {
+        const session = this.getSession();
+        const userDid = session.did || session.sub;
+        const token = localStorage.getItem('oauth_token');
+        
+        const response = await fetch('/api/interactions/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
+            },
+            body: JSON.stringify({
+                action,
+                user_did: userDid,
+                ...params
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || `Failed to ${action}`);
+        }
+        
+        return await response.json();
     }
 
     /**
@@ -162,29 +319,12 @@ class ATProtoInteractions {
 
                 return await response.json();
             } else {
-                // OAuth session - use OAuth client's session.fetchHandler
-                await window.oauthManager.ensureInitialized();
-                const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
-                const response = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        repo: session.sub || session.did,
-                        collection: 'app.bsky.feed.like',
-                        record: {
-                            subject: { uri, cid },
-                            createdAt: new Date().toISOString()
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Like API error:', response.status, errorText);
-                    throw new Error(`Failed to like post: ${response.status}`);
-                }
-
-                return await response.json();
+                // OAuth session - use server-side credentials
+                // First ensure we have write capability (prompts for app password if needed)
+                await this.ensureWriteCapability();
+                
+                // Execute via server using stored credentials
+                return await this.executeWithCredentials('like', { uri, cid });
             }
         } catch (error) {
             console.error('❌ Like error:', error);
@@ -269,44 +409,9 @@ class ATProtoInteractions {
                     throw new Error(`Failed to unlike post: ${deleteResponse.status}`);
                 }
             } else {
-                // OAuth session
-                await window.oauthManager.ensureInitialized();
-                const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
-
-                // Find the like record
-                const listResponse = await oauthSession.fetchHandler(
-                    `/xrpc/com.atproto.repo.listRecords?repo=${session.sub || session.did}&collection=app.bsky.feed.like&limit=100`,
-                    { method: 'GET' }
-                );
-
-                if (!listResponse.ok) {
-                    throw new Error('Failed to fetch likes');
-                }
-
-                const data = await listResponse.json();
-                const likeRecord = data.records.find(r => r.value.subject.uri === uri);
-
-                if (!likeRecord) {
-                    console.warn('Like record not found');
-                    return;
-                }
-
-                const rkey = likeRecord.uri.split('/').pop();
-
-                // Delete the like record
-                const deleteResponse = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        repo: session.sub || session.did,
-                        collection: 'app.bsky.feed.like',
-                        rkey: rkey
-                    })
-                });
-
-                if (!deleteResponse.ok) {
-                    throw new Error('Failed to unlike post');
-                }
+                // OAuth session - use server-side credentials
+                await this.ensureWriteCapability();
+                return await this.executeWithCredentials('unlike', { uri });
             }
         } catch (error) {
             console.error('❌ Unlike error:', error);
@@ -377,29 +482,9 @@ class ATProtoInteractions {
 
                 return await response.json();
             } else {
-                // OAuth session
-                await window.oauthManager.ensureInitialized();
-                const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
-                const response = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        repo: session.sub || session.did,
-                        collection: 'app.bsky.feed.repost',
-                        record: {
-                            subject: { uri, cid },
-                            createdAt: new Date().toISOString()
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Repost API error:', response.status, errorText);
-                    throw new Error(`Failed to repost: ${response.status}`);
-                }
-
-                return await response.json();
+                // OAuth session - use server-side credentials
+                await this.ensureWriteCapability();
+                return await this.executeWithCredentials('repost', { uri, cid });
             }
         } catch (error) {
             console.error('❌ Repost error:', error);
@@ -484,44 +569,9 @@ class ATProtoInteractions {
                     throw new Error(`Failed to unrepost: ${deleteResponse.status}`);
                 }
             } else {
-                // OAuth session
-                await window.oauthManager.ensureInitialized();
-                const oauthSession = await window.oauthManager.client.restore(session.sub || session.did);
-
-                // Find the repost record
-                const listResponse = await oauthSession.fetchHandler(
-                    `/xrpc/com.atproto.repo.listRecords?repo=${session.sub || session.did}&collection=app.bsky.feed.repost&limit=100`,
-                    { method: 'GET' }
-                );
-
-                if (!listResponse.ok) {
-                    throw new Error('Failed to fetch reposts');
-                }
-
-                const data = await listResponse.json();
-                const repostRecord = data.records.find(r => r.value.subject.uri === uri);
-
-                if (!repostRecord) {
-                    console.warn('Repost record not found');
-                    return;
-                }
-
-                const rkey = repostRecord.uri.split('/').pop();
-
-                // Delete the repost record
-                const deleteResponse = await oauthSession.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        repo: session.sub || session.did,
-                        collection: 'app.bsky.feed.repost',
-                        rkey: rkey
-                    })
-                });
-
-                if (!deleteResponse.ok) {
-                    throw new Error('Failed to unrepost');
-                }
+                // OAuth session - use server-side credentials
+                await this.ensureWriteCapability();
+                return await this.executeWithCredentials('unrepost', { uri });
             }
         } catch (error) {
             console.error('❌ Unrepost error:', error);
