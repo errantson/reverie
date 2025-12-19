@@ -10076,18 +10076,78 @@ def disable_user_role():
 # Caddy routes /api/stripe/* directly to reverie_stripe:5555 container.
 
 
+# === AVATAR PROXY SECURITY ===
+# 
+# FUTURE-PROOF: Works with ANY PDS by validating path structure, not hostname.
+# No manual updates needed when new PDS servers are launched.
+# See util_routes.py for detailed security rationale.
+#
+
+# Trusted CDN hosts - skip path validation
+AVATAR_TRUSTED_CDN = {'cdn.bsky.app', 'av-cdn.bsky.app', 'cdn.bsky.social'}
+
+# Valid ATProto image paths
+AVATAR_VALID_PATHS = [
+    '/xrpc/com.atproto.sync.getBlob',
+    '/img/avatar/', '/img/banner/', '/img/feed_thumbnail/', '/img/feed_fullsize/',
+]
+
+def is_avatar_url_safe(url: str) -> tuple[bool, str]:
+    """
+    Validate avatar URL for proxying.
+    Works with ANY PDS that uses standard ATProto paths.
+    Returns (is_safe, error_message).
+    """
+    from urllib.parse import urlparse
+    import ipaddress
+    import socket
+    
+    try:
+        parsed = urlparse(url)
+        
+        if parsed.scheme != 'https':
+            return False, 'Only HTTPS URLs allowed'
+        
+        hostname = parsed.hostname
+        if not hostname:
+            return False, 'Invalid URL'
+        
+        # Trusted CDNs can use any path
+        is_cdn = hostname in AVATAR_TRUSTED_CDN
+        
+        # For non-CDN hosts, validate path is ATProto-specific
+        if not is_cdn:
+            if not any(parsed.path.startswith(p) for p in AVATAR_VALID_PATHS):
+                return False, f'Invalid path. Must be an ATProto image path.'
+        
+        # Block internal IPs (SSRF protection)
+        try:
+            for _, _, _, _, sockaddr in socket.getaddrinfo(hostname, None):
+                ip_obj = ipaddress.ip_address(sockaddr[0])
+                if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local or ip_obj.is_reserved:
+                    return False, 'Internal addresses not allowed'
+        except socket.gaierror:
+            return False, 'Could not resolve hostname'
+        
+        return True, ''
+    except Exception as e:
+        return False, f'URL validation error: {str(e)}'
+
+
 @app.route('/api/avatar-proxy', methods=['GET'])
 def proxy_avatar():
     """
     Proxy avatar requests to avoid CORS issues.
+    Works with ANY ATProto PDS that uses standard image paths.
     
     Usage: /api/avatar-proxy?url=https://cdn.bsky.app/img/avatar/plain/did:plc:xxx@jpeg
+           /api/avatar-proxy?url=https://my-pds.com/xrpc/com.atproto.sync.getBlob?did=...
+    
+    Security: Validates URLs to prevent SSRF attacks.
     """
     try:
         import requests
-        from urllib.parse import unquote
         
-        # Get URL from query parameter
         avatar_url = request.args.get('url')
         print(f"🖼️  Avatar proxy request: {avatar_url[:80] if avatar_url else 'NO URL'}...")
         
@@ -10095,30 +10155,41 @@ def proxy_avatar():
             print("❌ No URL provided")
             return '', 400
         
+        # Validate URL
+        is_safe, error = is_avatar_url_safe(avatar_url)
+        if not is_safe:
+            print(f"❌ Rejected: {error}")
+            return jsonify({'error': error}), 403
+        
         # Fetch the avatar
-        print(f"   Fetching from Bluesky CDN...")
-        response = requests.get(avatar_url, timeout=5)
-        print(f"   Status: {response.status_code}, Size: {len(response.content)} bytes")
+        print(f"   Fetching from validated host...")
+        response = requests.get(avatar_url, timeout=5, stream=True)
         
         if response.status_code == 200:
-            # Return the image with proper headers
+            content_type = response.headers.get('content-type', '')
+            if not content_type.startswith('image/'):
+                print(f"❌ Rejected: not an image")
+                return '', 400
+            
+            # Read with 5MB limit
+            content = b''
+            for chunk in response.iter_content(chunk_size=8192):
+                content += chunk
+                if len(content) > 5 * 1024 * 1024:
+                    return '', 413
+            
+            print(f"   ✅ Size: {len(content)} bytes")
             return Response(
-                response.content,
-                mimetype=response.headers.get('content-type', 'image/jpeg'),
-                headers={
-                    'Cache-Control': 'public, max-age=86400',  # Cache for 24 hours
-                    'Access-Control-Allow-Origin': '*'
-                }
+                content,
+                mimetype=content_type,
+                headers={'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*'}
             )
         else:
-            # Return 404 on error
-            print(f"❌ Bluesky returned {response.status_code}")
+            print(f"❌ Remote returned {response.status_code}")
             return '', 404
             
     except Exception as e:
         print(f"❌ Avatar proxy error: {e}")
-        import traceback
-        traceback.print_exc()
         return '', 404
 
 
