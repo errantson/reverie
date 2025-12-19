@@ -207,8 +207,8 @@ class HomepageScene {
         // Start the new interactive experience
         this.initExperience();
         
-        // Listen for clicks to start dialogue early
-        this.setupEarlyDialogueClick();
+        // DISABLED: Click-to-dialogue removed - errantson only via header icon
+        // this.setupEarlyDialogueClick();
     }
     
     /**
@@ -1715,30 +1715,12 @@ class HomepageScene {
     }
     
     /**
-     * Set up click listener to start dialogue early
+     * DISABLED: Click-to-dialogue removed
+     * Errantson dialogue now only triggered via header icon click
      */
     setupEarlyDialogueClick() {
-        const background = document.querySelector('.fullscreen-background');
-        if (!background) return;
-        
-        const clickHandler = (e) => {
-            // Don't intercept clicks on bubbles
-            if (e.target.classList.contains('homepage-bubble') || 
-                e.target.closest('.homepage-bubble')) {
-                return;
-            }
-            
-            // Only respond to click if dialogue hasn't started yet
-            if (!this.experienceStarted) {
-                // Remove the click listener
-                background.removeEventListener('click', clickHandler);
-                
-                // Start dialogue immediately
-                this.startDialogueExperience();
-            }
-        };
-        
-        background.addEventListener('click', clickHandler);
+        // Disabled - no longer starting dialogue on background click
+        // Users should click the errantson icon in the header instead
     }
     
     /**

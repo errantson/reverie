@@ -1,8 +1,13 @@
 /**
  * Homepage Floating Bubbles
  * 
- * Displays random floating souvenir bubbles across the homepage after a delay.
- * Uses same physics and styling as shadowbox bubbles.
+ * Natural physics simulation for souvenir bubbles drifting on the wind.
+ * Features:
+ * - Unified wind current affecting all bubbles
+ * - Individual trajectory variance per bubble
+ * - Bubble-to-bubble collision/bumping
+ * - Physics-based rotation from movement and collisions
+ * - Buoyancy and gentle turbulence
  */
 
 class HomepageBubbles {
@@ -10,16 +15,41 @@ class HomepageBubbles {
         this.bubbleContainer = null;
         this.souvenirsData = null;
         this.autoBubbleInterval = null;
-        this.bubbleDelay = 10000; // 10 seconds like shadowbox
+        this.bubbleDelay = 10000; // 10 seconds before bubbles start
         this.initialized = false;
-        this.maxBubbles = 12; // Maximum number of bubbles on screen at once
-        this.activeBubbles = []; // Track active bubbles
-        this.isPageVisible = true; // Track page visibility
-        this.lastUpdateTime = null; // For deltaTime calculation
-        this.spawnRate = 3000; // Base spawn rate in ms
-        this.minSpawnRate = 2000; // Minimum time between spawns
-        this.maxSpawnRate = 5000; // Maximum time between spawns
-        this.isActive = true; // MEMORY LEAK FIX: Flag to control lifecycle
+        this.maxBubbles = 10; // Maximum bubbles on screen
+        this.activeBubbles = []; // Physics objects
+        this.isPageVisible = true;
+        this.isActive = true;
+        this.rafId = null;
+        this.lastTime = 0;
+        
+        // Spawn timing
+        this.spawnRate = 4000;
+        this.minSpawnRate = 3000;
+        this.maxSpawnRate = 6000;
+        
+        // Wind system - unified lateral current
+        this.wind = {
+            baseX: 55,      // Base horizontal wind speed (pixels/sec)
+            baseY: 0,       // No vertical bias - let bubbles float naturally
+            gustX: 0,       // Current gust modifier
+            gustY: 0,
+            gustPhase: 0,   // For smooth gust transitions
+            gustFreq: 0.25, // How often gusts change
+        };
+        
+        // Physics constants
+        this.physics = {
+            drag: 0.992,           // Less drag = maintain speed longer
+            buoyancy: -5,          // Subtle upward tendency
+            turbulenceScale: 2.5,  // Much stronger individual turbulence for vertical variance
+            collisionForce: 200,   // Strong bounce force - bumper bubbles!
+            restitution: 1.4,      // Bouncy! >1 means they bounce apart harder
+            rotationDrag: 0.94,    // Rotation damping
+            rotationFromVelocity: 0.2, // How much velocity affects rotation
+            collisionSpin: 0.8,    // How much collisions add spin
+        };
     }
 
     init() {
@@ -37,10 +67,11 @@ class HomepageBubbles {
             height: 100%;
             pointer-events: none;
             z-index: 100;
+            overflow: hidden;
         `;
         document.body.appendChild(this.bubbleContainer);
 
-        // Set up Page Visibility API to pause/resume animations
+        // Set up visibility handling
         this.setupVisibilityHandling();
 
         // Load souvenirs data
@@ -49,39 +80,31 @@ class HomepageBubbles {
         // Start bubbles after delay
         setTimeout(() => {
             this.startBubbles();
+            this.startPhysicsLoop();
         }, this.bubbleDelay);
     }
 
     setupVisibilityHandling() {
-        // OPTIMIZED: Pause animations when tab is hidden to save CPU/GPU
         document.addEventListener('visibilitychange', () => {
             this.isPageVisible = !document.hidden;
             
             if (!this.isPageVisible) {
-                console.log('💤 [homepage-bubbles] Page hidden - aggressive cleanup');
-                
-                // Clear the spawn interval when hidden
+                // Pause spawning when hidden
                 if (this.autoBubbleInterval) {
                     clearInterval(this.autoBubbleInterval);
                     this.autoBubbleInterval = null;
                 }
-                
-                // MEMORY LEAK FIX: Remove excess bubbles when page hidden
-                const bubblestoKeep = 3; // Keep minimal bubbles
-                while (this.activeBubbles.length > bubblestoKeep) {
-                    const bubbleData = this.activeBubbles.pop();
-                    bubbleData.element?.remove();
+                // Keep only a few bubbles
+                while (this.activeBubbles.length > 3) {
+                    const bubble = this.activeBubbles.pop();
+                    bubble.element?.remove();
                 }
-                console.log(`🧹 Kept ${this.activeBubbles.length} bubbles while hidden`);
-                
             } else {
-                console.log('👁️ [homepage-bubbles] Page visible - resuming bubbles');
-                // Resume spawning when visible again
+                // Resume when visible
                 if (!this.autoBubbleInterval && this.isActive) {
                     this.startBubbles();
                 }
-                // Reset lastUpdateTime to prevent time jumps
-                this.lastUpdateTime = performance.now();
+                this.lastTime = performance.now();
             }
         });
     }
@@ -91,7 +114,6 @@ class HomepageBubbles {
             const response = await fetch('/api/souvenirs');
             const rawData = await response.json();
 
-            // Transform to expected format with forms array
             const transformed = {};
             for (const [key, souvenir] of Object.entries(rawData)) {
                 transformed[key] = {
@@ -104,54 +126,44 @@ class HomepageBubbles {
             }
             this.souvenirsData = transformed;
         } catch (err) {
-            console.error('Error loading souvenirs for homepage bubbles:', err);
+            console.error('Error loading souvenirs:', err);
         }
     }
 
     startBubbles() {
         if (this.autoBubbleInterval || !this.souvenirsData) return;
 
-        // Create bubbles at regular intervals
         const spawnBubble = () => {
             if (!this.souvenirsData || !this.isPageVisible) return;
+            
+            // Clean dead bubbles
+            this.activeBubbles = this.activeBubbles.filter(b => b.element?.parentNode);
+            
+            if (this.activeBubbles.length >= this.maxBubbles) return;
 
-            // Clean up destroyed bubbles from tracking array
-            this.activeBubbles = this.activeBubbles.filter(b => b.element && b.element.parentNode);
-
-            // Don't create new bubble if we're at max capacity
-            if (this.activeBubbles.length >= this.maxBubbles) {
-                return;
-            }
-
-            const souvenirKeys = Object.keys(this.souvenirsData);
-            const randomKey = souvenirKeys[Math.floor(Math.random() * souvenirKeys.length)];
+            const keys = Object.keys(this.souvenirsData);
+            const randomKey = keys[Math.floor(Math.random() * keys.length)];
             const souvenir = this.souvenirsData[randomKey];
-            const latestForm = souvenir.forms[souvenir.forms.length - 1];
+            const form = souvenir.forms[souvenir.forms.length - 1];
 
-            this.createBubble(latestForm.icon, randomKey, latestForm.name);
+            this.createBubble(form.icon, randomKey, form.name);
         };
 
-        // Create first bubble immediately
         spawnBubble();
 
-        // Then spawn at intervals with some randomness
         this.autoBubbleInterval = setInterval(() => {
             spawnBubble();
-            
-            // Vary spawn rate slightly for more organic feel
-            const variance = (Math.random() - 0.5) * 1000;
-            this.spawnRate = Math.max(
-                this.minSpawnRate,
-                Math.min(this.maxSpawnRate, this.spawnRate + variance)
-            );
+            // Vary spawn rate
+            this.spawnRate = this.minSpawnRate + Math.random() * (this.maxSpawnRate - this.minSpawnRate);
         }, this.spawnRate);
     }
 
     createBubble(iconUrl, key, name) {
         if (!this.bubbleContainer) return;
 
+        const size = 50 + Math.random() * 30;
         const bubble = document.createElement('div');
-        const size = 50 + Math.random() * 30; // 50-80px
+        
         bubble.className = 'homepage-bubble';
         bubble.style.cssText = `
             position: absolute;
@@ -168,8 +180,9 @@ class HomepageBubbles {
             justify-content: center;
             pointer-events: auto;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            will-change: transform, left, top;
+            opacity: 0;
+            transition: opacity 0.5s ease, box-shadow 0.2s ease;
+            will-change: transform;
         `;
 
         const icon = document.createElement('img');
@@ -185,159 +198,276 @@ class HomepageBubbles {
 
         bubble.appendChild(icon);
         
-        // Start bubbles from left side, offscreen
-        const x = -100; // Start offscreen left
-        const y = Math.random() * window.innerHeight; // Random vertical position
-
-        bubble.style.left = x + 'px';
-        bubble.style.top = y + 'px';
-
         // Click to navigate
         bubble.addEventListener('click', () => {
             window.location.href = `/souvenirs?key=${key}`;
         });
 
-        // Hover effect - matching souvenir page
+        // Hover effect - visual only, bubble keeps moving
         bubble.addEventListener('mouseenter', () => {
-            bubble.style.transform = 'scale(1.15)';
             bubble.style.boxShadow = '0 6px 30px rgba(0,0,0,0.25), inset -4px -4px 20px rgba(0,0,0,0.12), inset 4px 4px 18px rgba(255,255,255,0.6)';
         });
         bubble.addEventListener('mouseleave', () => {
-            bubble.style.transform = 'scale(1)';
-            bubble.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15), inset -3px -3px 15px rgba(0,0,0,0.08), inset 3px 3px 12px rgba(255,255,255,0.5)';
+            bubble.style.boxShadow = '';
         });
 
         this.bubbleContainer.appendChild(bubble);
 
-        // Create bubble data object for tracking
+        // Spawn from left edge at random height
+        const startX = -size - 20;
+        const startY = 80 + Math.random() * (window.innerHeight - 200);
+
+        // Physics state - each bubble has unique characteristics
         const bubbleData = {
             element: bubble,
-            x: x,
-            y: y,
-            vx: 1.2 + Math.random() * 0.8, // Horizontal velocity (rightward)
-            vy: (Math.random() - 0.5) * 0.4, // Slight vertical drift
+            size: size,
+            radius: size / 2,
+            mass: size / 60, // Larger = more massive = slower to accelerate
+            
+            // Position
+            x: startX,
+            y: startY,
+            
+            // Velocity - wide variance for more interesting collisions
+            vx: 10 + Math.random() * 60, // 10-70 px/s - some slow, some fast
+            vy: (Math.random() - 0.5) * 80, // Strong initial vertical variance
+            
+            // Rotation
             rotation: Math.random() * 360,
-            wobbleFreq: 0.001 + Math.random() * 0.002,
-            wobbleAmp: 15 + Math.random() * 25,
-            startTime: performance.now(),
-            isHovered: false
+            angularVel: (Math.random() - 0.5) * 50,
+            
+            // Individual characteristics for variance
+            windSensitivity: 0.5 + Math.random() * 1.0, // Wide range of wind response
+            turbulencePhase: Math.random() * Math.PI * 2, // Offset for turbulence
+            turbulenceFreq: 0.3 + Math.random() * 0.8,   // Personal turbulence frequency
+            verticalDrift: (Math.random() - 0.5) * 25,   // Each bubble has its own vertical tendency
+            buoyancyFactor: 0.5 + Math.random() * 1.0,   // Wide buoyancy variance
+            
+            // State
+            age: 0,
+            opacity: 0,
         };
 
-        // Track this bubble
         this.activeBubbles.push(bubbleData);
 
-        // Animate bubble with same physics as shadowbox
-        this.animateBubble(bubbleData);
+        // Fade in
+        requestAnimationFrame(() => {
+            bubble.style.opacity = '0.9';
+            bubbleData.opacity = 0.9;
+        });
     }
 
-    animateBubble(bubbleData) {
-        let lastTime = performance.now();
+    startPhysicsLoop() {
+        this.lastTime = performance.now();
         
-        // OPTIMIZED: Throttle to 30 FPS to reduce CPU load
-        const targetFPS = 30;
-        const frameInterval = 1000 / targetFPS;
-
         const update = (currentTime) => {
-            // Check if bubble still exists
-            if (!bubbleData.element || !bubbleData.element.parentNode) {
-                // Remove from tracking
-                const index = this.activeBubbles.indexOf(bubbleData);
-                if (index > -1) {
-                    this.activeBubbles.splice(index, 1);
-                }
-                return;
-            }
-
-            // OPTIMIZED: Only animate when page is visible and at throttled rate
-            const deltaTime = currentTime - lastTime;
+            if (!this.isActive) return;
             
-            if (!this.isPageVisible || deltaTime < frameInterval) {
-                requestAnimationFrame(update);
-                return;
+            // Calculate delta time (cap at 100ms to prevent huge jumps)
+            const dt = Math.min((currentTime - this.lastTime) / 1000, 0.1);
+            this.lastTime = currentTime;
+            
+            // Only update when visible
+            if (this.isPageVisible && dt > 0) {
+                this.updateWind(dt);
+                this.updateBubbles(dt);
+                this.handleCollisions();
+                this.renderBubbles();
             }
             
-            lastTime = currentTime - (deltaTime % frameInterval);
-            const deltaTimeSec = Math.min(deltaTime / 1000, 0.1);
-
-            // Apply velocities with deltaTime for frame-rate independence
-            bubbleData.x += bubbleData.vx * 60 * deltaTimeSec; // Normalized to 60fps
-            bubbleData.y += bubbleData.vy * 60 * deltaTimeSec;
-
-            // Add gentle sine wave vertical wobble based on elapsed time
-            const elapsedTime = currentTime - bubbleData.startTime;
-            const wobble = Math.sin(elapsedTime * bubbleData.wobbleFreq) * bubbleData.wobbleAmp * 0.02;
-            bubbleData.y += wobble * deltaTimeSec * 60;
-
-            // Keep within vertical bounds with soft bounce
-            if (bubbleData.y < 50) {
-                bubbleData.y = 50;
-                bubbleData.vy = Math.abs(bubbleData.vy) * 0.5;
-            }
-            if (bubbleData.y > window.innerHeight - 100) {
-                bubbleData.y = window.innerHeight - 100;
-                bubbleData.vy = -Math.abs(bubbleData.vy) * 0.5;
-            }
-
-            // Very slight damping to maintain movement
-            const dampingFactor = Math.pow(0.9995, deltaTimeSec * 60);
-            bubbleData.vx *= dampingFactor;
-            bubbleData.vy *= Math.pow(0.998, deltaTimeSec * 60);
-
-            // Physics-based rotation following the wind (horizontal velocity)
-            const rotationSpeed = bubbleData.vx * 0.3 * deltaTimeSec * 60;
-            bubbleData.rotation += rotationSpeed;
-
-            // Update DOM position
-            bubbleData.element.style.left = bubbleData.x + 'px';
-            bubbleData.element.style.top = bubbleData.y + 'px';
-            bubbleData.element.style.transform = `rotate(${bubbleData.rotation}deg)`;
-
-            // Fade out when exiting right side
-            const exitMargin = 200;
-            
-            if (bubbleData.x > window.innerWidth + exitMargin) {
-                // Remove bubble
-                bubbleData.element.remove();
-                const index = this.activeBubbles.indexOf(bubbleData);
-                if (index > -1) {
-                    this.activeBubbles.splice(index, 1);
-                }
-                return;
-            } else if (bubbleData.x > window.innerWidth) {
-                // Start fading after passing screen edge
-                const distanceBeyond = bubbleData.x - window.innerWidth;
-                const fadeProgress = Math.min(1, distanceBeyond / exitMargin);
-                bubbleData.element.style.opacity = 1 - fadeProgress;
-            }
-
-            // Continue animation loop
-            requestAnimationFrame(update);
+            this.rafId = requestAnimationFrame(update);
         };
-
-        requestAnimationFrame(update);
+        
+        this.rafId = requestAnimationFrame(update);
     }
 
-    /**
-     * MEMORY LEAK FIX: Cleanup method to prevent memory leaks
-     * Call this when navigating away from homepage
-     */
+    updateWind(dt) {
+        // Smooth gusting wind
+        this.wind.gustPhase += dt * this.wind.gustFreq;
+        
+        // Perlin-like smooth transitions using multiple sine waves
+        this.wind.gustX = Math.sin(this.wind.gustPhase) * 15 
+                        + Math.sin(this.wind.gustPhase * 2.3) * 8
+                        + Math.sin(this.wind.gustPhase * 0.7) * 5;
+        
+        this.wind.gustY = Math.sin(this.wind.gustPhase * 1.1 + 1) * 10
+                        + Math.sin(this.wind.gustPhase * 0.5 + 2) * 6;
+    }
+
+    updateBubbles(dt) {
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        
+        for (let i = this.activeBubbles.length - 1; i >= 0; i--) {
+            const b = this.activeBubbles[i];
+            
+            if (!b.element?.parentNode) {
+                this.activeBubbles.splice(i, 1);
+                continue;
+            }
+            
+            b.age += dt;
+            
+            // === FORCES ===
+            
+            // 1. Wind force (unified + individual sensitivity)
+            const windX = (this.wind.baseX + this.wind.gustX) * b.windSensitivity;
+            const windY = (this.wind.baseY + this.wind.gustY) * b.windSensitivity + b.verticalDrift;
+            
+            // 2. Buoyancy (subtle, varies per bubble)
+            const buoyancy = this.physics.buoyancy * b.buoyancyFactor;
+            
+            // 3. Individual turbulence - strong vertical variance
+            const turbTime = b.age * b.turbulenceFreq + b.turbulencePhase;
+            const turbX = Math.sin(turbTime * 2.1) * this.physics.turbulenceScale * 5
+                        + Math.sin(turbTime * 4.7) * this.physics.turbulenceScale * 3;
+            const turbY = Math.sin(turbTime * 1.3 + 1.5) * this.physics.turbulenceScale * 18
+                        + Math.cos(turbTime * 2.8) * this.physics.turbulenceScale * 12
+                        + Math.sin(turbTime * 0.7) * this.physics.turbulenceScale * 8;
+            
+            // Apply forces (F = ma, so a = F/m)
+            const ax = (windX + turbX) / b.mass;
+            const ay = (windY + buoyancy + turbY) / b.mass;
+            
+            // Update velocity
+            b.vx += ax * dt;
+            b.vy += ay * dt;
+            
+            // Apply drag
+            b.vx *= this.physics.drag;
+            b.vy *= this.physics.drag;
+            
+            // Update position
+            b.x += b.vx * dt;
+            b.y += b.vy * dt;
+            
+            // === ROTATION ===
+            // Rotation influenced by horizontal velocity and turbulence
+            const velocityRotation = b.vx * this.physics.rotationFromVelocity;
+            b.angularVel += (velocityRotation - b.angularVel * 0.1) * dt;
+            b.angularVel *= this.physics.rotationDrag;
+            b.rotation += b.angularVel * dt;
+            
+            // === BOUNDARIES ===
+            // Soft bounce off top/bottom
+            const margin = 50;
+            if (b.y < margin) {
+                b.y = margin;
+                b.vy = Math.abs(b.vy) * 0.5;
+                b.angularVel += (Math.random() - 0.5) * 20; // Spin on bounce
+            }
+            if (b.y > screenHeight - margin - b.size) {
+                b.y = screenHeight - margin - b.size;
+                b.vy = -Math.abs(b.vy) * 0.5;
+                b.angularVel += (Math.random() - 0.5) * 20;
+            }
+            
+            // Remove if off right edge
+            if (b.x > screenWidth + 100) {
+                b.element.remove();
+                this.activeBubbles.splice(i, 1);
+                continue;
+            }
+            
+            // Fade out near right edge
+            if (b.x > screenWidth - 150) {
+                b.opacity = Math.max(0, 0.9 * (1 - (b.x - (screenWidth - 150)) / 150));
+            }
+        }
+    }
+
+    handleCollisions() {
+        // Check each pair of bubbles for collision - bumper bubble physics!
+        for (let i = 0; i < this.activeBubbles.length; i++) {
+            for (let j = i + 1; j < this.activeBubbles.length; j++) {
+                const a = this.activeBubbles[i];
+                const b = this.activeBubbles[j];
+                
+                // Distance between centers
+                const dx = b.x + b.radius - (a.x + a.radius);
+                const dy = b.y + b.radius - (a.y + a.radius);
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const minDist = a.radius + b.radius;
+                
+                // Check for collision
+                if (dist < minDist && dist > 0) {
+                    // Normalize collision vector
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    
+                    // Relative velocity
+                    const dvx = a.vx - b.vx;
+                    const dvy = a.vy - b.vy;
+                    
+                    // Relative velocity along collision normal
+                    const dvn = dvx * nx + dvy * ny;
+                    
+                    // Always resolve - bumper bubbles bounce hard!
+                    // Impulse based on mass with restitution > 1 for extra bounce
+                    const totalMass = a.mass + b.mass;
+                    const restitution = this.physics.restitution;
+                    const impulseA = (1 + restitution) * (b.mass / totalMass) * Math.abs(dvn);
+                    const impulseB = (1 + restitution) * (a.mass / totalMass) * Math.abs(dvn);
+                    
+                    // Apply impulse - bounce apart
+                    a.vx -= impulseA * nx;
+                    a.vy -= impulseA * ny;
+                    b.vx += impulseB * nx;
+                    b.vy += impulseB * ny;
+                    
+                    // Add extra separation velocity for that bumper feel
+                    const bumpBoost = 30;
+                    a.vx -= bumpBoost * nx;
+                    a.vy -= bumpBoost * ny;
+                    b.vx += bumpBoost * nx;
+                    b.vy += bumpBoost * ny;
+                    
+                    // Strong spin from collision
+                    const tangent = dvx * (-ny) + dvy * nx;
+                    a.angularVel += tangent * this.physics.collisionSpin;
+                    b.angularVel -= tangent * this.physics.collisionSpin;
+                    
+                    // Separate overlapping bubbles
+                    const overlap = minDist - dist;
+                    const separateX = (overlap / 2 + 1) * nx;
+                    const separateY = (overlap / 2 + 1) * ny;
+                    a.x -= separateX;
+                    a.y -= separateY;
+                    b.x += separateX;
+                    b.y += separateY;
+                }
+            }
+        }
+    }
+
+    renderBubbles() {
+        for (const b of this.activeBubbles) {
+            if (!b.element) continue;
+            
+            b.element.style.transform = `translate(${b.x}px, ${b.y}px) rotate(${b.rotation}deg)`;
+            b.element.style.opacity = b.opacity;
+        }
+    }
+
     cleanup() {
         console.log('🧹 Cleaning up HomepageBubbles...');
         
         this.isActive = false;
+        
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
         
         if (this.autoBubbleInterval) {
             clearInterval(this.autoBubbleInterval);
             this.autoBubbleInterval = null;
         }
         
-        // Remove all bubbles
-        this.activeBubbles.forEach(bubbleData => {
-            bubbleData.element?.remove();
-        });
+        this.activeBubbles.forEach(b => b.element?.remove());
         this.activeBubbles = [];
         
-        if (this.bubbleContainer && this.bubbleContainer.parentNode) {
+        if (this.bubbleContainer?.parentNode) {
             this.bubbleContainer.remove();
             this.bubbleContainer = null;
         }
