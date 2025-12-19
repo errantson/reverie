@@ -507,6 +507,9 @@ class FeedGenerator:
         """
         Main endpoint for feed generation.
         Called by Bluesky AppView with feed URI.
+        
+        Note: Label sync is now done asynchronously by feedgen_updater or jetstream_hub.
+        We just serve from the database without blocking on external API calls.
         """
         # Extract feed name from URI: at://did:plc:.../app.bsky.feed.generator/{feed_name}
         feed_name = feed.split('/')[-1]
@@ -514,8 +517,9 @@ class FeedGenerator:
         if feed_name not in self.feeds:
             return {'error': 'UnknownFeed'}
         
-        # Sync labels if needed
-        self.sync_lore_labels()
+        # Note: Removed synchronous sync_lore_labels() call here
+        # Labels are now synced by feedgen_updater every 2 minutes
+        # This prevents blocking requests when lore.farm is slow
         
         if feed_name == 'lore':
             posts, next_cursor = self.feed_db.get_lore_feed(limit, cursor)

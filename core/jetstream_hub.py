@@ -494,6 +494,155 @@ class BiblioHandler(EventHandler):
 
 
 # ============================================================================
+# Feed Handler - Real-time Post Indexing
+# ============================================================================
+
+class FeedHandler(EventHandler):
+    """
+    Indexes posts from community members in real-time for feed generation.
+    Replaces: feedgen_updater.py polling (for post indexing)
+    
+    Benefits:
+    - Real-time post indexing (no 2-minute delay)
+    - Lower API usage (no polling author feeds)
+    - Consistent with other handlers
+    """
+    
+    def __init__(self, verbose: bool = False):
+        super().__init__('feed', verbose)
+        self.tracked_dids: Set[str] = set()
+        self.dreamer_by_did: Dict[str, Dict] = {}
+        self._load_dreamers()
+        self._ensure_tables()
+    
+    def _load_dreamers(self):
+        """Load tracked dreamers from database."""
+        try:
+            from core.database import DatabaseManager
+            db = DatabaseManager()
+            cursor = db.execute("SELECT did, handle FROM dreamers")
+            dreamers = cursor.fetchall()
+            
+            self.tracked_dids = {d['did'] for d in dreamers}
+            self.dreamer_by_did = {d['did']: dict(d) for d in dreamers}
+            
+            self.log(f"📊 Tracking {len(self.tracked_dids)} dreamers for feed indexing")
+        except Exception as e:
+            print(f"[feed] ❌ Error loading dreamers: {e}")
+            self.tracked_dids = set()
+    
+    def _ensure_tables(self):
+        """Ensure feed tables exist in PostgreSQL."""
+        try:
+            from core.database import DatabaseManager
+            db = DatabaseManager()
+            
+            # Create feed_posts table if not exists
+            db.execute('''
+                CREATE TABLE IF NOT EXISTS feed_posts (
+                    uri TEXT PRIMARY KEY,
+                    cid TEXT NOT NULL,
+                    author_did TEXT NOT NULL,
+                    text TEXT,
+                    created_at TIMESTAMP NOT NULL,
+                    indexed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    has_lore_label INTEGER DEFAULT 0,
+                    has_canon_label INTEGER DEFAULT 0
+                )
+            ''')
+            
+            # Create indexes
+            db.execute('CREATE INDEX IF NOT EXISTS idx_feed_posts_created_at ON feed_posts(created_at DESC)')
+            db.execute('CREATE INDEX IF NOT EXISTS idx_feed_posts_author ON feed_posts(author_did)')
+            
+            self.log("✓ Feed tables ready")
+        except Exception as e:
+            print(f"[feed] ❌ Error ensuring tables: {e}")
+    
+    def get_wanted_dids(self) -> Set[str]:
+        return self.tracked_dids
+    
+    def get_wanted_collections(self) -> Set[str]:
+        return {'app.bsky.feed.post'}
+    
+    async def handle_event(self, event: Dict[str, Any]) -> None:
+        """Index posts from community members."""
+        self.stats['events_received'] += 1
+        
+        kind = event.get('kind')
+        if kind != 'commit':
+            return
+        
+        commit = event.get('commit', {})
+        collection = commit.get('collection', '')
+        
+        if collection != 'app.bsky.feed.post':
+            return
+        
+        did = event.get('did', '')
+        if did not in self.tracked_dids:
+            return
+        
+        operation = commit.get('operation', '')
+        rkey = commit.get('rkey', '')
+        uri = f"at://{did}/{collection}/{rkey}"
+        record = commit.get('record', {})
+        
+        if operation == 'create':
+            self.stats['events_processed'] += 1
+            
+            cid = commit.get('cid', '')
+            text = record.get('text', '')
+            created_at = record.get('createdAt', '')
+            
+            handle = self.dreamer_by_did.get(did, {}).get('handle', did[:20])
+            self.log(f"📝 New post from @{handle}: {text[:50]}...")
+            
+            # Index in background
+            self.executor.submit(self._index_post, uri, cid, did, text, created_at)
+            
+        elif operation == 'delete':
+            self.log(f"🗑️ Deleted post: {rkey}")
+            self.executor.submit(self._delete_post, uri)
+    
+    def _index_post(self, uri: str, cid: str, did: str, text: str, created_at: str):
+        """Background: add post to feed database."""
+        try:
+            from core.database import DatabaseManager
+            from datetime import datetime, timezone
+            
+            db = DatabaseManager()
+            indexed_at = datetime.now(timezone.utc)
+            
+            db.execute('''
+                INSERT INTO feed_posts (uri, cid, author_did, text, created_at, indexed_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (uri) DO UPDATE SET
+                    cid = EXCLUDED.cid,
+                    text = EXCLUDED.text,
+                    indexed_at = EXCLUDED.indexed_at
+            ''', (uri, cid, did, text, created_at, indexed_at))
+            
+        except Exception as e:
+            self.log(f"❌ Index error: {e}")
+            self.stats['errors'] += 1
+    
+    def _delete_post(self, uri: str):
+        """Background: remove post from feed database."""
+        try:
+            from core.database import DatabaseManager
+            db = DatabaseManager()
+            db.execute('DELETE FROM feed_posts WHERE uri = %s', (uri,))
+        except Exception as e:
+            self.log(f"❌ Delete error: {e}")
+            self.stats['errors'] += 1
+    
+    def refresh_dreamers(self):
+        """Reload dreamer list (call when community changes)."""
+        self._load_dreamers()
+
+
+# ============================================================================
 # Jetstream Hub - Main Consumer
 # ============================================================================
 
@@ -719,8 +868,8 @@ def main():
     
     parser = argparse.ArgumentParser(description='Jetstream Hub - Unified ATProto Event Consumer')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
-    parser.add_argument('--handlers', nargs='+', default=['dreamer', 'quest', 'biblio'],
-                        choices=['dreamer', 'quest', 'biblio'],
+    parser.add_argument('--handlers', nargs='+', default=['dreamer', 'quest', 'biblio', 'feed'],
+                        choices=['dreamer', 'quest', 'biblio', 'feed'],
                         help='Which handlers to enable')
     args = parser.parse_args()
     
@@ -736,6 +885,9 @@ def main():
     
     if 'biblio' in args.handlers:
         hub.register(BiblioHandler(verbose=args.verbose))
+    
+    if 'feed' in args.handlers:
+        hub.register(FeedHandler(verbose=args.verbose))
     
     # Handle signals
     def signal_handler(sig, frame):

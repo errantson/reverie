@@ -108,28 +108,6 @@ class PersistentRateLimiter:
             except Exception as e:
                 print(f"Rate limit check error: {e}")
                 return True, None  # Allow on error
-                
-                row = cursor.fetchone()
-                count = row['count'] if row else 0
-                oldest = row['min'] if row else None
-                
-                if count >= limit:
-                    # Rate limited - calculate retry time
-                    retry_after = window - (now - (oldest or now))
-                    return False, max(0, int(retry_after))
-                
-                # Record this request
-                # Use ON CONFLICT DO NOTHING to handle race conditions
-                self.db.execute("""
-                    INSERT INTO rate_limits (ip, endpoint, timestamp) 
-                    VALUES (%s, %s, %s) 
-                    ON CONFLICT (ip, endpoint, timestamp) DO NOTHING
-                """, (ip, endpoint, now))
-                
-                return True, None
-            except Exception as e:
-                print(f"Rate limit check error: {e}")
-                return True, None  # Allow on error
     
     def get_stats(self, ip: Optional[str] = None, hours: int = 1) -> List[dict]:
         """

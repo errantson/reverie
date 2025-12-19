@@ -12,7 +12,7 @@ Environment="POSTGRES_PORT=5432"
 Environment="POSTGRES_DB=reverie_house"
 Environment="POSTGRES_USER=reverie"
 Environment="POSTGRES_PASSWORD_FILE=/srv/secrets/reverie_db_password.txt"
-EnvironmentFile=/srv/reverie.house/.env
+# Note: No .env file needed - secrets read from POSTGRES_PASSWORD_FILE
 ExecStart=/usr/bin/python3 /srv/reverie.house/core/feedgen_server.py
 Restart=always
 RestartSec=10
