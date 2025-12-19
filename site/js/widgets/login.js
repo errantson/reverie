@@ -951,6 +951,9 @@ class LoginWidget {
                 }
             } else if (authMode === 'pds') {
                 // PDS login for residents (app password)
+                // PDS login always has full access, so clear sideDoorLogin
+                localStorage.removeItem('sideDoorLogin');
+                
                 const password = passwordInput.value.trim();
                 if (!password) {
                     passwordInput.focus();

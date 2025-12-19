@@ -169,9 +169,19 @@ class Dashboard {
     /**
      * Check if current user logged in via Side Door (minimal OAuth scope)
      * Side Door users can only read, not write (no posting, handle changes, etc.)
+     * PDS login (app password) and mainDoorLogin always have full access.
      * @returns {boolean} True if user logged in via Side Door
      */
     isSideDoorUser() {
+        // PDS session (app password) always has full access
+        if (localStorage.getItem('pds_session')) {
+            return false;
+        }
+        // Main door login has full access
+        if (localStorage.getItem('mainDoorLogin') === 'true') {
+            return false;
+        }
+        // Check if explicitly side door
         return localStorage.getItem('sideDoorLogin') === 'true';
     }
 
