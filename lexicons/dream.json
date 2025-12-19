@@ -1,10 +1,12 @@
 {
   "lexicon": 1,
   "id": "house.reverie.dream",
+  "revision": 3,
+  "description": "A phanera - an experiential website declared in the reverie.house ecosystem. Posted by the phanera creator to their own PDS. Phanera with tangledRepo can be entreated by dreamstylers for aesthetic help. Contributors are tracked through Tangled commit history.",
   "defs": {
     "main": {
       "type": "record",
-      "description": "A dream - an experiential website in the reverie.house ecosystem. Posted by the dream creator to their own PDS.",
+      "description": "A phanera declaration - identifies a domain as part of the reverie.house dreamscape. The creator posts this to their own PDS.",
       "key": "tid",
       "record": {
         "type": "object",
@@ -12,31 +14,25 @@
         "properties": {
           "domain": {
             "type": "string",
-            "description": "The domain of the dream (e.g., 'flawed.center'). No protocol prefix.",
+            "description": "The domain of the phanera (e.g., 'flawed.center'). No protocol prefix. Can be a handle or a dedicated site domain.",
             "maxLength": 253
           },
           "title": {
             "type": "string",
-            "description": "The display title of the dream.",
+            "description": "The display title of the phanera.",
             "maxGraphemes": 100,
             "maxLength": 1000
           },
           "description": {
             "type": "string",
-            "description": "A brief description of the dream.",
+            "description": "A brief description of the phanera experience.",
             "maxGraphemes": 300,
             "maxLength": 3000
           },
           "tangledRepo": {
             "type": "string",
             "format": "at-uri",
-            "description": "AT-URI to the sh.tangled.repo record for this dream's source code."
-          },
-          "status": {
-            "type": "string",
-            "description": "The current state of the dream.",
-            "knownValues": ["dreaming", "awake", "archived"],
-            "default": "dreaming"
+            "description": "AT-URI to the sh.tangled.repo record for this phanera's source code. Optional. When present, allows dreamstylers to contribute via Tangled."
           },
           "createdAt": {
             "type": "string",

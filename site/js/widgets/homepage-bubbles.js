@@ -349,17 +349,12 @@ class HomepageBubbles {
             b.rotation += b.angularVel * dt;
             
             // === BOUNDARIES ===
-            // Soft bounce off top/bottom
-            const margin = 50;
-            if (b.y < margin) {
-                b.y = margin;
-                b.vy = Math.abs(b.vy) * 0.5;
-                b.angularVel += (Math.random() - 0.5) * 20; // Spin on bounce
-            }
-            if (b.y > screenHeight - margin - b.size) {
-                b.y = screenHeight - margin - b.size;
-                b.vy = -Math.abs(b.vy) * 0.5;
-                b.angularVel += (Math.random() - 0.5) * 20;
+            // Let bubbles flow freely past header/drawer - no top/bottom collision
+            // Only remove bubbles that go too far off-screen vertically
+            if (b.y < -b.size - 100 || b.y > screenHeight + b.size + 100) {
+                b.element.remove();
+                this.activeBubbles.splice(i, 1);
+                continue;
             }
             
             // Remove if off right edge

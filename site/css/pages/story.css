@@ -1511,25 +1511,26 @@ body.story-page {
     font-family: monospace;
 }
 
-/* Story text inline/link/bold styling to reflect author color */
-.story-card .story-text a.story-link {
+/* Story text inline/link/bold styling to reflect author color
+   The .story-text box always has a white background, so links and bold
+   should ALWAYS use the dynamic author color, even on canon posts */
+.story-card .story-text a.story-link,
+.story-card.canon .story-text a.story-link {
     color: var(--author-color);
     text-decoration: none;
     font-weight: 600;
 }
 
-.story-card.canon .story-text a.story-link {
-    color: var(--author-color-text-light);
+.story-card .story-text a.story-link:hover,
+.story-card.canon .story-text a.story-link:hover {
+    text-decoration: underline;
 }
 
 .story-card .story-text strong,
-.story-card .story-text b {
-    color: var(--author-color);
-}
-
+.story-card .story-text b,
 .story-card.canon .story-text strong,
 .story-card.canon .story-text b {
-    color: var(--author-color-text-light);
+    color: var(--author-color);
 }
 
 /* Slight tint / subtle background for any inline colored spans to help distinguish them */
