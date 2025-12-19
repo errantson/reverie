@@ -265,9 +265,9 @@
                     const dreamer = getDreamerByHandle(handle);
                     
                     if (dreamer) {
-                        parts.push(`<a href="/dreamer?did=${encodeURIComponent(dreamer.did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">${escapeHtml(match.text)}</a>`);
+                        parts.push(`<a href="/dreamer?did=${encodeURIComponent(dreamer.did)}" class="story-link dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}">${escapeHtml(match.text)}</a>`);
                     } else {
-                        parts.push(`<a href="https://bsky.app/profile/${encodeURIComponent(handle)}" target="_blank" style="color: var(--primary-color); text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escapeHtml(match.text)}</a>`);
+                        parts.push(`<a href="https://bsky.app/profile/${encodeURIComponent(handle)}" target="_blank" class="story-link external-handle">${escapeHtml(match.text)}</a>`);
                     }
                 } else if (match.type === 'url') {
                     // Add protocol if missing
@@ -275,11 +275,11 @@
                     if (!url.startsWith('http://') && !url.startsWith('https://')) {
                         url = 'https://' + url;
                     }
-                    parts.push(`<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escapeHtml(match.text)}</a>`);
+                    parts.push(`<a href="${url}" target="_blank" rel="noopener noreferrer" class="story-link story-url">${escapeHtml(match.text)}</a>`);
                 } else if (match.type === 'hashtag') {
                     // Link to Bluesky search
                     const searchQuery = encodeURIComponent(match.text);
-                    parts.push(`<a href="https://bsky.app/search?q=${searchQuery}" target="_blank" rel="noopener noreferrer" style="color: var(--primary-color); text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escapeHtml(match.text)}</a>`);
+                    parts.push(`<a href="https://bsky.app/search?q=${searchQuery}" target="_blank" rel="noopener noreferrer" class="story-link story-hashtag">${escapeHtml(match.text)}</a>`);
                 }
                 
                 lastIndex = match.index + match.length;
@@ -571,6 +571,9 @@
             const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(dreamer.did)}` : `https://bsky.app/profile/${authorHandle}`;
             const bskyProfileUrl = `https://bsky.app/profile/${authorHandle}`;
             
+            // Get author's color for card styling
+            const authorColor = dreamer?.color_hex || '#734ba1';
+            
             // Build avatar HTML with link to bsky profile
             const avatarHtml = authorAvatar 
                 ? `<a href="${bskyProfileUrl}" target="_blank" onclick="event.stopPropagation();">
@@ -660,7 +663,7 @@
             const canonBadge = story.isCanon ? '<span class="badge canon">canon</span>' : '<span class="badge lore">lore</span>';
             
             return `
-                <div class="story-card ${canonClass}" data-uri="${story.uri}">
+                <div class="story-card ${canonClass}" data-uri="${story.uri}" style="--author-color: ${authorColor};">
                     <div class="story-card-header">
                         ${avatarHtml}
                         <div class="author-info" onclick="window.location.href='${dreamerUrl}'">
