@@ -3404,7 +3404,21 @@
                 
                 if (!connectResponse.ok) {
                     const connectError = await connectResponse.json();
-                    showCelebration(connectError.error || 'Invalid app password', 'error');
+                    let errorMessage = connectError.error || 'Invalid app password';
+                    
+                    // Handle expired session - show jovial re-login popup
+                    if (connectResponse.status === 401 || 
+                        errorMessage.toLowerCase().includes('expired') || 
+                        (errorMessage.toLowerCase().includes('invalid') && errorMessage.toLowerCase().includes('token'))) {
+                        showSessionExpiredPopup();
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = config.buttonText;
+                        }
+                        return;
+                    }
+                    
+                    showCelebration(errorMessage, 'error');
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.textContent = config.buttonText;
@@ -4199,6 +4213,106 @@
                 overlay.remove();
                 onConfirm();
             };
+        }
+
+        // Session expired popup with jovial "Rentrer" button
+        function showSessionExpiredPopup() {
+            // Remove any existing overlays
+            const existingOverlays = document.querySelectorAll('.celebration-overlay');
+            existingOverlays.forEach(overlay => overlay.remove());
+            
+            // Clear stale tokens
+            localStorage.removeItem('oauth_token');
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('reverie_session');
+            
+            // Close any open modals
+            const authModal = document.getElementById('auth-modal');
+            if (authModal) {
+                authModal.classList.remove('active');
+                authModal.style.display = 'none';
+            }
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'celebration-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 10001;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            const popup = document.createElement('div');
+            popup.style.cssText = `
+                background: linear-gradient(135deg, #5d4a7a 0%, #734ba1 100%);
+                padding: 2rem 3rem;
+                border: 4px solid #3d2a5a;
+                border-radius: 8px;
+                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+                max-width: 420px;
+                text-align: center;
+                animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            `;
+            
+            popup.innerHTML = `
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🌙</div>
+                <div style="color: #e8d5c4; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.75rem;">
+                    Ah, you wandered away!
+                </div>
+                <div style="color: #d4c4b0; font-size: 1rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                    Your session drifted into the dream mists.<br>
+                    Please step back inside to continue.
+                </div>
+                <button id="rentrer-btn" style="
+                    padding: 0.85rem 2.5rem;
+                    background: linear-gradient(135deg, #e8d5c4 0%, #d4c4b0 100%);
+                    color: #5d4a7a;
+                    border: none;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    transition: all 0.2s;
+                ">
+                    ✨ Rentrer ✨
+                </button>
+            `;
+            
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+            
+            // Add hover effect
+            const btn = popup.querySelector('#rentrer-btn');
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transform = 'translateY(-2px)';
+                btn.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'translateY(0)';
+                btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            });
+            
+            // Click to trigger login
+            btn.addEventListener('click', () => {
+                overlay.remove();
+                // Trigger the login popup
+                if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                    window.loginWidget.showLoginPopup();
+                } else if (typeof window.showLoginModal === 'function') {
+                    window.showLoginModal();
+                } else {
+                    // Fallback: reload the page which will show login state
+                    window.location.reload();
+                }
+            });
         }
 
         // Celebration popup and bubble system

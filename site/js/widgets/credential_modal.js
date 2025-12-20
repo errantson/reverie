@@ -214,7 +214,18 @@ class AppPasswordModal {
             
             if (!response.ok || !data.success) {
                 // Show detailed error if available
-                const errorMsg = data.detail || data.error || 'Connection failed. Please check your password.';
+                let errorMsg = data.detail || data.error || 'Connection failed. Please check your password.';
+                
+                // Handle expired session - tell user to log in again
+                if (response.status === 401 || 
+                    errorMsg.toLowerCase().includes('expired') || 
+                    (errorMsg.toLowerCase().includes('invalid') && errorMsg.toLowerCase().includes('token'))) {
+                    errorMsg = 'Your session has expired. Please log in again and try again.';
+                    // Clear stale tokens
+                    localStorage.removeItem('oauth_token');
+                    localStorage.removeItem('admin_token');
+                }
+                
                 errorDiv.textContent = errorMsg;
                 errorDiv.style.display = 'block';
                 
