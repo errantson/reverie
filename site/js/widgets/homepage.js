@@ -861,6 +861,12 @@ class HomepageScene {
     }
     startSwirlEffect(x, y) {
         if (!this.magicDustContainer) return;
+        
+        // First click spawns a souvenir bubble (if available)
+        if (window.homepageBubbles && window.homepageBubbles.handleFirstClick) {
+            window.homepageBubbles.handleFirstClick(x, y);
+        }
+        
         this.isMousePressed = true;
         this.mouseDownTime = Date.now();
         this.swirlIntensity = 0;

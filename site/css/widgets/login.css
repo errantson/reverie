@@ -26,10 +26,49 @@
     text-align: center;
     transform: scale(0.9);
     transition: transform 0.3s ease;
+    position: relative; /* For positioning close button */
 }
 .login-box.visible, .logout-box.visible {
     transform: scale(1);
 }
+
+/* Close button (X) in top-right corner */
+.login-box .login-close-btn,
+.logout-box .logout-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: #87408d;
+    font-size: 28px;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s ease;
+    font-weight: 300;
+    opacity: 0.6;
+    z-index: 10;
+}
+
+.login-box .login-close-btn:hover,
+.logout-box .logout-close-btn:hover {
+    opacity: 1;
+    transform: scale(1.15);
+    background: rgba(135, 64, 141, 0.1);
+    border-radius: 4px;
+}
+
+.login-box .login-close-btn:active,
+.logout-box .logout-close-btn:active {
+    transform: scale(0.95);
+}
+
 /* Compact layout */
 .login-content.login-compact {
     display: flex;

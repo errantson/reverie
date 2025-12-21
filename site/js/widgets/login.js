@@ -99,6 +99,11 @@ class LoginWidget {
     showLoginPopup() {
         console.log('🔐 showLoginPopup() called');
         
+        // Hide any active dialogues (login has higher priority)
+        if (window.DialogueManager && window.DialogueManager.hideActive) {
+            window.DialogueManager.hideActive();
+        }
+        
         // Debounce: prevent rapid double-calls
         const now = Date.now();
         if (now - this.lastPopupTime < this.popupDebounceMs) {
@@ -146,11 +151,14 @@ class LoginWidget {
     }
     showLoginPopupDisabled() {
         console.log('🚫 showLoginPopupDisabled() called');
+        
+        // Hide any active dialogues (login has higher priority)
+        if (window.DialogueManager && window.DialogueManager.hideActive) {
+            window.DialogueManager.hideActive();
+        }
+        
         const overlay = document.createElement('div');
         overlay.className = 'login-overlay';
-        // Ensure overlay and its box sit above header and other chrome
-        overlay.style.zIndex = '99999';
-        box.style.zIndex = '100000';
         console.log('   Created overlay:', overlay);
         const loginBox = document.createElement('div');
         loginBox.className = 'login-box login-disabled';
@@ -159,6 +167,7 @@ class LoginWidget {
             .getPropertyValue('--reverie-core-color').trim() || this.coreColor || '#87408d';
         console.log('   Using core color:', coreColor);
         loginBox.innerHTML = `
+            <button class="login-close-btn" id="loginDisabledClose" aria-label="Close">×</button>
             <div class="login-content">
                 <img src="/assets/icon.png" alt="Reverie House" class="login-logo">
                 <div class="login-disabled-message">
@@ -180,6 +189,17 @@ class LoginWidget {
             loginBox.classList.add('visible');
             console.log('✅ Login popup should now be visible');
         }, 10);
+        
+        // Close button handler
+        const closeBtn = document.getElementById('loginDisabledClose');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                overlay.classList.remove('visible');
+                loginBox.classList.remove('visible');
+                setTimeout(() => overlay.remove(), 300);
+            });
+        }
+        
         const enterBtn = document.getElementById('loginDisabledEnter');
         enterBtn.addEventListener('mousedown', () => {
             enterBtn.classList.add('pressed');
@@ -213,6 +233,11 @@ class LoginWidget {
         document.addEventListener('keydown', escapeHandler);
     }
     showMessage(title, message, isError = false) {
+        // Hide any active dialogues (login messages have higher priority)
+        if (window.DialogueManager && window.DialogueManager.hideActive) {
+            window.DialogueManager.hideActive();
+        }
+        
         const overlay = document.createElement('div');
         overlay.className = 'login-overlay';
         const messageBox = document.createElement('div');
@@ -257,6 +282,11 @@ class LoginWidget {
     }
 
     async showDeactivatedPanel(former, events, fallbackHandle) {
+        // Hide any active dialogues (login has higher priority)
+        if (window.DialogueManager && window.DialogueManager.hideActive) {
+            window.DialogueManager.hideActive();
+        }
+        
         // Render a compact 'dissipated' panel. Try to enrich with live DB data like Profile widget.
         const overlay = document.createElement('div');
         overlay.className = 'login-overlay';
@@ -543,6 +573,11 @@ class LoginWidget {
         });
     }
     showLoginPopupEnabled() {
+        // Hide any active dialogues (login has higher priority)
+        if (window.DialogueManager && window.DialogueManager.hideActive) {
+            window.DialogueManager.hideActive();
+        }
+        
         const overlay = document.createElement('div');
         overlay.className = 'login-overlay';
         const loginBox = document.createElement('div');
@@ -552,6 +587,7 @@ class LoginWidget {
         
         loginBox.innerHTML = `
             <div class="login-content login-compact">
+                <button class="login-close-btn" id="loginClose" aria-label="Close">×</button>
                 <div class="login-header-row">
                     <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
                     <div class="login-info-box">
@@ -1021,8 +1057,10 @@ class LoginWidget {
                     localStorage.setItem('BSKY_AGENT(sub)', result.session.sub || result.session.did);
                     localStorage.setItem('pds_session', JSON.stringify(result.session));
                     
+                    // Dispatch oauth:login event - the event listener in setupLoginTriggers() 
+                    // will handle calling triggerUserLogin(), so don't call it directly here
+                    // to avoid double-triggering pigeon messages
                     window.dispatchEvent(new CustomEvent('oauth:login', { detail: { session: result.session } }));
-                    this.triggerUserLogin(result.session.did || result.session.sub);
                     
                     overlay.classList.remove('visible');
                     loginBox.classList.remove('visible');
@@ -1090,13 +1128,16 @@ class LoginWidget {
             }, 300);
         });
         
-        // Cancel button
-        document.getElementById('loginCancel').addEventListener('click', () => {
-            overlay.classList.remove('visible');
-            loginBox.classList.remove('visible');
-            setTimeout(() => overlay.remove(), 300);
-            window.dispatchEvent(new CustomEvent('oauth:cancel'));
-        });
+        // Close button
+        const closeBtn = document.getElementById('loginClose');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                overlay.classList.remove('visible');
+                loginBox.classList.remove('visible');
+                setTimeout(() => overlay.remove(), 300);
+                window.dispatchEvent(new CustomEvent('oauth:cancel'));
+            });
+        }
         
         // Click outside to close
         overlay.addEventListener('click', (e) => {
@@ -1112,6 +1153,11 @@ class LoginWidget {
     // REMOVED: showBlueskyLoginForm and showDreamweaverLoginForm - functionality merged into showLoginPopupEnabled()
     
     showLogoutPopup(session) {
+        // Hide any active dialogues (logout has higher priority)
+        if (window.DialogueManager && window.DialogueManager.hideActive) {
+            window.DialogueManager.hideActive();
+        }
+        
         const overlay = document.createElement('div');
         overlay.className = 'logout-overlay';
         const logoutBox = document.createElement('div');

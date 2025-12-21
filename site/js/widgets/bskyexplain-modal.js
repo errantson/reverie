@@ -79,9 +79,6 @@ class BskyExplainModal {
                 <p class="bskyexplain-text">You can answer on Bluesky and come right back — or login to continue.</p>
                 
                 <div class="bskyexplain-actions">
-                    <button class="bskyexplain-btn bskyexplain-btn-secondary" data-action="login">
-                        Dreamweaver Login
-                    </button>
                     <a href="https://bsky.app/profile/reverie.house/post/3lljjzcydwc25" target="_blank" rel="noopener noreferrer" class="bskyexplain-btn bskyexplain-btn-primary">
                         Answer on Bluesky
                     </a>
@@ -132,11 +129,17 @@ class BskyExplainModal {
             });
         }
         
-        // Click outside to close
+        // Click outside to close (stop propagation to prevent shadowbox from closing)
         this.overlay.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from reaching shadowbox behind
             if (e.target === this.overlay) {
                 this.close();
             }
+        });
+        
+        // Also prevent modal box clicks from propagating
+        this.modalBox.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
         
         // Escape key to close

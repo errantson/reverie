@@ -15,7 +15,6 @@ class HomepageBubbles {
         this.bubbleContainer = null;
         this.souvenirsData = null;
         this.autoBubbleInterval = null;
-        this.bubbleDelay = 10000; // 10 seconds before bubbles start
         this.initialized = false;
         this.maxBubbles = 10; // Maximum bubbles on screen
         this.activeBubbles = []; // Physics objects
@@ -23,6 +22,8 @@ class HomepageBubbles {
         this.isActive = true;
         this.rafId = null;
         this.lastTime = 0;
+        this.hasSpawnedFirstClickBubble = false; // Track if first-click bubble was spawned
+        this.clickCount = 0; // Track total clicks for chance-based spawning
         
         // Spawn timing
         this.spawnRate = 4000;
@@ -52,7 +53,7 @@ class HomepageBubbles {
         };
     }
 
-    init() {
+    async init() {
         if (this.initialized) return;
         this.initialized = true;
 
@@ -74,14 +75,12 @@ class HomepageBubbles {
         // Set up visibility handling
         this.setupVisibilityHandling();
 
-        // Load souvenirs data
-        this.loadSouvenirsData();
+        // Load souvenirs data first, then start bubbles
+        await this.loadSouvenirsData();
 
-        // Start bubbles after delay
-        setTimeout(() => {
-            this.startBubbles();
-            this.startPhysicsLoop();
-        }, this.bubbleDelay);
+        // Start bubbles and physics immediately after data is ready
+        this.startBubbles();
+        this.startPhysicsLoop();
     }
 
     setupVisibilityHandling() {
@@ -141,12 +140,21 @@ class HomepageBubbles {
             
             if (this.activeBubbles.length >= this.maxBubbles) return;
 
-            const keys = Object.keys(this.souvenirsData);
-            const randomKey = keys[Math.floor(Math.random() * keys.length)];
-            const souvenir = this.souvenirsData[randomKey];
-            const form = souvenir.forms[souvenir.forms.length - 1];
+            // Check if user is logged in
+            const isLoggedIn = window.oauthManager?.getSession()?.did;
+            
+            if (!isLoggedIn) {
+                // For non-logged-in users, spawn special action bubbles
+                this.createSpecialBubble();
+            } else {
+                // For logged-in users, spawn regular souvenir bubbles
+                const keys = Object.keys(this.souvenirsData);
+                const randomKey = keys[Math.floor(Math.random() * keys.length)];
+                const souvenir = this.souvenirsData[randomKey];
+                const form = souvenir.forms[souvenir.forms.length - 1];
 
-            this.createBubble(form.icon, randomKey, form.name);
+                this.createBubble(form.icon, randomKey, form.name);
+            }
         };
 
         spawnBubble();
@@ -158,7 +166,28 @@ class HomepageBubbles {
         }, this.spawnRate);
     }
 
-    createBubble(iconUrl, key, name) {
+    /**
+     * Create a special action bubble for non-logged-in users
+     * These bubbles have specific icons and trigger login or dialogue
+     */
+    createSpecialBubble() {
+        if (!this.bubbleContainer) return;
+
+        // Define special bubbles with their actions
+        const specialBubbles = [
+            { icon: '/souvenirs/residence/icon.png', name: 'Residence', action: 'login' },
+            { icon: '/souvenirs/letter/invite/icon.png', name: 'Invite', action: 'login' },
+            { icon: '/souvenirs/bell/icon.png', name: 'Bell', action: 'dialogue' },
+            { icon: '/souvenirs/dream/strange/icon.png', name: 'Strange', action: 'dialogue' },
+        ];
+
+        // Pick a random special bubble
+        const bubble = specialBubbles[Math.floor(Math.random() * specialBubbles.length)];
+        
+        this.createBubble(bubble.icon, null, bubble.name, bubble.action);
+    }
+
+    createBubble(iconUrl, key, name, actionType = 'souvenir') {
         if (!this.bubbleContainer) return;
 
         const size = 50 + Math.random() * 30;
@@ -194,13 +223,43 @@ class HomepageBubbles {
             opacity: 0.85;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
             pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-user-drag: none;
         `;
 
         bubble.appendChild(icon);
         
-        // Click to navigate
-        bubble.addEventListener('click', () => {
-            window.location.href = `/souvenirs?key=${key}`;
+        // Click handler based on action type
+        bubble.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            
+            if (actionType === 'login') {
+                // Open login popup
+                console.log('🫧 [Bubble] Opening login for:', name);
+                if (window.loginWidget) {
+                    window.loginWidget.showLoginPopup();
+                } else {
+                    console.error('❌ [Bubble] Login widget not available');
+                }
+            } else if (actionType === 'dialogue') {
+                // Open errantson dialogue
+                console.log('🫧 [Bubble] Opening dialogue for:', name);
+                if (window.Shadowbox) {
+                    const shadowbox = new window.Shadowbox({
+                        showCloseButton: false
+                    });
+                    await shadowbox.showDialogue('core:welcome');
+                } else {
+                    console.error('❌ [Bubble] Shadowbox not available');
+                }
+            } else if (actionType === 'souvenir' && key) {
+                // Navigate to souvenir (for logged-in users)
+                const isLoggedIn = window.oauthManager?.getSession()?.did;
+                if (isLoggedIn) {
+                    window.location.href = `/souvenirs?key=${key}`;
+                }
+            }
         });
 
         // Hover effect - visual only, bubble keeps moving
@@ -255,6 +314,278 @@ class HomepageBubbles {
             bubble.style.opacity = '0.9';
             bubbleData.opacity = 0.9;
         });
+    }
+
+    /**
+     * Create a souvenir bubble at a specific position (for first-click interaction)
+     * Uses the largest bubble size and spawns with physics already active
+     * First bubble uses errantson face icon and opens dialogue
+     * @param {number} x - X position to spawn at
+     * @param {number} y - Y position to spawn at
+     * @returns {boolean} - True if bubble was created successfully
+     */
+    createBubbleAt(x, y) {
+        if (!this.bubbleContainer) return false;
+        
+        // First bubble is always errantson face
+        const iconUrl = '/assets/icon_face.png';
+        const iconName = 'Errantson';
+        
+        // Use the largest size (80px - the max of normal spawn range)
+        const size = 80;
+        const bubble = document.createElement('div');
+        
+        bubble.className = 'homepage-bubble first-click-bubble';
+        bubble.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(200,220,255,0.4));
+            border: 2px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15), 
+                        inset -3px -3px 15px rgba(0,0,0,0.08),
+                        inset 3px 3px 12px rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.6s ease, box-shadow 0.2s ease;
+            will-change: transform;
+        `;
+
+        const icon = document.createElement('img');
+        icon.src = iconUrl;
+        icon.alt = iconName;
+        icon.style.cssText = `
+            width: ${size * 0.80}px;
+            height: ${size * 0.80}px;
+            opacity: 0.85;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-user-drag: none;
+        `;
+
+        bubble.appendChild(icon);
+        
+        // Click to open errantson dialogue (same as header button)
+        bubble.addEventListener('click', async (e) => {
+            e.stopPropagation(); // Prevent triggering other click handlers
+            
+            // Open errantson dialogue
+            console.log('🫧 [Bubble] Opening errantson dialogue');
+            if (window.Shadowbox) {
+                const shadowbox = new window.Shadowbox({
+                    showCloseButton: false
+                });
+                await shadowbox.showDialogue('core:welcome');
+            } else {
+                console.error('❌ [Bubble] Shadowbox utility not loaded');
+            }
+        });
+
+        // Hover effect
+        bubble.addEventListener('mouseenter', () => {
+            bubble.style.boxShadow = '0 6px 30px rgba(0,0,0,0.25), inset -4px -4px 20px rgba(0,0,0,0.12), inset 4px 4px 18px rgba(255,255,255,0.6)';
+        });
+        bubble.addEventListener('mouseleave', () => {
+            bubble.style.boxShadow = '';
+        });
+
+        this.bubbleContainer.appendChild(bubble);
+
+        // Position centered on click point
+        const startX = x - size / 2;
+        const startY = y - size / 2;
+
+        // Physics state - spawn with gentle initial velocity influenced by wind direction
+        const bubbleData = {
+            element: bubble,
+            size: size,
+            radius: size / 2,
+            mass: size / 60,
+            
+            // Position at click point
+            x: startX,
+            y: startY,
+            
+            // Gentle initial velocity - slight push from the wind
+            vx: 15 + Math.random() * 25, // Gentle rightward drift
+            vy: (Math.random() - 0.5) * 30, // Mild vertical variance
+            
+            // Rotation
+            rotation: Math.random() * 360,
+            angularVel: (Math.random() - 0.5) * 30,
+            
+            // Individual characteristics
+            windSensitivity: 0.6 + Math.random() * 0.8,
+            turbulencePhase: Math.random() * Math.PI * 2,
+            turbulenceFreq: 0.3 + Math.random() * 0.8,
+            verticalDrift: (Math.random() - 0.5) * 20,
+            buoyancyFactor: 0.6 + Math.random() * 0.8,
+            
+            // State
+            age: 0,
+            opacity: 0,
+        };
+
+        this.activeBubbles.push(bubbleData);
+
+        // Fade in with a gentle appearance
+        requestAnimationFrame(() => {
+            bubble.style.opacity = '0.9';
+            bubbleData.opacity = 0.9;
+        });
+        
+        console.log(`🫧 First-click bubble spawned: ${iconName} at (${x}, ${y})`);
+        return true;
+    }
+
+    /**
+     * Handle click to potentially spawn a bubble
+     * - First click: Always spawns errantson face bubble that opens dialogue
+     * - Clicks 2-5: No bubble spawning
+     * - Clicks 6+: 1 in 8 chance to spawn a small souvenir bubble
+     * @param {number} x - Click X position
+     * @param {number} y - Click Y position
+     * @returns {boolean} - True if a bubble was spawned
+     */
+    handleFirstClick(x, y) {
+        this.clickCount++;
+        
+        // Wait for souvenirs data to be loaded
+        if (!this.souvenirsData) {
+            console.log('🫧 Click - souvenirs data not loaded yet');
+            return false;
+        }
+        
+        // First click: always spawn large bubble
+        if (!this.hasSpawnedFirstClickBubble) {
+            this.hasSpawnedFirstClickBubble = true;
+            return this.createBubbleAt(x, y);
+        }
+        
+        // After 5th click: 1 in 8 chance to spawn a small bubble
+        if (this.clickCount > 5 && Math.random() < 0.125) {
+            return this.createSmallBubbleAt(x, y);
+        }
+        
+        return false;
+    }
+
+    /**
+     * Create a small souvenir bubble at a specific position (for chance-based spawning)
+     * @param {number} x - X position to spawn at
+     * @param {number} y - Y position to spawn at
+     * @returns {boolean} - True if bubble was created successfully
+     */
+    createSmallBubbleAt(x, y) {
+        if (!this.bubbleContainer || !this.souvenirsData) return false;
+        
+        // Pick a random souvenir
+        const keys = Object.keys(this.souvenirsData);
+        if (keys.length === 0) return false;
+        
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
+        const souvenir = this.souvenirsData[randomKey];
+        const form = souvenir.forms[souvenir.forms.length - 1];
+        
+        // Use the smallest size (50px - the min of normal spawn range)
+        const size = 50;
+        const bubble = document.createElement('div');
+        
+        bubble.className = 'homepage-bubble click-spawned-bubble';
+        bubble.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(200,220,255,0.4));
+            border: 2px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15), 
+                        inset -3px -3px 15px rgba(0,0,0,0.08),
+                        inset 3px 3px 12px rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.5s ease, box-shadow 0.2s ease;
+            will-change: transform;
+        `;
+
+        const icon = document.createElement('img');
+        icon.src = form.icon;
+        icon.alt = form.name;
+        icon.style.cssText = `
+            width: ${size * 0.80}px;
+            height: ${size * 0.80}px;
+            opacity: 0.85;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-user-drag: none;
+        `;
+
+        bubble.appendChild(icon);
+        
+        // Click to navigate
+        bubble.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.location.href = `/souvenirs?key=${randomKey}`;
+        });
+
+        // Hover effect
+        bubble.addEventListener('mouseenter', () => {
+            bubble.style.boxShadow = '0 6px 30px rgba(0,0,0,0.25), inset -4px -4px 20px rgba(0,0,0,0.12), inset 4px 4px 18px rgba(255,255,255,0.6)';
+        });
+        bubble.addEventListener('mouseleave', () => {
+            bubble.style.boxShadow = '';
+        });
+
+        this.bubbleContainer.appendChild(bubble);
+
+        // Position centered on click point
+        const startX = x - size / 2;
+        const startY = y - size / 2;
+
+        // Physics state - spawn with gentle velocity
+        const bubbleData = {
+            element: bubble,
+            size: size,
+            radius: size / 2,
+            mass: size / 60,
+            x: startX,
+            y: startY,
+            vx: 10 + Math.random() * 20,
+            vy: (Math.random() - 0.5) * 25,
+            rotation: Math.random() * 360,
+            angularVel: (Math.random() - 0.5) * 40,
+            windSensitivity: 0.7 + Math.random() * 0.6,
+            turbulencePhase: Math.random() * Math.PI * 2,
+            turbulenceFreq: 0.4 + Math.random() * 0.6,
+            verticalDrift: (Math.random() - 0.5) * 15,
+            buoyancyFactor: 0.7 + Math.random() * 0.6,
+            age: 0,
+            opacity: 0,
+        };
+
+        this.activeBubbles.push(bubbleData);
+
+        // Fade in
+        requestAnimationFrame(() => {
+            bubble.style.opacity = '0.9';
+            bubbleData.opacity = 0.9;
+        });
+        
+        console.log(`🫧 Bonus bubble spawned: ${form.name} at (${x}, ${y})`);
+        return true;
     }
 
     startPhysicsLoop() {

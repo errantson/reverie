@@ -430,8 +430,17 @@ class Dialogue {
         // Add to page
         document.body.appendChild(this.container);
         
-        // Note: Container background clicks do NOT close the dialogue
-        // Users must use the X button or complete the dialogue
+        // Allow shadowbox (container background) clicks to close the dialogue
+        // BUT only if not embedded in a shadowbox (which has its own click handling)
+        this._containerClickHandler = (e) => {
+            // Only close if clicking directly on the container (shadowbox), not the dialogue box
+            // AND only if we're in standalone mode (position: fixed)
+            if (e.target === this.container && this.container.style.position === 'fixed') {
+                console.log('🎭 [dialogue.js] Shadowbox clicked, closing dialogue');
+                this.end();
+            }
+        };
+        this.container.addEventListener('click', this._containerClickHandler);
         
         // Set up click handler on dialogue box for advancing
         this.dialogueBox.addEventListener('click', () => this.handleClick());
@@ -471,6 +480,15 @@ class Dialogue {
         setTimeout(() => {
             this.container.classList.add('visible');
         }, 50);
+        
+        // Set up escape key handler
+        this._escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                console.log('🎭 [dialogue.js] Escape key pressed, closing dialogue');
+                this.end();
+            }
+        };
+        document.addEventListener('keydown', this._escapeHandler);
         
         // Callback
         if (this.onStart) {
@@ -1202,6 +1220,12 @@ class Dialogue {
     end() {
         // Release the dialogue lock
         window.DialogueManager.release();
+        
+        // Remove escape key handler if it exists
+        if (this._escapeHandler) {
+            document.removeEventListener('keydown', this._escapeHandler);
+            this._escapeHandler = null;
+        }
         
         // Fade out
         this.container.classList.remove('visible');
