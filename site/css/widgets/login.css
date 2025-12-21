@@ -20,8 +20,8 @@
     border: 2px solid #87408d;
     border-radius: 0;
     box-shadow: 0 8px 32px rgba(135, 64, 141, 0.3);
-    padding: 20px 24px;
-    max-width: 400px;
+    padding: 28px 32px;
+    max-width: 480px;
     width: 90%;
     text-align: center;
     transform: scale(0.9);
@@ -36,18 +36,98 @@
     flex-direction: column;
     gap: 0;
 }
+/* Header row with logo and info box */
+.login-header-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 14px;
+}
 .login-content.login-compact .login-logo {
-    margin-bottom: 8px;
+    width: auto;
+    height: 110px;
+    flex-shrink: 0;
+}
+.login-info-box {
+    flex: 1;
+    border: 1px solid rgba(135, 64, 141, 0.25);
+    padding: 12px 14px;
+    background: rgba(135, 64, 141, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 90px;
+    justify-content: center;
+    max-width: 220px;
+}
+.login-info-text {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #666;
+    line-height: 1.5;
+    text-align: center;
+}
+.login-info-box .login-become-btn {
+    width: 100%;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    gap: 0;
+    border: 2px solid;
+    border-color: var(--core-color, #87408d);
+    color: white;
+    background: var(--core-color, #87408d);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
+}
+.login-info-box .login-become-btn:hover {
+    background: transparent;
+    color: var(--core-color, #87408d);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(135, 64, 141, 0.25);
+}
+.login-info-box .login-become-btn img {
+    display: none;
+}
+.become-btn-glow {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shine 3s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes shine {
+    0% {
+        left: -100%;
+    }
+    50%, 100% {
+        left: 100%;
+    }
+}
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
 }
 .login-content.login-compact .login-form {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 .login-prompt-text {
     margin: 0;
-    font-size: 0.75rem;
-    color: #888;
+    font-size: 0.8rem;
+    color: #666;
     text-align: center;
 }
 .login-handle-input-group {
@@ -57,47 +137,77 @@
     display: none;
 }
 .login-status-message {
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 0.8rem;
+    padding: 10px 14px;
+    border-radius: 0;
+    font-size: 0.85rem;
     text-align: center;
-    line-height: 1.3;
+    line-height: 1.4;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
     background: rgba(135, 64, 141, 0.05);
-    border: 1px solid rgba(135, 64, 141, 0.2);
+    border: 1px solid rgba(135, 64, 141, 0.15);
     color: #555;
+}
+/* Divider */
+.login-divider {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 0 0 10px 0;
+    position: relative;
+}
+.login-divider::before {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(135, 64, 141, 0.15);
+}
+.login-divider span {
+    padding: 0 16px;
+    font-size: 0.75rem;
+    color: #999;
+    text-transform: lowercase;
+    text-align: center;
+    white-space: nowrap;
+}
+.login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(135, 64, 141, 0.15);
 }
 /* Buttons row - side door + main */
 .login-buttons-row {
     display: flex;
-    gap: 8px;
-    align-items: center;
+    gap: 10px;
+    align-items: stretch;
+    margin-top: 4px;
 }
 .login-side-door-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 22%;
-    min-width: 70px;
-    padding: 2px 8px;
+    width: 28%;
+    min-width: 80px;
+    padding: 4px 10px;
     background: transparent;
-    border: 1px solid #aaa;
+    border: 1px solid #bbb;
     border-radius: 0;
-    font-size: 0.65rem;
-    font-weight: 400;
+    font-size: 0.7rem;
+    font-weight: 500;
     color: #888;
     cursor: not-allowed;
     opacity: 0.4;
     transition: all 0.2s ease;
     text-align: center;
     line-height: 1.2;
+    min-height: 41px;
 }
 .login-side-door-btn.visible {
-    opacity: 0.8;
+    opacity: 1;
     cursor: pointer;
 }
 .login-side-door-btn.visible:hover {
@@ -105,21 +215,25 @@
     background: rgba(135, 64, 141, 0.05);
 }
 .login-side-door-sub {
-    font-size: 0.55rem;
-    opacity: 0.8;
+    font-size: 0.6rem;
+    opacity: 0.7;
+    margin-top: 1px;
 }
 .login-main-btn {
     flex: 1;
+    min-height: 48px;
 }
 .login-main-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
-/* New section */
+/* New section - prominent */
 .login-new-section {
-    border-top: 1px solid rgba(135, 64, 141, 0.1);
-    padding-top: 10px;
-    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
 }
 .login-new-text {
     margin: 0 0 6px 0;
@@ -127,16 +241,31 @@
     color: #888;
     text-align: center;
 }
+.login-new-subtext {
+    margin: 0;
+    font-size: 0.7rem;
+    color: #999;
+    text-align: center;
+    font-style: italic;
+}
 .login-become-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 10px;
     background: transparent;
-    padding: 10px 16px;
+    padding: 14px 20px;
+    width: 100%;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.login-become-btn:hover {
+    background: rgba(135, 64, 141, 0.08);
+    transform: translateY(-1px);
 }
 .login-cancel-btn {
-    margin-top: 8px;
+    display: none;
 }
 .login-box.login-disabled {
     max-width: 320px;
@@ -370,6 +499,17 @@
         max-width: 85%;
         padding: 28px 24px;
     }
+    .login-header-row {
+        flex-direction: column;
+        align-items: center;
+    }
+    .login-content.login-compact .login-logo {
+        width: 50%;
+        max-width: 180px;
+    }
+    .login-info-box {
+        width: 100%;
+    }
     .login-message-box {
         max-width: 80%;
         padding: 24px 20px;
@@ -385,6 +525,9 @@
     .login-box, .logout-box {
         max-width: 95%;
         padding: 24px 20px;
+    }
+    .login-header-row {
+        gap: 12px;
     }
     .login-message-box {
         max-width: 90%;

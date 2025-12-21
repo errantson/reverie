@@ -552,9 +552,22 @@ class LoginWidget {
         
         loginBox.innerHTML = `
             <div class="login-content login-compact">
-                <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
+                <div class="login-header-row">
+                    <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
+                    <div class="login-info-box">
+                        <p class="login-info-text" style="font-size: 0.75rem;">Discover a community of dreamweavers, exploring our wild mindscape.</p>
+                        <button id="loginBecomeResident" class="login-method-btn login-become-btn" style="--core-color: ${coreColor};">
+                            <span class="become-btn-glow"></span>
+                            <span>Become a Dreamweaver</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="login-divider">
+                    <span>or, enter via name or handle</span>
+                </div>
+                
                 <div class="login-form">
-                    <p class="login-prompt-text">enter your name or handle</p>
                     <div class="login-handle-input-group">
                         <span class="login-handle-prefix">@</span>
                         <input 
@@ -567,6 +580,12 @@ class LoginWidget {
                             spellcheck="false"
                         >
                     </div>
+                    
+                    <div id="loginStatusMessage" class="login-status-message">
+                        <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
+                        <span>hello, dreamer?</span>
+                    </div>
+                    
                     <div id="loginPasswordGroup" class="login-password-group">
                         <div class="login-handle-input-group">
                             <span class="login-handle-prefix">🔑</span>
@@ -574,35 +593,24 @@ class LoginWidget {
                                 type="password" 
                                 id="loginPassword" 
                                 class="login-handle-input" 
-                                placeholder="app-password"
+                                placeholder="app password"
                                 autocomplete="current-password"
                                 autocapitalize="off"
                                 spellcheck="false"
                             >
                         </div>
                     </div>
-                    <div id="loginStatusMessage" class="login-status-message">
-                        <img src="/assets/icon.png" alt="" style="width: 16px; height: 16px;">
-                        <span>enter your handle to continue</span>
-                    </div>
+                    
                     <div class="login-buttons-row">
                         <button id="loginSideDoor" class="login-side-door-btn" disabled>
-                            <span id="loginSideDoorText">Side Door</span>
-                            <span class="login-side-door-sub">(just visiting)</span>
+                            <span id="loginSideDoorText">side door</span>
+                            <span class="login-side-door-sub">(read only)</span>
                         </button>
                         <button id="loginSubmit" class="login-method-btn login-main-btn" disabled>
-                            <span id="loginSubmitText">Main Entrance</span>
-                        </button>
-                    </div>
-                    <div class="login-new-section">
-                        <p class="login-new-text">new to our wild mindscape?</p>
-                        <button id="loginBecomeResident" class="login-method-btn login-become-btn" style="border-color: ${coreColor}; color: ${coreColor};">
-                            <img src="/assets/icon.png" alt="" style="width: 16px; height: 16px;">
-                            <span>Become a Dreamweaver</span>
+                            <span id="loginSubmitText">Enter</span>
                         </button>
                     </div>
                 </div>
-                <button id="loginCancel" class="login-cancel-btn">Close</button>
             </div>
         `;
         
@@ -679,8 +687,8 @@ class LoginWidget {
             statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
             statusMessage.style.color = '#555';
             statusMessage.innerHTML = `
-                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px; animation: spin 2s linear infinite;">
-                <span>Checking...</span>
+                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px; animation: spin 1.5s linear infinite;">
+                <span>finding you...</span>
             `;
             if (!document.getElementById('spin-keyframes')) {
                 const style = document.createElement('style');
@@ -708,7 +716,7 @@ class LoginWidget {
                             statusMessage.style.color = '#888';
                             statusMessage.innerHTML = `
                                 <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
-                                <span>enter full handle (eg. name.bsky.social)</span>
+                                <span>enter your full handle</span>
                             `;
                             submitBtn.disabled = true;
                             submitBtn.style.opacity = '0.5';
@@ -722,7 +730,7 @@ class LoginWidget {
                         statusMessage.style.color = '#888';
                         statusMessage.innerHTML = `
                             <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
-                            <span>enter full handle (eg. name.bsky.social)</span>
+                            <span>enter your full handle</span>
                         `;
                         submitBtn.disabled = true;
                         submitBtn.style.opacity = '0.5';
@@ -764,27 +772,41 @@ class LoginWidget {
                 let heraldry = window.heraldrySystem ? window.heraldrySystem.getByServer(serviceEndpoint) : null;
                 let accountIcon = heraldry ? heraldry.icon : '/assets/wild_mindscape.png';
                 let accountColor = heraldry ? heraldry.color : '#2d3748';
-                let accountName = heraldry ? heraldry.fullName : 'Honoured Guest';
+                let accountName = 'welcome, honoured guest';
+                let isDreamweaver = false;
+                let isResident = false;
+                
+                // Check if user is a known dreamweaver in our database
+                try {
+                    const dbResponse = await fetch('/api/database/all');
+                    if (dbResponse.ok) {
+                        const dbData = await dbResponse.json();
+                        const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
+                        const dreamer = dreamers.find(d => d.did === did);
+                        if (dreamer) {
+                            isDreamweaver = true;
+                            if (dreamer.color_hex) {
+                                accountColor = dreamer.color_hex;
+                                console.log(`🎨 [Login] Found dreamweaver color: ${accountColor}`);
+                            }
+                            // Check if they're a resident
+                            if (serviceEndpoint === 'https://reverie.house') {
+                                isResident = true;
+                                accountName = 'welcome home, dreamweaver';
+                            } else {
+                                accountName = 'welcome back, dreamweaver';
+                            }
+                        }
+                    }
+                } catch (colorError) {
+                    console.warn('🎨 [Login] Could not fetch dreamweaver data:', colorError);
+                }
+                
                 
                 // Residents use password auth (OAuth same-origin doesn't work with PDS)
                 // Everyone else uses OAuth
                 if (serviceEndpoint === 'https://reverie.house') {
                     authMode = 'pds';
-                    // Fetch resident's personal color from the database
-                    try {
-                        const dbResponse = await fetch('/api/database/all');
-                        if (dbResponse.ok) {
-                            const dbData = await dbResponse.json();
-                            const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
-                            const resident = dreamers.find(d => d.did === did);
-                            if (resident && resident.color_hex) {
-                                accountColor = resident.color_hex;
-                                console.log(`🎨 [Login] Found resident color: ${accountColor}`);
-                            }
-                        }
-                    } catch (colorError) {
-                        console.warn('🎨 [Login] Could not fetch resident color:', colorError);
-                    }
                     // Show password field for residents
                     passwordGroup.style.display = 'block';
                     // Hide side door for residents (they already have full access)
@@ -817,6 +839,10 @@ class LoginWidget {
                     <strong>${accountName}</strong>
                 `;
                 
+                // Apply heraldry color to login box border and background tint
+                loginBox.style.borderColor = accountColor;
+                loginBox.style.background = `linear-gradient(${hexToRgba(accountColor, 0.02)}, ${hexToRgba(accountColor, 0.02)}), white`;
+                
                 submitBtn.disabled = false;
                 submitBtn.style.opacity = '1';
                 submitBtn.style.cursor = 'pointer';
@@ -828,7 +854,7 @@ class LoginWidget {
                 if (serviceEndpoint === 'https://reverie.house') {
                     submitText.textContent = 'Welcome Home';
                 } else if (serviceEndpoint.includes('bsky.network')) {
-                    submitText.textContent = 'Continue with Bluesky';
+                    submitText.textContent = 'Enter via Bluesky';
                 } else {
                     submitText.textContent = 'Enter as Guest';
                 }
@@ -850,16 +876,18 @@ class LoginWidget {
             statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
             statusMessage.style.color = '#555';
             statusMessage.innerHTML = `
-                <img src="/assets/icon.png" alt="" style="width: 16px; height: 16px;">
-                <span>enter your handle to continue</span>
+                <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
+                <span>hello, dreamer?</span>
             `;
+            loginBox.style.borderColor = '';
+            loginBox.style.background = '';
             submitBtn.disabled = true;
             submitBtn.style.opacity = '0.5';
             submitBtn.style.cursor = 'not-allowed';
             submitBtn.style.background = '';
             submitBtn.style.borderColor = '';
             submitBtn.style.color = '';
-            submitText.textContent = 'Main Entrance';
+            submitText.textContent = 'Enter';
         };
         
         const showNotFound = () => {
@@ -871,8 +899,8 @@ class LoginWidget {
             statusMessage.style.border = '1px solid rgba(217, 72, 72, 0.2)';
             statusMessage.style.color = '#d94848';
             statusMessage.innerHTML = `
-                <img src="/assets/icon_face.png" alt="" style="width: 16px; height: 16px;">
-                <span>Account not found</span>
+                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px;">
+                <span>we couldn't find you</span>
             `;
             submitBtn.disabled = true;
             submitBtn.style.opacity = '0.5';
@@ -888,8 +916,8 @@ class LoginWidget {
             statusMessage.style.border = '1px solid rgba(217, 72, 72, 0.2)';
             statusMessage.style.color = '#d94848';
             statusMessage.innerHTML = `
-                <img src="/assets/icon_face.png" alt="" style="width: 16px; height: 16px;">
-                <span>Error checking account</span>
+                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px;">
+                <span>something went wrong</span>
             `;
             submitBtn.disabled = true;
             submitBtn.style.opacity = '0.5';
