@@ -509,24 +509,19 @@
                         </div>
                         
                         <!-- Right: Aesthetic Adjustments + Unfinished Dreams -->
-                        <div class="repo-data-box">
+                        <div class="repo-data-box dreamstyler-content-grid">
                             <h3 class="repo-data-header">Aesthetic Adjustments</h3>
                             <div id="dreamstyler-adjustments-content" class="repo-data-content">
                                 <div class="commits-section">
                                     <div class="commit-row placeholder-row">
-                                        <span class="commit-message">Tangled integration pending...</span>
-                                        <span class="commit-meta">soon</span>
+                                        <span class="commit-message" style="color: #999; font-style: italic;">Loading...</span>
+                                        <span class="commit-meta">—</span>
                                     </div>
                                 </div>
                                 <div class="contributors-section unfinished-dreams-section">
                                     <div class="contributors-label">Unfinished Dreams</div>
                                     <div id="unfinished-dreams-list" class="contributors-list">
-                                        <a href="https://flawed.center" target="_blank" class="dream-circle" title="flawed.center">
-                                            <span class="dream-circle-text">FC</span>
-                                        </a>
-                                        <a href="https://chaos.observer" target="_blank" class="dream-circle" title="chaos.observer">
-                                            <span class="dream-circle-text">CO</span>
-                                        </a>
+                                        <span style="color: #999; font-size: 0.75rem;">Loading...</span>
                                     </div>
                                 </div>
                             </div>
@@ -588,6 +583,14 @@
         let currentTab = 'greeter';
         let spectrumPreviewWidget = null; // Global spectrum preview widget instance
         
+        // DIDs allowed to access Dreamstyler tab (in addition to admin)
+        const DREAMSTYLER_ALLOWED_DIDS = [
+            'did:plc:sv4z2azwos6imedro2cfibrn',
+            'did:plc:ujsxisg5ogc2qikdioxw6y4u',
+            'did:plc:zwzau5z5p5ne4avjcrztr5mz',
+            'did:plc:eaqr3mneobyuahigtr7w2ykr'
+        ];
+        
         // Restore tab from localStorage on page load
         const savedTab = localStorage.getItem('work_current_tab');
         const hasAdminForRestore = !!localStorage.getItem('admin_token');
@@ -601,13 +604,34 @@
         let sessionCheckComplete = false;
         let isInitializing = false; // Prevent duplicate initialization
         let profileLoaded = false; // Track if profile is ready
+        
+        // Check if current user is allowed to see Dreamstyler tab
+        function isDreamstylerAllowed() {
+            const hasAdminAccess = !!localStorage.getItem('admin_token');
+            if (hasAdminAccess) return true;
+            
+            // Check if logged-in user's DID is in the allowed list
+            if (currentSession) {
+                const userDid = currentSession.sub || currentSession.did;
+                if (userDid && DREAMSTYLER_ALLOWED_DIDS.includes(userDid)) {
+                    return true;
+                }
+            }
+            
+            // Also check if user is already an active dreamstyler
+            if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) {
+                return true;
+            }
+            
+            return false;
+        }
 
         // Provisioner and Dreamstyler UI visibility: only for admins (or the provisioner themselves for provisioner tab)
         function enforceProvisionerVisibility() {
             const hasAdminAccess = !!localStorage.getItem('admin_token');
             const isProvisioner = roleStatuses.provisioner && roleStatuses.provisioner.is_worker;
-            const shouldShowProvisioner = hasAdminAccess || isProvisioner;
-            const shouldShowDreamstyler = hasAdminAccess; // Dreamstyler only visible with /admin
+            const shouldShowProvisioner = true; // Always show provisioner tab
+            const shouldShowDreamstyler = isDreamstylerAllowed(); // Admin, allowed DIDs, or active dreamstylers
             
             const provButton = document.querySelector('.role-tab[data-role="provisioner"]');
             if (provButton) provButton.style.display = shouldShowProvisioner ? 'flex' : 'none';
@@ -912,10 +936,278 @@
             const container = document.getElementById('dreamstyler-content-section');
             if (container) {
                 container.style.display = 'block';
-                // Load dreamstyler list and repo data
+                // Load dreamstyler list, Tangled commits, and phanera
                 loadDreamstylerList();
-                loadRepoData(); // Still load commits for right column
+                loadDreamstylerAdjustments();
+                loadPhanera();
             }
+        }
+        
+        // Load phanera from ATProto records (house.reverie.dream)
+        async function loadPhanera() {
+            const listContainer = document.getElementById('unfinished-dreams-list');
+            if (!listContainer) return;
+            
+            try {
+                // For MVP: Use known dreamweaver DIDs who might have phanera
+                // In production, this would come from a backend indexer
+                const knownDreamweavers = [
+                    // Add known dreamweavers with their DIDs as we discover them
+                    // Format: { did: 'did:plc:...', handle: 'name.reverie.house' }
+                ];
+                
+                // Also check currently logged in user if they're a dreamweaver
+                const userHandle = currentSession?.profile?.handle || currentSession?.handle || '';
+                const userPds = currentSession?.pds || '';
+                const isDreamweaver = userHandle.endsWith('.reverie.house') || userPds.includes('reverie.house');
+                
+                if (currentSession?.did && isDreamweaver) {
+                    knownDreamweavers.push({
+                        did: currentSession.did,
+                        handle: userHandle
+                    });
+                }
+                
+                const allPhanera = [];
+                
+                for (const dreamer of knownDreamweavers) {
+                    if (!dreamer.did) continue;
+                    
+                    try {
+                        // Resolve PDS
+                        const didResponse = await fetch(`https://plc.directory/${dreamer.did}`);
+                        if (!didResponse.ok) continue;
+                        const didDoc = await didResponse.json();
+                        
+                        const pdsService = didDoc.service?.find(s => s.id === '#atproto_pds');
+                        if (!pdsService) continue;
+                        const pds = pdsService.serviceEndpoint;
+                        
+                        // Fetch dream records
+                        const recordsResponse = await fetch(
+                            `${pds}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(dreamer.did)}&collection=house.reverie.dream&limit=10`
+                        );
+                        
+                        if (!recordsResponse.ok) continue;
+                        const recordsData = await recordsResponse.json();
+                        
+                        // Include all declared phanera
+                        for (const record of recordsData.records || []) {
+                            const phanera = record.value;
+                            allPhanera.push({
+                                domain: phanera.domain,
+                                title: phanera.title,
+                                tangledRepo: phanera.tangledRepo,
+                                creatorDid: dreamer.did,
+                                creatorHandle: dreamer.handle
+                            });
+                        }
+                    } catch (e) {
+                        // Silently skip failed fetches
+                    }
+                }
+                
+                if (allPhanera.length === 0) {
+                    // Use fallback phanera when no ATProto records found
+                    listContainer.innerHTML = getFallbackPhanera();
+                    return;
+                }
+                
+                // Render phanera circles
+                const phaneraHTML = allPhanera.slice(0, 8).map(p => {
+                    // Create 2-letter abbreviation from domain
+                    const parts = p.domain.split('.');
+                    const abbr = parts.length >= 2 
+                        ? (parts[0][0] + parts[1][0]).toUpperCase()
+                        : p.domain.substring(0, 2).toUpperCase();
+                    
+                    const tangledNote = p.tangledRepo ? ' 🧶' : '';
+                    return `
+                        <a href="https://${escapeHtml(p.domain)}" target="_blank" class="dream-circle" title="${escapeHtml(p.title)} (${escapeHtml(p.domain)}) by @${escapeHtml(p.creatorHandle)}${tangledNote}">
+                            <span class="dream-circle-text">${escapeHtml(abbr)}</span>
+                        </a>
+                    `;
+                }).join('');
+                
+                listContainer.innerHTML = phaneraHTML || getFallbackPhanera();
+                
+            } catch (error) {
+                console.warn('Failed to load phanera:', error);
+                listContainer.innerHTML = getFallbackPhanera();
+            }
+        }
+        
+        // Fallback phanera when ATProto fetch fails
+        function getFallbackPhanera() {
+            return `
+                <a href="https://flawed.center" target="_blank" class="dream-circle" title="flawed.center 🧶">
+                    <span class="dream-circle-text">FC</span>
+                </a>
+                <a href="https://chaos.observer" target="_blank" class="dream-circle" title="chaos.observer 🧶">
+                    <span class="dream-circle-text">CO</span>
+                </a>
+            `;
+        }
+        
+        // Load Tangled commits for dreamstylers (Aesthetic Adjustments panel)
+        async function loadDreamstylerAdjustments() {
+            const contentDiv = document.getElementById('dreamstyler-adjustments-content');
+            if (!contentDiv) return;
+            
+            // Show loading state
+            const commitsSection = contentDiv.querySelector('.commits-section');
+            if (commitsSection) {
+                commitsSection.innerHTML = `
+                    <div class="commit-row placeholder-row">
+                        <span class="commit-message" style="color: #999; font-style: italic;">Loading Tangled commits...</span>
+                        <span class="commit-meta">...</span>
+                    </div>
+                `;
+            }
+            
+            try {
+                // Get all active dreamstylers
+                const statusResponse = await fetch('/api/work/dreamstyler/status');
+                if (!statusResponse.ok) {
+                    throw new Error('Failed to fetch dreamstyler status');
+                }
+                const statusData = await statusResponse.json();
+                const workers = statusData.all_workers || [];
+                
+                if (workers.length === 0) {
+                    if (commitsSection) {
+                        commitsSection.innerHTML = `
+                            <div class="commit-row placeholder-row">
+                                <span class="commit-message" style="color: #999;">No active dreamstylers yet</span>
+                                <span class="commit-meta">—</span>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                // Fetch Tangled refUpdates for each dreamstyler
+                // Filter for commits to reverie.house repos or with dreamstyler-related prefixes
+                const allCommits = [];
+                
+                for (const worker of workers) {
+                    try {
+                        // Resolve PDS from DID
+                        const didResponse = await fetch(`https://plc.directory/${worker.did}`);
+                        if (!didResponse.ok) continue;
+                        const didDoc = await didResponse.json();
+                        
+                        const pdsService = didDoc.service?.find(s => s.id === '#atproto_pds');
+                        if (!pdsService) continue;
+                        const pds = pdsService.serviceEndpoint;
+                        
+                        // Query for Tangled git refUpdate records
+                        // sh.tangled.git.refUpdate tracks pushes
+                        const recordsResponse = await fetch(
+                            `${pds}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(worker.did)}&collection=sh.tangled.git.refUpdate&limit=20`
+                        );
+                        
+                        if (!recordsResponse.ok) continue;
+                        const recordsData = await recordsResponse.json();
+                        
+                        // Get worker's handle for display
+                        let workerHandle = worker.did.slice(-8);
+                        try {
+                            const dreamerResponse = await fetch(`/api/dreamers/${worker.did}`);
+                            if (dreamerResponse.ok) {
+                                const dreamer = await dreamerResponse.json();
+                                workerHandle = dreamer.handle || workerHandle;
+                            }
+                        } catch (e) { /* ignore */ }
+                        
+                        // Process records - filter for commits with #dreamstyler tag
+                        // Dreamstylers must opt-in by including #dreamstyler in commit message
+                        // This shows their work on ANY repo, not just phanera
+                        for (const record of recordsData.records || []) {
+                            const val = record.value;
+                            const message = val?.commits?.[0]?.message || val?.message || '';
+                            const repoName = val?.repo || '';
+                            const ref = val?.ref || '';
+                            
+                            // Only include commits with #dreamstyler tag
+                            const hasDreamstylerTag = message.toLowerCase().includes('#dreamstyler');
+                            
+                            if (hasDreamstylerTag) {
+                                allCommits.push({
+                                    did: worker.did,
+                                    handle: workerHandle,
+                                    message: message.replace(/#dreamstyler/gi, '').trim().split('\n')[0].substring(0, 80),
+                                    timestamp: val?.time || val?.createdAt || record.value?.createdAt,
+                                    repo: repoName,
+                                    ref: ref,
+                                    uri: record.uri
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to fetch Tangled commits for ${worker.did}:`, e);
+                    }
+                }
+                
+                // Sort by timestamp descending
+                allCommits.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+                
+                // Render commits
+                if (allCommits.length === 0) {
+                    if (commitsSection) {
+                        commitsSection.innerHTML = `
+                            <div class="commit-row placeholder-row">
+                                <span class="commit-message">No #dreamstyler tagged commits yet</span>
+                                <span class="commit-meta">—</span>
+                            </div>
+                            <div class="tangled-integration-note">
+                                <span class="tangled-icon">🧶</span>
+                                <span class="tangled-text">Tag commits with #dreamstyler via <a href="https://tangled.org" target="_blank">tangled.org</a></span>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                // Show up to 10 most recent commits
+                const commitRows = allCommits.slice(0, 10).map(commit => {
+                    const timeAgo = commit.timestamp ? formatTimeAgo(new Date(commit.timestamp)) : '—';
+                    return `
+                        <div class="commit-row" title="${commit.handle}: ${commit.message}">
+                            <span class="commit-message">${escapeHtml(commit.message) || 'Untitled commit'}</span>
+                            <span class="commit-meta">${timeAgo}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                if (commitsSection) {
+                    commitsSection.innerHTML = commitRows + `
+                        <div class="tangled-integration-note">
+                            <span class="tangled-icon">🧶</span>
+                            <span class="tangled-text">via <a href="https://tangled.org" target="_blank">tangled.org</a></span>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Failed to load dreamstyler adjustments:', error);
+                if (commitsSection) {
+                    commitsSection.innerHTML = `
+                        <div class="commit-row placeholder-row">
+                            <span class="commit-message" style="color: #999;">Could not load commits</span>
+                            <span class="commit-meta">—</span>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Helper to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         async function loadDreamstylerList() {
@@ -992,8 +1284,118 @@
             }
         }
         
+        // Cache for user's dreams (to avoid repeated fetches)
+        let userDreamsCache = null;
+        
+        // Fetch user's declared dreams (house.reverie.dream records)
+        async function fetchUserDreams() {
+            if (userDreamsCache !== null) return userDreamsCache;
+            
+            if (!currentSession) {
+                userDreamsCache = [];
+                return userDreamsCache;
+            }
+            
+            const userDid = currentSession.sub || currentSession.did;
+            if (!userDid) {
+                userDreamsCache = [];
+                return userDreamsCache;
+            }
+            
+            try {
+                // Resolve user's PDS
+                const didResponse = await fetch(`https://plc.directory/${userDid}`);
+                if (!didResponse.ok) {
+                    userDreamsCache = [];
+                    return userDreamsCache;
+                }
+                const didDoc = await didResponse.json();
+                const pdsService = didDoc.service?.find(s => s.id === '#atproto_pds');
+                if (!pdsService) {
+                    userDreamsCache = [];
+                    return userDreamsCache;
+                }
+                const pds = pdsService.serviceEndpoint;
+                
+                // Fetch dream records
+                const recordsResponse = await fetch(
+                    `${pds}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(userDid)}&collection=house.reverie.dream&limit=50`
+                );
+                
+                if (!recordsResponse.ok) {
+                    userDreamsCache = [];
+                    return userDreamsCache;
+                }
+                
+                const recordsData = await recordsResponse.json();
+                userDreamsCache = (recordsData.records || []).map(r => ({
+                    uri: r.uri,
+                    domain: r.value.domain,
+                    title: r.value.title,
+                    tangledRepo: r.value.tangledRepo,
+                    description: r.value.description
+                }));
+                
+                return userDreamsCache;
+            } catch (e) {
+                console.warn('Failed to fetch user phanera:', e);
+                userDreamsCache = [];
+                return userDreamsCache;
+            }
+        }
+        
+        // Check if user can entreat (has a phanera declared)
+        async function canUserEntreat() {
+            // Must be logged in
+            if (!currentSession) return { allowed: false, reason: 'login' };
+            
+            // Must be a dreamweaver: .reverie.house handle OR using reverie.house PDS
+            const handle = currentSession.profile?.handle || currentSession.handle || '';
+            const pds = currentSession.pds || '';
+            const isDreamweaver = handle.endsWith('.reverie.house') || pds.includes('reverie.house');
+            
+            if (!isDreamweaver) {
+                return { allowed: false, reason: 'not_dreamweaver', handle };
+            }
+            
+            // Must have at least one phanera (house.reverie.dream record)
+            // tangledRepo is optional - dreamstylers just need something to consider
+            const phanera = await fetchUserDreams();
+            
+            if (phanera.length === 0) {
+                return { allowed: false, reason: 'no_phanera' };
+            }
+            
+            return { allowed: true, phanera };
+        }
+        
         // Entreat a dreamstyler with a randomized plea
-        function entreatDreamstyler(handle) {
+        async function entreatDreamstyler(handle) {
+            // Gate: Check if user can entreat
+            const entreatStatus = await canUserEntreat();
+            
+            if (!entreatStatus.allowed) {
+                let message = '';
+                switch (entreatStatus.reason) {
+                    case 'login':
+                        message = 'Please log in to entreat a dreamstyler.';
+                        break;
+                    case 'not_dreamweaver':
+                        message = 'Only dreamweavers can entreat dreamstylers.\n\nUse a .reverie.house handle or connect via the Reverie House PDS.';
+                        break;
+                    case 'no_phanera':
+                        message = 'You must declare a phanera before entreating a dreamstyler.\n\nA phanera is a domain you\'re building that you want styled. Create a house.reverie.dream record to declare one.';
+                        break;
+                    default:
+                        message = 'Unable to entreat at this time.';
+                }
+                showCelebration(message, 'error');
+                return;
+            }
+            
+            // If user has multiple phanera, pick the first one (could add a picker later)
+            const phanera = entreatStatus.phanera[0];
+            
             const openers = [
                 "O magnificent @" + handle + ",",
                 "Dearest @" + handle + ", keeper of pixels,",
@@ -1006,16 +1408,16 @@
             ];
             
             const pleas = [
-                "I beseech thee to grace my unfinished dream with thy miraculous touch.",
-                "might you bestow upon my humble project the gift of your aesthetic mastery?",
-                "my dream yearns for the divine intervention of your design sensibilities.",
-                "would you honor me by casting your visionary gaze upon my pitiful CSS?",
-                "I throw myself at your mercy, hoping for but a crumb of your styling genius.",
-                "please, if it pleases you, consider blessing my creation with your talent.",
-                "I am but a dreamer lost in the void. Only you can save my gradients.",
-                "my hover states are a disaster. You are my only hope.",
-                "the shadows... they are all wrong. I need your wisdom.",
-                "might your legendary skills bring harmony to my chaotic stylesheet?"
+                `I beseech thee to grace "${phanera.title}" with thy miraculous touch.`,
+                `might you bestow upon ${phanera.domain} the gift of your aesthetic mastery?`,
+                `my phanera "${phanera.title}" yearns for the divine intervention of your design sensibilities.`,
+                `would you honor me by casting your visionary gaze upon ${phanera.domain}?`,
+                `I throw myself at your mercy, hoping for but a crumb of styling genius for ${phanera.domain}.`,
+                `please, if it pleases you, consider blessing "${phanera.title}" with your talent.`,
+                `I am but a dreamer lost in ${phanera.domain}. Only you can save my gradients.`,
+                `my hover states at ${phanera.domain} are a disaster. You are my only hope.`,
+                `the shadows at "${phanera.title}"... they are all wrong. I need your wisdom.`,
+                `might your legendary skills bring harmony to ${phanera.domain}?`
             ];
             
             const opener = openers[Math.floor(Math.random() * openers.length)];
@@ -1092,7 +1494,7 @@
             
             // Check if user is logged in
             if (!currentSession || !currentSession.profile) {
-                showCelebration('Please log in to request', 'error');
+                triggerLogin();
                 return;
             }
             
@@ -2451,7 +2853,11 @@
                     const dreamer = await dreamerResponse.json();
                     console.log('✅ Work: Dreamer info received:', dreamer);
                     const userColor = dreamer.color_hex || '#8b7355';
-                    const statusText = worker.status === 'retiring' ? ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(retiring)</span>` : worker.status === 'working' ? ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(working)</span>` : '';
+                    const statusText = worker.status === 'retiring' 
+                        ? ` <a href="#" onclick="event.preventDefault(); event.stopPropagation(); openWorkerModal('${role}');" style="color: ${userColor}; font-weight: 400; font-size: 0.85rem; text-decoration: none; cursor: pointer;">(retiring)</a>` 
+                        : worker.status === 'working' 
+                            ? ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(working)</span>` 
+                            : '';
                     const handle = dreamer.handle || 'unknown';
                     const displayName = dreamer.display_name || handle;
                     const avatar = dreamer.avatar || '/assets/default-avatar.png';
@@ -2660,7 +3066,7 @@
                 roleNameLower: 'greeter',
                 buttonText: 'BECOME GREETER',
                 confirmTitle: 'Become Greeter of Reveries?',
-                confirmMessage: 'As Greeter, you will automatically welcome new dreamers to Reverie House.',
+                confirmMessage: 'As Greeter, you will automatically message new dreamers with a personalized welcome to Reverie House.',
                 activationMessage: 'You are now the active greeter!',
                 showExamples: true,
                 getExamples: () => greetingExamples
@@ -3107,6 +3513,12 @@
                 return;
             }
             
+            // Block if user is already in THIS role
+            if (userCurrentRole && userCurrentRole === role) {
+                showCelebration(`You are already the active ${config.title}.`, 'error');
+                return;
+            }
+            
             currentModalRole = role;
             
             // Check if there's already an active worker for this role
@@ -3153,9 +3565,9 @@
                         const credData = await credResponse.json();
                         console.log('🔍 Credentials data:', credData);
                         if (credData.connected && credData.valid) {
-                            // User already has valid credentials, activate directly
-                            console.log(`✅ Using existing credentials for ${role} activation`);
-                            activateWorkerWithExistingCredentials(role);
+                            // User already has valid credentials - show confirmation before activating
+                            console.log(`✅ Found existing credentials for ${role} - showing confirmation`);
+                            showWorkerConfirmation(role, () => activateWorkerWithExistingCredentials(role));
                             return;
                         } else {
                             console.log(`⚠️ Credentials not valid: connected=${credData.connected}, valid=${credData.valid}`);
@@ -3404,21 +3816,7 @@
                 
                 if (!connectResponse.ok) {
                     const connectError = await connectResponse.json();
-                    let errorMessage = connectError.error || 'Invalid app password';
-                    
-                    // Handle expired session - show jovial re-login popup
-                    if (connectResponse.status === 401 || 
-                        errorMessage.toLowerCase().includes('expired') || 
-                        (errorMessage.toLowerCase().includes('invalid') && errorMessage.toLowerCase().includes('token'))) {
-                        showSessionExpiredPopup();
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = config.buttonText;
-                        }
-                        return;
-                    }
-                    
-                    showCelebration(errorMessage, 'error');
+                    showCelebration(connectError.error || 'Invalid app password', 'error');
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.textContent = config.buttonText;
@@ -3840,6 +4238,19 @@
                 return;
             }
             
+            // Confirm retirement
+            const roleTitle = config?.roleName || role;
+            const confirmed = await showConfirmDialog(
+                'Are you ready to retire?',
+                `<p>When you retire from <strong>${roleTitle}</strong>, you will remain active until someone else volunteers to take your place.</p><p>Once replaced, you will automatically step down and can volunteer again in the future.</p>`,
+                'Begin Retiring',
+                'Cancel'
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
             try {
                 // Get token - use same priority as other API calls
                 // Priority: backend session token > PDS accessJwt
@@ -4215,103 +4626,84 @@
             };
         }
 
-        // Session expired popup with jovial "Rentrer" button
-        function showSessionExpiredPopup() {
-            // Remove any existing overlays
-            const existingOverlays = document.querySelectorAll('.celebration-overlay');
-            existingOverlays.forEach(overlay => overlay.remove());
-            
-            // Clear stale tokens
-            localStorage.removeItem('oauth_token');
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('reverie_session');
-            
-            // Close any open modals
-            const authModal = document.getElementById('auth-modal');
-            if (authModal) {
-                authModal.classList.remove('active');
-                authModal.style.display = 'none';
-            }
-            
-            const overlay = document.createElement('div');
-            overlay.className = 'celebration-overlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 10001;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                animation: fadeIn 0.3s ease;
-            `;
-            
-            const popup = document.createElement('div');
-            popup.style.cssText = `
-                background: linear-gradient(135deg, #5d4a7a 0%, #734ba1 100%);
-                padding: 2rem 3rem;
-                border: 4px solid #3d2a5a;
-                border-radius: 8px;
-                box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
-                max-width: 420px;
-                text-align: center;
-                animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            `;
-            
-            popup.innerHTML = `
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🌙</div>
-                <div style="color: #e8d5c4; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.75rem;">
-                    Ah, you wandered away!
-                </div>
-                <div style="color: #d4c4b0; font-size: 1rem; margin-bottom: 1.5rem; line-height: 1.5;">
-                    Your session drifted into the dream mists.<br>
-                    Please step back inside to continue.
-                </div>
-                <button id="rentrer-btn" style="
-                    padding: 0.85rem 2.5rem;
-                    background: linear-gradient(135deg, #e8d5c4 0%, #d4c4b0 100%);
-                    color: #5d4a7a;
-                    border: none;
-                    font-weight: 700;
-                    font-size: 1.1rem;
-                    cursor: pointer;
-                    border-radius: 4px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                    transition: all 0.2s;
-                ">
-                    ✨ Rentrer ✨
-                </button>
-            `;
-            
-            overlay.appendChild(popup);
-            document.body.appendChild(overlay);
-            
-            // Add hover effect
-            const btn = popup.querySelector('#rentrer-btn');
-            btn.addEventListener('mouseenter', () => {
-                btn.style.transform = 'translateY(-2px)';
-                btn.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = 'translateY(0)';
-                btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-            });
-            
-            // Click to trigger login
-            btn.addEventListener('click', () => {
-                overlay.remove();
-                // Trigger the login popup
-                if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
-                    window.loginWidget.showLoginPopup();
-                } else if (typeof window.showLoginModal === 'function') {
-                    window.showLoginModal();
-                } else {
-                    // Fallback: reload the page which will show login state
-                    window.location.reload();
-                }
+        // Generic confirmation dialog with Promise support
+        function showConfirmDialog(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+            return new Promise((resolve) => {
+                // Remove any existing confirmation overlays
+                const existingOverlays = document.querySelectorAll('.confirm-dialog-overlay');
+                existingOverlays.forEach(overlay => overlay.remove());
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'confirm-dialog-overlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    z-index: 10001;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIn 0.2s ease;
+                `;
+                
+                const popup = document.createElement('div');
+                popup.className = 'confirm-dialog-popup';
+                popup.style.cssText = `
+                    background: white;
+                    padding: 1.5rem 2rem;
+                    border: 3px solid #8b7355;
+                    border-radius: 0;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                    max-width: 450px;
+                    text-align: center;
+                    animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                `;
+                
+                popup.innerHTML = `
+                    <div style="color: #5d4a37; font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; font-family: monospace;">
+                        ${title}
+                    </div>
+                    <div style="color: #666; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.5; font-family: monospace;">
+                        ${message}
+                    </div>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button class="confirm-dialog-cancel" 
+                                style="padding: 0.6rem 1.5rem; background: #e5e5e5; color: #666; border: 2px solid #ccc; 
+                                       font-weight: 600; font-size: 0.9rem; cursor: pointer; font-family: monospace;">
+                            ${cancelText}
+                        </button>
+                        <button class="confirm-dialog-confirm" 
+                                style="padding: 0.6rem 1.5rem; background: #8b7355; color: white; border: 2px solid #5d4a37; 
+                                       font-weight: 600; font-size: 0.9rem; cursor: pointer; font-family: monospace;">
+                            ${confirmText}
+                        </button>
+                    </div>
+                `;
+                
+                overlay.appendChild(popup);
+                document.body.appendChild(overlay);
+                
+                // Handle button clicks
+                popup.querySelector('.confirm-dialog-cancel').onclick = () => {
+                    overlay.remove();
+                    resolve(false);
+                };
+                
+                popup.querySelector('.confirm-dialog-confirm').onclick = () => {
+                    overlay.remove();
+                    resolve(true);
+                };
+                
+                // Close on overlay click
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) {
+                        overlay.remove();
+                        resolve(false);
+                    }
+                };
             });
         }
 

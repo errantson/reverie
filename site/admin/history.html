@@ -5,16 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>History - Reverie House</title>
     <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/widgets/header.css">
     <link rel="stylesheet" href="/css/pages/database.css">
+    <link rel="stylesheet" href="/css/roles.css">
+    <link rel="stylesheet" href="/css/octants.css">
+    <link rel="stylesheet" href="/css/color-rows.css">
+    <link rel="stylesheet" href="/css/souvenirs.css">
     
     <!-- Favicon and Icons -->
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
     
-    <!-- Core utilities -->
+    <!-- Core utilities (must load first) -->
     <script src="/js/core/world-config-cache.js"></script>
     <script src="/js/core/color-manager.js"></script>
+    <script src="/js/core/rowstyle-registry.js"></script>
+    <script src="/js/core/rowstyle-engine.js"></script>
     
     <!-- Header and drawer widgets -->
     <script src="/js/widgets/header.js" defer></script>
@@ -346,31 +353,73 @@
             justify-content: center;
             align-items: center;
         }
+        
+        /* Admin history specific layout - no left sidebar */
+        .admin-history-layout {
+            padding-left: 0;
+        }
+        
+        .admin-history-layout .database-main-content {
+            max-width: 100%;
+        }
+        
+        /* Override first cell padding for checkbox column */
+        .admin-history-layout .row-header .cell:first-child,
+        .admin-history-layout .row-entry .cell:first-child {
+            padding-left: 12px;
+        }
+        
+        /* Scrollable rows container */
+        #rows-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 100px;
+        }
     </style>
 </head>
-<body>
-    <div class="page-header">
-        <div class="search-box">
-            <input type="text" id="search" placeholder="Search canon...">
-            <span class="search-icon">🔍</span>
-        </div>
-        <button class="btn btn-primary" onclick="showAddModal()">+ Add Record</button>
-        <button class="btn btn-secondary" onclick="loadCanonEntries()">🔄 Refresh</button>
-    </div>
+<body class="database-page">
+    <div id="header-container"></div>
     
-    <div class="bulk-actions hidden" id="bulkActions">
-        <span class="bulk-actions-text" id="bulkActionsText">0 selected</span>
-        <button class="btn-bulk-delete" onclick="bulkDelete()">Delete Selected</button>
-        <button class="btn-bulk-cancel" onclick="clearSelection()">Cancel</button>
-    </div>
-    
-    <div class="table-header">
-        <div class="table-title">⌛ Canon History</div>
-        <div class="table-count" id="recordCount">0 rows</div>
-    </div>
+    <div class="database-layout admin-history-layout">
+        <main class="database-main-content" style="flex: 1;">
+            <header class="page-header-fixed">
+                <button class="db-btn" onclick="loadCanonEntries()" title="Refresh data" style="padding:6px 8px;">
+                    <svg class="db-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px;">
+                        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                </button>
+                <select id="filter-type" onchange="applyFilters()" class="db-filter-dropdown">
+                    <option value="all">All Events</option>
+                    <optgroup label="Canon Events">
+                        <option value="key:canon">Canon Events</option>
+                        <option value="type:dream">Dreams</option>
+                        <option value="type:nightmare">Nightmares</option>
+                    </optgroup>
+                    <optgroup label="Achievements">
+                        <option value="type:souvenir">Souvenirs</option>
+                        <option value="type:order">Orders</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option value="type:work">Workers</option>
+                        <option value="type:name">Name Changes</option>
+                        <option value="type:lore">Lore</option>
+                    </optgroup>
+                </select>
+                <input type="text" id="search" placeholder="Search canon history..." class="db-search-input" oninput="applyFilters()">
+                <button class="db-btn btn-primary" onclick="showAddModal()" style="margin-left: auto;">+ Add Record</button>
+                <div id="recordCount" style="font-family: monospace; font-size: 0.85em; color: var(--text-dim); white-space: nowrap; padding-left: 12px;">0 records</div>
+            </header>
+            
+            <div class="bulk-actions hidden" id="bulkActions">
+                <span class="bulk-actions-text" id="bulkActionsText">0 selected</span>
+                <button class="btn-bulk-delete" onclick="bulkDelete()">Delete Selected</button>
+                <button class="btn-bulk-cancel" onclick="clearSelection()">Cancel</button>
+            </div>
 
-    <div id="rows-container">
-        <!-- Rows will be displayed here -->
+            <div id="rows-container">
+                <!-- Rows will be displayed here -->
+            </div>
+        </main>
     </div>
     
     <!-- Add/Edit Modal -->
@@ -1047,21 +1096,27 @@
             const container = document.getElementById('rows-container');
             container.innerHTML = '';
             
+            // Initialize RowStyleEngine if not already done
+            if (!window.rowStyleEngine && window.RowStyleEngine) {
+                window.rowStyleEngine = new RowStyleEngine();
+            }
+            
             if (data.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--text-dim); font-family: monospace;">No canon entries found</div>';
+                container.innerHTML = '<div class="row-entry" style="text-align: center; display: block; font-style: italic; color: var(--text-dim);">No canon entries found</div>';
                 return;
             }
             
+            // Build header row
             container.innerHTML = `
                 <div class="row-header">
                     <div class="cell checkbox-cell">
                         <input type="checkbox" class="header-checkbox" id="headerCheckbox" onchange="toggleAllRows(this.checked)">
                     </div>
+                    <div class="cell type">Type</div>
+                    <div class="cell epoch">Date</div>
                     <div class="cell avatar"></div>
                     <div class="cell canon">Canon Event</div>
-                    <div class="cell type">Type</div>
                     <div class="cell key">Key</div>
-                    <div class="cell epoch">Date</div>
                     <div class="cell edit-cell">Actions</div>
                 </div>
             `;
@@ -1073,30 +1128,58 @@
                     return; // Skip this entry
                 }
                 
-                const row = document.createElement('div');
-                row.className = 'row-entry';
+                // Get rowstyle classes if RowStyleEngine is available
+                let rowClasses = 'row-entry';
+                let rowStyles = '';
+                if (window.rowStyleEngine) {
+                    rowClasses = window.rowStyleEngine.getRowClasses(entry);
+                    rowStyles = window.rowStyleEngine.getRowStyles(entry);
+                }
                 
-                const epochDisplay = entry.epoch ? formatEpoch(entry.epoch) : 'N/A';
+                const row = document.createElement('div');
+                row.className = rowClasses;
+                if (rowStyles) {
+                    row.setAttribute('style', rowStyles);
+                }
+                
+                // Format epoch similar to EventStack
+                const epoch = entry.epoch || 0;
+                const date = new Date(epoch * 1000);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = String(date.getFullYear()).slice(-2);
+                const dateStr = `${day}/${month}/${year}`;
                 
                 const avatarImg = entry.avatar ? 
                     `<img src="${entry.avatar}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">` :
                     '<img src="/assets/icon_face.png" class="avatar-img" alt="avatar">';
                 
                 const name = entry.name || 'unknown';
-                const event = entry.event || 'an event occurred';
-                const canonText = `<span style="white-space: normal;"><span style="font-weight: 500;">${escapeHtml(name)}</span> <span style="font-style: italic; color: var(--text-secondary);">${escapeHtml(event)}</span></span>`;
+                const eventText = entry.event || 'an event occurred';
+                const did = entry.did || '';
                 
                 const isChecked = selectedIds.has(entry.id) ? 'checked' : '';
+                
+                // Build dreamer link for name if DID exists
+                const nameHtml = did ? 
+                    `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${escapeHtml(name)}</a>` : 
+                    `<span style="font-weight: 500;">${escapeHtml(name)}</span>`;
                 
                 row.innerHTML = `
                     <div class="cell checkbox-cell">
                         <input type="checkbox" class="row-checkbox" data-id="${entry.id}" onchange="toggleRowSelection(${entry.id}, this.checked)" ${isChecked}>
                     </div>
+                    <div class="cell type" style="padding-left: 12px; padding-right: 6px;">
+                        <span style="font-size: 0.85em; text-transform: lowercase;">${escapeHtml(entry.type || '')}</span>
+                    </div>
+                    <div class="cell epoch" style="padding: 0 2px; min-width: 56px; max-width: 64px; text-align: left; padding-left: 6px; padding-right: 6px;">${dateStr}</div>
                     <div class="cell avatar">${avatarImg}</div>
-                    <div class="cell canon">${canonText}</div>
-                    <div class="cell type">${escapeHtml(entry.type)}</div>
-                    <div class="cell key">${escapeHtml(entry.key)}</div>
-                    <div class="cell epoch">${epochDisplay}</div>
+                    <div class="cell canon" style="padding-left: 12px;">
+                        <span style="white-space: normal;">${nameHtml} <span style="font-style: italic; color: var(--text-secondary);">${escapeHtml(eventText)}</span></span>
+                    </div>
+                    <div class="cell key">
+                        <span style="font-size: 0.85em; font-family: monospace;">${escapeHtml(entry.key || '')}</span>
+                    </div>
                     <div class="cell edit-cell">
                         <button class="btn btn-secondary" onclick="editEntry(${entry.id}); event.stopPropagation();" style="padding: 4px 8px; font-size: 0.75em;">Edit</button>
                         <button class="btn btn-delete" onclick="showDeleteModal(${entry.id}); event.stopPropagation();" style="padding: 4px 8px; font-size: 0.75em;">Delete</button>
@@ -1104,24 +1187,45 @@
                 `;
                 container.appendChild(row);
             });
+            
+            // Apply effects using RowStyle engine
+            if (window.rowStyleEngine) {
+                window.rowStyleEngine.applyEffects(container);
+            }
         }
         
-        // Search functionality
-        document.getElementById('search').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            if (!searchTerm) {
-                filteredData = canonData;
-            } else {
-                filteredData = canonData.filter(entry => {
-                    return entry.event.toLowerCase().includes(searchTerm) ||
-                           entry.did.toLowerCase().includes(searchTerm) ||
-                           entry.type.toLowerCase().includes(searchTerm) ||
-                           entry.key.toLowerCase().includes(searchTerm);
+        // Filter functionality
+        function applyFilters() {
+            const filterValue = document.getElementById('filter-type').value;
+            const searchQuery = document.getElementById('search').value.toLowerCase().trim();
+            
+            let data = canonData;
+            
+            // Apply type/key filter
+            if (filterValue !== 'all') {
+                if (filterValue.includes(':')) {
+                    const [field, value] = filterValue.split(':');
+                    data = data.filter(entry => entry[field] === value);
+                } else {
+                    data = data.filter(entry => entry.type === filterValue || entry.key === filterValue);
+                }
+            }
+            
+            // Apply search filter
+            if (searchQuery) {
+                data = data.filter(entry => {
+                    return (entry.event?.toLowerCase().includes(searchQuery)) ||
+                           (entry.did?.toLowerCase().includes(searchQuery)) ||
+                           (entry.type?.toLowerCase().includes(searchQuery)) ||
+                           (entry.key?.toLowerCase().includes(searchQuery)) ||
+                           (entry.name?.toLowerCase().includes(searchQuery));
                 });
             }
+            
+            filteredData = data;
             renderTable(filteredData);
             updateCount();
-        });
+        }
         
         async function handleSubmit(event) {
             event.preventDefault();

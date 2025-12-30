@@ -64,11 +64,6 @@ class SpectrumDeluxe extends SpectrumVisualizer {
                 <button class="view-btn-bar" data-view="change-freedom" title="Change vs Freedom">Position</button>
             </div>
             <div class="control-bar-section control-bar-actions">
-                <label class="control-toggle-inline" style="margin-right:8px; align-items: center;">
-                    <input type="checkbox" id="forceCalculateToggle">
-                    <span class="toggle-slider-inline"></span>
-                    <span class="toggle-label-inline">Force Calculator</span>
-                </label>
                 <button class="action-btn-bar action-btn-icon" id="exploreOctantsBtn" title="Explore the octants of the spectrum">
                     <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -341,17 +336,8 @@ class SpectrumDeluxe extends SpectrumVisualizer {
                 this.openSpectrumCalculator();
             });
         }
-
-        // Force Calculator toggle is no longer needed, but keep it for backwards compatibility
-        const forceToggle = document.getElementById('forceCalculateToggle');
-        if (forceToggle) {
-            // Button is always enabled now, so this toggle doesn't do anything
-            forceToggle.addEventListener('change', () => {
-                console.log('[SpectrumDeluxe] Force toggle changed (no effect - mapper check disabled)');
-            });
-        }
     }
-    
+
     showMapperOfflinePopup(buttonElement) {
         console.log('[SpectrumDeluxe] showMapperOfflinePopup called', buttonElement);
         
