@@ -1399,7 +1399,7 @@
                             <div class="worker-info">
                                 <div class="worker-field">
                                     <span class="worker-label">Handle:</span>
-                                    <a href="https://bsky.app/profile/${handle}" target="_blank" class="worker-handle">@${handle}</a>
+                                    <a href="https://bsky.app/profile/${did}" target="_blank" class="worker-handle">@${handle}</a>
                                 </div>
                                 <div class="worker-field">
                                     <span class="worker-label">Example Greeting:</span>
@@ -1444,7 +1444,7 @@
                             <div class="worker-info">
                                 <div class="worker-field">
                                     <span class="worker-label">Handle:</span>
-                                    <a href="https://bsky.app/profile/${handle}" target="_blank" class="worker-handle">@${handle}</a>
+                                    <a href="https://bsky.app/profile/${did}" target="_blank" class="worker-handle">@${handle}</a>
                                 </div>
                                 <div class="worker-field">
                                     <span class="worker-label">Example Coordinates:</span>
@@ -2207,7 +2207,7 @@
                     </div>
                     <div class="bsky-post-text">${escapeHtml(record.text)}</div>
                     <div class="bsky-post-link">
-                        <a href="https://bsky.app/profile/${author.handle}/post/${postId}" target="_blank">View on Bluesky →</a>
+                        <a href="https://bsky.app/profile/${author.did || did}/post/${postId}" target="_blank">View on Bluesky →</a>
                     </div>
                 </div>
             `;

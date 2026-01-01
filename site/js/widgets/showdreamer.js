@@ -272,7 +272,7 @@ class ShowDreamer {
                 <a href="/dreamer?did=${encodeURIComponent(dreamer.did)}" class="dreamer-popup-btn dreamer-popup-btn-primary" target="_blank">
                     View Full Profile
                 </a>
-                <a href="https://bsky.app/profile/${handle}" class="dreamer-popup-btn dreamer-popup-btn-secondary" target="_blank" rel="noopener noreferrer">
+                <a href="https://bsky.app/profile/${dreamer.did}" class="dreamer-popup-btn dreamer-popup-btn-secondary" target="_blank" rel="noopener noreferrer">
                     View on Bluesky
                 </a>
             </div>

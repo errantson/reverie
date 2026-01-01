@@ -581,10 +581,10 @@ class Drawer {
                     document.head.appendChild(composerCSS);
                 }
                 
-                // Load shadowbox widget for phanera image clicks
+                // Load shadowbox widget for dialogues and phanera image clicks
                 if (!window.Shadowbox) {
                     const shadowboxScript = document.createElement('script');
-                    shadowboxScript.src = '/js/widgets/shadowbox.js';
+                    shadowboxScript.src = '/js/utils/shadowbox.js';
                     shadowboxScript.onload = () => this.initDashboard();
                     document.head.appendChild(shadowboxScript);
                 } else {
@@ -607,7 +607,7 @@ class Drawer {
             
             if (!window.Shadowbox) {
                 const shadowboxScript = document.createElement('script');
-                shadowboxScript.src = '/js/widgets/shadowbox.js';
+                shadowboxScript.src = '/js/utils/shadowbox.js';
                 shadowboxScript.onload = () => this.initDashboard();
                 document.head.appendChild(shadowboxScript);
             } else {

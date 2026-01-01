@@ -41,6 +41,31 @@
     <link rel="stylesheet" href="/css/octants.css">
     <link rel="stylesheet" href="/css/roles.css">
     <link rel="stylesheet" href="/css/souvenirs.css">
+    <!-- Ensure role-based colors from roles.css are enforced on this page
+         - Keep bursar current box border using roles variables
+         - Ensure link text colors follow the active role (bursar here) -->
+    <style>
+    /* Bursar-specific enforcement when bursar is the current role */
+    body[data-current-role="bursar"] .bursar-box,
+    body[data-current-role="bursar"] .role-worker-card,
+    body[data-current-role="bursar"] .worker-card-header,
+    body[data-current-role="bursar"] .role-separator,
+    body[data-current-role="bursar"] .role-content-separator {
+        border-color: var(--role-bursar-medium) !important;
+    }
+    body[data-current-role="bursar"] .bursar-box {
+        border: 2px solid var(--role-bursar-medium) !important;
+    }
+
+    /* Make all links on the page use the active role's link color */
+    body[data-current-role="bursar"] a {
+        color: var(--role-bursar) !important;
+    }
+    body[data-current-role="bursar"] a:hover,
+    body[data-current-role="bursar"] a:focus {
+        color: var(--role-bursar-dark) !important;
+    }
+    </style>
     
     <!-- Favicon and Icons -->
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
@@ -156,46 +181,60 @@
         <div class="work-content">
             <!-- Role Content Card -->
             <div class="role-card">
-                <!-- Role Tabs (moved inside card) -->
-                <div class="role-tabs">
-                    <button class="role-tab active" data-role="greeter" onclick="selectRole('greeter')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                        <span class="role-tab-name">Greeter</span>
-                    </button>
-                    <button class="role-tab" data-role="mapper" onclick="selectRole('mapper')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-                        </svg>
-                        <span class="role-tab-name">Mapper</span>
-                    </button>
-                    <button class="role-tab" data-role="cogitarian" onclick="selectRole('cogitarian')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
-                            <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path>
-                            <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path>
-                        </svg>
-                        <span class="role-tab-name">Cogitarian</span>
-                    </button>
-                    <button class="role-tab" data-role="provisioner" onclick="selectRole('provisioner')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
-                            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-                            <path d="M7 2v20"></path>
-                            <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
-                        </svg>
-                        <span class="role-tab-name">Provisioner</span>
-                    </button>
-                    <button class="role-tab" data-role="dreamstyler" onclick="selectRole('dreamstyler')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
-                            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
-                            <path d="M20 3v4"></path>
-                            <path d="M22 5h-4"></path>
-                            <path d="M4 17v2"></path>
-                            <path d="M5 18H3"></path>
-                        </svg>
-                        <span class="role-tab-name">Dreamstyler</span>
-                    </button>
+                <!-- Role Tabs Container -->
+                <div class="role-tabs-carousel">
+                    <div id="core-roles-panel" class="role-panel active" data-panel="core">
+                        <div class="role-tabs">
+                            <button class="role-tab active" data-role="greeter" onclick="selectRole('greeter')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                </svg>
+                                <span class="role-tab-name">Greeter</span>
+                            </button>
+                            <button class="role-tab" data-role="mapper" onclick="selectRole('mapper')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                                </svg>
+                                <span class="role-tab-name">Mapper</span>
+                            </button>
+                            <button class="role-tab" data-role="cogitarian" onclick="selectRole('cogitarian')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path>
+                                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path>
+                                </svg>
+                                <span class="role-tab-name">Cogitarian</span>
+                            </button>
+                            <button class="role-tab" data-role="provisioner" onclick="selectRole('provisioner')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                                    <path d="M7 2v20"></path>
+                                    <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
+                                </svg>
+                                <span class="role-tab-name">Provisioner</span>
+                            </button>
+                            <button class="role-tab" data-role="bursar" onclick="selectRole('bursar')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                    <path d="M12 8v8"/>
+                                    <path d="M8 12h8"/>
+                                    <circle cx="12" cy="12" r="2"/>
+                                    <path d="M2 10h20"/>
+                                </svg>
+                                <span class="role-tab-name">Bursar</span>
+                            </button>
+                            <button class="role-tab" data-role="dreamstyler" onclick="selectRole('dreamstyler')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+                                    <path d="M20 3v4"></path>
+                                    <path d="M22 5h-4"></path>
+                                    <path d="M4 17v2"></path>
+                                    <path d="M5 18H3"></path>
+                                </svg>
+                                <span class="role-tab-name">Dreamstyler</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Mobile Role Selector -->
@@ -205,6 +244,7 @@
                         <option value="mapper">Mapper</option>
                         <option value="cogitarian">Cogitarian</option>
                         <option value="provisioner">Provisioner</option>
+                        <option value="bursar">Bursar</option>
                         <option value="dreamstyler">Dreamstyler</option>
                     </select>
                 </div>
@@ -262,6 +302,16 @@
                             </p>
                             <p class="role-description">
                                 Because there are so many tastes, there are many types of <b class="role-text-dreamstyler">Dreamstyler</b> and <b class="role-text-dreamstyler">Reverie House</b> makes no distinction. Let yourself and talent be known to others, but maintain your own designs however you must.
+                            </p>
+                        </div>
+                        
+                        <!-- Bursar Description -->
+                        <div id="bursar-description" class="role-desc-content" style="display: none;">
+                            <p class="role-description">
+                                Coordinating the use of valuable resources is an indispensible role (according to the <b class="role-text-bursar">Bursar of Schemes</b>).
+                            </p>
+                            <p class="role-description">
+                                This guardian of transparency works as the connective tissue between various patrons and the dreams that need their support.
                             </p>
                         </div>
                     </div>
@@ -509,21 +559,82 @@
                         </div>
                         
                         <!-- Right: Aesthetic Adjustments + Unfinished Dreams -->
-                        <div class="repo-data-box dreamstyler-content-grid">
-                            <h3 class="repo-data-header">Aesthetic Adjustments</h3>
-                            <div id="dreamstyler-adjustments-content" class="repo-data-content">
-                                <div class="commits-section">
+                        <div class="dreamstyler-right-column">
+                            <div class="repo-data-box aesthetic-adjustments-box">
+                                <h3 class="repo-data-header">Aesthetic Adjustments</h3>
+                                <div id="dreamstyler-commits-list" class="dreamstyler-commits-list">
                                     <div class="commit-row placeholder-row">
                                         <span class="commit-message" style="color: #999; font-style: italic;">Loading...</span>
-                                        <span class="commit-meta">—</span>
                                     </div>
                                 </div>
-                                <div class="contributors-section unfinished-dreams-section">
-                                    <div class="contributors-label">Unfinished Dreams</div>
-                                    <div id="unfinished-dreams-list" class="contributors-list">
-                                        <span style="color: #999; font-size: 0.75rem;">Loading...</span>
-                                    </div>
+                                <div class="tangled-integration-note">
+                                    <span class="tangled-icon">🧶</span>
+                                    <span class="tangled-text">Tag commits with #dreamstyler via <a href="https://tangled.sh" target="_blank">tangled.sh</a></span>
                                 </div>
+                            </div>
+                            
+                            <div class="repo-data-box unfinished-dreams-box">
+                                <h3 class="repo-data-header">Unfinished Dreams</h3>
+                                <div id="unfinished-dreams-list" class="unfinished-dreams-list">
+                                    <span style="color: #999; font-size: 0.75rem;">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bursar Content Section -->
+                <div id="bursar-content-section" class="bursar-content-container" style="display: none;">
+                    <div class="bursar-content-grid">
+                        <!-- Left Box: Reverie House Collective -->
+                        <div class="bursar-box">
+                            <h3 class="bursar-box-title">Reverie House</h3>
+                            <p class="bursar-box-text">
+                                Our collective treasury on <a href="https://opencollective.com/reverie-house" target="_blank">OpenCollective</a> for infrastructure and development.
+                            </p>
+                            <div class="bursar-stats">
+                                <div class="bursar-stat-row">
+                                    <span class="bursar-stat-label">Balance:</span>
+                                    <span class="bursar-stat-value" id="oc-balance">$0.00</span>
+                                </div>
+                                <div class="bursar-stat-row">
+                                    <span class="bursar-stat-label">Raised:</span>
+                                    <span class="bursar-stat-value" id="oc-total-raised">$0.00</span>
+                                </div>
+                            </div>
+                            <div class="bursar-box-actions">
+                                <a href="https://opencollective.com/reverie-house" target="_blank" class="bursar-box-button bursar-btn-secondary">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                    View
+                                </a>
+                                <a href="https://opencollective.com/reverie-house/donate" target="_blank" class="bursar-box-button">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                    </svg>
+                                    Contribute
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Box: Submit a Scheme -->
+                        <div class="bursar-box">
+                            <h3 class="bursar-box-title">Submit a Scheme</h3>
+                            <p class="bursar-box-text">
+                                Have a domain that dreams? Submit it for treasury integration.
+                            </p>
+                            <div class="bursar-submit-form">
+                                <input type="text" class="bursar-domain-input" id="scheme-domain-input" placeholder="yourdream.domain" />
+                                <button class="bursar-box-button" onclick="submitScheme()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                    Send
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -578,25 +689,15 @@
             mapper: null,
             cogitarian: null,
             provisioner: null,
-            dreamstyler: null
+            dreamstyler: null,
+            bursar: null
         };
         let currentTab = 'greeter';
         let spectrumPreviewWidget = null; // Global spectrum preview widget instance
         
-        // DIDs allowed to access Dreamstyler tab (in addition to admin)
-        const DREAMSTYLER_ALLOWED_DIDS = [
-            'did:plc:sv4z2azwos6imedro2cfibrn',
-            'did:plc:ujsxisg5ogc2qikdioxw6y4u',
-            'did:plc:zwzau5z5p5ne4avjcrztr5mz',
-            'did:plc:eaqr3mneobyuahigtr7w2ykr'
-        ];
-        
         // Restore tab from localStorage on page load
         const savedTab = localStorage.getItem('work_current_tab');
-        const hasAdminForRestore = !!localStorage.getItem('admin_token');
-        // Only allow dreamstyler if admin, provisioner needs check later when statuses load
-        const allowedSavedTabs = ['greeter', 'mapper', 'cogitarian', 'provisioner'];
-        if (hasAdminForRestore) allowedSavedTabs.push('dreamstyler');
+        const allowedSavedTabs = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'bursar', 'dreamstyler'];
         if (savedTab && allowedSavedTabs.includes(savedTab)) {
             currentTab = savedTab;
         }
@@ -605,77 +706,10 @@
         let isInitializing = false; // Prevent duplicate initialization
         let profileLoaded = false; // Track if profile is ready
         
-        // Check if current user is allowed to see Dreamstyler tab
-        function isDreamstylerAllowed() {
-            const hasAdminAccess = !!localStorage.getItem('admin_token');
-            if (hasAdminAccess) return true;
-            
-            // Check if logged-in user's DID is in the allowed list
-            if (currentSession) {
-                const userDid = currentSession.sub || currentSession.did;
-                if (userDid && DREAMSTYLER_ALLOWED_DIDS.includes(userDid)) {
-                    return true;
-                }
-            }
-            
-            // Also check if user is already an active dreamstyler
-            if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) {
-                return true;
-            }
-            
-            return false;
-        }
-
-        // Provisioner and Dreamstyler UI visibility: only for admins (or the provisioner themselves for provisioner tab)
+        // All roles are now always visible - no admin restrictions
         function enforceProvisionerVisibility() {
-            const hasAdminAccess = !!localStorage.getItem('admin_token');
-            const isProvisioner = roleStatuses.provisioner && roleStatuses.provisioner.is_worker;
-            const shouldShowProvisioner = true; // Always show provisioner tab
-            const shouldShowDreamstyler = isDreamstylerAllowed(); // Admin, allowed DIDs, or active dreamstylers
-            
-            const provButton = document.querySelector('.role-tab[data-role="provisioner"]');
-            if (provButton) provButton.style.display = shouldShowProvisioner ? 'flex' : 'none';
-            
-            const dreamButton = document.querySelector('.role-tab[data-role="dreamstyler"]');
-            if (dreamButton) dreamButton.style.display = shouldShowDreamstyler ? 'flex' : 'none';
-            
-            // Handle mobile selector
-            const mobileSelector = document.getElementById('role-selector-mobile');
-            if (mobileSelector) {
-                // Provisioner
-                const existingProvOption = Array.from(mobileSelector.options).find(o => o.value === 'provisioner');
-                if (shouldShowProvisioner) {
-                    if (!existingProvOption) {
-                        const opt = document.createElement('option');
-                        opt.value = 'provisioner';
-                        opt.text = 'Provisioner';
-                        mobileSelector.appendChild(opt);
-                    }
-                } else if (existingProvOption) {
-                    existingProvOption.remove();
-                }
-                
-                // Dreamstyler
-                const existingDreamOption = Array.from(mobileSelector.options).find(o => o.value === 'dreamstyler');
-                if (shouldShowDreamstyler) {
-                    if (!existingDreamOption) {
-                        const opt = document.createElement('option');
-                        opt.value = 'dreamstyler';
-                        opt.text = 'Dreamstyler';
-                        mobileSelector.appendChild(opt);
-                    }
-                } else if (existingDreamOption) {
-                    existingDreamOption.remove();
-                }
-            }
+            // No-op: All 6 role tabs are always visible
         }
-
-        // React to cross-tab changes and OAuth profile events
-        window.addEventListener('storage', (ev) => {
-            if (ev.key === 'admin_token') enforceProvisionerVisibility();
-        });
-        window.addEventListener('oauth:profile-loaded', () => enforceProvisionerVisibility());
-        // enforceProvisionerVisibility is called in DOMContentLoaded to ensure elements exist
 
         // Role selection function
         function selectRole(role) {
@@ -721,7 +755,8 @@
                 'mapper': 'CURRENT MAPPER:',
                 'cogitarian': 'CURRENT COGITARIAN:',
                 'provisioner': 'CURRENT PROVISIONER:',
-                'dreamstyler': 'ACTIVE DREAMSTYLERS:'
+                'dreamstyler': 'ACTIVE DREAMSTYLERS:',
+                'bursar': 'CURRENT BURSAR:'
             };
             document.getElementById('worker-label').textContent = labels[role];
             
@@ -739,6 +774,8 @@
                 hideProvisionerContent();
                 // Hide dreamstyler content for cogitarian
                 hideDreamstylerContent();
+                // Hide bursar content for cogitarian
+                hideBursarContent();
                 // Show cogitarian content
                 showCogitarianContent();
             } else if (role === 'mapper') {
@@ -757,6 +794,8 @@
                 hideProvisionerContent();
                 // Hide dreamstyler content for mapper
                 hideDreamstylerContent();
+                // Hide bursar content for mapper
+                hideBursarContent();
                 // Show mapper content
                 showMapperContent();
             } else if (role === 'greeter') {
@@ -776,6 +815,8 @@
                 hideProvisionerContent();
                 // Hide dreamstyler content for greeter
                 hideDreamstylerContent();
+                // Hide bursar content for greeter
+                hideBursarContent();
             } else if (role === 'provisioner') {
                 // Load role status for provisioner
                 loadRoleStatus(role);
@@ -785,6 +826,7 @@
                 hideMapperContent();
                 hideCogitarianContent();
                 hideDreamstylerContent();
+                hideBursarContent();
                 // Show provisioner content
                 showProvisionerContent();
                 // Populate food request form with user data
@@ -798,8 +840,21 @@
                 hideMapperContent();
                 hideCogitarianContent();
                 hideProvisionerContent();
+                hideBursarContent();
                 // Show dreamstyler content
                 showDreamstylerContent();
+            } else if (role === 'bursar') {
+                // Load role status for bursar
+                loadRoleStatus(role);
+                // Hide all other content
+                hideEventStack();
+                hideSpectrumPreview();
+                hideMapperContent();
+                hideCogitarianContent();
+                hideProvisionerContent();
+                hideDreamstylerContent();
+                // Show bursar content
+                showBursarContent();
             } else {
                 // Load role status for the selected role
                 loadRoleStatus(role);
@@ -1051,19 +1106,15 @@
         
         // Load Tangled commits for dreamstylers (Aesthetic Adjustments panel)
         async function loadDreamstylerAdjustments() {
-            const contentDiv = document.getElementById('dreamstyler-adjustments-content');
-            if (!contentDiv) return;
+            const commitsList = document.getElementById('dreamstyler-commits-list');
+            if (!commitsList) return;
             
             // Show loading state
-            const commitsSection = contentDiv.querySelector('.commits-section');
-            if (commitsSection) {
-                commitsSection.innerHTML = `
-                    <div class="commit-row placeholder-row">
-                        <span class="commit-message" style="color: #999; font-style: italic;">Loading Tangled commits...</span>
-                        <span class="commit-meta">...</span>
-                    </div>
-                `;
-            }
+            commitsList.innerHTML = `
+                <div class="commit-row placeholder-row">
+                    <span class="commit-message" style="color: #999; font-style: italic;">Loading Tangled commits...</span>
+                </div>
+            `;
             
             try {
                 // Get all active dreamstylers
@@ -1075,14 +1126,11 @@
                 const workers = statusData.all_workers || [];
                 
                 if (workers.length === 0) {
-                    if (commitsSection) {
-                        commitsSection.innerHTML = `
-                            <div class="commit-row placeholder-row">
-                                <span class="commit-message" style="color: #999;">No active dreamstylers yet</span>
-                                <span class="commit-meta">—</span>
-                            </div>
-                        `;
-                    }
+                    commitsList.innerHTML = `
+                        <div class="commit-row placeholder-row">
+                            <span class="commit-message" style="color: #999;">No active dreamstylers yet</span>
+                        </div>
+                    `;
                     return;
                 }
                 
@@ -1154,51 +1202,34 @@
                 
                 // Render commits
                 if (allCommits.length === 0) {
-                    if (commitsSection) {
-                        commitsSection.innerHTML = `
-                            <div class="commit-row placeholder-row">
-                                <span class="commit-message">No #dreamstyler tagged commits yet</span>
-                                <span class="commit-meta">—</span>
-                            </div>
-                            <div class="tangled-integration-note">
-                                <span class="tangled-icon">🧶</span>
-                                <span class="tangled-text">Tag commits with #dreamstyler via <a href="https://tangled.org" target="_blank">tangled.org</a></span>
-                            </div>
-                        `;
-                    }
+                    commitsList.innerHTML = `
+                        <div class="commit-row placeholder-row">
+                            <span class="commit-message" style="color: #999;">No #dreamstyler tagged commits yet</span>
+                        </div>
+                    `;
                     return;
                 }
                 
                 // Show up to 10 most recent commits
                 const commitRows = allCommits.slice(0, 10).map(commit => {
-                    const timeAgo = commit.timestamp ? formatTimeAgo(new Date(commit.timestamp)) : '—';
+                    const timeAgo = commit.timestamp ? formatTimeAgo(new Date(commit.timestamp)) : '';
                     return `
                         <div class="commit-row" title="${commit.handle}: ${commit.message}">
                             <span class="commit-message">${escapeHtml(commit.message) || 'Untitled commit'}</span>
-                            <span class="commit-meta">${timeAgo}</span>
+                            ${timeAgo ? `<span class="commit-meta">${timeAgo}</span>` : ''}
                         </div>
                     `;
                 }).join('');
                 
-                if (commitsSection) {
-                    commitsSection.innerHTML = commitRows + `
-                        <div class="tangled-integration-note">
-                            <span class="tangled-icon">🧶</span>
-                            <span class="tangled-text">via <a href="https://tangled.org" target="_blank">tangled.org</a></span>
-                        </div>
-                    `;
-                }
+                commitsList.innerHTML = commitRows;
                 
             } catch (error) {
                 console.error('Failed to load dreamstyler adjustments:', error);
-                if (commitsSection) {
-                    commitsSection.innerHTML = `
-                        <div class="commit-row placeholder-row">
-                            <span class="commit-message" style="color: #999;">Could not load commits</span>
-                            <span class="commit-meta">—</span>
-                        </div>
-                    `;
-                }
+                commitsList.innerHTML = `
+                    <div class="commit-row placeholder-row">
+                        <span class="commit-message" style="color: #999;">Could not load commits</span>
+                    </div>
+                `;
             }
         }
         
@@ -1434,6 +1465,61 @@
             if (container) {
                 container.style.display = 'none';
             }
+        }
+        
+        function showBursarContent() {
+            const container = document.getElementById('bursar-content-section');
+            if (container) {
+                container.style.display = 'block';
+                // Load treasury data when showing
+                loadTreasuryData();
+            }
+        }
+        
+        function hideBursarContent() {
+            const container = document.getElementById('bursar-content-section');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        // Load treasury data from OpenCollective (placeholder for API integration)
+        async function loadTreasuryData() {
+            const balanceEl = document.getElementById('oc-balance');
+            const totalRaisedEl = document.getElementById('oc-total-raised');
+            
+            // For now, show placeholder - OpenCollective API integration coming
+            if (balanceEl) {
+                balanceEl.textContent = '$0.00';
+                balanceEl.title = 'Connect OpenCollective to view balance';
+            }
+            
+            if (totalRaisedEl) {
+                totalRaisedEl.textContent = '$0.00';
+                totalRaisedEl.title = 'Connect OpenCollective to view total raised';
+            }
+            
+            // Project cards already have static placeholder content
+            // When API is connected, we'll dynamically populate #oc-projects
+        }
+        
+        function refreshTreasuryData() {
+            loadTreasuryData();
+            showCelebration('Treasury data refreshed', 'info');
+        }
+        
+        function submitScheme() {
+            const input = document.getElementById('scheme-domain-input');
+            const domain = input ? input.value.trim() : '';
+            
+            if (!domain) {
+                showCelebration('Please enter a domain', 'error');
+                return;
+            }
+            
+            // For now, just acknowledge - actual submission logic TBD
+            showCelebration('Scheme submitted for consideration', 'success');
+            if (input) input.value = '';
         }
         
         function populateFoodRequestForm() {
@@ -1961,6 +2047,8 @@
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) userCurrentRole = 'mapper';
             else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
             else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) userCurrentRole = 'provisioner';
+            else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) userCurrentRole = 'dreamstyler';
+            else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) userCurrentRole = 'bursar';
             
             // If user has a different role, disable the button
             if (userCurrentRole && userCurrentRole !== role) {
@@ -1995,6 +2083,7 @@
             await loadRoleStatus('cogitarian');
             await loadRoleStatus('provisioner');
             await loadRoleStatus('dreamstyler');
+            await loadRoleStatus('bursar');
             updateUI();
             updateProvisionerToolsVisibility();
             isInitializing = false;
@@ -2016,7 +2105,8 @@
                 mapper: null,
                 cogitarian: null,
                 provisioner: null,
-                dreamstyler: null
+                dreamstyler: null,
+                bursar: null
             };
             sessionCheckComplete = true;
             profileLoaded = false;
@@ -2049,6 +2139,7 @@
                         await loadRoleStatus('cogitarian');
                         await loadRoleStatus('provisioner');
                         await loadRoleStatus('dreamstyler');
+                        await loadRoleStatus('bursar');
                         updateUI();
                         
                         isInitializing = false;
@@ -2133,6 +2224,7 @@
             loadRoleStatus('cogitarian');
             loadRoleStatus('provisioner');
             loadRoleStatus('dreamstyler');
+            loadRoleStatus('bursar');
             
             // Load greeting events for greeter tab
             loadGreetingEvents();
@@ -2388,12 +2480,14 @@
             console.log('   roleStatuses.cogitarian:', roleStatuses.cogitarian);
             console.log('   roleStatuses.provisioner:', roleStatuses.provisioner);
             console.log('   roleStatuses.dreamstyler:', roleStatuses.dreamstyler);
+            console.log('   roleStatuses.bursar:', roleStatuses.bursar);
             
             if (roleStatuses.greeter && roleStatuses.greeter.is_worker) actualUserRole = 'greeter';
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) actualUserRole = 'mapper';
             else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) actualUserRole = 'cogitarian';
             else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) actualUserRole = 'provisioner';
             else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) actualUserRole = 'dreamstyler';
+            else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) actualUserRole = 'bursar';
             
             console.log('   → actualUserRole determined:', actualUserRole);
             
@@ -2782,7 +2876,7 @@
             const workerDisplay = document.getElementById('worker-display');
             
             if (!roleInfo.workers || roleInfo.workers.length === 0) {
-                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : role === 'provisioner' ? 'Provisioner' : 'Dreamstyler';
+                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : role === 'provisioner' ? 'Provisioner' : role === 'bursar' ? 'Bursar' : 'Dreamstyler';
                 
                 // Reset worker card borders to default when no worker
                 const workerCard = document.querySelector('.role-worker-card');
@@ -2800,12 +2894,13 @@
                     'mapper': 'var(--role-mapper)',
                     'cogitarian': 'var(--role-cogitarian)',
                     'provisioner': 'var(--role-provisioner)',
-                    'dreamstyler': 'var(--role-dreamstyler)'
+                    'dreamstyler': 'var(--role-dreamstyler)',
+                    'bursar': 'var(--role-bursar)'
                 };
                 const roleColor = roleColors[role] || 'var(--role-greeter)';
                 
-                // Dreamstyler shows different message when empty
-                const emptyMessage = role === 'dreamstyler' ? 'No Active Dreamstylers' : 'No Current Worker';
+                // Different empty messages for special roles
+                const emptyMessage = role === 'dreamstyler' ? 'No Active Dreamstylers' : role === 'bursar' ? 'No Current Bursar' : 'No Current Worker';
                 
                 workerDisplay.innerHTML = `
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5" style="margin: 0 auto; display: block;">
@@ -2853,12 +2948,13 @@
                     const dreamer = await dreamerResponse.json();
                     console.log('✅ Work: Dreamer info received:', dreamer);
                     const userColor = dreamer.color_hex || '#8b7355';
-                    const statusText = worker.status === 'retiring' 
-                        ? ` <a href="#" onclick="event.preventDefault(); event.stopPropagation(); openWorkerModal('${role}');" style="color: ${userColor}; font-weight: 400; font-size: 0.85rem; text-decoration: none; cursor: pointer;">(retiring)</a>` 
-                        : worker.status === 'working' 
-                            ? ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(working)</span>` 
+                    const statusText = worker.status === 'retiring'
+                        ? ` <span onclick="event.stopPropagation(); openWorkerModal('${role}');" role="button" style="color: ${userColor}; font-weight: 400; font-size: 0.85rem; text-decoration: none; cursor: pointer;">(retiring)</span>`
+                        : worker.status === 'working'
+                            ? ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(working)</span>`
                             : '';
-                    const handle = dreamer.handle || 'unknown';
+                    const rawHandle = dreamer.handle || 'unknown';
+                    const handle = String(rawHandle).replace(/^@/, '');
                     const displayName = dreamer.display_name || handle;
                     const avatar = dreamer.avatar || '/assets/default-avatar.png';
                     
@@ -2872,17 +2968,20 @@
                         workerCardHeader.style.borderColor = userColor;
                     }
                     
+                    // Use DID for Bluesky link to avoid PDS handle resolution issues
+                    // (handles for users on external PDS won't resolve via local PDS)
                     workerDisplay.innerHTML = `
-                        <img src="${avatar}" 
-                             alt="${handle}" 
-                             class="greeter-avatar"
-                             style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid ${userColor}; object-fit: cover;">
-                        <a href="/dreamer.html?did=${worker.did}" 
-                           class="worker-link dreamer-link" 
-                           data-did="${worker.did}"
-                           style="font-size: 1.1rem; font-weight: 600; color: ${userColor}; text-decoration: none;">
-                            ${displayName} <span style="color: #999; font-weight: 400;">@${handle}</span>${statusText}
+                        <a href="/dreamers?did=${worker.did}" style="display:block; text-align:center;">
+                            <img src="${avatar}" 
+                                 alt="${handle}" 
+                                 class="greeter-avatar"
+                                 style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid ${userColor}; object-fit: cover; display:block; margin: 0 auto;">
                         </a>
+                        <div style="text-align: center; margin-top: 0.5rem;">
+                            <a href="/dreamers?did=${worker.did}" class="worker-name" style="font-size: 1.1rem; font-weight: 600; color: ${userColor}; text-decoration: none; display:block;">${displayName}</a>
+                            <a href="https://bsky.app/profile/${worker.did}" target="_blank" rel="noopener noreferrer" class="worker-handle" style="color: #999; font-weight: 400; font-size: 0.85rem; text-decoration: none;">@${handle}</a>
+                            <div style="margin-top: 0.25rem;">${statusText}</div>
+                        </div>
                     `;
                     
                     console.log('✅ Work: Worker display updated');
@@ -2897,7 +2996,7 @@
                     console.error('❌ Work: Dreamer API failed:', dreamerResponse.status);
                     // Fallback if API fails - show DID
                     workerDisplay.innerHTML = `
-                        <a href="/dreamer.html?did=${worker.did}" 
+                        <a href="/dreamers?did=${worker.did}" 
                            style="font-size: 1rem; color: #8b7355; text-decoration: none;">
                             ${worker.did.substring(0, 20)}...
                         </a>
@@ -2907,7 +3006,7 @@
                 console.error('❌ Work: Failed to fetch dreamer info:', error);
                 // Fallback if network error - show DID
                 workerDisplay.innerHTML = `
-                    <a href="/dreamer.html?did=${worker.did}" 
+                    <a href="/dreamers?did=${worker.did}" 
                        style="font-size: 1rem; color: #8b7355; text-decoration: none;">
                         ${worker.did.substring(0, 20)}...
                     </a>
@@ -3129,6 +3228,23 @@
                 confirmMessage: 'As Dreamstyler, you will help shape the aesthetic elements of Reverie House.',
                 activationMessage: 'You are now a Dreamstyler\nThank you for working!\nPlease stop if it feels like work.',
                 showExamples: false,
+                requiresAppPassword: false,
+                getExamples: () => []
+            },
+            bursar: {
+                title: 'Bursar of Schemes',
+                description: 'Coordinating the use of valuable resources is an indispensible role (according to the Bursar of Schemes)<br><br>This guardian of transparency works as the connective tissue between various patrons and the dreams that need their support.',
+                exampleLabel: 'Treasury Updates',
+                appPasswordName: null, // Bursar holds no app password
+                passwordPurpose: null,
+                roleName: 'Bursar of Schemes',
+                roleNameLower: 'bursar',
+                buttonText: 'BECOME BURSAR',
+                confirmTitle: 'Become Bursar of Schemes?',
+                confirmMessage: 'As Bursar, you will maintain financial transparency and serve as the community\'s point of contact for OpenCollective matters. This role requires no app password.',
+                activationMessage: 'You are now Bursar of Schemes\nMay your stewardship be transparent and true.\nScheme openly.',
+                showExamples: false,
+                requiresAppPassword: false,
                 getExamples: () => []
             }
         };
@@ -3505,6 +3621,7 @@
             else if (roleStatuses.cogitarian && roleStatuses.cogitarian.is_worker) userCurrentRole = 'cogitarian';
             else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) userCurrentRole = 'provisioner';
             else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) userCurrentRole = 'dreamstyler';
+            else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) userCurrentRole = 'bursar';
             
             if (userCurrentRole && userCurrentRole !== role) {
                 const currentRoleConfig = roleConfigs[userCurrentRole];
@@ -3532,6 +3649,50 @@
                         return;
                     }
                 }
+            }
+            
+            // Special check for bursar: must be the top patron
+            if (role === 'bursar') {
+                try {
+                    const dreamersResponse = await fetch('/api/dreamers');
+                    if (dreamersResponse.ok) {
+                        const allDreamers = await dreamersResponse.json();
+                        
+                        // Find top patron
+                        const topPatron = allDreamers
+                            .filter(d => (d.patron_score || 0) > 0)
+                            .sort((a, b) => (b.patron_score || 0) - (a.patron_score || 0))[0];
+                        
+                        // Find current user's patron score
+                        const currentUser = allDreamers.find(d => d.did === currentSession.did);
+                        const userPatronScore = currentUser ? (currentUser.patron_score || 0) : 0;
+                        
+                        if (!topPatron || userPatronScore === 0) {
+                            showCelebration('Only patrons may become Bursar.\n\nSupport Reverie House on OpenCollective to qualify.', 'error');
+                            return;
+                        }
+                        
+                        if (topPatron.did !== currentSession.did) {
+                            const topPatronName = topPatron.display_name || topPatron.name || topPatron.handle || 'another dreamer';
+                            showCelebration(`The Bursar must be our top patron.\n\nCurrently that honor belongs to ${topPatronName}.`, 'error');
+                            return;
+                        }
+                        
+                        console.log(`✅ [bursar] User is top patron with score ${userPatronScore}`);
+                    }
+                } catch (error) {
+                    console.error('Failed to verify patron status:', error);
+                    showCelebration('Could not verify patron status. Please try again.', 'error');
+                    return;
+                }
+            }
+            
+            // Check if this role requires an app password
+            // Roles like bursar and dreamstyler don't need one
+            if (config.requiresAppPassword === false) {
+                console.log(`🔓 [${role}] Role does not require app password - showing confirmation directly`);
+                showWorkerConfirmation(role, () => activateWorkerWithoutAppPassword(role));
+                return;
             }
             
             // Check if user already has app password stored
@@ -3636,6 +3797,53 @@
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify({ use_existing_credentials: true })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showCelebration(config.activationMessage, 'success');
+                    
+                    // Reload page to update UI
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    const error = await response.json();
+                    showCelebration(error.error || `Failed to activate ${config.roleNameLower}`, 'error');
+                }
+            } catch (error) {
+                console.error('Activation error:', error);
+                showCelebration(`Failed to activate ${config.roleNameLower}`, 'error');
+            }
+        }
+        
+        // Activate worker for roles that don't require an app password (bursar, dreamstyler)
+        async function activateWorkerWithoutAppPassword(role) {
+            const config = roleConfigs[role];
+            if (!config) return;
+            
+            try {
+                // Get token for authorization
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                
+                if (!token && currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                    console.log('🔓 [No-Password Activation] Using accessJwt from session');
+                } else if (token) {
+                    console.log('🔓 [No-Password Activation] Using backend session token');
+                }
+                
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                } else {
+                    console.error('❌ [No-Password Activation] No valid token found!');
+                    showCelebration('Session expired - please refresh and try again', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`/api/work/${role}/activate`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ no_app_password: true })
                 });
 
                 if (response.ok) {

@@ -568,8 +568,8 @@
             
             // Check if author is a registered dreamer
             const dreamer = getDreamerByHandle(authorHandle);
-            const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(dreamer.did)}` : `https://bsky.app/profile/${authorHandle}`;
-            const bskyProfileUrl = `https://bsky.app/profile/${authorHandle}`;
+            const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(dreamer.did)}` : `https://bsky.app/profile/${authorDid || authorHandle}`;
+            const bskyProfileUrl = `https://bsky.app/profile/${authorDid || authorHandle}`;
             
             // Get author's color for card styling
             const authorColor = dreamer?.color_hex || '#734ba1';
@@ -939,7 +939,7 @@
                     
                     // Try to find the dreamer in our local list to link to dreamer page
                     const dreamer = allDreamers.find(d => d.did === did);
-                    const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(did)}` : `https://bsky.app/profile/${handle}`;
+                    const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(did)}` : `https://bsky.app/profile/${did || handle}`;
                     const displayName = dreamer ? dreamer.name : `@${handle}`;
                     
                     return `

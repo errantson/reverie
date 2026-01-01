@@ -421,11 +421,78 @@ body {
     margin: 0 auto;
 }
 
+/* Role Section Titles */
+.role-section-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    padding: 0.75rem 1rem 0.25rem;
+    background: #fafafa;
+    margin: 0;
+}
+
+/* Role Tabs Carousel */
+.role-tabs-carousel {
+    position: relative;
+    background: #fafafa;
+}
+
+.role-panel {
+    transition: opacity 0.2s ease;
+}
+
+.role-panel:not(.active) {
+    opacity: 0.95;
+}
+
+.role-carousel-rotate {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 5;
+}
+
+.role-carousel-rotate:hover {
+    border-color: #999;
+    color: #333;
+    background: #f5f5f5;
+}
+
+.role-carousel-rotate.rotating svg {
+    animation: rotateIcon 0.3s ease;
+}
+
+@keyframes rotateIcon {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Open Roles Panel Styling */
+.open-roles-tabs {
+    padding-top: 0.25rem;
+    padding-right: 3rem; /* Make room for rotate button */
+}
+
 /* Role Tabs (now inside card) */
 .role-tabs {
     display: flex;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
+    padding-right: 3rem; /* Make room for rotate button */
     border-bottom: 2px solid #f0f0f0;
     background: #fafafa;
 }
@@ -554,6 +621,27 @@ body {
     stroke: var(--role-dreamstyler);
 }
 
+.role-tab[data-role="bursar"] {
+    background: var(--role-bursar);
+    border-color: var(--role-bursar);
+    display: none; /* Hidden by default, shown via JS for admins */
+}
+
+.role-tab[data-role="bursar"]:hover:not(.active) {
+    background: var(--role-bursar-dark);
+    border-color: var(--role-bursar-dark);
+    transform: translateY(-1px);
+}
+
+.role-tab[data-role="bursar"].active {
+    background: var(--role-bursar-medium);
+    color: var(--role-bursar);
+}
+
+.role-tab[data-role="bursar"].active svg {
+    stroke: var(--role-bursar);
+}
+
 .role-tab-name {
     font-family: 'Courier New', monospace;
 }
@@ -615,6 +703,10 @@ body[data-current-role="cogitarian"] .role-card {
     border-color: var(--role-cogitarian-medium);
 }
 
+body[data-current-role="bursar"] .role-card {
+    border-color: var(--role-bursar-medium);
+}
+
 /* Role Card Body - Two Column Layout (Fixed Height) */
 .role-card-body {
     padding: 1.25rem 1.5rem;
@@ -671,6 +763,11 @@ body[data-current-role="provisioner"] .role-title {
     color: var(--role-provisioner);
 }
 
+.role-tab[data-role="bursar"].active ~ .role-card .role-title,
+body[data-current-role="bursar"] .role-title {
+    color: var(--role-bursar);
+}
+
 /* Right: Current Worker Card */
 .role-worker-card {
     background: linear-gradient(135deg, #fafafa 0%, white 100%);
@@ -696,6 +793,10 @@ body[data-current-role="cogitarian"] .role-worker-card {
     border-color: var(--role-cogitarian-medium);
 }
 
+body[data-current-role="bursar"] .role-worker-card {
+    border-color: var(--role-bursar-medium);
+}
+
 .worker-card-header {
     border-bottom: 2px solid #e0e0e0;
     padding-bottom: 0.5rem;
@@ -713,6 +814,10 @@ body[data-current-role="mapper"] .worker-card-header {
 
 body[data-current-role="cogitarian"] .worker-card-header {
     border-color: var(--role-cogitarian-medium);
+}
+
+body[data-current-role="bursar"] .worker-card-header {
+    border-color: var(--role-bursar-medium);
 }
 
 .worker-card-header .worker-label {
@@ -770,6 +875,10 @@ body[data-current-role="cogitarian"] .role-separator {
     border-color: var(--role-cogitarian-medium);
 }
 
+body[data-current-role="bursar"] .role-separator {
+    border-color: var(--role-bursar-medium);
+}
+
 /* Role Content Separator (inside descriptions) */
 .role-content-separator {
     margin: 1.5rem 0 1rem 0;
@@ -789,6 +898,10 @@ body[data-current-role="mapper"] .role-content-separator {
 
 body[data-current-role="cogitarian"] .role-content-separator {
     border-color: var(--role-cogitarian-medium);
+}
+
+body[data-current-role="bursar"] .role-content-separator {
+    border-color: var(--role-bursar-medium);
 }
 
 /* Greeter Event Stack */
@@ -2257,27 +2370,104 @@ body[data-current-role="cogitarian"] .action-button.primary {
 }
 
 /* Dreamstyler content grid uses dreamstyler colors for right column too */
-.dreamstyler-content-grid .repo-data-box {
+.dreamstyler-content-grid .repo-data-box,
+.dreamstyler-right-column .repo-data-box {
     border-color: var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.5));
 }
 
-.dreamstyler-content-grid .repo-data-header {
+.dreamstyler-content-grid .repo-data-header,
+.dreamstyler-right-column .repo-data-header {
     color: var(--role-dreamstyler-dark, rgb(118, 77, 189));
     background: var(--role-dreamstyler-light, rgba(158, 117, 229, 0.1));
     border-bottom-color: var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.5));
 }
 
-.dreamstyler-content-grid .commit-row {
+.dreamstyler-content-grid .commit-row,
+.dreamstyler-right-column .commit-row {
     border-bottom-color: var(--role-dreamstyler-light, rgba(158, 117, 229, 0.15));
 }
 
-.dreamstyler-content-grid .contributors-section {
+.dreamstyler-content-grid .contributors-section,
+.dreamstyler-right-column .contributors-section {
     background: var(--role-dreamstyler-light, rgba(158, 117, 229, 0.1));
     border-top-color: var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.5));
 }
 
-.dreamstyler-content-grid .contributors-label {
+.dreamstyler-content-grid .contributors-label,
+.dreamstyler-right-column .contributors-label {
     color: var(--role-dreamstyler-dark, rgb(118, 77, 189));
+}
+
+/* Dreamstyler Right Column Layout */
+.dreamstyler-right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.aesthetic-adjustments-box,
+.unfinished-dreams-box {
+    background: white;
+    border: 2px solid var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.5));
+}
+
+.dreamstyler-commits-list {
+    padding: 0.5rem;
+    min-height: 60px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.dreamstyler-commits-list .commit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--role-dreamstyler-light, rgba(158, 117, 229, 0.15));
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+}
+
+.dreamstyler-commits-list .commit-row:last-child {
+    border-bottom: none;
+}
+
+.dreamstyler-commits-list .commit-message {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #333;
+}
+
+.dreamstyler-commits-list .commit-meta {
+    color: var(--role-dreamstyler-dark, rgb(118, 77, 189));
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.tangled-integration-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    background: var(--role-dreamstyler-light, rgba(158, 117, 229, 0.1));
+    border-top: 1px solid var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.3));
+    font-size: 0.7rem;
+    font-family: 'Courier New', monospace;
+    color: var(--role-dreamstyler-dark, rgb(118, 77, 189));
+}
+
+.tangled-integration-note a {
+    color: var(--role-dreamstyler, #9e75e5);
+    text-decoration: underline;
+}
+
+.unfinished-dreams-list {
+    padding: 0.5rem;
+    min-height: 40px;
 }
 
 /* ============================================
@@ -2413,5 +2603,180 @@ body[data-current-role="cogitarian"] .action-button.primary {
 
 .placeholder-row {
     opacity: 0.6;
+    font-style: italic;
+}
+
+/* ============================================
+   BURSAR STYLES
+   ============================================ */
+
+.bursar-content-container {
+    padding: 1.5rem;
+}
+
+.bursar-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .bursar-content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.bursar-box {
+    background: white;
+    border: 2px solid var(--role-bursar-medium);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.bursar-box-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--role-bursar-dark);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    margin: 0 0 1rem 0;
+    text-align: center;
+}
+
+.bursar-box-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #555;
+    margin: 0 0 0.75rem 0;
+}
+
+.bursar-box-text:last-of-type {
+    margin-bottom: 1.25rem;
+}
+
+.bursar-box-text a {
+    color: var(--role-bursar);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.bursar-box-text a:hover {
+    color: var(--role-bursar-dark);
+    text-decoration: underline;
+}
+
+/* Stats display */
+.bursar-stats {
+    background: var(--role-bursar-light);
+    padding: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.bursar-stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 0.25rem;
+}
+
+.bursar-stat-row:last-child {
+    margin-bottom: 0;
+}
+
+.bursar-stat-label {
+    color: var(--role-bursar-dark);
+    font-weight: 600;
+}
+
+.bursar-stat-value {
+    color: var(--role-bursar-dark);
+}
+
+/* Button actions */
+.bursar-box-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.bursar-box-button {
+    background: var(--role-bursar);
+    border: 2px solid var(--role-bursar);
+    color: white;
+    padding: 0.7rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    flex: 1;
+}
+
+.bursar-box-button svg {
+    flex-shrink: 0;
+    stroke: white;
+}
+
+.bursar-box-button:hover {
+    background: var(--role-bursar-dark);
+    border-color: var(--role-bursar-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.bursar-box-button:active {
+    transform: translateY(0);
+}
+
+.bursar-btn-secondary {
+    background: white;
+    color: var(--role-bursar-dark);
+    border-color: var(--role-bursar-medium);
+}
+
+.bursar-btn-secondary svg {
+    stroke: var(--role-bursar-dark);
+}
+
+.bursar-btn-secondary:hover {
+    background: var(--role-bursar-light);
+    border-color: var(--role-bursar-dark);
+}
+
+/* Submit form */
+.bursar-submit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.bursar-domain-input {
+    padding: 0.7rem 1rem;
+    border: 2px solid var(--role-bursar-medium);
+    background: white;
+    font-size: 0.9rem;
+    font-family: 'Courier New', monospace;
+    color: #333;
+}
+
+.bursar-domain-input:focus {
+    outline: none;
+    border-color: var(--role-bursar);
+}
+
+.bursar-domain-input::placeholder {
+    color: #999;
     font-style: italic;
 }

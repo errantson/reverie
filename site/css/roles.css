@@ -35,6 +35,12 @@
     --role-dreamstyler-light: rgba(158, 117, 229, 0.12);
     --role-dreamstyler-medium: rgba(158, 117, 229, 0.25);
     --role-dreamstyler-dark: rgb(120, 85, 180);
+    
+    /* Bursar - Emerald green tones (treasury, trust, schemes) */
+    --role-bursar: rgb(16, 185, 129);
+    --role-bursar-light: rgba(16, 185, 129, 0.12);
+    --role-bursar-medium: rgba(16, 185, 129, 0.25);
+    --role-bursar-dark: rgb(5, 150, 105);
 }
 
 /* Role-specific utility classes */
@@ -43,12 +49,29 @@
 .role-bg-cogitarian { background-color: var(--role-cogitarian-light) !important; }
 .role-bg-provisioner { background-color: var(--role-provisioner-light) !important; }
 .role-bg-dreamstyler { background-color: var(--role-dreamstyler-light) !important; }
+.role-bg-bursar { background-color: var(--role-bursar-light) !important; }
 
 .role-text-greeter { color: var(--role-greeter) !important; }
 .role-text-mapper { color: var(--role-mapper) !important; }
 .role-text-cogitarian { color: var(--role-cogitarian) !important; }
 .role-text-provisioner { color: var(--role-provisioner) !important; }
 .role-text-dreamstyler { color: var(--role-dreamstyler) !important; }
+.role-text-bursar { color: var(--role-bursar) !important; }
+
+/* Role link colors */
+.role-link-greeter { color: var(--role-greeter); }
+.role-link-mapper { color: var(--role-mapper); }
+.role-link-cogitarian { color: var(--role-cogitarian); }
+.role-link-provisioner { color: var(--role-provisioner); }
+.role-link-dreamstyler { color: var(--role-dreamstyler); }
+.role-link-bursar { color: var(--role-bursar); }
+
+.role-link-greeter:hover { color: var(--role-greeter-dark); }
+.role-link-mapper:hover { color: var(--role-mapper-dark); }
+.role-link-cogitarian:hover { color: var(--role-cogitarian-dark); }
+.role-link-provisioner:hover { color: var(--role-provisioner-dark); }
+.role-link-dreamstyler:hover { color: var(--role-dreamstyler-dark); }
+.role-link-bursar:hover { color: var(--role-bursar-dark); }
 
 /* Spectrum preview helper text styling moved here so role color tokens are available */
 .spectrum-preview-helper-text {

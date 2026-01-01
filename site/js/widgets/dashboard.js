@@ -621,7 +621,7 @@ class Dashboard {
                             ${d.display_name || d.handle}
                         </h1>
                         <div class="dashboard-handle">
-                            <a href="https://bsky.app/profile/${d.handle}" target="_blank" rel="noopener">@${d.handle}</a>
+                            <a href="https://bsky.app/profile/${d.did}" target="_blank" rel="noopener">@${d.handle}</a>
                         </div>
                         <div class="dashboard-status" id="dashboardStatusDisplay">calculating...</div>
                         <div class="dashboard-contribution" id="dashboardContribution">
@@ -767,7 +767,7 @@ class Dashboard {
                                         </div>
                                         <div class="account-info-row">
                                             <span class="dashboard-info-label">Handle</span>
-                                            <a href="https://bsky.app/profile/${d.handle}" target="_blank" rel="noopener" class="dashboard-info-value dashboard-info-link" title="View on Bluesky">@${d.handle}</a>
+                                            <a href="https://bsky.app/profile/${d.did}" target="_blank" rel="noopener" class="dashboard-info-value dashboard-info-link" title="View on Bluesky">@${d.handle}</a>
                                         </div>
                                         <div class="account-info-row">
                                             <span class="dashboard-info-label">${this.getServerLabel(d.server)}</span>
@@ -2888,12 +2888,16 @@ class Dashboard {
         console.log('   newName:', newName);
         console.log('   newAlts:', newAlts);
         
-        // Update handle in details tab
+        // Update handle in details tab - use DID for link stability
+        const did = this.dreamerData?.did;
         const handleLinks = document.querySelectorAll('a[href*="bsky.app/profile"]');
         handleLinks.forEach(link => {
             if (link.textContent.startsWith('@')) {
                 link.textContent = `@${newHandle}`;
-                link.href = `https://bsky.app/profile/${newHandle}`;
+                // Use DID for link to avoid handle resolution issues
+                if (did) {
+                    link.href = `https://bsky.app/profile/${did}`;
+                }
                 console.log('   Updated handle link:', newHandle);
             }
         });

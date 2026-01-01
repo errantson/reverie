@@ -61,7 +61,7 @@ function generateKeepersView(holders, souvenirKey, allCanonEntries) {
             <div>
                 <img src="${iconSrc}" alt="${iconAlt}" title="${iconAlt}" style="width:20px; height:20px; vertical-align:middle; margin-right:8px; ${iconStyle}">
                 <a href="dreamer?did=${encodeURIComponent(u.did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(u.did)}">${u.name}</a>
-                (<a href="https://bsky.app/profile/${u.handle.replace(/^@/, '')}" title="${u.handle.replace(/^@/, '')}">@${u.handle.replace(/^@/, '')}</a>)
+                (<a href="https://bsky.app/profile/${u.did}" title="${u.handle.replace(/^@/, '')}">@${u.handle.replace(/^@/, '')}</a>)
                 ${isRecent ? `<span style="color: var(--reverie-core-color, #734ba1); font-size: 12px; margin-left: 8px;">✨ new</span>` : ''}
             </div>
             <div class="souvenir-uri-container" style="color: #999; font-family: monospace; display: flex; align-items: center;">

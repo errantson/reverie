@@ -351,7 +351,7 @@ class Profile {
 
         avatarEl.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-                <a href="https://bsky.app/profile/${dreamer.handle}" target="_blank" rel="noopener noreferrer">
+                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" rel="noopener noreferrer">
                     <img src="${avatarUrl}" 
                          alt="${dreamer.name || dreamer.handle}"
                          onerror="this.src='/assets/icon_face.png'">
@@ -398,7 +398,7 @@ class Profile {
 
         // Handle with status below (make status clickable)
         handleEl.innerHTML = `
-            <a href="https://bsky.app/profile/${dreamer.handle}" target="_blank" rel="noopener noreferrer">
+            <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" rel="noopener noreferrer">
                 @${dreamer.handle}
             </a>
             <div class="profile-status" data-status="${status}">${status}</div>

@@ -151,6 +151,37 @@ class Shadowbox {
     }
 
     /**
+     * Show an image in the shadowbox (compatibility with widgets/shadowbox.js)
+     * Note: This is a simplified version - for advanced bubble/growth effects,
+     * use the dedicated ShadowboxWidget from widgets/shadowbox.js
+     * 
+     * @param {string} imageUrl - URL of the image to display
+     * @param {string} imageName - Optional name/alt text for the image
+     * @param {Object} options - Display options (enableBubbles, enableGrowth ignored in this version)
+     */
+    static show(imageUrl, imageName = '', options = {}) {
+        const shadowbox = new Shadowbox({ showCloseButton: true });
+        shadowbox.create();
+        
+        // Create image element
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = imageName;
+        img.style.cssText = `
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        `;
+        
+        // Add image to content container
+        shadowbox.contentContainer.appendChild(img);
+        
+        return shadowbox;
+    }
+
+    /**
      * Load and display a dialogue by key
      * @param {string} key - Dialogue key to load
      * @param {Object} callbackContext - Context for button callbacks

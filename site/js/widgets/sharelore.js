@@ -526,9 +526,9 @@ class ShareLore {
                 }
                 
                 postCard.addEventListener('click', () => {
-                    const handle = post.author.handle;
+                    const did = post.author.did;
                     const postId = post.uri.split('/').pop();
-                    const url = `https://bsky.app/profile/${handle}/post/${postId}`;
+                    const url = `https://bsky.app/profile/${did}/post/${postId}`;
                     
                     const input = document.getElementById('postUriInput');
                     if (input) {
