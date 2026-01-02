@@ -2189,10 +2189,25 @@ class HomepageScene {
      * Show the directory widget
      */
     showDirectory() {
-        // Close any existing shadowbox
+        // Close any existing shadowbox (legacy check)
         if (this.currentShadowbox) {
             this.currentShadowbox.close();
             this.currentShadowbox = null;
+        }
+        
+        // Close ALL active shadowboxes using the static array
+        // This ensures the directory isn't hidden behind a shadowbox overlay
+        if (window.Shadowbox && window.Shadowbox.activeShadowboxes) {
+            // Close from top to bottom to trigger proper cleanup
+            while (window.Shadowbox.activeShadowboxes.length > 0) {
+                const topShadowbox = window.Shadowbox.activeShadowboxes[window.Shadowbox.activeShadowboxes.length - 1];
+                if (topShadowbox && typeof topShadowbox.close === 'function') {
+                    topShadowbox.close();
+                } else {
+                    // Safety: remove from array if can't close properly
+                    window.Shadowbox.activeShadowboxes.pop();
+                }
+            }
         }
         
         // Wait for directory widget to be available
