@@ -6,6 +6,17 @@
     --order-container-gap: clamp(8px, 1.5vh, 12px);
 }
 
+/* Mobile/Desktop visibility toggles */
+.mobile-quantity,
+.mobile-carousel {
+    display: none;
+}
+
+.desktop-quantity,
+.desktop-carousel {
+    display: block;
+}
+
 /* Fullscreen Background (matches dreamer.css and homepage) */
 .fullscreen-background {
     position: fixed;
@@ -2306,5 +2317,568 @@
         margin-top: 8px;
         padding: 10px 12px;
         font-size: 0.68rem;
+    }
+}
+
+/* ==========================================================================
+   MOBILE ORDER RENOVATION
+   Cover left, synopsis right, slider below, stats in box after order
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* ----------------------------------------
+       CONTAINER: Flush full-screen
+       ---------------------------------------- */
+    .fullscreen-background {
+        display: none;
+    }
+
+    .main-content {
+        display: block;
+        padding: 0;
+        margin: 0;
+        min-height: auto;
+    }
+
+    .order-section {
+        padding: 0;
+        min-height: auto;
+        background: #fff;
+    }
+
+    .order-container {
+        position: fixed;
+        top: 64px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        max-height: none;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    /* Show mobile elements, hide desktop elements on mobile */
+    .mobile-quantity,
+    .mobile-carousel {
+        display: block;
+    }
+
+    .desktop-quantity,
+    .desktop-carousel {
+        display: none;
+    }
+
+    /* ----------------------------------------
+       ROW 1: Cover LEFT + Title/Synopsis RIGHT
+       ---------------------------------------- */
+    .order-row-1 {
+        display: flex;
+        flex-direction: row;
+        gap: 0;
+        padding: 16px;
+        background: linear-gradient(180deg, #fdfcfe 0%, #fff 100%);
+        align-items: stretch;
+    }
+
+    /* Cover on left side */
+    .hero-cover {
+        flex: 0 0 auto;
+        width: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0;
+        background: none;
+    }
+
+    .hero-cover-img {
+        width: 110px;
+        height: auto;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    .hero-cover-img:hover {
+        transform: none;
+    }
+
+    /* Hide Kindle button on mobile */
+    .kindle-btn {
+        display: none;
+    }
+
+    /* Title and synopsis on right, vertically centered */
+    .title-synopsis {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 0 0 14px;
+        gap: 0;
+    }
+
+    .order-main-synopsis {
+        padding: 0;
+        background: none;
+        border: none;
+        box-shadow: none;
+        margin: 0;
+    }
+
+    .order-main-title {
+        font-size: 1.15rem;
+        margin: 0 0 4px 0;
+        line-height: 1.2;
+        text-align: center;
+    }
+
+    .order-author {
+        font-size: 0.8rem;
+        margin: 0 0 10px 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(115, 75, 161, 0.15);
+        text-align: center;
+    }
+
+    /* Full length synopsis */
+    .synopsis-text {
+        font-size: 0.75rem;
+        line-height: 1.55;
+        max-height: none;
+        overflow: visible;
+        position: relative;
+        text-align: center;
+    }
+
+    .synopsis-text::after {
+        display: none;
+    }
+
+    /* Mobile carousel - positioned below slider */
+    .mobile-carousel {
+        order: 30;
+        margin: 0;
+        padding: 0 16px 16px 16px;
+    }
+
+    .mobile-carousel .book-info-carousel {
+        height: auto;
+        min-height: 140px;
+        border: 1px solid rgba(115, 75, 161, 0.15);
+        background: linear-gradient(180deg, #fdfcfe 0%, #fff 100%);
+    }
+
+    .mobile-carousel .carousel-slide {
+        padding: 12px;
+    }
+
+    .mobile-carousel .carousel-slide.active {
+        position: relative;
+    }
+
+    .mobile-carousel .patronage-message {
+        padding: 10px 12px 16px 12px;
+    }
+
+    .mobile-carousel .patronage-message p {
+        font-size: 0.72rem;
+        line-height: 1.45;
+        margin: 0 0 6px 0;
+    }
+
+    .mobile-carousel .patronage-message p:first-child {
+        font-size: 0.75rem;
+    }
+
+    .mobile-carousel .carousel-stats-container {
+        padding: 4px 0 0 0;
+    }
+
+    .mobile-carousel .carousel-stats-container .shipping-notice-header {
+        padding: 4px 0;
+    }
+
+    .mobile-carousel .carousel-stats-container .edition-text {
+        font-size: 0.62rem;
+    }
+
+    .mobile-carousel .carousel-stats-container .shipping-text {
+        font-size: 0.72rem;
+    }
+
+    .mobile-carousel .book-info-grid {
+        font-size: 0.6rem;
+        gap: 2px 6px;
+        padding: 0 12px 8px 12px;
+    }
+
+    .mobile-carousel .residence-bonus-panel {
+        padding: 8px 10px 12px 10px;
+    }
+
+    .mobile-carousel .residence-key-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .mobile-carousel .bonus-title {
+        font-size: 0.78rem;
+    }
+
+    .mobile-carousel .bonus-description {
+        font-size: 0.62rem;
+        line-height: 1.4;
+    }
+
+    .mobile-carousel .carousel-panel-indicators {
+        bottom: 4px;
+    }
+
+    .mobile-carousel .panel-indicator {
+        width: 18px;
+        height: 2px;
+    }
+
+    /* ----------------------------------------
+       QUANTITY SLIDER: Below order button
+       ---------------------------------------- */
+    .mobile-quantity {
+        order: 25;
+        padding: 14px 16px 6px 16px;
+        margin: 0;
+        background: #fff;
+        border-top: 1px solid rgba(115, 75, 161, 0.1);
+        border-bottom: none;
+    }
+
+    .mobile-quantity .quantity-label {
+        display: flex;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+        gap: 4px;
+        justify-content: center;
+    }
+
+    .slider-wrapper {
+        padding: 8px 0;
+        margin: 0;
+    }
+
+    .quantity-slider {
+        width: 100%;
+        height: 12px;
+    }
+
+    .quantity-slider::-webkit-slider-thumb {
+        width: 32px;
+        height: 32px;
+    }
+
+    .quantity-slider::-moz-range-thumb {
+        width: 32px;
+        height: 32px;
+    }
+
+    .slider-notches {
+        height: 12px;
+    }
+
+    /* ----------------------------------------
+       PRICE SECTION + ORDER BUTTON
+       ---------------------------------------- */
+    .order-row-2 {
+        display: flex;
+        flex-direction: column;
+        order: 20;
+    }
+
+    .order-row-flex {
+        flex-direction: column;
+        gap: 0;
+        display: flex;
+    }
+
+    /* Hide order history on mobile */
+    .order-history-preview {
+        display: none;
+    }
+
+    .price-breakdown {
+        margin: 0;
+        padding: 14px 16px;
+        border: none;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .price-row {
+        padding: 6px 0;
+        font-size: 0.95rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .price-row:last-of-type:not(.total-row):not(.price-row-actions) {
+        border-bottom: none;
+    }
+
+    .total-row {
+        margin-top: 6px;
+        padding: 10px 0;
+        border-top: 2px solid rgba(115, 75, 161, 0.2);
+        border-bottom: none;
+    }
+
+    .total-row .price-label {
+        font-size: 1.1rem;
+    }
+
+    .total-row .price-value {
+        font-size: 1.25rem;
+        color: #734ba1;
+        font-weight: 700;
+    }
+
+    /* Actions row: Anonymous checkbox LEFT of order button */
+    .price-row-actions {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+        padding: 14px 0 0 0;
+        margin-top: 0;
+        border-top: none;
+        border-bottom: none;
+    }
+
+    .canon-checkbox {
+        flex: 0 0 auto;
+        font-size: 0.75rem;
+        justify-content: flex-start;
+        order: -1;
+        white-space: nowrap;
+    }
+
+    .canon-checkbox input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+    }
+
+    .order-btn-integrated {
+        flex: 1;
+        padding: 14px 20px;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+    }
+
+    /* ----------------------------------------
+       BOOK STATS: Box below slider
+       ---------------------------------------- */
+    .book-stats-bottom {
+        order: 20;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 12px;
+        font-size: 0.75rem;
+        padding: 14px 16px;
+        margin: 14px 16px 20px 16px;
+        background: #f9f8fc;
+        border: 1px solid rgba(115, 75, 161, 0.12);
+    }
+
+    .book-stats-bottom .stat-item {
+        color: #555;
+        line-height: 1.4;
+    }
+
+    .book-stats-bottom .stat-item b {
+        font-weight: 600;
+        color: #333;
+    }
+
+    /* Press header - hidden */
+    .press-header {
+        display: none;
+    }
+}
+
+/* ============================================
+   SMALL MOBILE (480px) - Tighter spacing
+   ============================================ */
+@media (max-width: 480px) {
+    .order-container {
+        top: 64px;
+    }
+
+    .order-row-1 {
+        padding: 14px;
+    }
+
+    .hero-cover-img {
+        width: 95px;
+    }
+
+    .title-synopsis {
+        padding-left: 12px;
+    }
+
+    .order-main-title {
+        font-size: 1.05rem;
+    }
+
+    .order-author {
+        font-size: 0.75rem;
+    }
+
+    .synopsis-text {
+        font-size: 0.7rem;
+        line-height: 1.5;
+    }
+
+    .quantity-section {
+        padding: 12px 14px;
+    }
+
+    .quantity-label {
+        font-size: 0.85rem;
+    }
+
+    .quantity-slider {
+        height: 10px;
+    }
+
+    .quantity-slider::-webkit-slider-thumb {
+        width: 28px;
+        height: 28px;
+    }
+
+    .quantity-slider::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+    }
+
+    .price-breakdown {
+        padding: 12px 14px;
+    }
+
+    .price-row {
+        font-size: 0.9rem;
+        padding: 5px 0;
+    }
+
+    .total-row .price-label {
+        font-size: 1rem;
+    }
+
+    .total-row .price-value {
+        font-size: 1.15rem;
+    }
+
+    .price-row-actions {
+        gap: 10px;
+        padding: 12px 0 0 0;
+    }
+
+    .canon-checkbox {
+        font-size: 0.7rem;
+    }
+
+    .order-btn-integrated {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+    }
+
+    .book-stats-bottom {
+        font-size: 0.7rem;
+        padding: 12px 14px;
+        margin: 12px 14px 16px 14px;
+        gap: 5px 10px;
+    }
+}
+
+/* ============================================
+   TINY MOBILE (360px) - Minimum viable
+   ============================================ */
+@media (max-width: 360px) {
+    .order-row-1 {
+        padding: 12px;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .hero-cover {
+        margin-bottom: 12px;
+    }
+
+    .hero-cover-img {
+        width: 100px;
+    }
+
+    .title-synopsis {
+        padding: 0;
+        width: 100%;
+    }
+
+    .order-main-title {
+        font-size: 1rem;
+    }
+
+    .order-author {
+        font-size: 0.7rem;
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+    }
+
+    .synopsis-text {
+        font-size: 0.68rem;
+    }
+
+    .quantity-section {
+        padding: 10px 12px;
+    }
+
+    .price-breakdown {
+        padding: 10px 12px;
+    }
+
+    .price-row {
+        font-size: 0.85rem;
+    }
+
+    .total-row .price-value {
+        font-size: 1.1rem;
+    }
+
+    .price-row-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .canon-checkbox {
+        justify-content: center;
+    }
+
+    .order-btn-integrated {
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 0.95rem;
+        letter-spacing: 1px;
+    }
+
+    .book-stats-bottom {
+        font-size: 0.65rem;
+        padding: 10px 12px;
+        margin: 10px 12px 14px 12px;
     }
 }

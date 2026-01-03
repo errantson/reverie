@@ -82,61 +82,7 @@
     align-items: start;
 }
 
-@media (max-width: 768px) {
-    .profile-row-1 {
-        grid-template-columns: 30fr 70fr;
-        grid-template-rows: auto auto;
-        gap: 10px;
-        align-items: center;
-    }
-
-    .profile-avatar {
-        grid-column: 1;
-        grid-row: 1;
-        align-self: center;
-        justify-self: center;
-        margin-top: 4px;
-    }
-
-    .profile-identity {
-        grid-column: 2;
-        grid-row: 1;
-        align-items: center;
-        text-align: center;
-        gap: 4px;
-        justify-self: center;
-    }
-
-    .profile-contribution-card {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        justify-content: center;
-        padding: 8px 12px;
-    }
-    
-    /* Mobile: Single row for contribution breakdown */
-    .contribution-breakdown {
-        flex-direction: row;
-        justify-content: space-around;
-        width: 100%;
-    }
-    
-    .contribution-item {
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .contribution-sublabel {
-        font-size: 0.55rem;
-    }
-    
-    .contribution-subvalue {
-        font-size: 0.9rem;
-    }
-}
+/* Mobile row-1 layout now handled in MOBILE PROFILE RENOVATION section at end of file */
 
 .profile-avatar {
     display: flex;
@@ -3387,4 +3333,451 @@
 .row-entry.reaction-row:hover {
     /* Hover handled by color-rows.css */
     opacity: 1;
+}
+
+/* ============================================
+   MOBILE PROFILE RENOVATION
+   A true mobile-first layout, not just adapted desktop
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* ----------------------------------------
+       CONTAINER: Full-width, closer to header
+       ---------------------------------------- */
+    #profile-container {
+        padding: 0;
+        gap: 0;
+        border: none;
+        border-top: 3px solid var(--user-color, var(--reverie-core-color, #734ba1));
+        background: linear-gradient(180deg, 
+            rgba(255,255,255,1) 0%, 
+            rgba(253,252,254,1) 100%);
+        max-width: 100%;
+        margin-top: -68px; /* Pull up closer to header */
+    }
+
+    /* ----------------------------------------
+       ROW 1: Avatar | Name Stack | Contribution
+       Three-column layout, all centered vertically
+       ---------------------------------------- */
+    .profile-row-1 {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 14px 14px 14px;
+        background: linear-gradient(180deg, 
+            rgba(115, 75, 161, 0.06) 0%, 
+            rgba(255,255,255,0) 100%);
+        border-bottom: 1px solid rgba(115, 75, 161, 0.1);
+        flex-wrap: nowrap;
+    }
+
+    /* Avatar: Left side, vertically centered */
+    .profile-avatar {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .profile-avatar img {
+        width: 64px;
+        height: 64px;
+        border-width: 2px;
+        box-shadow: 0 3px 12px rgba(115, 75, 161, 0.2);
+        border-radius: 50%;
+    }
+
+    /* Hide send joy button and last sent on mobile */
+    .profile-send-love-btn,
+    #profileLastSent {
+        display: none !important;
+    }
+
+    /* Identity: Middle, takes available space */
+    .profile-identity {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+        align-items: flex-start;
+        gap: 0;
+        min-width: 0;
+    }
+
+    .profile-name h1 {
+        font-size: 1.15rem;
+        line-height: 1.2;
+        margin-bottom: 1px;
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    /* Status: Styled like handle but with color */
+    .profile-status {
+        font-size: 0.72rem !important;
+        font-family: monospace;
+        font-weight: normal !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+        border-radius: 0 !important;
+        margin: 0;
+        text-transform: lowercase;
+        letter-spacing: 0;
+        /* Color retained via inline style from JS */
+    }
+
+    .profile-handle {
+        font-size: 0.75rem;
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0;
+    }
+
+    .profile-handle a {
+        opacity: 0.85;
+        order: 2; /* Handle link comes after status */
+    }
+
+    .profile-handle .profile-status {
+        order: 1; /* Status comes first (under name) */
+        position: static;
+        transform: none;
+        margin-left: 0;
+        margin-bottom: 1px;
+    }
+
+    .profile-arrival {
+        font-size: 0.62rem;
+        opacity: 0.6;
+        margin-top: 2px;
+        line-height: 1.2;
+    }
+
+    /* ----------------------------------------
+       CONTRIBUTION CARD: Compact box on right
+       ---------------------------------------- */
+    .profile-contribution-card {
+        flex-shrink: 0;
+        flex-basis: auto;
+        width: auto;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+        gap: 4px;
+        background: rgba(115, 75, 161, 0.04);
+        border: 1px solid rgba(115, 75, 161, 0.15);
+        border-radius: 0;
+        min-width: 70px;
+    }
+
+    .contribution-character-sigil {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        font-size: 0.8rem;
+        margin: 0;
+    }
+
+    .contribution-total {
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+        flex-shrink: 0;
+    }
+
+    .contribution-label {
+        font-size: 0.5rem;
+        opacity: 0.6;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .contribution-value {
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+
+    /* Hide breakdown on mobile - just show total */
+    .contribution-breakdown {
+        display: none;
+    }
+
+    /* ----------------------------------------
+       SQUARE CORNERS: All boxes and buttons
+       ---------------------------------------- */
+    .activity-face-btn,
+    .story-action-btn,
+    .profile-bio-content,
+    .row-entry,
+    .kindred-item,
+    .souvenir-icon,
+    .identity-compact-layout,
+    .identity-card,
+    .contribution-stats-grid,
+    .contribution-stat-item,
+    .souvenirs-physics-container,
+    .souvenirs-mini-widget {
+        border-radius: 0 !important;
+    }
+
+    /* ----------------------------------------
+       ACTIVITY SECTION: Clean tabs, full width
+       ---------------------------------------- */
+    .profile-row-single {
+        margin: 0;
+        padding: 0;
+    }
+
+    .profile-activity-header {
+        margin: 0;
+        padding: 8px 12px;
+        background: #fafafa;
+        border-bottom: 1px solid rgba(115, 75, 161, 0.08);
+        justify-content: center;
+    }
+
+    .activity-face-controls {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+        justify-content: stretch;
+        width: 100%;
+    }
+
+    .activity-face-btn {
+        flex: 1;
+        padding: 10px 6px;
+        font-size: 0.68rem;
+        white-space: nowrap;
+        border-radius: 0;
+        border-width: 1px;
+        border-left-width: 0;
+        letter-spacing: 0.02em;
+        text-align: center;
+    }
+
+    .activity-face-btn:first-child {
+        border-left-width: 1px;
+    }
+
+    .activity-face-btn.active {
+        box-shadow: none;
+    }
+
+    /* Activity content area */
+    .profile-activity-content,
+    .profile-events-content,
+    .profile-contribution-face,
+    .profile-souvenirs-face,
+    .profile-spectrum-face {
+        padding: 12px;
+    }
+
+    /* Hide spectrum octant/calculator buttons on mobile */
+    .spectrum-face-controls {
+        display: none !important;
+    }
+
+    /* ----------------------------------------
+       OTHER ROWS: Clean stacking
+       ---------------------------------------- */
+    .profile-row-2 {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+        margin-top: 0;
+    }
+
+    .profile-row-3 {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+        padding-top: 0;
+    }
+
+    .profile-bio-content {
+        border: none;
+        padding: 12px;
+        background: rgba(115, 75, 161, 0.02);
+        border-radius: 0;
+    }
+
+    .profile-bio-text {
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+
+    /* ----------------------------------------
+       ROW ENTRIES: Compact activity items
+       ---------------------------------------- */
+    .row-entry {
+        padding: 8px 10px;
+        font-size: 0.75rem;
+        border-radius: 0;
+    }
+
+    .row-timestamp {
+        font-size: 0.6rem;
+    }
+}
+
+/* ============================================
+   SMALL MOBILE (480px) - Ultra compact
+   ============================================ */
+@media (max-width: 480px) {
+    /* Container tighter, closer to header */
+    #profile-container {
+        border-top-width: 2px;
+        margin-top: -68px;
+    }
+
+    /* Hero section more compact */
+    .profile-row-1 {
+        padding: 12px 10px;
+        gap: 10px;
+    }
+
+    .profile-avatar img {
+        width: 56px;
+        height: 56px;
+        border-width: 2px;
+    }
+
+    .profile-name h1 {
+        font-size: 1.05rem;
+    }
+
+    .profile-name h1 img {
+        width: 14px;
+        height: 14px;
+    }
+
+    .profile-handle {
+        font-size: 0.68rem;
+    }
+
+    .profile-status {
+        font-size: 0.65rem !important;
+    }
+
+    .profile-arrival {
+        font-size: 0.58rem;
+    }
+
+    /* Contribution box: Smaller */
+    .profile-contribution-card {
+        padding: 6px 10px;
+        min-width: 60px;
+    }
+
+    .contribution-label {
+        font-size: 0.45rem;
+    }
+
+    .contribution-value {
+        font-size: 0.95rem;
+    }
+
+    /* Tabs: Smaller */
+    .profile-activity-header {
+        padding: 6px 8px;
+    }
+
+    .activity-face-btn {
+        padding: 8px 4px;
+        font-size: 0.58rem;
+        letter-spacing: 0;
+    }
+
+    /* Content areas tighter */
+    .profile-activity-content,
+    .profile-events-content,
+    .profile-contribution-face,
+    .profile-souvenirs-face,
+    .profile-spectrum-face {
+        padding: 10px;
+    }
+
+    .profile-row-2,
+    .profile-row-3 {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .profile-bio-content {
+        padding: 10px;
+    }
+
+    .profile-bio-text {
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
+
+    /* Row entries even smaller */
+    .row-entry {
+        padding: 6px 8px;
+        font-size: 0.7rem;
+    }
+
+    .row-timestamp {
+        font-size: 0.55rem;
+    }
+}
+
+/* ============================================
+   TINY MOBILE (360px) - Minimum viable
+   ============================================ */
+@media (max-width: 360px) {
+    .profile-row-1 {
+        padding: 10px 8px;
+        gap: 8px;
+    }
+
+    .profile-avatar img {
+        width: 48px;
+        height: 48px;
+    }
+
+    .profile-name h1 {
+        font-size: 0.95rem;
+    }
+
+    .profile-handle {
+        font-size: 0.62rem;
+    }
+
+    .profile-status {
+        font-size: 0.58rem !important;
+    }
+
+    /* Contribution box: Even smaller */
+    .profile-contribution-card {
+        padding: 5px 8px;
+        min-width: 52px;
+    }
+
+    .contribution-label {
+        font-size: 0.42rem;
+    }
+
+    .contribution-value {
+        font-size: 0.85rem;
+    }
+
+    .activity-face-btn {
+        padding: 6px 3px;
+        font-size: 0.5rem;
+    }
 }

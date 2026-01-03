@@ -94,6 +94,8 @@ class OrderWidget {
                     </div>
                     
                     ${this.renderInteractiveSection()}
+                    ${this.renderQuantitySection()}
+                    ${this.renderMobileCarousel()}
                 </div>
             </div>
         `;
@@ -133,7 +135,7 @@ class OrderWidget {
                     <div class="synopsis-text"><p>${formattedSynopsis}</p></div>
                 </div>
                 
-                <div class="book-info-carousel-container">
+                <div class="book-info-carousel-container desktop-carousel">
                     <div class="book-info-carousel">
                         <div class="carousel-slide active" data-slide="0">
                             <div class="patronage-message">
@@ -185,14 +187,14 @@ class OrderWidget {
                     </div>
                 </div>
                 
-                <div class="quantity-section">
-                    <label for="quantity-slider" class="quantity-label">
-                        <span id="quantity-display">1</span> 
-                        <span id="copies-label">Copy</span>
+                <div class="quantity-section desktop-quantity">
+                    <label for="quantity-slider-desktop" class="quantity-label">
+                        <span class="quantity-display">1</span> 
+                        <span class="copies-label">Copy</span>
                     </label>
                     <div class="slider-wrapper">
                         <input type="range" 
-                               id="quantity-slider" 
+                               id="quantity-slider-desktop" 
                                class="quantity-slider" 
                                min="0" 
                                max="${this.quantityOptions.length - 1}" 
@@ -203,7 +205,90 @@ class OrderWidget {
                                aria-valuemax="${this.quantityOptions[this.quantityOptions.length - 1]}"
                                aria-valuenow="1"
                                role="slider">
-                        <div class="slider-notches" id="slider-notches"></div>
+                        <div class="slider-notches desktop-notches"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderQuantitySection() {
+        return `
+            <div class="quantity-section mobile-quantity">
+                <label for="quantity-slider-mobile" class="quantity-label">
+                    <span class="quantity-display">1</span> 
+                    <span class="copies-label">Copy</span>
+                </label>
+                <div class="slider-wrapper">
+                    <input type="range" 
+                           id="quantity-slider-mobile" 
+                           class="quantity-slider" 
+                           min="0" 
+                           max="${this.quantityOptions.length - 1}" 
+                           value="0" 
+                           step="1"
+                           aria-label="Select quantity of books to order"
+                           aria-valuemin="1"
+                           aria-valuemax="${this.quantityOptions[this.quantityOptions.length - 1]}"
+                           aria-valuenow="1"
+                           role="slider">
+                    <div class="slider-notches mobile-notches"></div>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderMobileCarousel() {
+        const { author, stats } = this.bookData;
+        return `
+            <div class="book-info-carousel-container mobile-carousel">
+                <div class="book-info-carousel">
+                    <div class="carousel-slide active" data-slide="0">
+                        <div class="patronage-message">
+                            <p style="font-weight: 700; font-size: 0.85rem; color: #734ba1; margin-bottom: 10px; letter-spacing: 0.5px; text-transform: uppercase;">Reverie House Press</p>
+                            <p>Readers, scholars, and vendors support Reverie House by ordering books for their favourite shops, clubs, and people directly.</p>
+                            <p>We recognize and appreciate the value of your patronage.</p>
+                            <p>Please contact <a href="mailto:books@reverie.house">books@reverie.house</a> for any special requests.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="carousel-slide" data-slide="1">
+                        <div class="carousel-stats-container">
+                            <div class="shipping-notice-header">
+                                <div class="edition-text">First Print Edition</div>
+                                <div class="shipping-text">FREE WORLDWIDE SHIPPING</div>
+                            </div>
+                            <div class="book-info-grid">
+                                <span class="info-label">Author:</span><span>${author}</span>
+                                <span class="info-label">Genre:</span><span>${stats.genre}</span>
+                                <span class="info-label">Binding:</span><span>${stats.binding}</span>
+                                <span class="info-label">Length:</span><span>${stats.length}</span>
+                                <span class="info-label">Published:</span><span>${stats.published}</span>
+                                <span class="info-label">Ages:</span><span>${stats.ages}</span>
+                                <span class="info-label">ISBN:</span><span>${stats.isbn}</span>
+                                <span class="info-label">ASIN:</span><span>${stats.asin}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="carousel-slide" data-slide="2">
+                        <div class="residence-bonus-panel">
+                            <div class="bonus-header"></div>
+                            <div class="bonus-content">
+                                <img src="/souvenirs/residence/icon.png" alt="Residence Key" class="residence-key-icon">
+                                <div class="bonus-text">
+                                    <div class="bonus-title">Become a Resident Dreamweaver</div>
+                                    <div class="bonus-description">Every copy of <b>Seeker's Reverie</b> ordered directly from our press includes a unique invitation to claim residence at <b>Reverie House</b></div>
+                                    <div class="bonus-description" style="margin-top: 4px;">Use it to begin your journey through our wild mindscape, or to adopt a new dreamweaver persona and explore.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="carousel-panel-indicators">
+                        <span class="panel-indicator active" data-panel="0"></span>
+                        <span class="panel-indicator" data-panel="1"></span>
+                        <span class="panel-indicator" data-panel="2"></span>
                     </div>
                 </div>
             </div>
@@ -414,24 +499,25 @@ class OrderWidget {
     }
 
     renderSliderNotches() {
-        const notchesContainer = document.getElementById('slider-notches');
-        if (!notchesContainer) return;
-
-        notchesContainer.innerHTML = '';
-        this.quantityOptions.forEach((_, index) => {
-            const notch = document.createElement('div');
-            notch.className = 'slider-notch';
-            notch.style.left = `${(index / (this.quantityOptions.length - 1)) * 100}%`;
-            notchesContainer.appendChild(notch);
+        // Render notches for both desktop and mobile sliders
+        const notchContainers = document.querySelectorAll('.slider-notches');
+        notchContainers.forEach(notchesContainer => {
+            notchesContainer.innerHTML = '';
+            this.quantityOptions.forEach((_, index) => {
+                const notch = document.createElement('div');
+                notch.className = 'slider-notch';
+                notch.style.left = `${(index / (this.quantityOptions.length - 1)) * 100}%`;
+                notchesContainer.appendChild(notch);
+            });
         });
     }
 
     attachEventListeners() {
-        // Quantity slider
-        const slider = document.getElementById('quantity-slider');
-        if (slider) {
+        // Quantity sliders (both desktop and mobile)
+        const sliders = document.querySelectorAll('.quantity-slider');
+        sliders.forEach(slider => {
             slider.addEventListener('input', (e) => this.handleSliderChange(e));
-        }
+        });
 
         // Order button
         const orderBtn = document.getElementById('order-btn');
@@ -454,9 +540,9 @@ class OrderWidget {
             });
         }
 
-        // Carousel click to rotate (but not on links)
-        const carousel = document.querySelector('.book-info-carousel');
-        if (carousel) {
+        // Carousel click to rotate (but not on links) - attach to all carousels
+        const carousels = document.querySelectorAll('.book-info-carousel');
+        carousels.forEach(carousel => {
             carousel.addEventListener('click', (e) => {
                 // Don't rotate if clicking on a link
                 if (e.target.tagName === 'A' || e.target.closest('a')) {
@@ -467,15 +553,20 @@ class OrderWidget {
             });
             // Add cursor pointer to indicate it's clickable
             carousel.style.cursor = 'pointer';
-        }
+        });
     }
 
     handleSliderChange(e) {
         this.currentSliderIndex = parseInt(e.target.value);
         this.quantity = this.quantityOptions[this.currentSliderIndex];
         
-        // Update ARIA attributes for accessibility
-        e.target.setAttribute('aria-valuenow', this.quantity);
+        // Sync all sliders to the same value
+        document.querySelectorAll('.quantity-slider').forEach(slider => {
+            if (slider !== e.target) {
+                slider.value = this.currentSliderIndex;
+            }
+            slider.setAttribute('aria-valuenow', this.quantity);
+        });
         
         // Calculate tilt for knob animation
         this.sliderVelocity = this.currentSliderIndex - this.lastSliderValue;
@@ -497,14 +588,18 @@ class OrderWidget {
     }
 
     updatePriceDisplay() {
-        const quantityDisplay = document.getElementById('quantity-display');
-        const copiesLabel = document.getElementById('copies-label');
+        // Update all quantity displays (desktop and mobile)
+        document.querySelectorAll('.quantity-display').forEach(el => {
+            el.textContent = this.quantity;
+        });
+        document.querySelectorAll('.copies-label').forEach(el => {
+            el.textContent = this.quantity === 1 ? 'Copy' : 'Copies';
+        });
+        
         const quantityValue = document.getElementById('quantity-value');
         const totalPrice = document.getElementById('total-price');
         const orderBtn = document.getElementById('order-btn');
         
-        if (quantityDisplay) quantityDisplay.textContent = this.quantity;
-        if (copiesLabel) copiesLabel.textContent = this.quantity === 1 ? 'Copy' : 'Copies';
         if (quantityValue) quantityValue.textContent = this.quantity;
         
         // Animate total price
@@ -837,19 +932,31 @@ class OrderWidget {
         window.location.href = this.bookData.epubUrl;
     }
     
-    // Carousel navigation methods
+    // Carousel navigation methods - sync both desktop and mobile carousels
     nextSlide() {
-        const slides = document.querySelectorAll('.carousel-slide');
-        const indicators = document.querySelectorAll('.panel-indicator');
-        const current = document.querySelector('.carousel-slide.active');
-        const currentIndex = parseInt(current.dataset.slide);
-        const nextIndex = (currentIndex + 1) % slides.length;
+        // Get all carousels and their slides
+        const carouselContainers = document.querySelectorAll('.book-info-carousel');
         
-        current.classList.remove('active');
-        slides[nextIndex].classList.add('active');
+        // Find current slide index from any active carousel
+        const currentActive = document.querySelector('.carousel-slide.active');
+        if (!currentActive) return;
         
-        indicators.forEach((ind, i) => {
-            ind.classList.toggle('active', i === nextIndex);
+        const currentIndex = parseInt(currentActive.dataset.slide);
+        const totalSlides = document.querySelectorAll('.desktop-carousel .carousel-slide').length;
+        const nextIndex = (currentIndex + 1) % totalSlides;
+        
+        // Update all carousels to the same slide
+        carouselContainers.forEach(carousel => {
+            const slides = carousel.querySelectorAll('.carousel-slide');
+            const indicators = carousel.querySelectorAll('.panel-indicator');
+            
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === nextIndex);
+            });
+            
+            indicators.forEach((ind, i) => {
+                ind.classList.toggle('active', i === nextIndex);
+            });
         });
     }
     
@@ -872,29 +979,43 @@ class OrderWidget {
     }
     
     previousSlide() {
-        const slides = document.querySelectorAll('.carousel-slide');
-        const indicators = document.querySelectorAll('.panel-indicator');
-        const current = document.querySelector('.carousel-slide.active');
-        const currentIndex = parseInt(current.dataset.slide);
-        const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
+        const carouselContainers = document.querySelectorAll('.book-info-carousel');
+        const currentActive = document.querySelector('.carousel-slide.active');
+        if (!currentActive) return;
         
-        current.classList.remove('active');
-        slides[prevIndex].classList.add('active');
+        const currentIndex = parseInt(currentActive.dataset.slide);
+        const totalSlides = document.querySelectorAll('.desktop-carousel .carousel-slide').length;
+        const prevIndex = (currentIndex - 1 + totalSlides) % totalSlides;
         
-        indicators.forEach((ind, i) => {
-            ind.classList.toggle('active', i === prevIndex);
+        carouselContainers.forEach(carousel => {
+            const slides = carousel.querySelectorAll('.carousel-slide');
+            const indicators = carousel.querySelectorAll('.panel-indicator');
+            
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === prevIndex);
+            });
+            
+            indicators.forEach((ind, i) => {
+                ind.classList.toggle('active', i === prevIndex);
+            });
         });
     }
     
     goToSlide(index) {
-        const slides = document.querySelectorAll('.carousel-slide');
-        const indicators = document.querySelectorAll('.panel-indicator');
+        const carouselContainers = document.querySelectorAll('.book-info-carousel');
         
-        slides.forEach(slide => slide.classList.remove('active'));
-        indicators.forEach(ind => ind.classList.remove('active'));
-        
-        slides[index].classList.add('active');
-        indicators[index].classList.add('active');
+        carouselContainers.forEach(carousel => {
+            const slides = carousel.querySelectorAll('.carousel-slide');
+            const indicators = carousel.querySelectorAll('.panel-indicator');
+            
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+            
+            indicators.forEach((ind, i) => {
+                ind.classList.toggle('active', i === index);
+            });
+        });
     }
 
     async handleKindleClick() {

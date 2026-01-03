@@ -1183,13 +1183,102 @@ body {
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+    .library-page-container {
+        width: calc(100% - 1.5rem);
+        padding: var(--content-top-spacing-mobile) 0.75rem 4rem 0.75rem;
+        gap: 1rem;
+    }
+    
+    .library-sidebar {
+        padding: 0.75rem;
+        gap: 0.75rem;
+        border-width: 1px;
+    }
+    
+    .sidebar-header {
+        padding-bottom: 0.5rem;
+    }
+    
+    .sidebar-logo {
+        max-width: 100px;
+    }
+    
+    .sidebar-title h1 {
+        font-size: 1.1rem;
+    }
+    
+    .title-icon {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .sidebar-philosophy {
+        font-size: 0.65rem;
+        padding: 0.4rem 0.5rem;
+    }
+    
+    .sidebar-philosophy p {
+        margin-bottom: 0.2rem;
+    }
+    
+    .sidebar-controls {
+        padding-top: 0.4rem;
+    }
+    
+    .control-label,
+    .links-label {
+        font-size: 0.6rem;
+        margin-bottom: 0.4rem;
+    }
+    
+    .view-toggle {
+        flex-direction: row;
+        gap: 0.4rem;
+    }
+    
+    .view-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .sidebar-links {
+        padding-top: 0.4rem;
+    }
+    
+    .sidebar-link {
+        padding: 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .library-content {
+        border-width: 1px;
+    }
+
+    .bookshelf-view {
+        padding: 1rem;
+    }
+
+    .list-view {
+        padding: 1rem;
+    }
+
     .bookshelf-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 1.5rem;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 1rem;
     }
 
     .book-spine {
-        max-width: 150px;
+        max-width: 130px;
+    }
+    
+    .book-spine-title {
+        font-size: 0.85rem;
+    }
+    
+    .book-spine-author {
+        font-size: 0.7rem;
     }
 
     .book-list-item {
@@ -1219,6 +1308,68 @@ body {
 
     .details-formats {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .library-page-container {
+        width: calc(100% - 1rem);
+        padding: var(--content-top-spacing-mobile) 0.5rem 3rem 0.5rem;
+        gap: 0.75rem;
+    }
+    
+    .library-sidebar {
+        padding: 0.6rem;
+        gap: 0.5rem;
+    }
+    
+    .sidebar-logo {
+        max-width: 80px;
+    }
+    
+    .sidebar-title h1 {
+        font-size: 1rem;
+    }
+    
+    .sidebar-philosophy {
+        font-size: 0.6rem;
+        line-height: 1.3;
+    }
+    
+    .view-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.7rem;
+    }
+    
+    .view-btn span {
+        display: none;
+    }
+    
+    .bookshelf-view {
+        padding: 0.75rem;
+    }
+
+    .bookshelf-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .book-spine {
+        max-width: none;
+    }
+    
+    .book-spine-title {
+        font-size: 0.8rem;
+    }
+    
+    .book-spine-author {
+        font-size: 0.65rem;
+    }
+    
+    .book-spine-status {
+        font-size: 0.6rem;
+        padding: 0.2rem 0.4rem;
     }
 }
 

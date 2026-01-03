@@ -974,7 +974,14 @@ body.souvenir-page {
         position: relative;
         height: auto;
         overflow: visible;
-        padding-top: var(--content-top-spacing-mobile);
+        padding: var(--content-top-spacing) 1rem 4rem 1rem;
+    }
+    
+    .souvenir-frame {
+        width: 100% !important;
+        min-width: auto;
+        max-width: 100%;
+        max-height: none;
     }
     
     .box-widget {
@@ -985,16 +992,128 @@ body.souvenir-page {
         height: auto;
         max-height: 300px;
     }
+    
+    .toggle-details-btn {
+        bottom: 20px;
+        right: 20px;
+    }
 }
 
 @media (max-width: 768px) {
-    .souvenir-info {
-        flex-direction: column;
+    #souvenir-page-container {
+        padding: var(--content-top-spacing-mobile) 0.75rem 3rem 0.75rem;
+    }
+    
+    .souvenir-frame {
+        border-width: 1px;
+    }
+    
+    .souvenir-info-section {
+        padding: 14px 16px;
+        gap: 12px;
+        flex-direction: row;
         align-items: center;
-        text-align: center;
+    }
+    
+    .souvenir-icon-bubble {
+        width: 50px !important;
+        height: 50px !important;
+    }
+    
+    .souvenir-icon-bubble img {
+        width: 36px !important;
+        height: 36px !important;
     }
     
     .souvenir-text {
-        text-align: center;
+        text-align: left;
+    }
+    
+    .souvenir-name {
+        font-size: 1.1rem;
+    }
+    
+    .souvenir-description {
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+    
+    .souvenir-details {
+        font-size: 0.7rem;
+    }
+    
+    .souvenir-face-controls {
+        padding: 8px;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    
+    .souvenir-face-btn {
+        min-width: auto;
+        flex: 1;
+        padding: 6px 10px;
+        font-size: 0.7rem;
+        height: 32px;
+    }
+    
+    .souvenir-face-btn span {
+        display: none;
+    }
+    
+    .souvenir-face-btn .btn-icon {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .souvenir-content-faces {
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+    
+    .toggle-details-btn {
+        width: 40px;
+        height: 40px;
+        bottom: 16px;
+        right: 16px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    #souvenir-page-container {
+        padding: var(--content-top-spacing-mobile) 0.5rem 2.5rem 0.5rem;
+    }
+    
+    .souvenir-info-section {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .souvenir-icon-bubble {
+        width: 42px !important;
+        height: 42px !important;
+    }
+    
+    .souvenir-icon-bubble img {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    
+    .souvenir-name {
+        font-size: 1rem;
+    }
+    
+    .souvenir-description {
+        font-size: 0.75rem;
+    }
+    
+    .souvenir-face-controls {
+        padding: 6px;
+        gap: 4px;
+    }
+    
+    .souvenir-face-btn {
+        padding: 5px 8px;
+        height: 28px;
     }
 }

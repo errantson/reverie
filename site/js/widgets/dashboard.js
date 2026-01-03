@@ -5160,7 +5160,8 @@ class Dashboard {
                     window.appPasswordRequest.show({
                         title: 'Add Books via biblio.bond',
                         description: 'To add books to your reading record, we need permission to create <strong>biblio.bond.book</strong> records in your Bluesky repository.',
-                        featureName: 'biblio.bond'
+                        featureName: 'biblio.bond',
+                        buttonText: 'CONNECT ACCOUNT'
                     }, async (appPassword) => {
                         try {
                             // Connect credentials using the app password
@@ -5231,7 +5232,8 @@ class Dashboard {
                         window.appPasswordRequest.show({
                             title: 'Reconnect Reverie House',
                             description: 'Your Bluesky credentials have expired. Please reconnect to continue adding books.',
-                            featureName: 'biblio.bond'
+                            featureName: 'biblio.bond',
+                            buttonText: 'RECONNECT'
                         }, async (appPassword) => {
                             try {
                                 const response = await fetch('/api/connect-bluesky', {
@@ -5279,7 +5281,8 @@ class Dashboard {
                     window.appPasswordRequest.show({
                         title: 'Reconnect Reverie House',
                         description: 'Your Bluesky credentials have expired. Please reconnect to continue adding books.',
-                        featureName: 'biblio.bond'
+                        featureName: 'biblio.bond',
+                        buttonText: 'RECONNECT'
                     }, async (appPassword) => {
                         try {
                             const response = await fetch('/api/connect-bluesky', {
@@ -5814,7 +5817,8 @@ class Dashboard {
                         window.appPasswordRequest.show({
                             title: 'Connect Your Account',
                             description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
-                            featureName: 'courier scheduling'
+                            featureName: 'courier scheduling',
+                            buttonText: 'CONNECT ACCOUNT'
                         }, async (appPassword) => {
                             console.log('📝 [Courier] App password provided, saving...');
                             
@@ -6503,7 +6507,8 @@ class Dashboard {
                                     window.appPasswordRequest.show({
                                         title: 'Connect Your Account',
                                         description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
-                                        featureName: 'courier scheduling'
+                                        featureName: 'courier scheduling',
+                                        buttonText: 'CONNECT ACCOUNT'
                                     }, async (appPassword) => {
                                         console.log('📝 [Compose] App password provided, saving...');
                                         
@@ -7080,7 +7085,8 @@ class Dashboard {
                         window.appPasswordRequest.show({
                             title: 'Connect Your Account',
                             description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
-                            featureName: 'courier scheduling'
+                            featureName: 'courier scheduling',
+                            buttonText: 'CONNECT ACCOUNT'
                         }, async (appPassword) => {
                             console.log('📝 [Compose] App password provided, saving...');
                             

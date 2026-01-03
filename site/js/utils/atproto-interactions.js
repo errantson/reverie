@@ -103,7 +103,8 @@ class ATProtoInteractions {
             window.appPasswordRequest.show({
                 title: 'Connect Account',
                 description: `<p>To interact with posts from Reverie House, we need permission to act on your behalf.</p>`,
-                featureName: 'interactions'
+                featureName: 'interactions',
+                buttonText: 'CONNECT ACCOUNT'
             }, async (appPassword) => {
                 try {
                     const response = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {

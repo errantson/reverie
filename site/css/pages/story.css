@@ -1589,12 +1589,12 @@ body.story-page {
 
 @media (max-width: 768px) {
     .story-text {
-        padding: 8px 8px;
-        line-height: 1;
+        padding: 10px 12px;
+        line-height: 1.4;
         max-width: 100%;
         width: 100%;
         box-sizing: border-box;
-        font-size: 11px;
+        font-size: 13px;
     }
 }
 
@@ -1882,6 +1882,7 @@ body.story-page {
         flex-direction: column;
         align-items: stretch;
         padding: 12px;
+        gap: 0.75rem;
     }
     
     .controls-left {
@@ -1890,12 +1891,33 @@ body.story-page {
         gap: 0.75rem;
     }
 
-    .filter-buttons {
+    .share-story-btn {
+        font-size: 0.9em;
+        padding: 12px 16px;
+        width: 100%;
+        text-align: center;
         justify-content: center;
+    }
+
+    .filter-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .filter-btn {
+        font-size: 0.8em;
+        padding: 10px 12px;
+        text-align: center;
+        white-space: nowrap;
     }
 
     .stats {
         text-align: center;
+        font-size: 13px;
+        padding-top: 4px;
+        border-top: 1px solid #e0e0e0;
     }
     
     .story-meta {
@@ -1948,14 +1970,127 @@ body.story-page {
         white-space: nowrap;
         flex-shrink: 0;
     }
+}
+
+/* Extra small screens (< 480px) */
+@media (max-width: 480px) {
+    .story-unified-header {
+        border-width: 1px;
+        margin-bottom: 12px;
+    }
+    
+    .story-header-top {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .story-logo-container {
+        gap: 4px;
+    }
+    
+    .story-logo-container img {
+        height: 40px;
+    }
+    
+    .story-logo-label {
+        font-size: 0.65em;
+        letter-spacing: 0.08em;
+    }
+    
+    .story-header-description {
+        font-size: 0.65em;
+        line-height: 1.5;
+    }
+    
+    .story-container {
+        padding: 8px 10px 16px 10px;
+    }
+    
+    .controls {
+        padding: 10px;
+        gap: 0.6rem;
+    }
     
     .share-story-btn {
         font-size: 0.85em;
-        padding: 10px 20px;
+        padding: 10px 14px;
+    }
+    
+    .share-story-btn .rotating-word {
+        width: 50px;
     }
     
     .filter-btn {
-        font-size: 0.9em;
-        padding: 8px 16px;
+        font-size: 0.75em;
+        padding: 8px 10px;
+    }
+    
+    .story-card {
+        padding: 12px 10px;
+        margin-bottom: 12px;
+    }
+    
+    .story-card-header {
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+        padding-bottom: 0.6rem;
+    }
+    
+    .author-avatar {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .author-name {
+        font-size: 12px;
+    }
+    
+    .author-handle {
+        font-size: 10px;
+    }
+    
+    .badge {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+    
+    .story-text {
+        padding: 6px;
+        font-size: 10px;
+        line-height: 1.4;
+    }
+    
+    .story-image {
+        margin: 8px auto 6px auto;
+    }
+    
+    .story-meta {
+        gap: 6px;
+    }
+    
+    .post-date {
+        font-size: 10px;
+    }
+    
+    .post-link {
+        font-size: 10px;
+    }
+    
+    .story-action-btn {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+    
+    .action-count {
+        font-size: 8px;
+    }
+    
+    .loading {
+        padding: 20px;
+        font-size: 14px;
+    }
+    
+    .stats {
+        font-size: 12px;
     }
 }

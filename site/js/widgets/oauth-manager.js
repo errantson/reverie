@@ -13186,7 +13186,8 @@ class CS {
       window.appPasswordRequest.show({
         title: "Connect Account",
         description: "<p>To post from Reverie House, we need permission to act on your behalf.</p>",
-        featureName: "posting"
+        featureName: "posting",
+        buttonText: "CONNECT ACCOUNT"
       }, async (n) => {
         try {
           const a = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(e)}`, {

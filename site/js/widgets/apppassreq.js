@@ -86,7 +86,7 @@ class AppPasswordRequest {
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button class="action-button authorize-btn" id="app-password-request-submit">BECOME ${this.config.title.toUpperCase()}</button>
+                    <button class="action-button authorize-btn" id="app-password-request-submit">${this.config.buttonText || this.config.title.toUpperCase()}</button>
                 </div>
             </div>
         `;
