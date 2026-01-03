@@ -24,7 +24,7 @@ class Dashboard {
         if (!document.querySelector('link[href*="css/widgets/dashboard.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/css/widgets/dashboard.css?v=31';
+            link.href = '/css/widgets/dashboard.css?v=32';
             document.head.appendChild(link);
         }
         
@@ -32,7 +32,7 @@ class Dashboard {
         if (!document.querySelector('link[href*="css/widgets/dashboard-mobile.css"]')) {
             const mobileLink = document.createElement('link');
             mobileLink.rel = 'stylesheet';
-            mobileLink.href = '/css/widgets/dashboard-mobile.css?v=7';
+            mobileLink.href = '/css/widgets/dashboard-mobile.css?v=9';
             document.head.appendChild(mobileLink);
         }
         
@@ -1134,13 +1134,20 @@ class Dashboard {
         return `
             <div class="account-actions-inline-container">
                 ${deleteAccountButton}
-                <button class="account-action-compact logout-btn logout-flush-right" onclick="window.dashboardWidget.handleLogout()" title="Logout">
+                <button class="account-action-compact logout-btn" onclick="window.dashboardWidget.handleLogout()" title="Logout">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
                         <line x1="21" y1="12" x2="9" y2="12"></line>
                     </svg>
                     Logout
+                </button>
+                <button class="account-action-compact close-btn close-flush-right" onclick="window.dashboardWidget.handleClose()" title="Close Dashboard">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    Close Drawer
                 </button>
             </div>
         `;
@@ -1157,6 +1164,16 @@ class Dashboard {
         
         // Reload the page to refresh all UI
         window.location.reload();
+    }
+    
+    /**
+     * Close the dashboard drawer
+     */
+    handleClose() {
+        // Close the drawer
+        if (window.spectrumDrawer && typeof window.spectrumDrawer.close === 'function') {
+            window.spectrumDrawer.close();
+        }
     }
     
     handleShareLore() {

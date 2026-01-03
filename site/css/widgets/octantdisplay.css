@@ -37,7 +37,7 @@
     font-weight: 600;
     font-size: 0.85rem;
     background: rgba(255, 255, 255, 0.5);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+    border-bottom: none;
 }
 
 /* Apply octant colors to header and footer */

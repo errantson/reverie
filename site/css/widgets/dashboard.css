@@ -3253,6 +3253,20 @@
     color: #dc3545;
 }
 
+.close-flush-right {
+    margin-left: auto;
+}
+
+.account-action-compact.close-btn {
+    background: rgba(115, 75, 161, 0.05);
+}
+
+.account-action-compact.close-btn:hover {
+    background: rgba(115, 75, 161, 0.15);
+    border-color: var(--reverie-core-color, #734ba1);
+    color: var(--reverie-core-color, #734ba1);
+}
+
 .account-action-compact.delete-account-action:hover {
     background: rgba(139, 0, 0, 0.08);
     border-color: rgba(139, 0, 0, 0.4);

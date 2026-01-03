@@ -89,6 +89,9 @@
         width: 34px;
         height: 34px;
         left: 14px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        overflow: hidden;
     }
     
     .drawer-avatar-btn svg {
@@ -146,13 +149,17 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         background: color-mix(in srgb, var(--reverie-core-color, #734ba1) 12%, white);
+        /* Ensure the content area can scroll */
+        min-height: 0;
+        max-height: calc(100dvh - 56px); /* Full height minus header */
     }
     
     .drawer-body {
         display: flex;
         flex-direction: column;
-        min-height: 100%;
+        min-height: auto;
         padding: 0;
+        padding-bottom: 40px; /* Extra padding at bottom for safe scrolling */
         overflow: visible;
         align-items: stretch;
         justify-content: flex-start;

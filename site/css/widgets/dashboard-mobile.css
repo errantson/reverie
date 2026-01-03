@@ -75,11 +75,12 @@
     .mobile-avatar img {
         width: 64px;
         height: 64px;
-        border-radius: 0;
+        border-radius: 50%;
         object-fit: cover;
         border: 2px solid var(--reverie-core-color, #734ba1);
         box-shadow: none;
         transition: transform 0.2s ease;
+        aspect-ratio: 1;
     }
     
     .mobile-avatar:active img {
@@ -248,15 +249,23 @@
         overflow: visible;
     }
     
-    /* Souvenirs and Canon inline layout */
-    .mobile-info-boxes .souvenirs-box,
-    .mobile-info-boxes .canon-box {
+    /* Souvenirs inline layout */
+    .mobile-info-boxes .souvenirs-box {
         display: flex;
         flex-direction: row;
         align-items: center;
         padding: 6px 8px !important;
         gap: 4px;
         flex-wrap: wrap;
+    }
+    
+    /* Canon stacked layout */
+    .mobile-info-boxes .canon-box {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 8px 10px !important;
+        gap: 0;
     }
     
     .mobile-info-boxes .souvenirs-grid-compact {
@@ -267,17 +276,37 @@
     }
     
     .mobile-info-boxes .canon-list-compact {
-        display: inline-flex;
-        flex-wrap: wrap;
-        gap: 4px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        width: 100%;
     }
     
     .mobile-info-boxes .canon-mini-entry {
-        display: inline;
-        padding: 0;
+        display: block;
+        padding: 4px 0;
         background: transparent;
-        border: none;
-        font-size: 0.65rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.7rem;
+        line-height: 1.3;
+    }
+    
+    .mobile-info-boxes .canon-mini-entry:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .mobile-info-boxes .canon-mini-entry:first-child {
+        padding-top: 0;
+    }
+    
+    .mobile-info-boxes .canon-mini-entry a {
+        color: var(--reverie-core-color, #734ba1);
+        text-decoration: none;
+    }
+    
+    .mobile-info-boxes .canon-mini-entry a:active {
+        text-decoration: underline;
     }
 
     /* ========================================================================
@@ -652,15 +681,16 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 4px 8px !important;
-        min-height: 28px !important;
-        height: 28px;
+        padding: 6px 10px !important;
+        min-height: 32px !important;
+        height: auto;
         width: 100%;
         box-sizing: border-box;
         background: #f8f6ff;
         border-left: 2px solid #d0c7f0;
         border-bottom: 1px solid #eee;
         font-size: 0.7rem;
+        gap: 8px;
     }
     
     .account-info-row:last-child {
@@ -668,28 +698,36 @@
     }
     
     .dashboard-info-label {
-        font-size: 0.6rem !important;
+        font-size: 0.65rem !important;
         font-weight: 600;
         color: #666;
         flex-shrink: 0;
+        min-width: 70px;
+        text-align: left;
     }
     
     .dashboard-info-value {
-        font-size: 0.65rem !important;
+        font-size: 0.7rem !important;
         color: #444;
         text-align: right;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        max-width: 60%;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .info-truncate {
+        max-width: none !important;
     }
     
     .dashboard-info-link {
-        font-size: 0.65rem !important;
+        font-size: 0.7rem !important;
     }
     
     .dashboard-info-monospace {
         font-size: 0.6rem !important;
+        font-family: 'SF Mono', Monaco, monospace;
     }
     
     /* Aesthetic/Phanera tab - full width */
@@ -726,14 +764,18 @@
     }
     
     .phanera-image-display {
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         text-align: center;
+        width: 100%;
     }
     
     .phanera-preview-image {
         border-radius: 0 !important;
-        max-height: 100px;
+        max-height: none;
         max-width: 100%;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
     }
     
     .color-input-row {
@@ -742,6 +784,7 @@
         margin-bottom: 8px;
         width: 100%;
         align-items: center;
+        justify-content: center;
     }
     
     .color-preview-swatch {
@@ -752,7 +795,8 @@
     }
     
     .color-hex-input-inline {
-        flex: 1;
+        flex: 0 1 120px;
+        max-width: 120px;
         padding: 6px !important;
         font-size: 0.8rem !important;
         border-radius: 0 !important;
@@ -767,12 +811,15 @@
     .color-picker-inline {
         margin-bottom: 8px;
         width: 100%;
+        display: flex;
+        justify-content: center;
     }
     
     .color-picker-main {
         display: flex;
         gap: 8px;
-        width: 100%;
+        width: auto;
+        max-width: 240px;
     }
     
     .color-shade-picker {
@@ -783,10 +830,13 @@
         display: flex;
         gap: 6px;
         width: 100%;
+        justify-content: center;
+        max-width: 240px;
+        margin: 0 auto;
     }
     
     .color-preset-btn {
-        flex: 1;
+        flex: 0 1 100px;
         padding: 6px 10px !important;
         border-radius: 0 !important;
         font-size: 0.7rem !important;
@@ -861,17 +911,71 @@
         font-size: 16px !important; /* Prevent iOS zoom on focus */
     }
     
+    /* Make compose toggle buttons square on mobile */
+    .compose-view-toggle-btn {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 8px !important;
+        aspect-ratio: 1;
+    }
+    
+    .compose-view-toggle-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .compose-view-toggle-text {
+        left: 82px !important;
+        font-size: 0.65rem !important;
+        bottom: 12px !important;
+    }
+    
+    /* Compose footer - better mobile layout */
     .compose-footer {
         position: sticky;
         bottom: 0;
         background: #fafafa;
         z-index: 5;
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        flex-direction: column !important;
+        gap: 8px !important;
+        padding: 10px !important;
+    }
+    
+    .compose-footer-left {
+        width: 100%;
+        order: 1;
+    }
+    
+    .compose-schedule-display {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+    }
+    
+    .compose-footer-right {
+        order: 2;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        align-self: flex-start;
+    }
+    
+    .compose-footer-actions {
+        width: 100%;
+        order: 3;
+        display: flex;
+        gap: 8px;
     }
     
     .compose-footer-btn {
+        flex: 1;
         min-height: 44px;
         touch-action: manipulation;
+    }
+    
+    .compose-footer-btn-fixed {
+        min-width: 0 !important;
+        width: auto !important;
     }
 
     /* ========================================================================
@@ -1054,10 +1158,12 @@
        ======================================================================== */
     .account-actions-inline {
         border-top: 1px solid #d0c7f0;
-        padding: 8px 0 0 0 !important;
-        margin: 8px 0 0 0 !important;
-        width: 100%;
+        padding: 12px 12px 16px 12px !important;
+        margin: 8px 8px 12px 8px !important;
+        width: calc(100% - 16px);
         box-sizing: border-box;
+        background: white;
+        border-radius: 0;
     }
     
     .account-actions-inline-container {
@@ -1093,6 +1199,18 @@
     
     .logout-btn {
         background: #f8f8f8 !important;
+        flex: none !important;
+    }
+    
+    .close-btn {
+        background: color-mix(in srgb, var(--reverie-core-color, #734ba1) 8%, white) !important;
+        color: var(--reverie-core-color, #734ba1) !important;
+        border-color: color-mix(in srgb, var(--reverie-core-color, #734ba1) 30%, transparent) !important;
+        flex: none !important;
+    }
+    
+    .close-flush-right {
+        margin-left: auto !important;
     }
     
     .logout-flush-right {
@@ -1103,6 +1221,7 @@
         background: #fff5f5 !important;
         color: #c44 !important;
         border-color: #fcc !important;
+        flex: none !important;
     }
 }
 

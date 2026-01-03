@@ -56,7 +56,7 @@ class Drawer {
         if (!document.querySelector('link[href*="css/widgets/drawer-mobile.css"]')) {
             const mobileLink = document.createElement('link');
             mobileLink.rel = 'stylesheet';
-            mobileLink.href = '/css/widgets/drawer-mobile.css?v=3';
+            mobileLink.href = '/css/widgets/drawer-mobile.css?v=5';
             document.head.appendChild(mobileLink);
         }
 
