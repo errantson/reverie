@@ -48,8 +48,16 @@ class Drawer {
         if (!document.querySelector('link[href*="css/widgets/drawer.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/css/widgets/drawer.css?v=19';
+            link.href = '/css/widgets/drawer.css?v=20';
             document.head.appendChild(link);
+        }
+        
+        // Load mobile-specific drawer styles
+        if (!document.querySelector('link[href*="css/widgets/drawer-mobile.css"]')) {
+            const mobileLink = document.createElement('link');
+            mobileLink.rel = 'stylesheet';
+            mobileLink.href = '/css/widgets/drawer-mobile.css?v=3';
+            document.head.appendChild(mobileLink);
         }
 
         // Load orientation handler utility
@@ -147,14 +155,8 @@ class Drawer {
                     return;
                 }
 
-                // Logged in - toggle drawer on desktop
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                const isMobile = viewportWidth <= 768 && viewportHeight > viewportWidth;
-
-                if (!isMobile) {
-                    this.toggle();
-                }
+                // Logged in - toggle drawer on both mobile and desktop
+                this.toggle();
             });
 
             document.addEventListener('keydown', (e) => {
@@ -409,12 +411,22 @@ class Drawer {
     }
 
     checkDrawerAvailability() {
-        const minRequiredHeight = 700;
         const viewportHeight = window.innerHeight;
-        this.drawerAvailable = viewportHeight >= minRequiredHeight;
+        const viewportWidth = window.innerWidth;
+        const isMobile = viewportWidth <= 768;
+        
+        // On mobile, drawer is always available (full-screen mode)
+        // On desktop, require minimum height
+        if (isMobile) {
+            this.drawerAvailable = true;
+        } else {
+            const minRequiredHeight = 700;
+            this.drawerAvailable = viewportHeight >= minRequiredHeight;
+        }
 
         if (this.grip) {
-            this.grip.style.display = this.drawerAvailable ? 'flex' : 'none';
+            // Hide grip on mobile (we use pull handle instead)
+            this.grip.style.display = (this.drawerAvailable && !isMobile) ? 'flex' : 'none';
         }
 
         if (this.header) {
@@ -446,17 +458,19 @@ class Drawer {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         const isMobile = viewportWidth <= 768;
+        const isMobilePortrait = viewportWidth <= 768 && viewportHeight > viewportWidth;
 
-        if (isMobile) {
-            return;
+        // Mobile is now enabled - show backdrop for mobile portrait
+        if (isMobilePortrait && this.backdrop) {
+            this.backdrop.classList.add('visible');
         }
         
         if (this.isOpen || !this.drawerAvailable) return;
 
         this.isOpen = true;
 
-        const isMobilePortrait = viewportWidth <= 768 && viewportHeight > viewportWidth;
-        if (isMobilePortrait && this.backdrop) {
+        // Show backdrop on mobile
+        if (isMobile && this.backdrop) {
             this.backdrop.classList.add('visible');
         }
 
@@ -471,9 +485,14 @@ class Drawer {
     recalculateDimensions() {
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
+        const isMobile = viewportWidth <= 768;
         const isDesktop = (viewportWidth > viewportHeight) || (viewportWidth >= 768);
 
-        if (isDesktop) {
+        if (isMobile) {
+            // Mobile: full screen (CSS handles via dvh units)
+            this.drawer.style.setProperty('height', '100dvh', 'important');
+            this.drawer.style.setProperty('max-height', '100dvh', 'important');
+        } else if (isDesktop) {
             const pageHeaderHeight = window.location.pathname.startsWith('/books') ? 56 : (document.body.classList.contains('has-fixed-header') ? (viewportWidth <= 768 ? 70 : 80) : 0);
             const availableHeight = viewportHeight - pageHeaderHeight - 20; // Reduced bottom margin from 40 to 20
             const drawerHeaderHeight = 64;

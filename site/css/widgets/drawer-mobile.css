@@ -1,0 +1,1103 @@
+/* ============================================================================
+   DRAWER MOBILE - Complete Mobile Dashboard Experience
+   ============================================================================
+   This stylesheet provides a mobile-optimized version of the drawer/dashboard
+   that works on phones in portrait mode. It enables full functionality while
+   adapting the layout for touch-friendly mobile interaction.
+   ============================================================================ */
+
+/* ============================================================================
+   MOBILE DRAWER CONTAINER
+   ============================================================================ */
+@media (max-width: 768px) and (orientation: portrait),
+       (max-width: 480px) {
+    
+    /* Enable mobile drawer (remove desktop-only block) */
+    .drawer-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
+        z-index: 10000;
+        border-radius: 0 !important;
+        margin: 0;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .drawer-container.closed {
+        transform: translateY(calc(100% - 56px));
+        position: fixed;
+        bottom: 0;
+    }
+    
+    .drawer-container.open {
+        transform: translateY(0);
+    }
+    
+    /* Backdrop visible on mobile */
+    .drawer-backdrop {
+        display: block;
+    }
+    
+    .drawer-backdrop.visible {
+        display: block;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* ========================================================================
+       MOBILE DRAWER HEADER
+       ======================================================================== */
+    .drawer-header {
+        position: relative;
+        z-index: 10001;
+        touch-action: pan-y;
+        -webkit-user-select: none;
+        user-select: none;
+        width: 100%;
+        flex-shrink: 0;
+        height: 56px;
+        min-height: 56px;
+        padding: 8px 14px;
+        padding-top: 12px;
+        border-radius: 0 !important;
+        margin: 0;
+        border-bottom: 3px solid var(--reverie-core-color, #734ba1);
+    }
+    
+    /* Pull handle indicator */
+    .drawer-header::before {
+        content: '';
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 42px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 2px;
+        pointer-events: none;
+    }
+    
+    .drawer-avatar-btn {
+        width: 34px;
+        height: 34px;
+        left: 14px;
+    }
+    
+    .drawer-avatar-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .drawer-user-section {
+        margin-left: 56px;
+        gap: 4px;
+    }
+    
+    .drawer-handle {
+        font-size: 0.75rem;
+        max-width: calc(100vw - 180px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .firehose-indicator {
+        left: 56px;
+        padding: 2px 5px;
+        font-size: 0.52rem;
+    }
+    
+    .firehose-light {
+        width: 7px;
+        height: 7px;
+    }
+    
+    /* Hide desktop-only elements */
+    .drawer-grip,
+    .desktop-only {
+        display: none !important;
+    }
+    
+    /* Show mobile login button */
+    .drawer-login-btn.mobile-only {
+        display: block;
+    }
+    
+    .drawer-inbox-badge {
+        right: 12px;
+        font-size: 10px;
+        min-width: 18px;
+        height: 18px;
+    }
+
+    /* ========================================================================
+       MOBILE DRAWER CONTENT
+       ======================================================================== */
+    .drawer-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        background: color-mix(in srgb, var(--reverie-core-color, #734ba1) 12%, white);
+    }
+    
+    .drawer-body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        padding: 0;
+        overflow: visible;
+        align-items: stretch;
+        justify-content: flex-start;
+        background: transparent;
+    }
+    
+    /* ========================================================================
+       MOBILE DASHBOARD CONTAINER
+       ======================================================================== */
+    .dashboard-container {
+        width: 100%;
+        max-width: 100%;
+        padding: 12px;
+        margin: 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+    
+    .dashboard-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ========================================================================
+       MOBILE PROFILE HEADER - Compact Left/Right Layout
+       ======================================================================== */
+    .dashboard-header {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+    }
+    
+    /* Profile row: Avatar on left, Identity on right */
+    .dashboard-avatar-section {
+        position: absolute;
+        flex-shrink: 0;
+    }
+    
+    .dashboard-avatar img {
+        width: 56px !important;
+        height: 56px !important;
+        border-radius: 50%;
+    }
+    
+    .dashboard-avatar-hint {
+        display: none; /* Hide hint on mobile - too cluttered */
+    }
+    
+    .dashboard-identity {
+        flex: 1;
+        min-width: 0;
+        margin-left: 66px; /* Avatar width + gap */
+        padding-top: 0;
+    }
+    
+    .dashboard-display-name {
+        font-size: 0.95rem;
+        margin: 0 0 1px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .dashboard-handle {
+        font-size: 0.65rem;
+        margin-bottom: 4px;
+    }
+    
+    .dashboard-handle a {
+        color: inherit;
+    }
+    
+    /* Compact info row: status, contribution, arrival inline */
+    .dashboard-status,
+    .dashboard-contribution,
+    .dashboard-arrival {
+        display: inline;
+        font-size: 0.6rem;
+        margin: 0;
+    }
+    
+    .dashboard-status::after {
+        content: ' · ';
+        color: #999;
+    }
+    
+    .dashboard-contribution::after {
+        content: ' · ';
+        color: #999;
+    }
+    
+    .dashboard-contribution .contribution-label,
+    .dashboard-contribution span.contribution-label {
+        font-size: 0.6rem;
+    }
+    
+    .dashboard-contribution .contribution-value,
+    .dashboard-contribution span.contribution-value {
+        font-size: 0.6rem;
+    }
+    
+    .dashboard-contribution .contribution-breakdown,
+    .dashboard-contribution span.contribution-breakdown {
+        display: none; /* Hide breakdown on mobile */
+    }
+    
+    /* ========================================================================
+       MOBILE RIGHT BOXES (Octant, Souvenirs, Canon) - Horizontal Scroll
+       ======================================================================== */
+    .dashboard-right-boxes {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+        margin: 0 -12px;
+        padding-left: 12px;
+        padding-right: 12px;
+        grid-column: auto;
+        grid-row: auto;
+    }
+    
+    .dashboard-right-boxes::-webkit-scrollbar {
+        height: 3px;
+    }
+    
+    .dashboard-right-boxes::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .dashboard-right-boxes::-webkit-scrollbar-thumb {
+        background: rgba(115, 75, 161, 0.2);
+        border-radius: 2px;
+    }
+    
+    .dashboard-square-box {
+        flex-shrink: 0;
+        width: 130px;
+        min-width: 130px;
+    }
+    
+    .octant-box {
+        width: 130px;
+        min-width: 130px;
+        min-height: 90px;
+    }
+    
+    .souvenirs-box,
+    .canon-box {
+        width: 130px;
+        min-width: 130px;
+        min-height: 90px;
+    }
+    
+    .square-box-title {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+    }
+    
+    .square-box-content {
+        font-size: 0.65rem;
+        padding: 4px;
+    }
+    
+    /* Compact souvenirs grid for mobile */
+    .souvenirs-grid-compact {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 6px;
+    }
+    
+    .souvenirs-grid-compact .dashboard-souvenir-item {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .souvenirs-more {
+        width: 22px;
+        height: 22px;
+        font-size: 0.7rem;
+    }
+    
+    .canon-mini-entry {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+    }
+
+    /* ========================================================================
+       MOBILE DASHBOARD GRID
+       ======================================================================== */
+    .dashboard-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .dashboard-card {
+        padding: 12px;
+    }
+    
+    .dashboard-system-controls {
+        padding: 12px;
+    }
+
+    /* ========================================================================
+       MOBILE TABS
+       ======================================================================== */
+    .dashboard-tabs {
+        display: flex;
+        gap: 0;
+        overflow-x: hidden;
+        margin: 0 -12px;
+        padding: 0;
+        width: calc(100% + 24px);
+    }
+    
+    .dashboard-tab {
+        font-size: 0.65rem;
+        padding: 8px 6px;
+        flex: 1 1 0;
+        min-width: 0;
+        white-space: nowrap;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .dashboard-tab-badge {
+        top: -4px;
+        right: 2px;
+        font-size: 8px;
+        min-width: 12px;
+        height: 12px;
+    }
+    
+    .tab-icon {
+        width: 12px !important;
+        height: 12px !important;
+    }
+
+    /* ========================================================================
+       MOBILE TAB CONTENT
+       ======================================================================== */
+    .dashboard-tab-content {
+        padding-top: 12px;
+    }
+
+    /* ========================================================================
+       MOBILE COMPOSE TAB
+       ======================================================================== */
+    .compose-container {
+        padding: 0;
+    }
+    
+    .compose-text-view,
+    .compose-attachments-view,
+    .compose-courier-schedule-view {
+        min-height: auto;
+    }
+    
+    .compose-textarea-main {
+        min-height: 100px !important;
+        max-height: 150px !important;
+        font-size: 0.9rem;
+    }
+    
+    .compose-text-full,
+    .compose-attachments-full,
+    .compose-courier-schedule-full {
+        position: relative;
+    }
+    
+    .compose-text-header,
+    .compose-attachments-header,
+    .compose-courier-schedule-header {
+        padding: 8px 10px;
+    }
+    
+    .compose-text-title,
+    .compose-attachments-title,
+    .compose-courier-schedule-title {
+        font-size: 0.7rem;
+    }
+    
+    .compose-text-count,
+    .compose-attachments-count,
+    .compose-courier-schedule-count {
+        font-size: 0.65rem;
+    }
+    
+    .compose-view-toggle-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .compose-view-toggle-text {
+        font-size: 0.6rem;
+    }
+    
+    .compose-footer {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 10px;
+    }
+    
+    .compose-footer-left {
+        width: 100%;
+        order: 1;
+    }
+    
+    .compose-schedule-display {
+        font-size: 0.7rem;
+    }
+    
+    .compose-footer-right {
+        margin-left: 0;
+        margin-right: 0;
+        order: 2;
+    }
+    
+    .compose-footer-actions {
+        order: 3;
+        margin-left: auto;
+    }
+    
+    .compose-footer-btn {
+        padding: 8px 14px;
+        font-size: 0.7rem;
+    }
+    
+    .compose-lore-label {
+        font-size: 0.6rem;
+    }
+
+    /* ========================================================================
+       MOBILE DETAILS TAB - Full One-Column Stack
+       ======================================================================== */
+    .dashboard-details-split {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px;
+        width: 100%;
+    }
+    
+    .dashboard-details-left,
+    .dashboard-details-right {
+        flex: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .dashboard-description-container {
+        width: 100%;
+    }
+    
+    .section-title-bio {
+        font-size: 0.7rem;
+        margin-bottom: 6px;
+    }
+    
+    .dashboard-description-textarea-tall {
+        width: 100% !important;
+        min-height: 70px !important;
+        max-height: 100px !important;
+        font-size: 16px !important; /* Prevent iOS zoom */
+        box-sizing: border-box;
+    }
+    
+    .dashboard-bio-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    
+    .bio-action-btn {
+        padding: 8px 14px;
+        font-size: 0.75rem;
+        min-height: 36px;
+        touch-action: manipulation;
+    }
+    
+    .dashboard-description-status {
+        font-size: 0.65rem;
+        flex-basis: 100%;
+        margin-top: 4px;
+    }
+    
+    /* Recently Read Section - Full Width */
+    .recently-read-container {
+        width: 100%;
+    }
+    
+    .recently-read-add {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+    
+    .recently-read-input {
+        width: 100% !important;
+        font-size: 16px !important; /* Prevent iOS zoom */
+        padding: 8px 10px;
+        box-sizing: border-box;
+        min-height: 36px;
+    }
+    
+    .recently-read-add .bio-action-btn {
+        align-self: flex-start;
+    }
+    
+    /* Account Info Grid - Single Column */
+    .account-info-grid-two-column {
+        display: flex !important;
+        flex-direction: column !important;
+        grid-template-columns: unset !important;
+        gap: 6px;
+        margin-top: 16px;
+    }
+    
+    .account-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .dashboard-info-label {
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+    
+    .dashboard-info-value {
+        font-size: 0.75rem;
+        max-width: 60%;
+        text-align: right;
+    }
+    
+    .dashboard-info-monospace {
+        font-size: 0.6rem;
+        word-break: break-all;
+    }
+    
+    .info-truncate {
+        max-width: 55%;
+    }
+
+    /* ========================================================================
+       MOBILE AESTHETIC TAB
+       ======================================================================== */
+    .color-control-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .color-left-column,
+    .color-right-column {
+        width: 100%;
+    }
+    
+    .phanera-image-display {
+        max-height: 150px;
+        overflow: hidden;
+    }
+    
+    .phanera-preview-image {
+        max-height: 150px;
+        object-fit: contain;
+    }
+    
+    .color-input-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .color-preview-swatch {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .color-hex-input-inline {
+        flex: 1;
+        min-width: 80px;
+    }
+    
+    .color-picker-inline {
+        margin-top: 12px;
+    }
+    
+    .color-shade-picker,
+    .color-shade-picker canvas {
+        width: 100% !important;
+        max-width: 200px;
+    }
+    
+    .color-preset-buttons {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .color-preset-btn {
+        flex: 1;
+        min-width: 80px;
+    }
+
+    /* ========================================================================
+       MOBILE MESSAGES TAB
+       ======================================================================== */
+    .messages-with-kindred-layout {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .messages-main-panel {
+        order: 1;
+    }
+    
+    .messages-kindred-sidebar {
+        width: 100%;
+        padding-left: 0;
+        border-left: none;
+        border-top: 1px solid #e0e0e0;
+        padding-top: 12px;
+        order: 2;
+    }
+    
+    .messages-kindred-sidebar .dashboard-kindred-list {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .messages-kindred-sidebar .dashboard-kindred-card {
+        flex: 0 0 auto;
+    }
+    
+    .dashboard-message-row {
+        padding: 8px 10px;
+        flex-wrap: wrap;
+    }
+    
+    .dashboard-message-title {
+        font-size: 12px;
+    }
+    
+    .dashboard-message-preview {
+        font-size: 10px;
+        flex: 0 0 100%;
+        margin-top: 4px;
+    }
+    
+    .dashboard-message-meta {
+        gap: 6px;
+    }
+    
+    .dashboard-message-sender {
+        font-size: 11px;
+    }
+    
+    .dashboard-message-time {
+        font-size: 10px;
+    }
+    
+    .dashboard-messages-nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 10px;
+    }
+    
+    .dashboard-messages-nav-btn {
+        font-size: 10px;
+        padding: 5px 10px;
+    }
+
+    /* ========================================================================
+       MOBILE TOOLS & CONTROLS SECTION
+       ======================================================================== */
+    .section-title-tools,
+    .section-title-controls {
+        font-size: 0.7rem;
+        margin-bottom: 6px;
+    }
+    
+    .tools-list,
+    .roles-character-list {
+        gap: 3px;
+    }
+    
+    .tool-row,
+    .role-row,
+    .character-row,
+    .app-password-row,
+    .bluesky-settings-row {
+        padding: 6px 8px;
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .tool-label,
+    .role-name,
+    .character-label,
+    .app-password-label {
+        font-size: 0.7rem;
+    }
+    
+    .tool-btn,
+    .role-stepdown-btn,
+    .connect-btn-small,
+    .create-btn-small,
+    .disconnect-btn-small {
+        padding: 5px 8px;
+        font-size: 0.6rem;
+        height: 26px;
+    }
+    
+    .heading-select,
+    .handle-select {
+        font-size: 0.7rem;
+        padding: 4px 6px;
+        height: 26px;
+        max-width: 130px;
+    }
+    
+    .app-password-inline-input {
+        font-size: 0.7rem;
+        padding: 4px 6px;
+        height: 26px;
+        min-width: 120px;
+        max-width: 150px;
+    }
+    
+    /* Collapsible sections for mobile */
+    .mobile-section-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        padding: 8px 10px;
+        background: #f8f6ff;
+        border: 1px solid #d0c7f0;
+        margin-bottom: 6px;
+        touch-action: manipulation;
+    }
+    
+    .mobile-section-toggle::after {
+        content: '▼';
+        font-size: 0.6rem;
+        color: var(--reverie-core-color, #734ba1);
+        transition: transform 0.2s;
+    }
+    
+    .mobile-section-toggle.collapsed::after {
+        transform: rotate(-90deg);
+    }
+    
+    .mobile-section-content.collapsed {
+        display: none;
+    }
+
+    /* ========================================================================
+       MOBILE ACCOUNT ACTIONS
+       ======================================================================== */
+    .account-actions-inline {
+        margin-top: 12px;
+    }
+    
+    .account-actions-inline-container {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .account-action-compact {
+        font-size: 0.65rem;
+        padding: 6px 10px;
+        flex: 1;
+        min-width: 100px;
+    }
+
+    /* ========================================================================
+       MOBILE KINDRED SECTION
+       ======================================================================== */
+    .dashboard-kindred-box {
+        margin-top: 12px;
+        padding: 10px;
+    }
+    
+    .section-title-kindred {
+        font-size: 0.7rem;
+    }
+    
+    .dashboard-kindred-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .dashboard-kindred-card {
+        flex: 0 0 auto;
+    }
+    
+    .dashboard-kindred-avatar {
+        width: 28px !important;
+        height: 28px !important;
+    }
+    
+    .dashboard-kindred-name {
+        font-size: 0.65rem;
+    }
+
+    /* ========================================================================
+       MOBILE OCTANT DISPLAY WIDGET
+       ======================================================================== */
+    .octant-display-container {
+        padding: 6px;
+    }
+    
+    .octant-display-header {
+        font-size: 0.6rem;
+    }
+    
+    .octant-display-content {
+        font-size: 0.55rem;
+    }
+
+    /* ========================================================================
+       MOBILE MODALS
+       ======================================================================== */
+    .avatar-upload-modal,
+    .edit-name-modal,
+    .dreamer-modal-overlay,
+    .permission-request-modal {
+        padding: 16px;
+    }
+    
+    .avatar-upload-content,
+    .edit-name-widget,
+    .dreamer-modal-box,
+    .permission-modal-content {
+        width: 100%;
+        max-width: 100%;
+        padding: 16px;
+    }
+    
+    .avatar-upload-content h3,
+    .edit-name-widget h3,
+    .dreamer-modal-header h3,
+    .permission-modal-title {
+        font-size: 1rem;
+    }
+    
+    .avatar-preview-area img {
+        max-width: 120px;
+        max-height: 120px;
+    }
+    
+    .file-input-label {
+        font-size: 0.8rem;
+        padding: 8px 16px;
+    }
+    
+    .avatar-upload-actions,
+    .edit-name-actions {
+        gap: 8px;
+    }
+    
+    .avatar-upload-actions button,
+    .edit-name-actions button {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
+
+    /* ========================================================================
+       MOBILE PHANERA BACKGROUND
+       ======================================================================== */
+    .dashboard-phanera-background {
+        opacity: 0.25 !important;
+    }
+
+    /* ========================================================================
+       MOBILE BODY PADDING
+       ======================================================================== */
+    body.has-spectrum-drawer {
+        padding-bottom: 56px;
+    }
+}
+
+/* ============================================================================
+   VERY SMALL SCREENS (< 380px)
+   ============================================================================ */
+@media (max-width: 380px) {
+    .drawer-header {
+        height: 50px;
+        min-height: 50px;
+        padding: 6px 10px;
+        padding-top: 10px;
+    }
+    
+    .drawer-container.closed {
+        transform: translateY(calc(100% - 50px));
+    }
+    
+    .drawer-avatar-btn {
+        width: 30px;
+        height: 30px;
+        left: 10px;
+    }
+    
+    .drawer-user-section {
+        margin-left: 48px;
+    }
+    
+    .drawer-handle {
+        font-size: 0.7rem;
+    }
+    
+    .dashboard-container {
+        padding: 8px;
+    }
+    
+    .dashboard-header {
+        padding: 8px;
+        gap: 6px;
+    }
+    
+    .dashboard-avatar img {
+        width: 48px !important;
+        height: 48px !important;
+    }
+    
+    .dashboard-identity {
+        margin-left: 56px;
+    }
+    
+    .dashboard-display-name {
+        font-size: 0.85rem;
+    }
+    
+    .dashboard-status,
+    .dashboard-contribution,
+    .dashboard-arrival {
+        font-size: 0.55rem;
+    }
+    
+    .dashboard-tabs {
+        margin: 0 -8px;
+        width: calc(100% + 16px);
+    }
+    
+    .dashboard-tab {
+        font-size: 0.55rem;
+        padding: 6px 4px;
+    }
+    
+    .tab-icon {
+        width: 10px !important;
+        height: 10px !important;
+    }
+    
+    .dashboard-square-box {
+        width: 110px;
+        min-width: 110px;
+    }
+    
+    /* Details tab very small screens */
+    .dashboard-description-textarea-tall {
+        min-height: 60px !important;
+        max-height: 80px !important;
+    }
+    
+    .bio-action-btn {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+    }
+    
+    .recently-read-input {
+        padding: 6px 8px;
+    }
+    
+    .account-info-row {
+        padding: 6px 8px;
+    }
+    
+    .dashboard-info-label,
+    .dashboard-info-value {
+        font-size: 0.7rem;
+    }
+    
+    .dashboard-info-monospace {
+        font-size: 0.55rem;
+    }
+    
+    .info-truncate {
+        max-width: 50%;
+    }
+    
+    body.has-spectrum-drawer {
+        padding-bottom: 50px;
+    }
+}
+
+/* ============================================================================
+   LANDSCAPE MOBILE (phone held sideways)
+   ============================================================================ */
+@media (max-width: 896px) and (orientation: landscape) and (max-height: 450px) {
+    .drawer-container {
+        /* On landscape phones, drawer takes less height */
+        max-height: 70vh;
+    }
+    
+    .drawer-container.open {
+        transform: translateY(30vh);
+    }
+    
+    .dashboard-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .dashboard-avatar img {
+        width: 50px !important;
+        height: 50px !important;
+    }
+    
+    .dashboard-right-boxes {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .dashboard-grid {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .dashboard-card {
+        flex: 1;
+        min-width: 280px;
+    }
+}

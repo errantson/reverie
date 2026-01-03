@@ -71,17 +71,18 @@ class Header {
             { href: '/dreamers', icon: randomDreamerIcon, title: 'The Dreamweavers', isDreamerIcon: true },
             { href: '/work', icon: '🤝', title: 'Open Workshop' },
             { href: '/spectrum', icon: '🌌', title: 'Reverie Spectrum', hideOnMobile: true },
-            { href: '/database', icon: '🔮', title: 'Living Witness', hideOnMobile: true },
+            { href: '/database', icon: '🔮', title: 'Shared History', hideOnMobile: true },
             { href: '/order', icon: '📦', title: 'Special Orders' }
         ];
         
-        // Add admin items if authenticated
+        // Admin items in separate list
+        const adminItems = [];
         if (hasAdminToken) {
-            navItems.push(
-                { href: '/admin/quests.html', icon: '🎈', title: 'Quests', isAdmin: true },
-                { href: '/admin/bugs.html', icon: '🐛', title: 'Bugs', isAdmin: true },
-                { href: '/admin/dialogues.html', icon: '📣', title: 'Dialogues', isAdmin: true },
-                { href: '/admin/history.html', icon: '⌛', title: 'Edit History', isAdmin: true }
+            adminItems.push(
+                { href: '/admin/quests.html', icon: '🎈', title: 'Quests' },
+                { href: '/admin/bugs.html', icon: '🐛', title: 'Bugs' },
+                { href: '/admin/dialogues.html', icon: '📣', title: 'Dialogues' },
+                { href: '/admin/history.html', icon: '⌛', title: 'Edit History' }
             );
         }
         
@@ -96,10 +97,39 @@ class Header {
         // Determine current page
         const path = window.location.pathname || '';
         const currentPageIndex = this.getCurrentPageIndex(navItems, path);
-        const currentPage = navItems[currentPageIndex];
+        const currentPage = navItems[currentPageIndex] || navItems[0]; // Fallback to first item if not found
+        
+        // Determine current admin page
+        const currentAdminIndex = this.getCurrentPageIndex(adminItems, path);
+        const currentAdminPage = adminItems[currentAdminIndex];
+        const isOnAdminPage = currentAdminIndex >= 0 && currentAdminPage;
+        
+        const adminDropdownHTML = adminItems.length > 0 ? `
+            <div class="nav-dropdown admin-dropdown">
+                <button class="nav-dropdown-trigger" aria-label="Admin menu">
+                    <span class="nav-current-icon">${isOnAdminPage && currentAdminPage ? currentAdminPage.icon : '⚙️'}</span>
+                    <span class="nav-current-label">${isOnAdminPage && currentAdminPage ? currentAdminPage.title : 'Admin'}</span>
+                    <span class="nav-dropdown-arrow">▼</span>
+                </button>
+                <div class="nav-dropdown-menu">
+                    ${adminItems.map(item => {
+                        const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : '';
+                        return `<a href="${item.href}" class="nav-dropdown-item" ${target}>
+                            <span class="nav-item-icon">${item.icon}</span>
+                            <span class="nav-item-label">${item.title}</span>
+                        </a>`;
+                    }).join('')}
+                    <button class="nav-dropdown-item" id="admin-logout-btn" data-action="admin-logout">
+                        <span class="nav-item-icon">🔓</span>
+                        <span class="nav-item-label">Logout Admin</span>
+                    </button>
+                </div>
+            </div>
+        ` : '';
         
         const desktopNavHTML = `
             <nav class="desktop-nav">
+                ${adminDropdownHTML}
                 <div class="nav-dropdown">
                     <button class="nav-dropdown-trigger" aria-label="Navigation menu">
                         <span class="nav-current-icon">${currentPage.icon}</span>
@@ -107,7 +137,7 @@ class Header {
                         <span class="nav-dropdown-arrow">▼</span>
                     </button>
                     <div class="nav-dropdown-menu">
-                        ${navItems.filter(item => item.href !== '/' && item !== currentPage).map(item => {
+                        ${navItems.filter(item => item.href !== '/').map(item => {
                             if (item.isButton) {
                                 return `<button id="${item.id}" class="nav-dropdown-item" data-action="${item.action || 'login'}">
                                     <span class="nav-item-icon">${item.icon}</span>
@@ -155,6 +185,16 @@ class Header {
                         <span class="mobile-menu-text">${item.title}</span>
                     </a>`;
                 }).join('')}
+                ${adminItems.length > 0 ? `
+                    <div class="mobile-menu-divider"></div>
+                    ${adminItems.map(item => {
+                        const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : '';
+                        return `<a href="${item.href}" class="mobile-menu-item admin-item"${target}>
+                            <span class="mobile-menu-icon">${item.icon}</span>
+                            <span class="mobile-menu-text">${item.title}</span>
+                        </a>`;
+                    }).join('')}
+                ` : ''}
             </div>
         `;
         if (isEnhancedReader) {
@@ -1043,54 +1083,77 @@ class Header {
     }
     
     initializeDesktopDropdown() {
-        const dropdownTrigger = document.querySelector('.nav-dropdown-trigger');
-        const dropdownMenu = document.querySelector('.nav-dropdown-menu');
+        const dropdowns = document.querySelectorAll('.nav-dropdown');
         
-        if (!dropdownTrigger || !dropdownMenu) return;
-        
-        let isOpen = false;
-        
-        const toggleDropdown = (e) => {
-            e.stopPropagation();
-            isOpen = !isOpen;
+        dropdowns.forEach(dropdown => {
+            const dropdownTrigger = dropdown.querySelector('.nav-dropdown-trigger');
+            const dropdownMenu = dropdown.querySelector('.nav-dropdown-menu');
             
-            if (isOpen) {
-                dropdownTrigger.classList.add('open');
-                dropdownMenu.classList.add('open');
-            } else {
-                dropdownTrigger.classList.remove('open');
-                dropdownMenu.classList.remove('open');
-            }
-        };
-        
-        const closeDropdown = () => {
-            if (isOpen) {
-                isOpen = false;
-                dropdownTrigger.classList.remove('open');
-                dropdownMenu.classList.remove('open');
-            }
-        };
-        
-        dropdownTrigger.addEventListener('click', toggleDropdown);
-        
-        // Close when clicking outside
-        document.addEventListener('click', (e) => {
-            if (isOpen && !dropdownTrigger.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                closeDropdown();
-            }
-        });
-        
-        // Close when clicking a menu item
-        dropdownMenu.querySelectorAll('.nav-dropdown-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const action = item.getAttribute('data-action');
-                if (action === 'login') {
-                    e.preventDefault();
-                    this.handleLogin();
+            if (!dropdownTrigger || !dropdownMenu) return;
+            
+            let isOpen = false;
+            
+            const toggleDropdown = (e) => {
+                e.stopPropagation();
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.nav-dropdown').forEach(otherDropdown => {
+                    if (otherDropdown !== dropdown) {
+                        otherDropdown.querySelector('.nav-dropdown-trigger')?.classList.remove('open');
+                        otherDropdown.querySelector('.nav-dropdown-menu')?.classList.remove('open');
+                    }
+                });
+                
+                isOpen = !isOpen;
+                
+                if (isOpen) {
+                    dropdownTrigger.classList.add('open');
+                    dropdownMenu.classList.add('open');
+                } else {
+                    dropdownTrigger.classList.remove('open');
+                    dropdownMenu.classList.remove('open');
                 }
-                closeDropdown();
+            };
+            
+            const closeDropdown = () => {
+                if (isOpen) {
+                    isOpen = false;
+                    dropdownTrigger.classList.remove('open');
+                    dropdownMenu.classList.remove('open');
+                }
+            };
+            
+            dropdownTrigger.addEventListener('click', toggleDropdown);
+            
+            // Close when clicking outside
+            document.addEventListener('click', (e) => {
+                if (isOpen && !dropdownTrigger.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+            
+            // Close when clicking a menu item
+            dropdownMenu.querySelectorAll('.nav-dropdown-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const action = item.getAttribute('data-action');
+                    if (action === 'login') {
+                        e.preventDefault();
+                        this.handleLogin();
+                    } else if (action === 'admin-logout') {
+                        e.preventDefault();
+                        this.handleAdminLogout();
+                    }
+                    closeDropdown();
+                });
             });
         });
+    }
+    
+    handleAdminLogout() {
+        console.log('🔓 Admin logout clicked');
+        localStorage.removeItem('admin_token');
+        // Redirect to home page
+        window.location.href = '/';
     }
     
     handleLogin() {

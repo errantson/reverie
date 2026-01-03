@@ -9,8 +9,14 @@ class Dashboard {
         this.octantDisplay = null;
         this.messagesPollingInterval = null;
         this.currentTab = 'details'; // Track current tab
+        this.isMobile = window.innerWidth <= 768;
         this.loadStyles();
         this.init();
+        
+        // Listen for resize to update mobile state
+        window.addEventListener('resize', () => {
+            this.isMobile = window.innerWidth <= 768;
+        });
     }
 
     loadStyles() {
@@ -18,8 +24,16 @@ class Dashboard {
         if (!document.querySelector('link[href*="css/widgets/dashboard.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/css/widgets/dashboard.css?v=28';
+            link.href = '/css/widgets/dashboard.css?v=30';
             document.head.appendChild(link);
+        }
+        
+        // Load mobile dashboard CSS
+        if (!document.querySelector('link[href*="css/widgets/dashboard-mobile.css"]')) {
+            const mobileLink = document.createElement('link');
+            mobileLink.rel = 'stylesheet';
+            mobileLink.href = '/css/widgets/dashboard-mobile.css?v=2';
+            document.head.appendChild(mobileLink);
         }
         
         // Load credential modal CSS
@@ -133,19 +147,44 @@ class Dashboard {
 
     /**
      * Get OAuth access token from current session
+     * Uses same priority as work.html for consistency:
+     * 1. Backend session token (oauth_token or admin_token)
+     * 2. PDS accessJwt from session
      * @returns {Promise<string|null>} OAuth access token or null if not authenticated
      */
     async getOAuthToken() {
-        const session = window.oauthManager?.getSession();
-        if (!session) {
-            console.warn('[Dashboard] No OAuth session available');
-            return null;
+        // First try to get the backend session token (most reliable)
+        const oauthToken = localStorage.getItem('oauth_token');
+        const adminToken = localStorage.getItem('admin_token');
+        console.log('[Dashboard] getOAuthToken check:');
+        console.log('   - oauth_token:', oauthToken ? oauthToken.substring(0, 20) + '...' : 'NULL');
+        console.log('   - admin_token:', adminToken ? adminToken.substring(0, 20) + '...' : 'NULL');
+        
+        const backendToken = oauthToken || adminToken;
+        if (backendToken) {
+            console.log('[Dashboard] Using backend token');
+            return backendToken;
         }
         
-        // Get backend token (from auto-register endpoint)
-        const backendToken = localStorage.getItem('oauth_token');
-        if (backendToken) {
-            return backendToken;
+        // Fall back to PDS accessJwt if no backend token
+        const session = window.oauthManager?.getSession();
+        if (session && session.accessJwt) {
+            console.log('[Dashboard] Using accessJwt from session (no backend token found)');
+            return session.accessJwt;
+        }
+        
+        // Check for PDS session (app password login)
+        const pdsSessionStr = localStorage.getItem('pds_session');
+        if (pdsSessionStr) {
+            try {
+                const pdsSession = JSON.parse(pdsSessionStr);
+                if (pdsSession.accessJwt) {
+                    console.log('[Dashboard] Using accessJwt from PDS session');
+                    return pdsSession.accessJwt;
+                }
+            } catch (e) {
+                console.warn('[Dashboard] Failed to parse pds_session:', e);
+            }
         }
         
         console.warn('[Dashboard] No OAuth token available');
@@ -3193,18 +3232,53 @@ class Dashboard {
             
             // Fetch app password status - simple check: does user have credentials?
             try {
-                const token = await this.getOAuthToken();
+                let token = await this.getOAuthToken();
+                console.log('🔐 [Dashboard] Credentials check - token:', token ? token.substring(0, 20) + '...' : 'NULL');
                 
                 if (token) {
                     const credResponse = await fetch('/api/user/credentials/status', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
+                    console.log('🔐 [Dashboard] Credentials response status:', credResponse.status);
+                    
                     if (credResponse.ok) {
                         const credData = await credResponse.json();
+                        console.log('🔐 [Dashboard] Credentials data:', JSON.stringify(credData));
                         isConnected = credData.connected || false;
                         credentialUpdateDate = credData.created_at || null;
+                        console.log('🔐 [Dashboard] isConnected set to:', isConnected);
+                    } else if (credResponse.status === 401) {
+                        // Token expired - try to refresh by calling autoRegister
+                        console.log('🔐 [Dashboard] Token expired, attempting to refresh...');
+                        const session = this.session || window.oauthManager?.getSession();
+                        if (session && session.did && window.oauthManager?.autoRegister) {
+                            try {
+                                await window.oauthManager.autoRegister(session.did);
+                                // Try again with new token
+                                token = await this.getOAuthToken();
+                                if (token) {
+                                    console.log('🔐 [Dashboard] Token refreshed, retrying credentials check');
+                                    const retryResponse = await fetch('/api/user/credentials/status', {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    if (retryResponse.ok) {
+                                        const credData = await retryResponse.json();
+                                        isConnected = credData.connected || false;
+                                        credentialUpdateDate = credData.created_at || null;
+                                        console.log('🔐 [Dashboard] Retry successful, isConnected:', isConnected);
+                                    }
+                                }
+                            } catch (refreshError) {
+                                console.warn('🔐 [Dashboard] Token refresh failed:', refreshError);
+                            }
+                        }
+                    } else {
+                        const errorText = await credResponse.text();
+                        console.warn('🔐 [Dashboard] Credentials check failed:', credResponse.status, errorText);
                     }
+                } else {
+                    console.warn('🔐 [Dashboard] No token available for credentials check');
                 }
             } catch (error) {
                 console.warn('Failed to fetch credential status:', error);
@@ -5152,58 +5226,74 @@ class Dashboard {
                 return;
             }
             
-            // Get user's AT Protocol credentials
-            const session = window.oauthManager?.getSession();
-            if (!session || !session.accessJwt) {
-                // Show app password request modal for Reverie House authority
-                if (window.appPasswordRequest) {
-                    window.appPasswordRequest.show({
-                        title: 'Add Books via biblio.bond',
-                        description: 'To add books to your reading record, we need permission to create <strong>biblio.bond.book</strong> records in your Bluesky repository.',
-                        featureName: 'biblio.bond',
-                        buttonText: 'CONNECT ACCOUNT'
-                    }, async (appPassword) => {
-                        try {
-                            // Connect credentials using the app password
-                            const response = await fetch('/api/connect-bluesky', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-Auth-Token': window.oauthManager?.getAuthToken() || localStorage.getItem('reverie_token') || ''
-                                },
-                                body: JSON.stringify({ appPassword })
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error('Failed to connect credentials');
-                            }
-                            
-                            console.log('✅ [Dashboard] Credentials connected, retrying add book');
-                            
-                            // Reload page to refresh session
-                            window.location.reload();
-                        } catch (error) {
-                            console.error('❌ [Dashboard] Error connecting credentials:', error);
-                            throw error;
-                        }
-                    });
-                } else {
-                    alert('Please connect your Bluesky credentials in Workshop > Credentials');
+            // FIXED: Check for stored credentials first (like scheduled posts do)
+            const hasStoredCredentials = await this.hasAppPassword();
+            console.log('📚 [Dashboard] Has stored credentials:', hasStoredCredentials);
+            
+            if (hasStoredCredentials) {
+                // Use server-side API with stored credentials
+                console.log('📚 [Dashboard] Using server-side API with stored credentials');
+                
+                const token = await this.getOAuthToken();
+                if (!token) {
+                    throw new Error('No OAuth token available');
                 }
+                
+                addButton.disabled = true;
+                addButton.textContent = 'Adding...';
+                
+                const response = await fetch('/api/biblio/add-book', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title, author })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    // Check if credentials need to be reconnected
+                    if (result.needs_credentials) {
+                        console.log('🔑 [Dashboard] Stored credentials invalid, prompting for new ones');
+                        this.showAppPasswordModalForBooks();
+                        return;
+                    }
+                    throw new Error(result.error || 'Failed to add book');
+                }
+                
+                console.log('✅ [Dashboard] Book created via server:', result);
+                
+                // Reload to update button text and currentBookUri
+                await this.loadRecentlyReadBooks();
+                addButton.disabled = false;
+                
                 return;
             }
             
-            // Create biblio.bond.book record via AT Protocol
+            // Fallback: Try OAuth session for direct PDS access
+            const session = window.oauthManager?.getSession();
+            if (!session || !session.accessJwt) {
+                // No stored credentials AND no OAuth session - prompt for app password
+                console.log('📚 [Dashboard] No credentials available, prompting user');
+                this.showAppPasswordModalForBooks();
+                return;
+            }
+            
+            // Create biblio.bond.book record via AT Protocol (direct client-side)
             const now = new Date().toISOString();
             const record = {
                 '$type': 'biblio.bond.book',
                 'title': title,
-                'author': author,
-                'stamps': [],
+                'authors': author,  // v2.0 schema uses 'authors'
                 'createdAt': now
             };
             
-            console.log('📚 [Dashboard] Creating book record:', record);
+            console.log('📚 [Dashboard] Creating book record (client-side):', record);
+            
+            addButton.disabled = true;
+            addButton.textContent = 'Adding...';
             
             // Use XRPC to create the record
             const response = await fetch(`https://${session.pdsUrl || 'bsky.social'}/xrpc/com.atproto.repo.createRecord`, {
@@ -5227,35 +5317,7 @@ class Dashboard {
                     error.message.includes('Invalid token') || 
                     error.message.includes('ExpiredToken'))) {
                     console.log('🔑 [Dashboard] Token verification failed, showing credentials modal');
-                    
-                    if (window.appPasswordRequest) {
-                        window.appPasswordRequest.show({
-                            title: 'Reconnect Reverie House',
-                            description: 'Your Bluesky credentials have expired. Please reconnect to continue adding books.',
-                            featureName: 'biblio.bond',
-                            buttonText: 'RECONNECT'
-                        }, async (appPassword) => {
-                            try {
-                                const response = await fetch('/api/connect-bluesky', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-Auth-Token': window.oauthManager?.getAuthToken() || localStorage.getItem('reverie_token') || ''
-                                    },
-                                    body: JSON.stringify({ appPassword })
-                                });
-                                
-                                if (!response.ok) {
-                                    throw new Error('Failed to reconnect credentials');
-                                }
-                                
-                                window.location.reload();
-                            } catch (error) {
-                                console.error('❌ [Dashboard] Error reconnecting:', error);
-                                throw error;
-                            }
-                        });
-                    }
+                    this.showAppPasswordModalForBooks('Your Bluesky credentials have expired. Please reconnect to continue adding books.');
                     return;
                 }
                 
@@ -5263,52 +5325,70 @@ class Dashboard {
             }
             
             const result = await response.json();
-            console.log('✅ [Dashboard] Book created:', result);
+            console.log('✅ [Dashboard] Book created (client-side):', result);
             
             // Reload to update button text and currentBookUri
             await this.loadRecentlyReadBooks();
+            addButton.disabled = false;
             
         } catch (error) {
             console.error('❌ [Dashboard] Error adding book:', error);
+            
+            const addButton = document.getElementById('addBookButton');
+            if (addButton) {
+                addButton.disabled = false;
+                addButton.textContent = this.currentBookUri ? 'Update Book' : 'Add Book';
+            }
             
             // Check if error message indicates token issues
             if (error.message && (error.message.includes('Token could not be verified') || 
                 error.message.includes('Invalid token') || 
                 error.message.includes('ExpiredToken'))) {
-                console.log('🔑 [Dashboard] Token error caught in catch block, showing credentials modal');
-                
-                if (window.appPasswordRequest) {
-                    window.appPasswordRequest.show({
-                        title: 'Reconnect Reverie House',
-                        description: 'Your Bluesky credentials have expired. Please reconnect to continue adding books.',
-                        featureName: 'biblio.bond',
-                        buttonText: 'RECONNECT'
-                    }, async (appPassword) => {
-                        try {
-                            const response = await fetch('/api/connect-bluesky', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-Auth-Token': window.oauthManager?.getAuthToken() || localStorage.getItem('reverie_token') || ''
-                                },
-                                body: JSON.stringify({ appPassword })
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error('Failed to reconnect credentials');
-                            }
-                            
-                            window.location.reload();
-                        } catch (error) {
-                            console.error('❌ [Dashboard] Error reconnecting:', error);
-                            throw error;
-                        }
-                    });
-                }
+                console.log('🔑 [Dashboard] Token error caught, showing credentials modal');
+                this.showAppPasswordModalForBooks('Your Bluesky credentials have expired. Please reconnect to continue adding books.');
                 return;
             }
             
             alert(`Error adding book: ${error.message}`);
+        }
+    }
+    
+    showAppPasswordModalForBooks(customMessage = null) {
+        if (window.appPasswordRequest) {
+            window.appPasswordRequest.show({
+                title: 'Add Books via biblio.bond',
+                description: customMessage || 'To add books to your reading record, we need permission to create <strong>biblio.bond.book</strong> records in your Bluesky repository.',
+                featureName: 'biblio.bond',
+                buttonText: 'CONNECT ACCOUNT'
+            }, async (appPassword) => {
+                try {
+                    const token = await this.getOAuthToken();
+                    const response = await fetch('/api/user/credentials/connect', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ app_password: appPassword })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to connect credentials');
+                    }
+                    
+                    console.log('✅ [Dashboard] Credentials connected, retrying add book');
+                    window.appPasswordRequest.close();
+                    
+                    // Retry the add book operation
+                    await this.addBook();
+                } catch (error) {
+                    console.error('❌ [Dashboard] Error connecting credentials:', error);
+                    alert(`Failed to connect: ${error.message}`);
+                }
+            });
+        } else {
+            alert('Please connect your Bluesky credentials in Workshop > Credentials');
         }
     }
     
@@ -5798,66 +5878,58 @@ class Dashboard {
             courierScheduleView.style.display = 'none';
         } else {
             // Check if user has app password before showing schedule view
-            const userDid = window.oauthManager?.currentSession?.did || this.session?.did;
-            if (!userDid) {
-                console.warn('⚠️ [Courier] No user DID found');
-                return;
-            }
+            // Use the existing hasAppPassword() method which uses OAuth-authenticated endpoint
+            const hasPassword = await this.hasAppPassword();
             
-            // Check credentials
-            try {
-                const credsCheck = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
-                const credsData = await credsCheck.json();
+            if (!hasPassword) {
+                console.log('⚠️ [Courier] No valid credentials, showing app password modal');
                 
-                if (!credsData.has_credentials) {
-                    console.log('⚠️ [Courier] No valid credentials, showing app password modal');
-                    
-                    // Show app password request modal
-                    if (window.appPasswordRequest) {
-                        window.appPasswordRequest.show({
-                            title: 'Connect Your Account',
-                            description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
-                            featureName: 'courier scheduling',
-                            buttonText: 'CONNECT ACCOUNT'
-                        }, async (appPassword) => {
-                            console.log('📝 [Courier] App password provided, saving...');
-                            
-                            // Save the app password
-                            try {
-                                const saveResponse = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ app_password: appPassword })
-                                });
+                // Show app password request modal
+                if (window.appPasswordRequest) {
+                    window.appPasswordRequest.show({
+                        title: 'Connect Your Account',
+                        description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
+                        featureName: 'courier scheduling',
+                        buttonText: 'CONNECT ACCOUNT'
+                    }, async (appPassword) => {
+                        console.log('📝 [Courier] App password provided, saving...');
+                        
+                        // Save the app password using OAuth-authenticated endpoint
+                        try {
+                            const token = await this.getOAuthToken();
+                            const saveResponse = await fetch('/api/user/credentials/connect', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({ app_password: appPassword })
+                            });
                                 
-                                if (!saveResponse.ok) {
-                                    const errorData = await saveResponse.json();
-                                    throw new Error(errorData.error || 'Failed to save credentials');
-                                }
-                                
-                                console.log('✅ [Courier] Credentials saved, showing schedule view');
-                                window.appPasswordRequest.close();
-                                
-                                // Now show the schedule view
-                                textView.style.display = 'none';
-                                attachmentsView.style.display = 'none';
-                                courierScheduleView.style.display = 'block';
-                                this.loadCourierSchedule();
-                            } catch (error) {
-                                console.error('❌ [Courier] Failed to save credentials:', error);
-                                alert(`Failed to save credentials: ${error.message}`);
+                            if (!saveResponse.ok) {
+                                const errorData = await saveResponse.json();
+                                throw new Error(errorData.error || 'Failed to save credentials');
                             }
-                        });
-                    } else {
-                        // Fallback if app password modal not loaded
-                        console.error('❌ [Courier] AppPasswordRequest not available');
-                        alert('App password is required to schedule posts. Please refresh the page and try again.');
-                    }
-                    return;
+                            
+                            console.log('✅ [Courier] Credentials saved, showing schedule view');
+                            window.appPasswordRequest.close();
+                            
+                            // Now show the schedule view
+                            textView.style.display = 'none';
+                            attachmentsView.style.display = 'none';
+                            courierScheduleView.style.display = 'block';
+                            this.loadCourierSchedule();
+                        } catch (error) {
+                            console.error('❌ [Courier] Failed to save credentials:', error);
+                            alert(`Failed to save credentials: ${error.message}`);
+                        }
+                    });
+                } else {
+                    // Fallback if app password modal not loaded
+                    console.error('❌ [Courier] AppPasswordRequest not available');
+                    alert('App password is required to schedule posts. Please refresh the page and try again.');
                 }
-            } catch (error) {
-                console.error('❌ [Courier] Error checking credentials:', error);
-                // Continue anyway - server will handle missing credentials
+                return;
             }
             
             // Switch to courier schedule view
@@ -6487,81 +6559,80 @@ class Dashboard {
                     console.log('✅ [Compose] Credentials just saved, skipping check');
                     delete this._credentialsJustSaved;
                 } else {
-                    try {
-                        const credsCheck = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
-                        const credsData = await credsCheck.json();
+                    // Use the existing hasAppPassword() method which uses OAuth-authenticated endpoint
+                    const hasPassword = await this.hasAppPassword();
                         
-                        if (!credsData.has_credentials) {
-                            console.log('⚠️ [Compose] No valid credentials for scheduling, showing app password modal');
-                            console.log('⚠️ [Compose] window.appPasswordRequest exists:', !!window.appPasswordRequest);
-                            console.log('⚠️ [Compose] window.appPasswordRequest type:', typeof window.appPasswordRequest);
-                            console.log('⚠️ [Compose] AppPasswordRequest class exists:', !!window.AppPasswordRequest);
+                    if (!hasPassword) {
+                        console.log('⚠️ [Compose] No valid credentials for scheduling, showing app password modal');
+                        console.log('⚠️ [Compose] window.appPasswordRequest exists:', !!window.appPasswordRequest);
+                        console.log('⚠️ [Compose] window.appPasswordRequest type:', typeof window.appPasswordRequest);
+                        console.log('⚠️ [Compose] AppPasswordRequest class exists:', !!window.AppPasswordRequest);
+                        
+                        // Show app password request modal
+                        if (window.appPasswordRequest) {
+                            console.log('✅ [Compose] Calling window.appPasswordRequest.show()');
+                            console.log('✅ [Compose] appPasswordRequest.show method exists:', !!window.appPasswordRequest.show);
+                            console.log('✅ [Compose] appPasswordRequest.show type:', typeof window.appPasswordRequest.show);
                             
-                            // Show app password request modal
-                            if (window.appPasswordRequest) {
-                                console.log('✅ [Compose] Calling window.appPasswordRequest.show()');
-                                console.log('✅ [Compose] appPasswordRequest.show method exists:', !!window.appPasswordRequest.show);
-                                console.log('✅ [Compose] appPasswordRequest.show type:', typeof window.appPasswordRequest.show);
-                                
-                                try {
-                                    window.appPasswordRequest.show({
-                                        title: 'Connect Your Account',
-                                        description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
-                                        featureName: 'courier scheduling',
-                                        buttonText: 'CONNECT ACCOUNT'
-                                    }, async (appPassword) => {
-                                        console.log('📝 [Compose] App password provided, saving...');
+                            try {
+                                window.appPasswordRequest.show({
+                                    title: 'Connect Your Account',
+                                    description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
+                                    featureName: 'courier scheduling',
+                                    buttonText: 'CONNECT ACCOUNT'
+                                }, async (appPassword) => {
+                                    console.log('📝 [Compose] App password provided, saving...');
+                                    
+                                    // Save the app password using OAuth-authenticated endpoint
+                                    try {
+                                        const token = await this.getOAuthToken();
+                                        const saveResponse = await fetch('/api/user/credentials/connect', {
+                                            method: 'POST',
+                                            headers: { 
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${token}`
+                                            },
+                                            body: JSON.stringify({ app_password: appPassword })
+                                        });
                                         
-                                        // Save the app password
-                                        try {
-                                            const saveResponse = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ app_password: appPassword })
-                                            });
-                                            
-                                            if (!saveResponse.ok) {
-                                                const errorData = await saveResponse.json();
-                                                throw new Error(errorData.error || 'Failed to save credentials');
-                                            }
-                                            
-                                            console.log('✅ [Compose] Credentials saved, retrying schedule...');
-                                            window.appPasswordRequest.close();
-                                            
-                                            // Mark that credentials were just saved to skip check
-                                            this._credentialsJustSaved = true;
-                                            
-                                            // Retry the submit
-                                            this.submitCompose();
-                                        } catch (error) {
-                                            console.error('❌ [Compose] Failed to save credentials:', error);
-                                            alert(`Failed to save credentials: ${error.message}`);
-                                            submitBtn.disabled = false;
-                                            submitBtn.textContent = 'Schedule';
+                                        if (!saveResponse.ok) {
+                                            const errorData = await saveResponse.json();
+                                            throw new Error(errorData.error || 'Failed to save credentials');
                                         }
-                                    });
-                                    console.log('✅ [Compose] Modal show() called successfully');
-                                } catch (error) {
-                                    console.error('❌ [Compose] Error calling modal.show():', error);
-                                    console.error('❌ [Compose] Error stack:', error.stack);
-                                    // Fallback to old dialog
-                                    this.showCredentialsRequiredDialog('schedule');
-                                    submitBtn.disabled = false;
-                                    submitBtn.textContent = 'Schedule';
-                                    return;
-                                }
-                            } else {
-                                // Fallback to old dialog if app password modal not loaded
+                                        
+                                        console.log('✅ [Compose] Credentials saved, retrying schedule...');
+                                        window.appPasswordRequest.close();
+                                        
+                                        // Mark that credentials were just saved to skip check
+                                        this._credentialsJustSaved = true;
+                                        
+                                        // Retry the submit
+                                        this.submitCompose();
+                                    } catch (error) {
+                                        console.error('❌ [Compose] Failed to save credentials:', error);
+                                        alert(`Failed to save credentials: ${error.message}`);
+                                        submitBtn.disabled = false;
+                                        submitBtn.textContent = 'Schedule';
+                                    }
+                                });
+                                console.log('✅ [Compose] Modal show() called successfully');
+                            } catch (error) {
+                                console.error('❌ [Compose] Error calling modal.show():', error);
+                                console.error('❌ [Compose] Error stack:', error.stack);
+                                // Fallback to old dialog
                                 this.showCredentialsRequiredDialog('schedule');
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = 'Schedule';
+                                return;
                             }
-                            
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = 'Schedule';
-                            return;
+                        } else {
+                            // Fallback to old dialog if app password modal not loaded
+                            this.showCredentialsRequiredDialog('schedule');
                         }
-                    } catch (error) {
-                        console.error('❌ [Compose] Error checking credentials:', error);
-                        // Continue anyway - server will handle missing credentials
+                        
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Schedule';
+                        return;
                     }
                 }
                 
@@ -7064,67 +7135,59 @@ class Dashboard {
     async openCalendarPicker() {
         console.log('📅 [Compose] openCalendarPicker() called');
         
-        // Check if user has valid credentials
-        const userDid = this.data?.did;
-        console.log('📅 [Compose] userDid:', userDid);
-        console.log('📅 [Compose] this.data:', this.data);
+        // Check if user has valid credentials using the existing hasAppPassword() method
+        // which uses the OAuth-authenticated endpoint
+        const hasPassword = await this.hasAppPassword();
+        console.log('📅 [Compose] hasAppPassword result:', hasPassword);
         
-        if (userDid) {
-            console.log('📅 [Compose] Checking credentials for user:', userDid);
-            try {
-                const credsCheck = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
-                console.log('📅 [Compose] Credentials check response status:', credsCheck.status);
-                const credsData = await credsCheck.json();
-                console.log('📅 [Compose] Credentials data:', credsData);
-                
-                if (!credsData.has_credentials) {
-                    console.log('⚠️ [Compose] No valid credentials, showing app password modal');
+        if (!hasPassword) {
+            console.log('⚠️ [Compose] No valid credentials, showing app password modal');
+            
+            // Show app password request modal
+            if (window.appPasswordRequest) {
+                window.appPasswordRequest.show({
+                    title: 'Connect Your Account',
+                    description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
+                    featureName: 'courier scheduling',
+                    buttonText: 'CONNECT ACCOUNT'
+                }, async (appPassword) => {
+                    console.log('📝 [Compose] App password provided, saving...');
                     
-                    // Show app password request modal
-                    if (window.appPasswordRequest) {
-                        window.appPasswordRequest.show({
-                            title: 'Connect Your Account',
-                            description: 'To schedule posts for later delivery, you need to connect an app password. This grants Reverie House authority to post on your behalf at the scheduled time.',
-                            featureName: 'courier scheduling',
-                            buttonText: 'CONNECT ACCOUNT'
-                        }, async (appPassword) => {
-                            console.log('📝 [Compose] App password provided, saving...');
-                            
-                            // Save the app password
-                            try {
-                                const saveResponse = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ app_password: appPassword })
-                                });
-                                
-                                if (!saveResponse.ok) {
-                                    const errorData = await saveResponse.json();
-                                    throw new Error(errorData.error || 'Failed to save credentials');
-                                }
-                                
-                                console.log('✅ [Compose] Credentials saved, reloading compose tab...');
-                                window.appPasswordRequest.close();
-                                
-                                // Reload the compose tab to show connected state
-                                await this.loadComposeTab();
-                                
-                                // Show success message
-                                alert('✅ App password connected! You can now schedule posts.');
-                            } catch (error) {
-                                console.error('❌ [Compose] Failed to save credentials:', error);
-                                alert(`Failed to save credentials: ${error.message}`);
-                            }
+                    // Save the app password using OAuth-authenticated endpoint
+                    try {
+                        const token = await this.getOAuthToken();
+                        const saveResponse = await fetch('/api/user/credentials/connect', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ app_password: appPassword })
                         });
-                        return; // Stop here - don't open calendar
-                    } else {
-                        console.error('❌ [Compose] AppPasswordRequest not available');
-                        alert('Please enter your app password in the field above to schedule posts.');
-                        return; // Stop here
+                        
+                        if (!saveResponse.ok) {
+                            const errorData = await saveResponse.json();
+                            throw new Error(errorData.error || 'Failed to save credentials');
+                        }
+                        
+                        console.log('✅ [Compose] Credentials saved, reloading compose tab...');
+                        window.appPasswordRequest.close();
+                        
+                        // Reload the compose tab to show connected state
+                        await this.loadComposeTab();
+                        
+                        // Show success message
+                        alert('✅ App password connected! You can now schedule posts.');
+                    } catch (error) {
+                        console.error('❌ [Compose] Failed to save credentials:', error);
+                        alert(`Failed to save credentials: ${error.message}`);
                     }
-                }
-            } catch (error) {
-                console.error('❌ [Compose] Error checking credentials:', error);
+                });
+                return; // Stop here - don't open calendar
+            } else {
+                console.error('❌ [Compose] AppPasswordRequest not available');
+                alert('Please enter your app password in the field above to schedule posts.');
+                return; // Stop here
             }
         }
         
@@ -7509,15 +7572,21 @@ class Dashboard {
             const userDid = window.oauthManager?.currentSession?.did;
             if (!userDid) return;
             
-            const response = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
-            if (!response.ok) return;
+            // Use the existing hasAppPassword() method for credential check
+            const hasPassword = await this.hasAppPassword();
             
-            const data = await response.json();
-            
-            // Check if credentials are invalid (not present or explicitly invalid)
-            if (!data.has_credentials && data.failed_posts_count > 0) {
-                // Show blocking modal immediately
-                this.showAuthFailureModal(data);
+            // Only check for failed posts if credentials are missing
+            if (!hasPassword) {
+                // Check for failed posts that need re-authentication
+                const response = await fetch(`/api/auth-status?did=${encodeURIComponent(userDid)}`);
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                
+                // Show blocking modal if there are failed posts waiting
+                if (data.failed_posts_count > 0) {
+                    this.showAuthFailureModal(data);
+                }
             }
             
         } catch (error) {
@@ -7587,10 +7656,14 @@ class Dashboard {
             button.textContent = 'Reconnecting...';
             button.disabled = true;
             
-            // Save new app password
-            const saveResponse = await fetch(`/api/connect-app-password?user_did=${encodeURIComponent(userDid)}`, {
+            // Save new app password using OAuth-authenticated endpoint
+            const token = await this.getOAuthToken();
+            const saveResponse = await fetch('/api/user/credentials/connect', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ app_password: password })
             });
             

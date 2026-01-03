@@ -964,12 +964,12 @@
     width: 100%;
 }
 
-/* Kindred List - Simple thin rows stacked 2x2 */
+/* Kindred List - two columns by three rows (2x3) */
 .profile-kindred-list {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: repeat(2, 24px);
-    gap: 2px;
+    grid-template-rows: repeat(3, 24px);
+    gap: 6px 4px;
 }
 
 .profile-kindred-card {
@@ -977,6 +977,16 @@
     align-items: center;
     background: rgba(0, 0, 0, 0.04);
     height: 24px;
+}
+
+.profile-kindred-card.profile-kindred-empty {
+    background: rgba(0,0,0,0.04);
+}
+
+.profile-kindred-card.profile-kindred-empty .profile-kindred-link {
+    background: transparent;
+    width: 100%;
+    height: 100%;
 }
 
 .profile-kindred-link {

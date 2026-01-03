@@ -215,11 +215,38 @@
 .desktop-nav {
     display: flex;
     position: relative;
+    gap: 8px;
 }
 
 /* Dropdown Navigation */
 .nav-dropdown {
     position: relative;
+}
+
+/* Admin Dropdown Styling */
+.nav-dropdown.admin-dropdown .nav-dropdown-trigger {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.nav-dropdown.admin-dropdown .nav-dropdown-trigger:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.nav-dropdown.admin-dropdown .nav-dropdown-menu {
+    right: auto;
+    left: 0;
+}
+
+.nav-dropdown.admin-dropdown #admin-logout-btn {
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+    color: #d32f2f;
+    margin-top: 4px;
+}
+
+.nav-dropdown.admin-dropdown #admin-logout-btn:hover {
+    background: rgba(211, 47, 47, 0.08);
+    color: #c62828;
 }
 
 .nav-dropdown-trigger {
@@ -687,6 +714,18 @@
         flex: 1;
         font-weight: 600;
         letter-spacing: 0.02em;
+    }
+    .mobile-menu-divider {
+        height: 1px;
+        background: rgba(107, 79, 155, 0.25);
+        margin: 8px 0;
+    }
+    .mobile-menu-item.admin-item {
+        color: rgba(107, 79, 155, 0.85);
+        font-weight: 500;
+    }
+    .mobile-menu-item.admin-item:hover {
+        background: rgba(107, 79, 155, 0.12);
     }
     .header-message-display {
         font-size: 0.65rem;

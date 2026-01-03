@@ -923,6 +923,21 @@ class Profile {
         if (!identityFace) return;
         
         const dreamerColor = dreamer.color_hex || '#734ba1';
+        // derive a slightly darker label color for headings
+        function darkenHex(hex, amount = 0.18) {
+            if (!hex) return hex;
+            let h = hex.replace('#', '');
+            if (h.length === 3) h = h.split('').map(c => c + c).join('');
+            const num = parseInt(h, 16);
+            let r = (num >> 16) & 0xff;
+            let g = (num >> 8) & 0xff;
+            let b = num & 0xff;
+            r = Math.max(0, Math.min(255, Math.round(r * (1 - amount))));
+            g = Math.max(0, Math.min(255, Math.round(g * (1 - amount))));
+            b = Math.max(0, Math.min(255, Math.round(b * (1 - amount))));
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+        const labelColor = darkenHex(dreamerColor, 0.18);
         const serverUrl = dreamer.server || 'https://reverie.house';
         const serverClean = serverUrl.replace(/^https?:\/\//, '');
         const isReverieHouse = serverClean === 'reverie.house';
@@ -961,16 +976,26 @@ class Profile {
             ? this.linkifyBioText(bioText.trim())
             : '<span style="opacity: 0.5; font-style: italic;">Little is said. Less is known.</span>';
         
-        // Get recently read books
-        let recentlyReadHTML = '<div class="profile-empty">no books yet</div>';
-        if (dreamer.recently_read && dreamer.recently_read.length > 0) {
-            const books = dreamer.recently_read.slice(0, 3);
-            recentlyReadHTML = books.map(book => `
-                <div class="identity-book-item">
-                    <span class="identity-book-title" style="color: ${dreamerColor};">${book.title || 'Untitled'}</span>
-                    ${book.author ? `<span class="identity-book-author" style="color: ${dreamerColor}; opacity: 0.7;">by ${book.author}</span>` : ''}
-                </div>
-            `).join('');
+        // Get most recently read book from biblio.bond API
+        let recentlyReadHTML = '<div class="profile-empty" style="font-style: italic; opacity: 0.6;">no books yet</div>';
+        try {
+            const booksResponse = await fetch(`https://biblio.bond/api/books/${encodeURIComponent(dreamer.did)}`);
+            if (booksResponse.ok) {
+                const allBooks = await booksResponse.json();
+                if (allBooks && allBooks.length > 0) {
+                    // Sort by created_at descending and take the single most recent
+                    const book = allBooks
+                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                    recentlyReadHTML = `
+                        <div class="identity-book-featured" style="margin-top: 6px;">
+                            <div class="identity-book-title-featured" style="color: ${dreamerColor}; font-size: 1.0rem; font-weight: 500; line-height: 1.3;">${book.title || 'Untitled'}</div>
+                            ${book.author ? `<div class="identity-book-author-featured" style="color: ${dreamerColor}; opacity: 0.7; font-size: 0.85rem; margin-top: 4px;">by ${book.author}</div>` : ''}
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.warn('[Profile] Failed to fetch books from biblio.bond:', error);
         }
         
         // Get kindred
@@ -988,12 +1013,14 @@ class Profile {
                     })
                     .filter(Boolean)
                     .sort(() => 0.5 - Math.random())
-                    .slice(0, 4);
+                    .slice(0, 6);
                 
-                if (kindredDreamers.length > 0) {
-                    kindredHTML = `
-                        <div class="profile-kindred-list">
-                            ${kindredDreamers.map(k => {
+                // Render six slots (2 columns x 3 rows). Missing entries become empty grey boxes.
+                kindredHTML = `
+                    <div class="profile-kindred-list">
+                        ${Array.from({ length: 6 }).map((_, idx) => {
+                            const k = kindredDreamers[idx];
+                            if (k) {
                                 const avatarUrl = k.avatar?.url || k.avatar || '/assets/icon_face.png';
                                 return `
                                     <div class="profile-kindred-card" data-dreamer-did="${k.did}" data-dreamer-handle="${k.handle}">
@@ -1009,10 +1036,16 @@ class Profile {
                                         </a>
                                     </div>
                                 `;
-                            }).join('')}
-                        </div>
-                    `;
-                }
+                            }
+                            // empty placeholder
+                            return `
+                                <div class="profile-kindred-card profile-kindred-empty" aria-hidden="true">
+                                    <div class="profile-kindred-link"></div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
             } catch (err) {
                 console.error('Error loading kindred:', err);
             }
@@ -1022,17 +1055,17 @@ class Profile {
             <div class="identity-compact-layout">
                 <div class="identity-top-section">
                     <div class="identity-bio-box" style="grid-column: 1 / -1;">
-                        <div class="identity-bio-label">Bio</div>
+                        <div class="identity-bio-label" style="color: ${labelColor};">Bio</div>
                         <div class="identity-bio-text" style="text-align: center; color: ${dreamerColor};">${bioHTML}</div>
                     </div>
                 </div>
                 <div class="identity-middle-section">
                     <div class="identity-books-box">
-                        <div class="identity-kindred-label" style="color: ${dreamerColor};">Recently Read</div>
+                        <div class="identity-kindred-label" style="color: ${labelColor};">Recently Read</div>
                         <div class="identity-books-list" style="color: ${dreamerColor};">${recentlyReadHTML}</div>
                     </div>
                     <div class="identity-kindred-box">
-                        <div class="identity-kindred-label" style="color: ${dreamerColor};">Kindred</div>
+                        <div class="identity-kindred-label" style="color: ${labelColor};">Kindred</div>
                         ${kindredHTML}
                     </div>
                 </div>

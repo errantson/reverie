@@ -38,6 +38,10 @@ class OAuthManager {
                         console.log(`✅ ${session.sub} authenticated (state: ${state})`)
                         await this.loadProfile(session)
                         await this.autoRegister(session.sub)
+                        // Dispatch profile-loaded AFTER autoRegister so oauth_token is available
+                        window.dispatchEvent(new CustomEvent('oauth:profile-loaded', { 
+                            detail: { session: this.currentSession } 
+                        }))
                         window.dispatchEvent(new CustomEvent('oauth:login', { 
                             detail: { session: this.currentSession } 
                         }))
@@ -51,6 +55,30 @@ class OAuthManager {
                         console.log(`✅ ${session.sub} restored (previous session)`)
                         await this.loadProfile(session)
                         await this.autoRegister(session.sub)
+                        // Dispatch profile-loaded AFTER autoRegister so oauth_token is available
+                        window.dispatchEvent(new CustomEvent('oauth:profile-loaded', { 
+                            detail: { session: this.currentSession } 
+                        }))
+                    }
+                } else {
+                    // No OAuth session - check for PDS session (app password login)
+                    const pdsSessionStr = localStorage.getItem('pds_session')
+                    if (pdsSessionStr) {
+                        try {
+                            const pdsSession = JSON.parse(pdsSessionStr)
+                            if (pdsSession.did || pdsSession.sub) {
+                                console.log(`✅ ${pdsSession.handle} restored (PDS session)`)
+                                this.currentSession = pdsSession
+                                // Refresh the backend token
+                                await this.autoRegister(pdsSession.did || pdsSession.sub)
+                                // Dispatch profile-loaded AFTER autoRegister so oauth_token is available
+                                window.dispatchEvent(new CustomEvent('oauth:profile-loaded', { 
+                                    detail: { session: this.currentSession } 
+                                }))
+                            }
+                        } catch (e) {
+                            console.error('❌ Failed to restore PDS session:', e)
+                        }
                     }
                 }
                 this.client.addEventListener('deleted', (event) => {
@@ -143,9 +171,7 @@ class OAuthManager {
             console.log('   Handle:', this.currentSession.handle)
             console.log('   Display Name:', this.currentSession.displayName)
             console.log('   Avatar:', this.currentSession.avatar)
-            window.dispatchEvent(new CustomEvent('oauth:profile-loaded', { 
-                detail: { session: this.currentSession } 
-            }))
+            // Note: oauth:profile-loaded is dispatched in init() AFTER autoRegister completes
         } catch (error) {
             console.error('❌ Profile fetch failed:', error.message)
             this.currentSession = {
@@ -344,15 +370,28 @@ class OAuthManager {
                 // OAuth-only session - use server-side credentials
                 console.log('   OAuth-only session, checking for stored credentials...');
                 
-                // Check if we have stored credentials
-                const userDid = this.currentSession.sub || this.currentSession.did;
-                const statusResponse = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
-                const statusData = statusResponse.ok ? await statusResponse.json() : { has_credentials: false };
+                // Check if we have stored credentials using OAuth-authenticated endpoint
+                const authToken = localStorage.getItem('oauth_token');
+                let hasCredentials = false;
                 
-                if (!statusData.has_credentials) {
+                if (authToken) {
+                    try {
+                        const statusResponse = await fetch('/api/user/credentials/status', {
+                            headers: { 'Authorization': `Bearer ${authToken}` }
+                        });
+                        if (statusResponse.ok) {
+                            const statusData = await statusResponse.json();
+                            hasCredentials = statusData.connected === true;
+                        }
+                    } catch (e) {
+                        console.warn('Could not check credential status:', e);
+                    }
+                }
+                
+                if (!hasCredentials) {
                     // Prompt for app password
                     console.log('   No stored credentials, prompting for app password...');
-                    const credentialsStored = await this._requestCredentials(userDid);
+                    const credentialsStored = await this._requestCredentials();
                     if (!credentialsStored) {
                         throw new Error('App password required to post');
                     }
@@ -390,7 +429,7 @@ class OAuthManager {
         }
     }
     
-    async _requestCredentials(userDid) {
+    async _requestCredentials() {
         return new Promise((resolve) => {
             if (!window.appPasswordRequest) {
                 console.error('❌ AppPasswordRequest widget not available');
@@ -405,9 +444,14 @@ class OAuthManager {
                 buttonText: 'CONNECT ACCOUNT'
             }, async (appPassword) => {
                 try {
-                    const response = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
+                    // Use OAuth-authenticated endpoint
+                    const token = localStorage.getItem('oauth_token');
+                    const response = await fetch('/api/user/credentials/connect', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({ app_password: appPassword })
                     });
                     
@@ -434,14 +478,19 @@ class OAuthManager {
             return;
         }
         
-        // Check if already has credentials
+        // Check if already has credentials using OAuth-authenticated endpoint
         try {
-            const statusResp = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(session.sub || session.did)}`);
-            if (statusResp.ok) {
-                const status = await statusResp.json();
-                if (status.has_credentials) {
-                    console.log('✅ Already has stored credentials');
-                    return;
+            const token = localStorage.getItem('oauth_token');
+            if (token) {
+                const statusResp = await fetch('/api/user/credentials/status', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (statusResp.ok) {
+                    const status = await statusResp.json();
+                    if (status.connected) {
+                        console.log('✅ Already has stored credentials');
+                        return;
+                    }
                 }
             }
         } catch (e) {
@@ -450,7 +499,7 @@ class OAuthManager {
         
         // Prompt for credentials
         try {
-            await this._requestCredentials(session.sub || session.did);
+            await this._requestCredentials();
             console.log('✅ Main Door credentials setup complete');
         } catch (error) {
             console.warn('⚠️ Credential prompt cancelled or failed:', error);

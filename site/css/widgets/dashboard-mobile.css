@@ -1,0 +1,574 @@
+/* ============================================================================
+   DASHBOARD MOBILE - Mobile-Specific Dashboard Enhancements
+   ============================================================================
+   This stylesheet enhances the mobile dashboard experience with touch-friendly
+   interactions, compact layouts, and mobile-optimized UI patterns.
+   ============================================================================ */
+
+/* ============================================================================
+   MOBILE-ONLY UTILITIES
+   ============================================================================ */
+@media (max-width: 768px) and (orientation: portrait),
+       (max-width: 480px) {
+
+    /* Mobile hint for scrollable areas */
+    .mobile-scroll-hint {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(115, 75, 161, 0.4);
+        font-size: 0.6rem;
+        font-family: monospace;
+        pointer-events: none;
+        animation: fadeHint 2s ease-in-out infinite;
+    }
+    
+    @keyframes fadeHint {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 0.8; }
+    }
+
+    /* ========================================================================
+       MOBILE PROFILE - Reorganized Layout
+       ======================================================================== */
+    .dashboard-header {
+        display: flex !important;
+        flex-direction: column !important;
+        grid-template-columns: unset !important;
+        grid-template-rows: unset !important;
+    }
+    
+    /* Profile top row: avatar + identity side by side */
+    .dashboard-header > .dashboard-avatar-section,
+    .dashboard-header > .dashboard-identity {
+        display: contents;
+    }
+    
+    /* Create a flex wrapper effect for avatar + identity */
+    .dashboard-header::before {
+        content: '';
+        display: block;
+        height: 0;
+    }
+    
+    .dashboard-avatar-section {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+    }
+    
+    .dashboard-identity {
+        margin-left: 82px !important;
+        padding-top: 0 !important;
+    }
+
+    /* ========================================================================
+       MOBILE COLLAPSIBLE SECTIONS
+       ======================================================================== */
+    .mobile-collapsible-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: linear-gradient(135deg, 
+            color-mix(in srgb, var(--reverie-core-color, #734ba1) 15%, white),
+            color-mix(in srgb, var(--reverie-core-color, #734ba1) 8%, white));
+        border: 1px solid #d0c7f0;
+        cursor: pointer;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .mobile-collapsible-header:active {
+        background: color-mix(in srgb, var(--reverie-core-color, #734ba1) 20%, white);
+    }
+    
+    .mobile-collapsible-title {
+        font-family: monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--reverie-core-color, #734ba1);
+        margin: 0;
+    }
+    
+    .mobile-collapsible-icon {
+        width: 16px;
+        height: 16px;
+        transition: transform 0.2s ease;
+        color: var(--reverie-core-color, #734ba1);
+    }
+    
+    .mobile-collapsible-header.collapsed .mobile-collapsible-icon {
+        transform: rotate(-90deg);
+    }
+    
+    .mobile-collapsible-content {
+        overflow: hidden;
+        transition: max-height 0.3s ease, opacity 0.3s ease;
+        max-height: 1000px;
+        opacity: 1;
+    }
+    
+    .mobile-collapsible-content.collapsed {
+        max-height: 0;
+        opacity: 0;
+        padding: 0;
+        margin: 0;
+        border: none;
+    }
+
+    /* ========================================================================
+       MOBILE QUICK ACTIONS BAR
+       ======================================================================== */
+    .mobile-quick-actions {
+        display: flex;
+        gap: 8px;
+        padding: 8px 0;
+        margin: 8px 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .mobile-quick-action {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 10px 14px;
+        background: white;
+        border: 2px solid #d0c7f0;
+        border-radius: 8px;
+        cursor: pointer;
+        touch-action: manipulation;
+        transition: all 0.2s ease;
+        min-width: 70px;
+    }
+    
+    .mobile-quick-action:active {
+        transform: scale(0.95);
+        border-color: var(--reverie-core-color, #734ba1);
+    }
+    
+    .mobile-quick-action-icon {
+        width: 24px;
+        height: 24px;
+        color: var(--reverie-core-color, #734ba1);
+    }
+    
+    .mobile-quick-action-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    /* ========================================================================
+       MOBILE TAB IMPROVEMENTS
+       ======================================================================== */
+    .dashboard-tabs {
+        background: var(--reverie-core-color, #734ba1);
+        border-radius: 0;
+        padding: 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .dashboard-tab {
+        border: none !important;
+        border-radius: 0;
+        margin: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.7);
+        border-bottom: 3px solid transparent !important;
+        transition: all 0.2s ease;
+    }
+    
+    .dashboard-tab:active {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .dashboard-tab.active {
+        background: transparent;
+        color: white;
+        border-bottom: 3px solid white !important;
+    }
+
+    /* ========================================================================
+       MOBILE TOOL ROWS - Touch Friendly
+       ======================================================================== */
+    .tool-row,
+    .role-row,
+    .app-password-row {
+        min-height: 48px; /* Touch target size */
+        touch-action: manipulation;
+    }
+    
+    .tool-btn,
+    .role-stepdown-btn,
+    .connect-btn-small,
+    .disconnect-btn-small {
+        min-height: 36px;
+        min-width: 60px;
+        touch-action: manipulation;
+    }
+    
+    /* Larger touch targets for selects */
+    .heading-select,
+    .handle-select {
+        min-height: 36px;
+    }
+
+    /* ========================================================================
+       MOBILE COMPOSE ENHANCEMENTS
+       ======================================================================== */
+    .compose-textarea-main {
+        font-size: 16px !important; /* Prevent iOS zoom on focus */
+    }
+    
+    .compose-footer {
+        position: sticky;
+        bottom: 0;
+        background: #fafafa;
+        z-index: 5;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .compose-footer-btn {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    /* ========================================================================
+       MOBILE MESSAGES - Swipe-Friendly
+       ======================================================================== */
+    .dashboard-message-row {
+        min-height: 52px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Swipe action hint */
+    .dashboard-message-row::after {
+        content: '';
+        position: absolute;
+        right: -100px;
+        top: 0;
+        bottom: 0;
+        width: 100px;
+        background: linear-gradient(90deg, transparent, rgba(220, 53, 69, 0.2));
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    /* ========================================================================
+       MOBILE COLOR PICKER
+       ======================================================================== */
+    .color-picker-inline {
+        touch-action: none; /* Prevent scrolling while picking color */
+    }
+    
+    .color-shade-picker,
+    .color-hue-slider {
+        touch-action: none;
+    }
+    
+    #colorShadeCanvas {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 1;
+        max-width: 200px;
+    }
+    
+    #colorHueCanvas {
+        width: 24px !important;
+        height: 100% !important;
+        max-height: 200px;
+    }
+
+    /* ========================================================================
+       MOBILE OCTANT DISPLAY
+       ======================================================================== */
+    .octant-display-container {
+        min-height: 80px;
+    }
+    
+    .octant-display-name {
+        font-size: 0.7rem;
+    }
+    
+    .octant-display-axes {
+        font-size: 0.55rem;
+    }
+
+    /* ========================================================================
+       MOBILE KINDRED - Horizontal Cards
+       ======================================================================== */
+    .dashboard-kindred-list {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .dashboard-kindred-card {
+        flex-shrink: 0;
+        width: 80px;
+        text-align: center;
+    }
+    
+    .dashboard-kindred-link {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* ========================================================================
+       MOBILE MODALS - Full Width
+       ======================================================================== */
+    .dreamer-modal-overlay,
+    .permission-request-modal,
+    .avatar-upload-modal,
+    .edit-name-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+    
+    .dreamer-modal-box,
+    .permission-modal-content,
+    .avatar-upload-content,
+    .edit-name-widget {
+        width: 100%;
+        max-width: 100%;
+        max-height: 80vh;
+        border-radius: 16px 16px 0 0;
+        margin: 0;
+        animation: slideUpModal 0.3s ease;
+    }
+    
+    @keyframes slideUpModal {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* ========================================================================
+       MOBILE STATUS BAR ADJUSTMENTS
+       ======================================================================== */
+    .dashboard-status-bar {
+        font-size: 10px;
+        padding: 6px 8px;
+    }
+    
+    .dashboard-aesthetic-status,
+    .dashboard-details-status,
+    .dashboard-messages-aviary-status,
+    .dashboard-messages-trash-notice {
+        font-size: 10px;
+        padding: 6px 10px;
+    }
+
+    /* ========================================================================
+       MOBILE INPUT IMPROVEMENTS
+       ======================================================================== */
+    input[type="text"],
+    textarea {
+        font-size: 16px; /* Prevent iOS zoom */
+    }
+    
+    /* App password input on mobile */
+    .app-password-inline-input {
+        font-size: 14px !important;
+    }
+
+    /* ========================================================================
+       MOBILE ACCESSIBILITY
+       ======================================================================== */
+    /* Ensure adequate touch targets */
+    button, 
+    .dashboard-tab,
+    .tool-btn,
+    select,
+    a.dashboard-info-link {
+        min-height: 44px;
+    }
+    
+    /* Visual feedback for touch */
+    button:active,
+    .dashboard-tab:active,
+    .tool-btn:active {
+        opacity: 0.8;
+    }
+
+    /* ========================================================================
+       MOBILE LOADING STATES
+       ======================================================================== */
+    .dashboard-loading {
+        font-size: 1rem;
+        padding: 40px 20px;
+    }
+
+    /* ========================================================================
+       MOBILE ACCOUNT ACTIONS - Bottom Fixed
+       ======================================================================== */
+    .account-actions-inline {
+        border-top: 1px solid #d0c7f0;
+        padding-top: 12px;
+        margin-top: auto;
+    }
+    
+    .account-action-compact {
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .logout-btn {
+        background: #f8f8f8;
+    }
+    
+    .delete-account-action {
+        background: #fff5f5;
+        color: #c44;
+        border-color: #fcc;
+    }
+}
+
+/* ============================================================================
+   VERY SMALL SCREENS (iPhone SE, etc.)
+   ============================================================================ */
+@media (max-width: 380px) {
+    .dashboard-display-name {
+        font-size: 0.85rem !important;
+    }
+    
+    .dashboard-tab {
+        padding: 6px 4px !important;
+        font-size: 0.55rem !important;
+    }
+    
+    .tab-icon {
+        width: 10px !important;
+        height: 10px !important;
+    }
+    
+    .tool-row,
+    .role-row {
+        padding: 5px 6px;
+    }
+    
+    .tool-btn,
+    .heading-set-btn,
+    .handle-set-btn {
+        padding: 4px 6px;
+        font-size: 0.55rem;
+    }
+    
+    .heading-select,
+    .handle-select {
+        max-width: 100px;
+        font-size: 0.65rem;
+    }
+    
+    .mobile-quick-action {
+        min-width: 60px;
+        padding: 8px 10px;
+    }
+    
+    .mobile-quick-action-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    /* Details tab very small screens */
+    .dashboard-details-split {
+        gap: 12px;
+    }
+    
+    .section-title-bio {
+        font-size: 0.65rem;
+    }
+    
+    .bio-action-btn {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+        min-height: 32px;
+    }
+    
+    .account-info-row {
+        padding: 6px 8px;
+    }
+    
+    .dashboard-info-label,
+    .dashboard-info-value {
+        font-size: 0.7rem;
+    }
+    
+    .info-truncate {
+        max-width: 50%;
+    }
+}
+
+/* ============================================================================
+   SAFE AREA INSETS (iPhone X+, etc.)
+   ============================================================================ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    @media (max-width: 768px) {
+        .drawer-header {
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        }
+        
+        .drawer-container.closed {
+            transform: translateY(calc(100% - 56px - env(safe-area-inset-bottom)));
+        }
+        
+        body.has-spectrum-drawer {
+            padding-bottom: calc(56px + env(safe-area-inset-bottom));
+        }
+        
+        .compose-footer {
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        }
+        
+        .account-actions-inline {
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        }
+    }
+}
+
+/* ============================================================================
+   DARK MODE ADJUSTMENTS (if user prefers dark mode)
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+    /* These would only apply if dark mode was enabled in the app */
+    /* Placeholder for future dark mode support */
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+    .mobile-collapsible-content,
+    .mobile-collapsible-icon,
+    .mobile-quick-action,
+    .dashboard-tab,
+    .dreamer-modal-box,
+    .permission-modal-content,
+    .avatar-upload-content,
+    .edit-name-widget {
+        transition: none !important;
+        animation: none !important;
+    }
+}

@@ -50,13 +50,13 @@ def schedule_post():
         db = DatabaseManager()
         print(f"📬 [COURIER] Checking credentials for DID: {user_did}")
         cred = db.fetch_one('''
-            SELECT password_hash FROM user_credentials
-            WHERE did = %s AND valid = TRUE
+            SELECT app_password_hash FROM user_credentials
+            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
         ''', (user_did,))
         print(f"📬 [COURIER] Credential query result: {cred}")
-        print(f"📬 [COURIER] Has password_hash: {bool(cred and cred.get('password_hash'))}")
+        print(f"📬 [COURIER] Has app_password_hash: {bool(cred and cred.get('app_password_hash'))}")
         
-        if not cred or not cred['password_hash']:
+        if not cred or not cred['app_password_hash']:
             print(f"❌ [COURIER] No valid credentials found")
             return jsonify({
                 'status': 'error', 

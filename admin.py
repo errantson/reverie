@@ -11,6 +11,7 @@ import secrets
 import time
 import requests
 from functools import wraps
+from datetime import datetime, timedelta
 
 app = Flask(__name__, static_folder='site', template_folder='site')
 
@@ -1097,28 +1098,28 @@ def operations_status():
         import socket
         from core.database import DatabaseManager
         
-        # Check firehose by recent database activity
-        # Dream queue service removed - firehose disabled
-        firehose_active = False
-        # try:
-        #     db = DatabaseManager()
-        #     # Check if firehose has written to dream_queue in last 5 minutes
-        #     five_min_ago = int(time.time()) - (5 * 60)
-        #     result = db.execute("""
-        #         SELECT COUNT(*) as count 
-        #         FROM dream_queue 
-        #         WHERE detected_at > %s
-        #     """, (five_min_ago,)).fetchone()
-        #     
-        #     # Also check if there are ANY records (even if not recent)
-        #     total = db.execute("SELECT COUNT(*) FROM dream_queue").fetchone()
-        #     
-        #     # Active if recent activity OR if we have records (system is operational)
-        #     firehose_active = (result and result['count'] > 0) or (total and total['count'] > 0)
-        # except Exception as e:
-        #     # If table doesn't exist or other error, assume inactive
-        #     print(f"Firehose status check error: {e}")
-        #     pass
+        # Check Jetstream Hub by recent cursor activity
+        # Jetstream replaces the old firehose services (dreamerhose, questhose, bibliowatch)
+        jetstream_active = False
+        try:
+            db = DatabaseManager()
+            # Check if jetstream cursor has been updated in last 5 minutes
+            five_min_ago = datetime.now() - timedelta(minutes=5)
+            result = db.execute("""
+                SELECT updated_at 
+                FROM firehose_cursors 
+                WHERE service_name = 'jetstream_hub' 
+                AND updated_at > %s
+            """, (five_min_ago,)).fetchone()
+            
+            jetstream_active = result is not None
+        except Exception as e:
+            # If table doesn't exist or other error, assume inactive
+            print(f"Jetstream status check error: {e}")
+            pass
+        
+        # Legacy firehose field - return jetstream status for backwards compatibility
+        firehose_active = jetstream_active
         
         # Check PDS via health endpoint (proxied through Caddy)
         pds_active = False
@@ -1153,27 +1154,27 @@ def operations_status():
             'firehose': {
                 'active': firehose_active,
                 'status': 'active' if firehose_active else 'inactive',
-                'name': 'Active Dream Monitor'
+                'name': 'Dreaming Monitor'
+            },
+            'jetstream': {
+                'active': jetstream_active,
+                'status': 'active' if jetstream_active else 'inactive',
+                'name': 'Jetstream Hub',
+                'description': 'ATProto event consumer for dreamers, quests, and biblio'
             },
             'pds': {
                 'active': pds_active,
                 'status': 'active' if pds_active else 'inactive',
-                'name': 'Personal Dream Storage',
+                'name': 'Dream Storage',
                 'port': 3000
             },
             'caddy': {
                 'active': caddy_active,
                 'status': 'active' if caddy_active else 'inactive',
-                'name': 'Web Server',
+                'name': 'Dreamer Routing',
                 'port': 80
             },
-            'stripe': {
-                'active': stripe_active,
-                'status': 'active' if stripe_active else 'inactive',
-                'name': 'Payment Gateway',
-                'port': 5555
-            },
-            'overall': 'healthy' if (firehose_active and pds_active and caddy_active) else 'degraded'
+            'overall': 'healthy' if (jetstream_active and pds_active and caddy_active) else 'degraded'
         })
     except Exception as e:
         return jsonify({

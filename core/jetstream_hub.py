@@ -28,6 +28,7 @@ for dream detection (can't filter by DID).
 
 import asyncio
 import json
+import os
 import signal
 import sys
 import time
@@ -663,6 +664,8 @@ class JetstreamHub:
         self.handlers: list[EventHandler] = []
         self.running = True
         self.cursor: Optional[int] = None
+        self.last_cursor: Optional[int] = None  # Track most recent cursor for time-based saving
+        self.last_cursor_save: datetime = datetime.now()  # Track when we last saved
         
         self.stats = {
             'total_events': 0,
@@ -729,7 +732,7 @@ class JetstreamHub:
         except Exception as e:
             print(f"⚠️ Could not load cursor: {e}")
     
-    def _save_cursor(self, cursor: int):
+    def _save_cursor(self, cursor: int, force_log: bool = False):
         """Save cursor to file and database."""
         cursor_file = Path('/srv/reverie.house/data/jetstream_cursor.txt')
         try:
@@ -742,12 +745,23 @@ class JetstreamHub:
         # Also save to database for monitoring
         try:
             import psycopg2
+            
+            # Get password from env or file
+            password = os.environ.get('POSTGRES_PASSWORD', '')
+            if not password:
+                password_file = os.environ.get('POSTGRES_PASSWORD_FILE', '/srv/secrets/reverie_db_password.txt')
+                try:
+                    with open(password_file, 'r') as f:
+                        password = f.read().strip()
+                except Exception:
+                    pass
+            
             conn = psycopg2.connect(
-                host=os.environ.get('POSTGRES_HOST', 'localhost'),
-                port=os.environ.get('POSTGRES_PORT', 5432),
+                host=os.environ.get('POSTGRES_HOST', '172.23.0.3'),
+                port=int(os.environ.get('POSTGRES_PORT', 5432)),
                 database=os.environ.get('POSTGRES_DB', 'reverie_house'),
                 user=os.environ.get('POSTGRES_USER', 'reverie'),
-                password=os.environ.get('POSTGRES_PASSWORD', '')
+                password=password
             )
             cur = conn.cursor()
             cur.execute("""
@@ -761,6 +775,8 @@ class JetstreamHub:
             conn.commit()
             cur.close()
             conn.close()
+            if force_log:
+                print(f"💾 Saved cursor: {cursor} ({self.stats['total_events']} events)")
         except Exception as e:
             print(f"⚠️ Could not save cursor to database: {e}")
     
@@ -769,9 +785,13 @@ class JetstreamHub:
         self.stats['total_events'] += 1
         self.stats['last_event_time'] = datetime.now()
         
-        # Save cursor periodically
+        # Track last cursor for time-based saving
         time_us = event.get('time_us')
-        if time_us and self.stats['total_events'] % 1000 == 0:
+        if time_us:
+            self.last_cursor = time_us
+        
+        # Save cursor every 100 events
+        if time_us and self.stats['total_events'] % 100 == 0:
             self._save_cursor(time_us)
         
         # Progress logging
@@ -792,6 +812,16 @@ class JetstreamHub:
             except Exception as e:
                 print(f"❌ Handler {handler.name} error: {e}")
     
+    async def _periodic_cursor_save(self):
+        """Save cursor every 60 seconds to ensure monitoring shows active status."""
+        while self.running:
+            await asyncio.sleep(60)
+            if self.running:
+                # Save heartbeat even if no events received
+                cursor_to_save = self.last_cursor if self.last_cursor else (self.cursor or 0)
+                self._save_cursor(cursor_to_save, force_log=True)
+                self.last_cursor_save = datetime.now()
+    
     async def run(self):
         """Main run loop with reconnection."""
         print("\n" + "=" * 70)
@@ -801,45 +831,55 @@ class JetstreamHub:
         print(f"Started: {self.stats['start_time'].strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 70 + "\n")
         
-        while self.running:
-            try:
-                url = self._build_subscribe_url()
-                print(f"\n🔌 Connecting to Jetstream...")
-                
-                async with websockets.connect(
-                    url,
-                    ping_interval=30,
-                    ping_timeout=10,
-                    max_size=10 * 1024 * 1024  # 10 MB max message
-                ) as ws:
-                    print("✅ Connected!")
+        # Start periodic cursor save task
+        cursor_task = asyncio.create_task(self._periodic_cursor_save())
+        
+        try:
+            while self.running:
+                try:
+                    url = self._build_subscribe_url()
+                    print(f"\n🔌 Connecting to Jetstream...")
                     
-                    message_count = 0
-                    async for message in ws:
-                        if not self.running:
-                            break
+                    async with websockets.connect(
+                        url,
+                        ping_interval=30,
+                        ping_timeout=10,
+                        max_size=10 * 1024 * 1024  # 10 MB max message
+                    ) as ws:
+                        print("✅ Connected!")
                         
-                        message_count += 1
-                        if message_count == 1:
-                            print(f"📨 First message received! (len={len(message)})")
-                        if self.verbose and message_count % 1000 == 0:
-                            print(f"📨 Received {message_count} messages so far...")
-                        
-                        try:
-                            event = json.loads(message)
-                            await self._dispatch_event(event)
-                        except json.JSONDecodeError as e:
-                            print(f"⚠️ JSON decode error: {e}")
-                
-            except websockets.exceptions.ConnectionClosed as e:
-                self.stats['reconnects'] += 1
-                print(f"🔄 Connection closed ({e}), reconnecting in 5s... (attempt {self.stats['reconnects']})")
-                await asyncio.sleep(5)
-                
-            except Exception as e:
-                self.stats['reconnects'] += 1
-                print(f"❌ Error: {e}, reconnecting in 10s... (attempt {self.stats['reconnects']})")
-                await asyncio.sleep(10)
+                        message_count = 0
+                        async for message in ws:
+                            if not self.running:
+                                break
+                            
+                            message_count += 1
+                            if message_count == 1:
+                                print(f"📨 First message received! (len={len(message)})")
+                            if self.verbose and message_count % 1000 == 0:
+                                print(f"📨 Received {message_count} messages so far...")
+                            
+                            try:
+                                event = json.loads(message)
+                                await self._dispatch_event(event)
+                            except json.JSONDecodeError as e:
+                                print(f"⚠️ JSON decode error: {e}")
+                    
+                except websockets.exceptions.ConnectionClosed as e:
+                    self.stats['reconnects'] += 1
+                    print(f"🔄 Connection closed ({e}), reconnecting in 5s... (attempt {self.stats['reconnects']})")
+                    await asyncio.sleep(5)
+                    
+                except Exception as e:
+                    self.stats['reconnects'] += 1
+                    print(f"❌ Error: {e}, reconnecting in 10s... (attempt {self.stats['reconnects']})")
+                    await asyncio.sleep(10)
+        finally:
+            cursor_task.cancel()
+            try:
+                await cursor_task
+            except asyncio.CancelledError:
+                pass
     
     def stop(self):
         """Stop the hub gracefully."""
@@ -891,6 +931,10 @@ def main():
     
     # Handle signals
     def signal_handler(sig, frame):
+        print("\n🛑 Shutting down...")
+        # Save cursor one last time before exiting
+        if hub.cursor:
+            hub._save_cursor(hub.cursor)
         hub.stop()
         sys.exit(0)
     

@@ -61,12 +61,18 @@ class ATProtoInteractions {
         }
         
         try {
-            const response = await fetch(`/api/credentials/status?user_did=${encodeURIComponent(userDid)}`);
-            if (response.ok) {
-                const data = await response.json();
-                this._credentialsCache = data.has_credentials === true;
-                this._credentialsCacheTime = now;
-                return this._credentialsCache;
+            // Use OAuth-authenticated endpoint
+            const token = localStorage.getItem('oauth_token');
+            if (token) {
+                const response = await fetch('/api/user/credentials/status', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    this._credentialsCache = data.connected === true;
+                    this._credentialsCacheTime = now;
+                    return this._credentialsCache;
+                }
             }
         } catch (error) {
             console.warn('⚠️ [ATProto] Failed to check credentials status:', error);
@@ -107,9 +113,14 @@ class ATProtoInteractions {
                 buttonText: 'CONNECT ACCOUNT'
             }, async (appPassword) => {
                 try {
-                    const response = await fetch(`/api/credentials/connect?user_did=${encodeURIComponent(userDid)}`, {
+                    // Use OAuth-authenticated endpoint
+                    const token = localStorage.getItem('oauth_token');
+                    const response = await fetch('/api/user/credentials/connect', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({ app_password: appPassword })
                     });
                     
