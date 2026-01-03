@@ -24,7 +24,7 @@ class Dashboard {
         if (!document.querySelector('link[href*="css/widgets/dashboard.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/css/widgets/dashboard.css?v=30';
+            link.href = '/css/widgets/dashboard.css?v=31';
             document.head.appendChild(link);
         }
         
@@ -32,7 +32,7 @@ class Dashboard {
         if (!document.querySelector('link[href*="css/widgets/dashboard-mobile.css"]')) {
             const mobileLink = document.createElement('link');
             mobileLink.rel = 'stylesheet';
-            mobileLink.href = '/css/widgets/dashboard-mobile.css?v=2';
+            mobileLink.href = '/css/widgets/dashboard-mobile.css?v=7';
             document.head.appendChild(mobileLink);
         }
         
@@ -642,59 +642,15 @@ class Dashboard {
         const canonHtml = await this.renderCanonLog();
         const souvenirBoxHtml = await this.renderSouvenirBox();
         
+        // Render header based on screen size
+        const headerHtml = this.isMobile 
+            ? this.renderMobileHeader(d, souvenirBoxHtml, canonHtml)
+            : this.renderDesktopHeader(d, souvenirBoxHtml, canonHtml);
+        
         this.container.innerHTML = `
             <div class="dashboard-content">
             <div class="dashboard-container">
-                <!-- Profile Header / Namebar -->
-                <div class="dashboard-header">
-                    <div class="dashboard-avatar-section">
-                        <div class="dashboard-avatar" onclick="window.dashboardWidget.showAvatarUpload()" style="cursor: pointer;" title="Click to update avatar">
-                            <img src="${d.avatar || '/assets/icon_face.png'}" 
-                                 alt="${d.display_name || d.handle}"
-                                 onerror="this.src='/assets/icon_face.png'">
-                        </div>
-                        <div class="dashboard-avatar-hint">click to change</div>
-                    </div>
-                    <div class="dashboard-identity">
-                        <h1 class="dashboard-display-name" onclick="window.dashboardWidget.editDisplayName()" style="cursor: pointer;" title="Click to edit">
-                            ${d.display_name || d.handle}
-                        </h1>
-                        <div class="dashboard-handle">
-                            <a href="https://bsky.app/profile/${d.did}" target="_blank" rel="noopener">@${d.handle}</a>
-                        </div>
-                        <div class="dashboard-status" id="dashboardStatusDisplay">calculating...</div>
-                        <div class="dashboard-contribution" id="dashboardContribution">
-                            calculating...
-                        </div>
-                        <div class="dashboard-arrival">
-                            ${this.formatArrival(d.arrival)}
-                        </div>
-                    </div>
-                    
-                    <!-- Top Right Boxes: Octant, Souvenirs, and Canon -->
-                    <div class="dashboard-right-boxes">
-                        <!-- Octant/Spectrum Box (now using OctantDisplay widget) -->
-                        <div class="dashboard-square-box octant-box" id="dashboardOctantBox">
-                            <!-- Octant display widget will be rendered here -->
-                        </div>
-                        
-                        <!-- Souvenirs Box -->
-                        <div class="dashboard-square-box souvenirs-box">
-                            <div class="square-box-title">Souvenirs</div>
-                            <div class="square-box-content souvenirs-grid-compact">
-                                ${souvenirBoxHtml}
-                            </div>
-                        </div>
-                        
-                        <!-- Canon Box (moved from left column) -->
-                        <div class="dashboard-square-box canon-box">
-                            <div class="square-box-title">Recent Canon</div>
-                            <div class="square-box-content canon-list-compact">
-                                ${canonHtml}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                ${headerHtml}
 
                 <!-- Dashboard Grid -->
                 <div class="dashboard-grid">
@@ -929,6 +885,115 @@ class Dashboard {
         
         // Initialize message badge count
         setTimeout(() => this.updateInitialMessageBadge(), 200);
+    }
+    
+    /**
+     * Render mobile-specific header with avatar, name, handle in a clean card
+     * and contribution as a separate box
+     */
+    renderMobileHeader(d, souvenirBoxHtml, canonHtml) {
+        return `
+            <!-- Mobile Profile Card -->
+            <div class="mobile-profile-card">
+                <div class="mobile-profile-main">
+                    <div class="mobile-avatar" onclick="window.dashboardWidget.showAvatarUpload()">
+                        <img src="${d.avatar || '/assets/icon_face.png'}" 
+                             alt="${d.display_name || d.handle}"
+                             onerror="this.src='/assets/icon_face.png'">
+                    </div>
+                    <div class="mobile-identity">
+                        <div class="mobile-display-name" onclick="window.dashboardWidget.editDisplayName()">
+                            ${d.display_name || d.handle}
+                        </div>
+                        <div class="mobile-handle">
+                            <a href="https://bsky.app/profile/${d.did}" target="_blank" rel="noopener">@${d.handle}</a>
+                        </div>
+                        <div class="mobile-status" id="dashboardStatusDisplay">calculating...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Contribution Box (separate entity) -->
+            <div class="mobile-contribution-card">
+                <div class="mobile-contribution-content" id="dashboardContribution">
+                    calculating...
+                </div>
+                <div class="mobile-arrival">
+                    ${this.formatArrival(d.arrival)}
+                </div>
+            </div>
+            
+            <!-- Mobile Info Boxes Row -->
+            <div class="mobile-info-boxes">
+                <div class="dashboard-square-box octant-box" id="dashboardOctantBox">
+                    <!-- Octant display widget will be rendered here -->
+                </div>
+                <div class="dashboard-square-box souvenirs-box">
+                    <div class="square-box-title">Souvenirs</div>
+                    <div class="square-box-content souvenirs-grid-compact">
+                        ${souvenirBoxHtml}
+                    </div>
+                </div>
+                <div class="dashboard-square-box canon-box">
+                    <div class="square-box-title">Recent Canon</div>
+                    <div class="square-box-content canon-list-compact">
+                        ${canonHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Render desktop header with original layout
+     */
+    renderDesktopHeader(d, souvenirBoxHtml, canonHtml) {
+        return `
+            <div class="dashboard-header">
+                <div class="dashboard-avatar-section">
+                    <div class="dashboard-avatar" onclick="window.dashboardWidget.showAvatarUpload()" style="cursor: pointer;" title="Click to update avatar">
+                        <img src="${d.avatar || '/assets/icon_face.png'}" 
+                             alt="${d.display_name || d.handle}"
+                             onerror="this.src='/assets/icon_face.png'">
+                    </div>
+                    <div class="dashboard-avatar-hint">click to change</div>
+                </div>
+                <div class="dashboard-identity">
+                    <h1 class="dashboard-display-name" onclick="window.dashboardWidget.editDisplayName()" style="cursor: pointer;" title="Click to edit">
+                        ${d.display_name || d.handle}
+                    </h1>
+                    <div class="dashboard-handle">
+                        <a href="https://bsky.app/profile/${d.did}" target="_blank" rel="noopener">@${d.handle}</a>
+                    </div>
+                    <div class="dashboard-status" id="dashboardStatusDisplay">calculating...</div>
+                    <div class="dashboard-contribution" id="dashboardContribution">
+                        calculating...
+                    </div>
+                    <div class="dashboard-arrival">
+                        ${this.formatArrival(d.arrival)}
+                    </div>
+                </div>
+                
+                <!-- Top Right Boxes: Octant, Souvenirs, and Canon -->
+                <div class="dashboard-right-boxes">
+                    <div class="dashboard-square-box octant-box" id="dashboardOctantBox">
+                        <!-- Octant display widget will be rendered here -->
+                    </div>
+                    <div class="dashboard-square-box souvenirs-box">
+                        <div class="square-box-title">Souvenirs</div>
+                        <div class="square-box-content souvenirs-grid-compact">
+                            ${souvenirBoxHtml}
+                        </div>
+                    </div>
+                    <div class="dashboard-square-box canon-box">
+                        <div class="square-box-title">Recent Canon</div>
+                        <div class="square-box-content canon-list-compact">
+                            ${canonHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
     
     async initializeOctantDisplay() {

@@ -3,6 +3,7 @@ class Sidebar {
     constructor(container) {
         this.container = container;
         this.dreamers = [];
+        this.dreamersLoaded = false; // Track if dreamers have been loaded
         this.hoverWidget = null;
         this.carouselIndex = 0; // Track current carousel view
         this.carouselInterval = null; // Auto-rotation timer
@@ -118,6 +119,7 @@ class Sidebar {
             .then(response => response.json())
             .then(data => {
                 this.dreamers = data;
+                this.dreamersLoaded = true;
                 
                 // Initialize hover widget after dreamers are loaded
                 if (typeof DreamerHoverWidget !== 'undefined') {
@@ -851,15 +853,45 @@ class Sidebar {
         const b = parseInt(hex.slice(5, 7), 16);
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
+    
+    shuffleArray(array) {
+        // Fisher-Yates shuffle for reliable randomization
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
 
     updateSearchResults(query, container) {
         container.innerHTML = '';
+        
+        // If dreamers haven't loaded yet and not searching, show loading placeholders
+        if (!this.dreamersLoaded && !query) {
+            for (let i = 0; i < 4; i++) {
+                const item = document.createElement('div');
+                item.className = 'dreamer-item';
+                item.style.backgroundColor = 'rgba(115, 75, 161, 0.12)';
+                item.innerHTML = `<div style="display: flex; align-items: center; gap: 8px; opacity: 0.5;">
+                    <div style="width:20px; height:20px; border-radius: 50%; background: #ccc;"></div>
+                    <span style="color: #999;">Loading...</span>
+                </div>`;
+                container.appendChild(item);
+            }
+            return;
+        }
+        
         let results = query ?
             this.dreamers.filter(d => d.name.toLowerCase().includes(query.toLowerCase())) :
-            this.dreamers.slice().sort(() => Math.random() - 0.5);
+            this.shuffleArray(this.dreamers.slice());
         
-        // Limit to 4 results
-        results = results.slice(0, 4);
+        // When not searching, always show exactly 4 slots
+        if (!query) {
+            results = results.slice(0, 4);
+        } else {
+            // When searching, limit to 4 but don't pad
+            results = results.slice(0, 4);
+        }
         
         results.forEach((match, index) => {
             const item = document.createElement('div');       

@@ -12,6 +12,13 @@
     box-sizing: border-box;
 }
 
+/* Hide mobile-only elements on desktop */
+.mobile-profile-card,
+.mobile-contribution-card,
+.mobile-info-boxes {
+    display: none;
+}
+
 .dashboard-loading {
     display: flex;
     align-items: center;
