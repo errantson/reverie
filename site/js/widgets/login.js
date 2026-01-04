@@ -610,7 +610,7 @@ class LoginWidget {
                             type="text" 
                             id="loginHandle" 
                             class="login-handle-input" 
-                            placeholder="loading..."
+                            placeholder="handle.bsky.social"
                             autocomplete="username"
                             autocapitalize="off"
                             spellcheck="false"
@@ -671,44 +671,8 @@ class LoginWidget {
         let useSideDoor = false;  // Track if user chose side door
         let checkTimeout = null;
         
-        // Fetch dreamer names and rotate them in the placeholder
-        (async () => {
-            try {
-                const dbResponse = await fetch('/api/database/all');
-                if (dbResponse.ok) {
-                    const dbData = await dbResponse.json();
-                    const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
-                    const names = dreamers
-                        .map(d => d.name)
-                        .filter(name => name && name.trim().length > 0);
-                    
-                    if (names.length > 0) {
-                        let currentIndex = 0;
-                        handleInput.placeholder = `${names[0]} or handle.bsky.social`;
-                        
-                        const rotatePlaceholder = () => {
-                            if (document.activeElement === handleInput && handleInput.value.length > 0) return;
-                            handleInput.style.transition = 'opacity 0.3s ease';
-                            handleInput.style.opacity = '0.5';
-                            setTimeout(() => {
-                                currentIndex = (currentIndex + 1) % names.length;
-                                handleInput.placeholder = `${names[currentIndex]} or handle.bsky.social`;
-                                handleInput.style.opacity = '1';
-                            }, 300);
-                        };
-                        
-                        const rotationInterval = setInterval(rotatePlaceholder, 3000);
-                        overlay.addEventListener('remove', () => clearInterval(rotationInterval));
-                    } else {
-                        handleInput.placeholder = 'name or handle.bsky.social';
-                    }
-                } else {
-                    handleInput.placeholder = 'name or handle.bsky.social';
-                }
-            } catch (error) {
-                handleInput.placeholder = 'name or handle.bsky.social';
-            }
-        })();
+        // Static placeholder - no rotation needed
+        handleInput.placeholder = 'handle.bsky.social';
         
         // Check handle as user types
         const checkHandle = async (inputValue) => {

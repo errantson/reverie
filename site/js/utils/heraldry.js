@@ -36,19 +36,9 @@ class HeraldrySystem {
                 name: 'Northsky',
                 fullName: 'Honoured Guest',
                 icon: '/assets/heraldry/icon_northsky.png',
-                color: '#4a90e2',
-                colorSecondary: '#2c5aa0',
-                description: 'Northern skies, cooler blues',
-                className: 'heraldry-northsky'
-            },
-            'aesthetic.northsky.social': {
-                id: 'northsky',
-                name: 'Northsky',
-                fullName: 'Honoured Guest',
-                icon: '/assets/heraldry/icon_northsky.png',
-                color: '#4a90e2',
-                colorSecondary: '#2c5aa0',
-                description: 'Northern skies, cooler blues',
+                color: '#C084FC',
+                colorSecondary: '#A855F7',
+                description: 'Purple-pink horizons',
                 className: 'heraldry-northsky'
             },
             'blacksky.app': {
@@ -65,7 +55,7 @@ class HeraldrySystem {
                 id: 'witchcraft',
                 name: 'Witchcraft',
                 fullName: 'Honoured Guest',
-                icon: '/assets/heraldry/icon_witchcraft.png',
+                icon: '/assets/heraldry/icon_pds_witchcraft_systems.ico',
                 color: '#8b3a9c',
                 colorSecondary: '#6b2875',
                 description: 'Mystical purple domains',
@@ -100,6 +90,141 @@ class HeraldrySystem {
                 colorSecondary: '#9d0208',
                 description: 'Entropy and disorder',
                 className: 'heraldry-chaos'
+            },
+            
+            // ===================================================================
+            // Discovered PDS Servers (June 2025 Network Scan)
+            // ===================================================================
+            
+            'greysky.social': {
+                id: 'greysky',
+                name: 'Graysky',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_graysky.png',
+                color: '#374151',
+                colorSecondary: '#1F2937',
+                description: 'Deep grey aesthetic',
+                className: 'heraldry-greysky'
+            },
+            'zio.blue': {
+                id: 'zio',
+                name: 'Zio',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_zio.png',
+                color: '#F41146',
+                colorSecondary: '#C40A37',
+                description: 'Red skies realm',
+                className: 'heraldry-zio'
+            },
+            'afternooncurry.com': {
+                id: 'afternooncurry',
+                name: 'Afternoon Curry',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_afternooncurry.png',
+                color: '#FF8C00',
+                colorSecondary: '#FF7500',
+                description: 'Warm spiced domains',
+                className: 'heraldry-afternooncurry'
+            },
+            'at.arles.us': {
+                id: 'arles',
+                name: 'Arles',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_arles.png',
+                color: '#00A9FF',
+                colorSecondary: '#0087CC',
+                description: 'Sunlit territories',
+                className: 'heraldry-arles'
+            },
+            'pds.atpota.to': {
+                id: 'atpotato',
+                name: 'AT Potato',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_pds_atpota_to.png',
+                color: '#8B6F47',
+                colorSecondary: '#6B5636',
+                description: 'Root vegetable networks',
+                className: 'heraldry-atpotato'
+            },
+            'pds.cauda.cloud': {
+                id: 'cauda',
+                name: 'Cauda Cloud',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_cauda.png',
+                color: '#A0522D',
+                colorSecondary: '#8B4513',
+                description: 'Tail-end cloudscapes',
+                className: 'heraldry-cauda'
+            },
+            'pds.commonscomputer.com': {
+                id: 'commonscomputer',
+                name: 'Commons Computer',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_pds_commonscomputer_com.png',
+                color: '#10b981',
+                colorSecondary: '#059669',
+                description: 'Shared computing collective',
+                className: 'heraldry-commonscomputer'
+            },
+            'pds.dholms.xyz': {
+                id: 'dholms',
+                name: 'DHolms',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_dholms.png',
+                color: '#F4A460',
+                colorSecondary: '#CD853F',
+                description: 'Experimental protocol labs',
+                className: 'heraldry-dholms'
+            },
+            'pds.numergent.com': {
+                id: 'numergent',
+                name: 'Numergent',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_pds_numergent_com.ico',
+                color: '#0891b2',
+                colorSecondary: '#0e7490',
+                description: 'Numerical emergence',
+                className: 'heraldry-numergent'
+            },
+            'pds.quimian.com': {
+                id: 'quimian',
+                name: 'Quimian',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_quimian.png',
+                color: '#20B2AA',
+                colorSecondary: '#008080',
+                description: 'Blue digital gardens',
+                className: 'heraldry-quimian'
+            },
+            'pds.robocracy.org': {
+                id: 'robocracy',
+                name: 'Robocracy',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_robocracy.png',
+                color: '#9CA3AF',
+                colorSecondary: '#6B7280',
+                description: 'Automated governance',
+                className: 'heraldry-robocracy'
+            },
+            'pds.shreyanjain.net': {
+                id: 'shreyanjain',
+                name: 'Shreyan Jain',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_pds_shreyanjain_net.png',
+                color: '#a3eddb',
+                colorSecondary: '#7dd4c4',
+                description: 'Personal server realm',
+                className: 'heraldry-shreyanjain'
+            },
+            'boobee.blue': {
+                id: 'boobee',
+                name: 'Boobee',
+                fullName: 'Honoured Guest',
+                icon: '/assets/heraldry/icon_boobee.png',
+                color: '#90EE90',
+                colorSecondary: '#7CFC00',
+                description: 'Light blue domains',
+                className: 'heraldry-boobee'
             }
         };
 
