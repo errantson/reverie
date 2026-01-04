@@ -9244,9 +9244,10 @@ def disconnect_user_credentials():
 @rate_limit()
 def update_user_profile():
     """
-    Update user's profile (display name) on Bluesky using their app password
+    Update user's profile (display name) locally and optionally on Bluesky.
     
-    Requires app password to be connected.
+    If app password is connected, also syncs to Bluesky.
+    Local update always succeeds even without app password.
     """
     try:
         from utils.update_avatar import update_profile
@@ -9277,21 +9278,26 @@ def update_user_profile():
         if display_name is None and heading is None:
             return jsonify({'error': 'displayName or heading required'}), 400
         
-        # Update Bluesky profile if display name is changing
+        bluesky_synced = False
+        bluesky_error = None
+        
+        # Try to update Bluesky profile if display name is changing
         if display_name is not None:
             if not display_name:
                 return jsonify({'error': 'Display name cannot be empty'}), 400
             
             print(f"📝 [API] Updating display name to: {display_name}")
             
-            # Update profile
+            # Try to update Bluesky profile (optional - will fail gracefully if no app password)
             result = update_profile(user_did, display_name=display_name)
             
-            if not result.get('success'):
-                print(f"❌ [API] Profile update failed: {result.get('error')}")
-                return jsonify({'error': result.get('error', 'Unknown error')}), 400
-            
-            print("✅ [API] Bluesky profile updated successfully")
+            if result.get('success'):
+                bluesky_synced = True
+                print("✅ [API] Bluesky profile updated successfully")
+            else:
+                bluesky_error = result.get('error', 'Unknown error')
+                print(f"⚠️ [API] Bluesky sync skipped: {bluesky_error}")
+                # Continue with local update - don't fail the whole request
         
         # Update local database
         from core.database import DatabaseManager
@@ -9351,11 +9357,15 @@ def update_user_profile():
         )
         
         print("✅ [API] Profile update complete, returning success response")
-        return jsonify({
+        response_data = {
             'success': True,
             'message': 'Profile updated successfully',
-            'display_name': display_name
-        })
+            'display_name': display_name,
+            'bluesky_synced': bluesky_synced
+        }
+        if bluesky_error and not bluesky_synced:
+            response_data['bluesky_note'] = f'Local update successful. Bluesky sync skipped: {bluesky_error}'
+        return jsonify(response_data)
         
     except Exception as e:
         import traceback
@@ -9368,11 +9378,11 @@ def update_user_profile():
 @rate_limit()
 def set_primary_name():
     """
-    Swap primary name with an alternate name
+    Swap primary name with an alternate name (local Reverie operation only).
     
-    Requires OAuth token. Swaps the primary name with one from alts.
-    Both names remain active as subdomains, but primary determines canonical identity.
-    Also updates the handle to reflect the new primary name.
+    This swaps which name is the user's canonical Reverie identity vs pseudonym.
+    Does NOT change the AT Protocol handle - that's a separate operation.
+    No app password required - just OAuth token.
     """
     try:
         print("🔄 [API] /api/user/set-primary-name called")
@@ -9391,7 +9401,6 @@ def set_primary_name():
             return jsonify({'error': 'Invalid or expired token'}), 401
         
         print(f"✅ [API] Token validated for user: {user_did}")
-        print(f"   Current handle from token: {handle}")
         
         # Get requested name from request
         data = request.get_json()
@@ -9429,21 +9438,6 @@ def set_primary_name():
         # Check if requested name is already primary
         if current_name == requested_name:
             print(f"ℹ️ [API] Name '{requested_name}' is already primary")
-            # Still update handle if it's out of sync
-            expected_handle = f"{requested_name}.reverie.house"
-            if current_handle != expected_handle:
-                print(f"⚠️ [API] Handle out of sync, fixing: {current_handle} → {expected_handle}")
-                db.execute(
-                    "UPDATE dreamers SET handle = %s, updated_at = %s WHERE did = %s",
-                    (expected_handle, int(time.time()), user_did)
-                )
-                return jsonify({
-                    'success': True,
-                    'message': 'Handle synchronized',
-                    'primary_name': current_name,
-                    'alt_names': current_alts,
-                    'handle': expected_handle
-                })
             return jsonify({
                 'success': True,
                 'message': 'Name is already primary',
@@ -9466,128 +9460,21 @@ def set_primary_name():
         alt_list.append(current_name)
         new_alts = ', '.join(alt_list)
         
-        # Build new handle
-        new_handle = f"{requested_name}.reverie.house"
-        
-        print(f"🔄 [API] Swapping:")
+        print(f"🔄 [API] Swapping (local only):")
         print(f"   name: {current_name} → {requested_name}")
-        print(f"   handle: {current_handle} → {new_handle}")
         print(f"   alts: {current_alts} → {new_alts}")
+        print(f"   handle: {current_handle} (unchanged)")
         
-        # ============================================================
-        # Step 1: Update handle on the PDS (AT Protocol)
-        # ============================================================
-        print(f"🔄 [API] Step 1: Updating handle on PDS...")
-        
-        # Get user's app password for PDS authentication
-        cursor = db.execute("""
-            SELECT app_password_hash, pds_url FROM user_credentials
-            WHERE did = %s
-        """, (user_did,))
-        cred_row = cursor.fetchone()
-        
-        if not cred_row or not cred_row['app_password_hash']:
-            print(f"❌ [API] No app password stored for user")
-            return jsonify({
-                'error': 'App password required to change handle. Please connect your app password first.',
-                'needs_credentials': True
-            }), 400
-        
-        # Decrypt app password
-        app_password = decrypt_password(cred_row['app_password_hash'])
-        pds_url = cred_row.get('pds_url') or 'https://reverie.house'
-        
-        # Authenticate with PDS
-        try:
-            print(f"   Authenticating with PDS at {pds_url}...")
-            session_response = requests.post(
-                f"{pds_url}/xrpc/com.atproto.server.createSession",
-                json={
-                    'identifier': user_did,
-                    'password': app_password
-                },
-                timeout=10
-            )
-            
-            if session_response.status_code != 200:
-                print(f"❌ [API] PDS auth failed: {session_response.status_code}")
-                print(f"   Response: {session_response.text}")
-                return jsonify({
-                    'error': 'Failed to authenticate with PDS. Your app password may have been revoked.',
-                    'needs_credentials': True
-                }), 400
-            
-            session_data = session_response.json()
-            access_token = session_data.get('accessJwt')
-            
-            if not access_token:
-                print(f"❌ [API] No access token in PDS response")
-                return jsonify({'error': 'PDS authentication returned no token'}), 500
-            
-            print(f"   ✅ Authenticated with PDS")
-            
-            # Update handle on PDS
-            print(f"   Calling com.atproto.identity.updateHandle...")
-            update_response = requests.post(
-                f"{pds_url}/xrpc/com.atproto.identity.updateHandle",
-                json={'handle': new_handle},
-                headers={'Authorization': f'Bearer {access_token}'},
-                timeout=15
-            )
-            
-            if update_response.status_code != 200:
-                print(f"❌ [API] Handle update failed: {update_response.status_code}")
-                print(f"   Response: {update_response.text}")
-                return jsonify({
-                    'error': f'Failed to update handle on PDS: {update_response.text}',
-                    'details': update_response.text
-                }), 400
-            
-            print(f"   ✅ Handle updated on PDS: {new_handle}")
-            
-        except requests.exceptions.Timeout:
-            print(f"❌ [API] PDS request timed out")
-            return jsonify({'error': 'PDS request timed out. Please try again.'}), 504
-        except Exception as pds_error:
-            print(f"❌ [API] PDS error: {pds_error}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({'error': f'PDS error: {str(pds_error)}'}), 500
-        
-        # ============================================================
-        # Step 2: Update our database
-        # ============================================================
-        print(f"🔄 [API] Step 2: Updating database...")
-        
+        # Update local database only - handle stays the same
         db.execute(
-            "UPDATE dreamers SET name = %s, handle = %s, alts = %s, updated_at = %s WHERE did = %s",
-            (requested_name, new_handle, new_alts, int(time.time()), user_did)
+            "UPDATE dreamers SET name = %s, alts = %s, updated_at = %s WHERE did = %s",
+            (requested_name, new_alts, int(time.time()), user_did)
         )
         
-        print(f"   ✅ Database updated")
-        
-        # ============================================================
-        # Step 3: Request network crawl for faster propagation
-        # ============================================================
-        print(f"🔄 [API] Step 3: Requesting network crawl...")
-        try:
-            import subprocess
-            result = subprocess.run(
-                ['sudo', 'pdsadmin', 'request-crawl', 'bsky.network'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            if result.returncode == 0:
-                print(f"   ✅ Crawl requested successfully")
-            else:
-                print(f"   ⚠️ Crawl request failed: {result.stderr}")
-        except Exception as crawl_error:
-            print(f"   ⚠️ Could not request crawl: {crawl_error}")
-            # Non-fatal - handle will still propagate eventually
+        print(f"✅ [API] Local name swap complete")
         
         audit_log(
-            event_type='handle_changed',
+            event_type='name_swapped',
             endpoint='/api/user/set-primary-name',
             method='POST',
             user_ip=get_client_ip(),
@@ -9596,22 +9483,143 @@ def set_primary_name():
             user_agent=request.headers.get('User-Agent')
         )
         
-        print("✅ [API] Handle change complete!")
-        print(f"   Old: {current_handle}")
-        print(f"   New: {new_handle}")
-        
         return jsonify({
             'success': True,
-            'message': f'Handle changed to "{new_handle}"',
+            'message': f'Name changed to "{requested_name}"',
             'primary_name': requested_name,
             'alt_names': new_alts,
-            'handle': new_handle,
-            'pds_updated': True
+            'handle': current_handle  # Handle unchanged
         })
         
     except Exception as e:
         import traceback
         print(f"❌ [API] Exception in set_primary_name:")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/update-name', methods=['POST'])
+@rate_limit()
+def update_user_name():
+    """
+    Update user's local Reverie name (not Bluesky display name).
+    
+    This changes the user's canonical in-Reverie identity name.
+    No app password required - just OAuth token.
+    Does NOT touch Bluesky display name.
+    """
+    try:
+        print("🔄 [API] /api/user/update-name called")
+        
+        # Get token from header
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'No authorization token provided'}), 401
+        
+        # Validate token
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        
+        print(f"✅ [API] Token validated for user: {user_did}")
+        
+        # Get data from request
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'name required'}), 400
+        
+        new_name = data['name'].strip().lower()
+        if not new_name:
+            return jsonify({'error': 'Name cannot be empty'}), 400
+        
+        # Validate name format (alphanumeric, hyphens, underscores only)
+        import re
+        if not re.match(r'^[a-z0-9_-]+$', new_name):
+            return jsonify({'error': 'Name can only contain lowercase letters, numbers, hyphens, and underscores'}), 400
+        
+        if len(new_name) < 2 or len(new_name) > 32:
+            return jsonify({'error': 'Name must be between 2 and 32 characters'}), 400
+        
+        print(f"📝 [API] Updating name to: {new_name}")
+        
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+        
+        # Check if name is already taken by another user
+        cursor = db.execute(
+            "SELECT did, name, alts FROM dreamers WHERE did = %s",
+            (user_did,)
+        )
+        dreamer = cursor.fetchone()
+        
+        if not dreamer:
+            return jsonify({'error': 'User not found'}), 404
+        
+        current_name = dreamer['name']
+        current_alts = dreamer['alts'] or ''
+        
+        # Check if new name is already their current name
+        if current_name == new_name:
+            return jsonify({
+                'success': True,
+                'message': 'Name unchanged',
+                'name': new_name
+            })
+        
+        # Check if new name is in their alts (they own it)
+        alt_list = [a.strip() for a in current_alts.split(',') if a.strip()]
+        if new_name in alt_list:
+            # They already own this name, just swap
+            alt_list.remove(new_name)
+            alt_list.append(current_name)
+            new_alts = ', '.join(alt_list)
+        else:
+            # New name - check if anyone else has it
+            cursor = db.execute(
+                """SELECT did FROM dreamers 
+                   WHERE (name = %s OR alts LIKE %s OR alts LIKE %s OR alts LIKE %s OR alts = %s) 
+                   AND did != %s""",
+                (new_name, f"{new_name},%", f"%, {new_name},%", f"%, {new_name}", new_name, user_did)
+            )
+            existing = cursor.fetchone()
+            if existing:
+                return jsonify({'error': f'Name "{new_name}" is already taken'}), 400
+            
+            # Add current name to alts
+            if current_alts:
+                new_alts = f"{current_alts}, {current_name}"
+            else:
+                new_alts = current_name
+        
+        # Update database
+        db.execute(
+            "UPDATE dreamers SET name = %s, alts = %s, updated_at = %s WHERE did = %s",
+            (new_name, new_alts, int(time.time()), user_did)
+        )
+        
+        print(f"✅ [API] Name updated: {current_name} → {new_name}")
+        print(f"   Alts now: {new_alts}")
+        
+        audit_log(
+            event_type='name_updated',
+            endpoint='/api/user/update-name',
+            method='POST',
+            user_ip=get_client_ip(),
+            response_status=200,
+            user_did=user_did,
+            user_agent=request.headers.get('User-Agent')
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Name updated to "{new_name}"',
+            'name': new_name,
+            'alt_names': new_alts
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ [API] Exception in update_user_name:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 

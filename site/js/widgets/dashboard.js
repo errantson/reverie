@@ -4081,13 +4081,14 @@ class Dashboard {
     }
 
     editDisplayName() {
-        const currentName = this.dreamerData.display_name || this.dreamerData.handle;
+        // Edit the local Reverie name (not Bluesky display name)
+        const currentName = this.dreamerData.name || this.dreamerData.handle?.split('.')[0] || '';
         const modal = document.createElement('div');
         modal.className = 'edit-name-modal';
         modal.innerHTML = `
             <div class="edit-name-widget">
                 <h3>Edit Name</h3>
-                <p>Update your displayed name across all our wild mindscape.</p>
+                <p>Update your in-Reverie canonical name. Your old name will become a pseudonym.</p>
                 
                 <div class="edit-name-field">
                     <label>Name</label>
@@ -4095,8 +4096,11 @@ class Dashboard {
                            id="displayNameInput" 
                            class="edit-name-input"
                            value="${currentName}"
-                           maxlength="64"
-                           autocomplete="off">
+                           maxlength="32"
+                           autocomplete="off"
+                           pattern="[a-z0-9_-]+"
+                           style="text-transform: lowercase;">
+                    <small style="color: #666; display: block; margin-top: 4px;">Lowercase letters, numbers, hyphens, and underscores only</small>
                 </div>
                 
                 <div class="edit-name-actions">
@@ -4114,52 +4118,66 @@ class Dashboard {
         
         document.body.appendChild(modal);
         
-        // Focus input and select text
-        setTimeout(() => {
-            const input = document.getElementById('displayNameInput');
-            if (input) {
-                input.focus();
-                input.select();
-            }
-        }, 100);
+        // Force lowercase on input
+        const input = document.getElementById('displayNameInput');
+        if (input) {
+            input.addEventListener('input', (e) => {
+                e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+            });
+            input.focus();
+            input.select();
+        }
     }
 
     async saveDisplayName() {
         console.log('🔄 [Dashboard] saveDisplayName() called');
         const input = document.getElementById('displayNameInput');
         const statusEl = document.getElementById('editNameStatus');
-        const newName = input.value.trim();
+        const newName = input.value.trim().toLowerCase();
 
         if (!newName) {
-            statusEl.textContent = 'Please enter a display name';
+            statusEl.textContent = 'Please enter a name';
             statusEl.className = 'edit-name-status error';
             return;
         }
 
-        console.log('📝 [Dashboard] Updating display name to:', newName);
-        statusEl.textContent = 'Updating display name...';
+        // Validate format
+        if (!/^[a-z0-9_-]+$/.test(newName)) {
+            statusEl.textContent = 'Name can only contain lowercase letters, numbers, hyphens, and underscores';
+            statusEl.className = 'edit-name-status error';
+            return;
+        }
+
+        if (newName.length < 2 || newName.length > 32) {
+            statusEl.textContent = 'Name must be between 2 and 32 characters';
+            statusEl.className = 'edit-name-status error';
+            return;
+        }
+
+        console.log('📝 [Dashboard] Updating name to:', newName);
+        statusEl.textContent = 'Updating name...';
         statusEl.className = 'edit-name-status uploading';
 
         try {
             const token = await this.getOAuthToken();
-            console.log('🌐 [Dashboard] Sending API request to /api/user/update-profile');
-            const response = await fetch('/api/user/update-profile', {
+            console.log('🌐 [Dashboard] Sending API request to /api/user/update-name');
+            const response = await fetch('/api/user/update-name', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ displayName: newName })
+                body: JSON.stringify({ name: newName })
             });
 
             const data = await response.json();
             console.log('📥 [Dashboard] API response:', data);
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Failed to update display name');
+                throw new Error(data.error || 'Failed to update name');
             }
 
-            statusEl.textContent = 'Display name updated successfully!';
+            statusEl.textContent = 'Name updated!';
             statusEl.className = 'edit-name-status success';
 
             // Update the display name in the dashboard immediately
