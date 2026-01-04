@@ -126,7 +126,7 @@ def process_quest_reply(reply_uri: str, author_did: str, author_handle: str,
         
         matching_replies = condition_result.get('matching_replies', [reply_obj])
         
-        from ops.commands import execute_quest_commands
+        from ops.command_executor import execute_quest_commands
         
         # Combine custom commands (from matched conditions) with common commands
         custom_commands = condition_result.get('custom_commands', [])

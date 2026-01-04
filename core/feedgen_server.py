@@ -89,7 +89,7 @@ def get_feed_skeleton():
         }), 429
     
     feed = request.args.get('feed', '')
-    limit = int(request.args.get('limit', 50))
+    limit = min(int(request.args.get('limit', 30)), 20)  # Cap at 20 for faster hydration
     cursor = request.args.get('cursor')
     
     if not feed:

@@ -313,7 +313,7 @@ class TestQuestSafety:
     @pytest.mark.skip(reason="Requires full command infrastructure - covered by integration tests")
     def test_name_dreamer_idempotent_on_duplicate_call(self, test_db):
         """Test name_dreamer doesn't create duplicates if called twice with same user"""
-        from ops.commands import name_dreamer
+        from ops.command_executor import name_dreamer
         
         test_did = "did:plc:idempotent_test"
         test_handle = "idempotent_user"
@@ -508,7 +508,7 @@ class TestQuestEdgeCases:
     
     def test_command_execution_handles_missing_parameters(self):
         """Test commands handle missing required parameters"""
-        from ops.commands import execute_quest_commands
+        from ops.command_executor import execute_quest_commands
         
         # add_canon requires parameters - should fail gracefully
         commands = ['add_canon']  # Missing key:event:type

@@ -944,7 +944,7 @@ def post_registration():
         import sys
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from core.network import NetworkClient
-        from ops.commands import name_dreamer
+        from ops.command_executor import name_dreamer
         
         # Check if user already registered
         from core.database import DatabaseManager

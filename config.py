@@ -9,18 +9,29 @@ load_dotenv()
 
 def read_secret(key: str, default: str = '') -> str:
     """
-    Read secret from Docker secrets (/run/secrets/) or fall back to .env
-    Docker secrets take precedence for better security
+    Read secret from Docker secrets or mapped secrets directory.
+    Priority: /run/secrets/ (Docker Swarm) -> /srv/secrets/ (bind mount) -> env var
     """
-    secret_path = f'/run/secrets/{key.lower()}'
+    # Docker Swarm secrets path
+    docker_secret_path = f'/run/secrets/{key.lower()}'
+    # Bind-mounted secrets path (used in our docker-compose setup)
+    mounted_secret_path = f'/srv/secrets/{key.lower()}.txt'
     
-    # Try Docker secret first
-    if os.path.exists(secret_path):
+    # Try Docker swarm secret first
+    if os.path.exists(docker_secret_path):
         try:
-            with open(secret_path, 'r') as f:
+            with open(docker_secret_path, 'r') as f:
                 return f.read().strip()
         except Exception as e:
             print(f"Failed to read secret {key}: {e}")
+    
+    # Try bind-mounted secrets directory
+    if os.path.exists(mounted_secret_path):
+        try:
+            with open(mounted_secret_path, 'r') as f:
+                return f.read().strip()
+        except Exception as e:
+            print(f"Failed to read mounted secret {key}: {e}")
     
     # Fall back to environment variable
     return os.getenv(key, default)

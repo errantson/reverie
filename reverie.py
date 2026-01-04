@@ -94,7 +94,7 @@ def rebuild_database():
     # Phase 1: PDS residence check
     print("\n=== PHASE 1: PDS RESIDENCE CHECK ===\n")
     try:
-        from ops.commands import check_pds_residence
+        from ops.command_executor import check_pds_residence
         result = check_pds_residence()
         print(f"\n📊 PDS Check Results:")
         print(f"   New primitives: {result['added']}")
@@ -120,7 +120,7 @@ def rebuild_database():
     # Phase 3: Profile updates
     print("\n=== PHASE 3: PROFILE UPDATES ===\n")
     try:
-        from ops.commands import update_profiles_from_bluesky
+        from ops.command_executor import update_profiles_from_bluesky
         result = update_profiles_from_bluesky(verbose=Config.DEBUG)
         print(f"\n📊 Profile Update Results:")
         print(f"   Updated: {result['updated']}")

@@ -30,7 +30,7 @@
             let reason = '';
 
             const text = (sample.text || '').toLowerCase();
-            if (type === 'any_reply' || type === 'first_reply' || type === 'new_reply') {
+            if (type === 'any_reply' || type === 'new_reply') {
                 matched = !!sample.text;
                 reason = 'Text present';
             } else if (type === 'dreamer_replies') {
@@ -542,13 +542,18 @@
                 // Condition type descriptions
                 const conditionDescriptions = {
                     'any_reply': 'Triggers on any reply to the post',
-                    'first_reply': 'Triggers only on the first reply from each user',
-                    'new_reply': 'Triggers on new replies (legacy)',
+                    'new_reply': 'Triggers on new replies (unregistered users only)',
                     'dreamer_replies': 'Triggers when a registered dreamer replies',
                     'contains_hashtags': 'Triggers when reply contains specific hashtags',
                     'contains_mentions': 'Triggers when reply mentions specific users',
                     'reply_contains': 'Triggers when reply contains specific text',
-                    'hasnt_canon': 'Triggers if user has no canon entries'
+                    'has_canon': 'Triggers if user HAS a specific canon key',
+                    'hasnt_canon': 'Triggers if user does NOT have a specific canon key',
+                    'user_has_souvenir': 'Triggers if user has a specific souvenir',
+                    'user_missing_souvenir': 'Triggers if user is missing a specific souvenir',
+                    'count_canon': 'Triggers based on user canon count (e.g., >=3)',
+                    'has_read': 'Triggers if user has read a specific book (biblio.bond)',
+                    'has_biblio_stamp': 'Triggers if user has a biblio.bond stamp'
                 };
                 
                 return `
@@ -559,17 +564,22 @@
                                     data-quest-title="${escapeHtml(quest.title)}" 
                                     data-index="${index}">
                                 <option value="any_reply" ${conditionType === 'any_reply' ? 'selected' : ''}>Any Reply</option>
-                                <option value="first_reply" ${conditionType === 'first_reply' ? 'selected' : ''}>First Reply (per user)</option>
-                                <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (legacy)</option>
+                                <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (unregistered only)</option>
                                 <option value="dreamer_replies" ${conditionType === 'dreamer_replies' ? 'selected' : ''}>Registered Dreamer Replies</option>
+                                <option value="reply_contains" ${conditionType === 'reply_contains' ? 'selected' : ''}>Reply Contains Text</option>
                                 <option value="contains_hashtags" ${conditionType === 'contains_hashtags' ? 'selected' : ''}>Contains Hashtags</option>
                                 <option value="contains_mentions" ${conditionType === 'contains_mentions' ? 'selected' : ''}>Contains Mentions</option>
-                                <option value="reply_contains" ${conditionType === 'reply_contains' ? 'selected' : ''}>Reply Contains Text</option>
-                                <option value="hasnt_canon" ${conditionType === 'hasnt_canon' ? 'selected' : ''}>User Has No Canon</option>
+                                <option value="has_canon" ${conditionType === 'has_canon' ? 'selected' : ''}>User Has Canon Key</option>
+                                <option value="hasnt_canon" ${conditionType === 'hasnt_canon' ? 'selected' : ''}>User Missing Canon Key</option>
+                                <option value="user_has_souvenir" ${conditionType === 'user_has_souvenir' ? 'selected' : ''}>User Has Souvenir</option>
+                                <option value="user_missing_souvenir" ${conditionType === 'user_missing_souvenir' ? 'selected' : ''}>User Missing Souvenir</option>
+                                <option value="count_canon" ${conditionType === 'count_canon' ? 'selected' : ''}>User Canon Count</option>
+                                <option value="has_read" ${conditionType === 'has_read' ? 'selected' : ''}>Has Read Book</option>
+                                <option value="has_biblio_stamp" ${conditionType === 'has_biblio_stamp' ? 'selected' : ''}>Has Biblio Stamp</option>
                             </select>
                         </div>
                         <div class="condition-description">${conditionDescriptions[conditionType] || ''}</div>
-                        ${['contains_hashtags', 'contains_mentions', 'reply_contains'].includes(conditionType) ? `
+                        ${['contains_hashtags', 'contains_mentions', 'reply_contains', 'has_canon', 'hasnt_canon', 'user_has_souvenir', 'user_missing_souvenir', 'count_canon', 'has_read', 'has_biblio_stamp'].includes(conditionType) ? `
                         <div class="condition-value-field">
                             <label class="condition-label">Value</label>
                             <input type="text" 
@@ -2600,8 +2610,11 @@
             const quest = questDataMap[questTitle];
             const commands = quest.commands || [];
             
-            // Commands are stored as strings "type" or "type:params"
-            const newCommand = commandParams ? `${commandType}:${commandParams}` : commandType;
+            // Commands use canonical format: {cmd: "type", args: [...]}
+            const newCommand = {
+                cmd: commandType,
+                args: commandParams ? commandParams.split(":") : []
+            };
             commands.push(newCommand);
             
             const payload = {

@@ -361,36 +361,29 @@ class MapperhoseMonitor:
             # Pick a random retry message
             message = random.choice(self.RETRY_MESSAGES)
             
-            # Parse the reply URI to get the post reference
-            # Format: at://did:plc:xxx/app.bsky.feed.post/xxx
-            parts = reply_uri.replace('at://', '').split('/')
-            repo_did = parts[0]
-            rkey = parts[-1]
+            # Fetch the actual post to get the CID (required for replies)
+            parent_post = self.client.app.bsky.feed.get_posts({'uris': [reply_uri]})
+            if not parent_post or not parent_post.posts:
+                print(f"   ❌ Could not fetch parent post for CID")
+                return
+            parent_cid = parent_post.posts[0].cid
             
-            # Create the reply
+            # Fetch the origin quest post CID
+            root_post = self.client.app.bsky.feed.get_posts({'uris': [self.origin_uri]})
+            if not root_post or not root_post.posts:
+                print(f"   ❌ Could not fetch root post for CID")
+                return
+            root_cid = root_post.posts[0].cid
+            
+            # Create the reply with proper CIDs
             from atproto import models
             
-            reply_ref = models.AppBskyFeedPost.ReplyRef(
-                parent=models.create_strong_ref(
-                    models.ComAtprotoRepoStrongRef.Main(
-                        uri=reply_uri,
-                        cid='bafyreihsu5v5t6yvd4tkfixl3bfhzlvdcwfbh72cj2xocczqe4xo3kzfwq'  # Placeholder, will be replaced
-                    )
-                ),
-                root=models.create_strong_ref(
-                    models.ComAtprotoRepoStrongRef.Main(
-                        uri=self.origin_uri,
-                        cid='bafyreihsu5v5t6yvd4tkfixl3bfhzlvdcwfbh72cj2xocczqe4xo3kzfwq'  # Placeholder
-                    )
-                )
-            )
-            
-            # Post the retry request
+            # Post the retry request as a reply to the user's post
             response = self.mapper_client.send_post(
                 text=message,
                 reply_to=models.AppBskyFeedPost.ReplyRef(
-                    parent=models.ComAtprotoRepoStrongRef.Main(uri=reply_uri, cid=''),
-                    root=models.ComAtprotoRepoStrongRef.Main(uri=self.origin_uri, cid='')
+                    parent=models.ComAtprotoRepoStrongRef.Main(uri=reply_uri, cid=parent_cid),
+                    root=models.ComAtprotoRepoStrongRef.Main(uri=self.origin_uri, cid=root_cid)
                 )
             )
             

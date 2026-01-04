@@ -103,7 +103,7 @@
             let reason = '';
 
             const text = (sample.text || '').toLowerCase();
-            if (type === 'any_reply' || type === 'first_reply' || type === 'new_reply') {
+            if (type === 'any_reply' || type === 'new_reply') {
                 matched = !!sample.text;
                 reason = 'Text present';
             } else if (type === 'dreamer_replies') {
@@ -631,8 +631,7 @@
                 // Condition type descriptions
                 const conditionDescriptions = {
                     'any_reply': 'Triggers on any reply to the post',
-                    'first_reply': 'Triggers only on the first reply from each user',
-                    'new_reply': 'Triggers on new replies (legacy)',
+                    'new_reply': 'Triggers on replies from unregistered users',
                     'dreamer_replies': 'Triggers when a registered dreamer replies',
                     'contains_hashtags': 'Triggers when reply contains specific hashtags',
                     'contains_mentions': 'Triggers when reply mentions specific users',
@@ -659,8 +658,7 @@
                                     data-index="${index}">
                                 <optgroup label="Reply Conditions">
                                     <option value="any_reply" ${conditionType === 'any_reply' ? 'selected' : ''}>Any Reply</option>
-                                    <option value="first_reply" ${conditionType === 'first_reply' ? 'selected' : ''}>First Reply (per user)</option>
-                                    <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (legacy)</option>
+                                    <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (unregistered)</option>
                                     <option value="dreamer_replies" ${conditionType === 'dreamer_replies' ? 'selected' : ''}>Registered Dreamer Replies</option>
                                 </optgroup>
                                 <optgroup label="Content Match">
@@ -2836,8 +2834,11 @@
             const quest = questDataMap[questTitle];
             const commands = quest.commands || [];
             
-            // Commands are stored as strings "type" or "type:params"
-            const newCommand = commandParams ? `${commandType}:${commandParams}` : commandType;
+            // Commands use canonical format: {cmd: "type", args: [...]}
+            const newCommand = {
+                cmd: commandType,
+                args: commandParams ? commandParams.split(":") : []
+            };
             commands.push(newCommand);
             
             const payload = {
@@ -3812,7 +3813,6 @@
                 // Condition type descriptions
                 const conditionDescriptions = {
                     'any_reply': 'Triggers on any reply to the post',
-                    'first_reply': 'Triggers only on the first reply from each user',
                     'new_reply': 'Triggers on new replies (legacy)',
                     'dreamer_replies': 'Triggers when a registered dreamer replies',
                     'contains_hashtags': 'Triggers when reply contains specific hashtags',
@@ -3840,7 +3840,6 @@
                                     data-index="${index}">
                                 <optgroup label="Reply Conditions">
                                     <option value="any_reply" ${conditionType === 'any_reply' ? 'selected' : ''}>Any Reply</option>
-                                    <option value="first_reply" ${conditionType === 'first_reply' ? 'selected' : ''}>First Reply (per user)</option>
                                     <option value="new_reply" ${conditionType === 'new_reply' ? 'selected' : ''}>New Reply (legacy)</option>
                                     <option value="dreamer_replies" ${conditionType === 'dreamer_replies' ? 'selected' : ''}>Registered Dreamer Replies</option>
                                 </optgroup>
@@ -6231,8 +6230,11 @@
             const quest = questDataMap[questTitle];
             const commands = quest.commands || [];
             
-            // Commands are stored as strings "type" or "type:params"
-            const newCommand = commandParams ? `${commandType}:${commandParams}` : commandType;
+            // Commands use canonical format: {cmd: "type", args: [...]}
+            const newCommand = {
+                cmd: commandType,
+                args: commandParams ? commandParams.split(":") : []
+            };
             commands.push(newCommand);
             
             const payload = {

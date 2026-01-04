@@ -82,26 +82,59 @@ class AuthManager:
         """Refresh authentication token from server."""
         print("🔄 AuthManager.refresh_token() called")
         
-        valid, message = Config.validate_credentials()
-        if not valid:
-            print(f"❌ Authentication failed: {message}")
-            return False
+        # Try to get internal account credentials from database first
+        handle, password = self._get_internal_credentials()
         
-        print("✅ Credentials validation passed")
+        if not handle or not password:
+            # Fall back to Config (env vars / secrets files)
+            valid, message = Config.validate_credentials()
+            if not valid:
+                print(f"❌ Authentication failed: {message}")
+                return False
+            handle = Config.BSKY_HANDLE
+            password = Config.BSKY_APP_PASSWORD
         
-        pds_url = self._resolve_pds_for_handle(Config.BSKY_HANDLE)
+        print("✅ Credentials obtained")
+        
+        pds_url = self._resolve_pds_for_handle(handle)
         if not pds_url:
-            print(f"❌ Could not resolve PDS for handle: {Config.BSKY_HANDLE}")
+            print(f"❌ Could not resolve PDS for handle: {handle}")
             return False
         
         print(f"🌐 Resolved PDS URL: {pds_url}")
         
-        if self._authenticate_with_server(pds_url):
+        if self._authenticate_with_server(pds_url, handle, password):
             print("✅ Authentication with server successful")
             return True
         
         print("❌ Authentication failed on resolved PDS")
         return False
+    
+    def _get_internal_credentials(self) -> Tuple[Optional[str], Optional[str]]:
+        """Get internal reverie.house account credentials from database."""
+        try:
+            from core.database import DatabaseManager
+            from core.encryption import decrypt_password
+            
+            db = DatabaseManager()
+            cursor = db.execute("""
+                SELECT d.handle, c.app_password_hash
+                FROM user_credentials c
+                JOIN dreamers d ON c.did = d.did
+                WHERE d.handle = 'reverie.house'
+                AND c.is_valid = true
+            """)
+            result = cursor.fetchone()
+            
+            if result and result['app_password_hash']:
+                password = decrypt_password(result['app_password_hash'])
+                if password:
+                    return result['handle'], password
+            return None, None
+        except Exception as e:
+            if Config.DEBUG:
+                print(f"⚠️ Could not get internal credentials from DB: {e}")
+            return None, None
     
     def handle_expired_token(self) -> Optional[str]:
         """Handle expired token by forcing a refresh and returning the new token."""
@@ -268,18 +301,22 @@ class AuthManager:
             
         return None
     
-    def _authenticate_with_server(self, server_url: str) -> bool:
+    def _authenticate_with_server(self, server_url: str, handle: str = None, password: str = None) -> bool:
         """Authenticate with specific server and cache token."""
         print(f"🔐 Authenticating with server: {server_url}")
+        
+        # Use provided credentials or fall back to Config
+        auth_handle = handle or Config.BSKY_HANDLE
+        auth_password = password or Config.BSKY_APP_PASSWORD
         
         url = f"{server_url}/xrpc/com.atproto.server.createSession"
         
         payload = {
-            "identifier": Config.BSKY_HANDLE,
-            "password": Config.BSKY_APP_PASSWORD
+            "identifier": auth_handle,
+            "password": auth_password
         }
         
-        print(f"🔐 Using identifier: {Config.BSKY_HANDLE}")
+        print(f"🔐 Using identifier: {auth_handle}")
         
         try:
             response = requests.post(
@@ -295,8 +332,8 @@ class AuthManager:
                 return False
             
             if response.status_code == 401:
-                print(f"❌ Authentication failed: Invalid credentials for {Config.BSKY_HANDLE}")
-                print("💡 Check your BSKY_HANDLE and BSKY_APP_PASSWORD in .env file")
+                print(f"❌ Authentication failed: Invalid credentials for {auth_handle}")
+                print("💡 Check credentials in database or .env file")
                 return False
                 
             if response.status_code != 200:

@@ -292,7 +292,7 @@ class UnifiedQuesthose:
         """Process a phrase-triggered quest."""
         try:
             from ops.conditions import evaluate_conditions
-            from ops.commands import execute_quest_commands
+            from ops.command_executor import execute_quest_commands
             
             quest_title = quest.get('title', 'unknown')
             author_did = reply_obj['author']['did']
