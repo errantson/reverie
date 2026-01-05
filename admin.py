@@ -487,15 +487,15 @@ def work_all_routes():
 
 
 # ============================================================================
-# EMBASSY ROUTES - Ambassador heraldry management
+# HERALDRY ROUTES - Ambassador heraldry management
 # ============================================================================
 
-@app.route('/embassy')
-@app.route('/embassy/')
-@app.route('/embassy.html')
-def embassy_page():
-    """Embassy page for PDS community ambassadors"""
-    return send_from_directory('site', 'embassy.html')
+@app.route('/heraldry')
+@app.route('/heraldry/')
+@app.route('/heraldry.html')
+def heraldry_page():
+    """Heraldry page for PDS community ambassadors"""
+    return send_from_directory('site', 'heraldry.html')
 
 
 @app.route('/api/random-handles')
@@ -1222,7 +1222,7 @@ def get_all_database_data():
                             d.did, d.handle, d.name, d.display_name, d.description,
                             d.avatar, d.banner, d.followers_count, d.follows_count, d.posts_count,
                             d.server, d.arrival, d.created_at, d.updated_at, d.heading, d.heading_changed_at,
-                            d.alts, d.color_hex, d.phanera, d.status,
+                            d.alts, d.color_hex, d.phanera, d.status, d.designation,
                             d.dream_pair_did, d.dream_pair_since, d.collab_partner_did, d.collab_partner_since,
                             s.entropy, s.oblivion, s.liberty, 
                             s.authority, s.receptive, s.skeptic, s.octant
@@ -9344,19 +9344,19 @@ def update_user_profile():
         if heading is not None:
             print(f"✅ [API] Database updated with new heading: {heading}")
         
-        # Calculate and save user status
+        # Calculate and save user designation
         try:
-            from utils.user_status import calculate_and_save_status
+            from utils.designation import Designation
             # Get user's handle and server from database
             cursor = db.execute("SELECT handle, server FROM dreamers WHERE did = %s", (user_did,))
             row = cursor.fetchone()
             
             if row:
-                user_handle, user_server = row
-                status = calculate_and_save_status(user_did, user_handle, user_server, token)
-                print(f"✅ [API] User status updated: {status}")
+                user_handle, user_server = row['handle'], row['server']
+                designation = Designation.calculate_and_save(user_did, user_handle, user_server, token)
+                print(f"✅ [API] User designation updated: {designation}")
         except Exception as e:
-            print(f"⚠️ [API] Could not update user status: {e}")
+            print(f"⚠️ [API] Could not update user designation: {e}")
         
         audit_log(
             event_type='profile_updated',
@@ -9725,19 +9725,19 @@ def update_user_avatar():
         except Exception as e:
             print(f"⚠️ [API] Could not sync avatar to database: {e}")
         
-        # Calculate and save user status
+        # Calculate and save user designation
         try:
-            from utils.user_status import calculate_and_save_status
+            from utils.designation import Designation
             # Get user's handle and server from database
             cursor = db.execute("SELECT handle, server FROM dreamers WHERE did = %s", (user_did,))
             row = cursor.fetchone()
             
             if row:
-                user_handle, user_server = row
-                status = calculate_and_save_status(user_did, user_handle, user_server, token)
-                print(f"✅ [API] User status updated: {status}")
+                user_handle, user_server = row['handle'], row['server']
+                designation = Designation.calculate_and_save(user_did, user_handle, user_server, token)
+                print(f"✅ [API] User designation updated: {designation}")
         except Exception as e:
-            print(f"⚠️ [API] Could not update user status: {e}")
+            print(f"⚠️ [API] Could not update user designation: {e}")
         
         audit_log(
             event_type='avatar_updated',
@@ -9848,18 +9848,19 @@ def update_user_description():
 
 
 @app.route('/api/user/refresh-status', methods=['POST'])
+@app.route('/api/user/refresh-designation', methods=['POST'])
 @rate_limit()
-def refresh_user_status():
+def refresh_user_designation():
     """
-    Recalculate and update user's status in the database
+    Recalculate and update user's designation in the database
     
     Should be called after character registration changes or role changes
     """
     try:
-        from utils.user_status import calculate_and_save_status
+        from utils.designation import Designation
         from core.database import DatabaseManager
         
-        print("🔄 [API] /api/user/refresh-status called")
+        print("🔄 [API] /api/user/refresh-designation called")
         
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
@@ -9881,17 +9882,17 @@ def refresh_user_status():
         if not row:
             return jsonify({'error': 'User not found in database'}), 404
         
-        user_handle, user_server = row
-        print(f"📝 [API] Recalculating status for {user_handle}")
+        user_handle, user_server = row['handle'], row['server']
+        print(f"📝 [API] Recalculating designation for {user_handle}")
         
-        # Calculate and save new status
-        status = calculate_and_save_status(user_did, user_handle, user_server, token)
+        # Calculate and save new designation
+        designation = Designation.calculate_and_save(user_did, user_handle, user_server, token)
         
-        print(f"✅ [API] Status refreshed: {status}")
+        print(f"✅ [API] Designation refreshed: {designation}")
         
         audit_log(
-            event_type='status_refreshed',
-            endpoint='/api/user/refresh-status',
+            event_type='designation_refreshed',
+            endpoint='/api/user/refresh-designation',
             method='POST',
             user_ip=get_client_ip(),
             response_status=200,
@@ -9901,12 +9902,12 @@ def refresh_user_status():
         
         return jsonify({
             'success': True,
-            'status': status
+            'designation': designation
         })
         
     except Exception as e:
         import traceback
-        print(f"❌ [API] Exception in refresh_user_status:")
+        print(f"❌ [API] Exception in refresh_user_designation:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 

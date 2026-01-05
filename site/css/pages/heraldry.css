@@ -1,16 +1,16 @@
 /* =============================================================================
-   EMBASSY PAGE STYLES
-   Mobile-first ambassador dashboard - Clean, balanced design
+   HERALDRY PAGE STYLES
+   Mobile-first herald dashboard - Clean, balanced design
    ============================================================================= */
 
 /* Page base */
-.embassy-page {
+body.heraldry-page {
     position: relative;
     background-color: #1a1a2e;
 }
 
 /* Background */
-.embassy-page .fullscreen-background {
+.heraldry-page .fullscreen-background {
     position: fixed;
     top: 0;
     left: 0;
@@ -22,7 +22,7 @@
     pointer-events: none;
 }
 
-.embassy-page .scene-background {
+.heraldry-page .scene-background {
     position: absolute;
     top: 0;
     left: 0;
@@ -31,14 +31,14 @@
     background-color: #1a1a2e;
 }
 
-.embassy-page .scene-layer {
+.heraldry-page .scene-layer {
     position: absolute;
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.embassy-page .background-layer {
+.heraldry-page .background-layer {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -54,50 +54,84 @@
 }
 
 /* Main content positioning */
-.embassy-page .main-content {
+.heraldry-page .main-content {
     position: relative;
-    z-index: 10;
+    z-index: 100;
     padding-top: var(--content-top-spacing, 100px);
     min-height: 100vh;
     padding-bottom: 40px;
+    display: block;
+    visibility: visible;
+    /* Ensure this creates a proper stacking context above the fixed background */
+    isolation: isolate;
+}
+
+/* Header and drawer positioning */
+.heraldry-page #header-container {
+    position: relative;
+    z-index: 10100;
+}
+
+.heraldry-page #footer-container {
+    position: relative;
+    z-index: 10;
+}
+
+/* Ensure drawer appears properly above heraldry content */
+.heraldry-page .drawer-container,
+.heraldry-page #spectrum-drawer {
+    z-index: 9997 !important;
+}
+
+.heraldry-page .drawer-backdrop {
+    z-index: 9996 !important;
 }
 
 @media (max-width: 768px) {
-    .embassy-page .main-content {
+    .heraldry-page .main-content {
         padding-top: var(--content-top-spacing-mobile, 70px);
     }
 }
 
-/* Embassy container */
-.embassy-container {
+/* Heraldry container */
+.heraldry-container {
     display: flex;
     justify-content: center;
     padding: 16px;
     max-width: 400px;
     margin: 0 auto;
+    visibility: visible;
 }
 
-/* Embassy Modal */
-.embassy-modal {
+/* Heraldry Modal */
+.heraldry-modal {
     background: #ffffff;
-    border-radius: 16px;
+    border-radius: 0;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     width: 100%;
-    animation: modalFadeIn 0.3s ease-out;
-    overflow: hidden;
+    overflow: visible;
+    /* Above background but below header */
+    position: relative;
+    z-index: 100;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 300px;
 }
 
+/* Disabled for debugging
 @keyframes modalFadeIn {
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
 }
+*/
 
 /* View switching */
-.embassy-view {
+.heraldry-view {
     display: block;
 }
 
-.embassy-view[style*="display: none"] {
+.heraldry-view[style*="display: none"] {
     display: none !important;
 }
 
@@ -105,36 +139,36 @@
    LOGIN VIEW
    ============================================================================= */
 
-.embassy-login {
+.heraldry-login {
     padding: 32px 24px;
 }
 
-.embassy-header {
+.heraldry-header {
     text-align: center;
     margin-bottom: 24px;
 }
 
-.embassy-logo {
+.heraldry-logo {
     width: 56px;
     height: auto;
     margin-bottom: 16px;
 }
 
-.embassy-title {
+.heraldry-title {
     margin: 0 0 6px 0;
     color: #87408d;
     font-size: 1.4rem;
     font-weight: 700;
 }
 
-.embassy-subtitle {
+.heraldry-subtitle {
     margin: 0;
     color: #888;
     font-size: 0.85rem;
 }
 
 /* Form */
-.embassy-login-form {
+.heraldry-login-form {
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -164,7 +198,7 @@
     display: flex;
     align-items: center;
     border: 2px solid #e8e0f0;
-    border-radius: 8px;
+    border-radius: 0;
     background: white;
     transition: border-color 0.2s;
     overflow: hidden;
@@ -199,72 +233,72 @@
 }
 
 /* Status Message */
-.embassy-status-message {
+.heraldry-status-message {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
     background: #faf8fc;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.8rem;
     color: #666;
     text-align: left;
 }
 
-.embassy-status-message .status-icon {
+.heraldry-status-message .status-icon {
     width: 24px;
     height: 24px;
     flex-shrink: 0;
-    border-radius: 6px;
+    border-radius: 0;
 }
 
-.embassy-status-message.success {
+.heraldry-status-message.success {
     background: rgba(72, 187, 120, 0.1);
     color: #276749;
 }
 
-.embassy-status-message.error {
+.heraldry-status-message.error {
     background: rgba(229, 62, 62, 0.1);
     color: #c53030;
 }
 
-.embassy-status-message.info {
+.heraldry-status-message.info {
     background: rgba(66, 153, 225, 0.1);
     color: #2b6cb0;
 }
 
-.embassy-status-message .status-link {
+.heraldry-status-message .status-link {
     color: #87408d;
     text-decoration: underline;
     font-weight: 500;
 }
 
-.embassy-status-message .status-link:hover {
+.heraldry-status-message .status-link:hover {
     color: #6b3370;
 }
 
 /* Error */
-.embassy-error {
+.heraldry-error {
     padding: 12px 14px;
     background: #fef2f2;
     color: #c53030;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.8rem;
 }
 
 /* Buttons */
-.embassy-buttons {
+.heraldry-buttons {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-.embassy-btn {
+.heraldry-btn {
     padding: 14px 20px;
     font-size: 0.9rem;
     font-weight: 600;
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
@@ -273,37 +307,37 @@
     gap: 8px;
 }
 
-.embassy-btn.primary {
+.heraldry-btn.primary {
     width: 100%;
     background: #87408d;
     color: white;
 }
 
-.embassy-btn.primary:hover:not(:disabled) {
+.heraldry-btn.primary:hover:not(:disabled) {
     background: #6f336f;
     transform: translateY(-1px);
 }
 
-.embassy-btn.secondary {
+.heraldry-btn.secondary {
     background: #4299e1;
     color: white;
 }
 
-.embassy-btn.secondary:hover:not(:disabled) {
+.heraldry-btn.secondary:hover:not(:disabled) {
     background: #3182ce;
 }
 
-.embassy-btn.warning {
+.heraldry-btn.warning {
     background: #ed8936;
     color: white;
 }
 
-.embassy-btn.danger {
+.heraldry-btn.danger {
     background: #e53e3e;
     color: white;
 }
 
-.embassy-btn:disabled {
+.heraldry-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -313,7 +347,7 @@
     height: 14px;
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
-    border-radius: 50%;
+    border-radius: 0;
     animation: spin 0.8s linear infinite;
 }
 
@@ -322,31 +356,31 @@
 }
 
 /* Info Box */
-.embassy-info-box {
+.heraldry-info-box {
     margin-top: 8px;
     padding: 14px;
     background: #faf8fc;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.75rem;
     color: #777;
     line-height: 1.5;
     text-align: center;
 }
 
-.embassy-info-box strong {
+.heraldry-info-box strong {
     color: #87408d;
 }
 
-.embassy-info-box p {
+.heraldry-info-box p {
     margin: 0 0 4px 0;
 }
 
-.embassy-info-box p:last-child {
+.heraldry-info-box p:last-child {
     margin-bottom: 0;
 }
 
 /* Back Link */
-.embassy-back-link {
+.heraldry-back-link {
     display: block;
     margin-top: 20px;
     color: #87408d;
@@ -357,7 +391,7 @@
     transition: opacity 0.2s;
 }
 
-.embassy-back-link:hover {
+.heraldry-back-link:hover {
     opacity: 1;
 }
 
@@ -365,13 +399,13 @@
    DASHBOARD VIEW
    ============================================================================= */
 
-.embassy-dashboard {
+.heraldry-dashboard {
     display: flex;
     flex-direction: column;
 }
 
 /* Dashboard Header */
-.embassy-dashboard-header {
+.heraldry-dashboard-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -380,26 +414,26 @@
     color: white;
 }
 
-.ambassador-profile {
+.herald-profile {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.ambassador-profile .profile-avatar {
+.herald-profile .profile-avatar {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 0;
     border: 2px solid rgba(255,255,255,0.3);
     object-fit: cover;
 }
 
-.ambassador-profile .profile-info {
+.herald-profile .profile-info {
     display: flex;
     flex-direction: column;
 }
 
-.ambassador-profile .profile-name {
+.herald-profile .profile-name {
     font-weight: 600;
     font-size: 0.95rem;
     color: white;
@@ -407,21 +441,21 @@
     line-height: 1.2;
 }
 
-.ambassador-profile .profile-handle {
+.herald-profile .profile-handle {
     font-size: 0.75rem;
     color: rgba(255,255,255,0.7);
     margin: 0;
 }
 
-.ambassador-profile .profile-role {
+.herald-profile .profile-role {
     display: none;
 }
 
-.embassy-signout-btn {
+.heraldry-signout-btn {
     padding: 8px 14px;
     background: rgba(255,255,255,0.15);
     border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 6px;
+    border-radius: 0;
     color: white;
     font-size: 0.75rem;
     font-weight: 500;
@@ -429,12 +463,12 @@
     transition: all 0.2s;
 }
 
-.embassy-signout-btn:hover {
+.heraldry-signout-btn:hover {
     background: rgba(255,255,255,0.25);
 }
 
 /* Dashboard Content */
-.embassy-dashboard-content {
+.heraldry-dashboard-content {
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -448,13 +482,13 @@
     gap: 14px;
     padding: 16px;
     background: linear-gradient(135deg, #faf8fc 0%, #f0e8f4 100%);
-    border-radius: 12px;
+    border-radius: 0;
 }
 
 .heraldry-preview .preview-icon {
     width: 56px;
     height: 56px;
-    border-radius: 10px;
+    border-radius: 0;
     object-fit: contain;
     background: white;
     padding: 6px;
@@ -482,17 +516,17 @@
     width: 100%;
     height: 4px;
     margin-top: 8px;
-    border-radius: 2px;
+    border-radius: 0;
 }
 
 /* Section Cards */
-.embassy-section {
+.heraldry-section {
     background: #faf8fc;
-    border-radius: 12px;
+    border-radius: 0;
     padding: 16px;
 }
 
-.embassy-section .section-title {
+.heraldry-section .section-title {
     margin: 0 0 12px 0;
     font-size: 0.7rem;
     font-weight: 700;
@@ -519,7 +553,7 @@
 
 .control-group {
     background: #faf8fc;
-    border-radius: 12px;
+    border-radius: 0;
     padding: 14px;
 }
 
@@ -548,7 +582,7 @@
 .icon-preview-large {
     width: 80px;
     height: 80px;
-    border-radius: 12px;
+    border-radius: 0;
     object-fit: contain;
     background: white;
     padding: 8px;
@@ -563,7 +597,7 @@
     flex-wrap: wrap;
 }
 
-.embassy-btn.small {
+.heraldry-btn.small {
     padding: 8px 14px;
     font-size: 0.75rem;
 }
@@ -590,7 +624,7 @@
 .color-swatch {
     width: 40px;
     height: 40px;
-    border-radius: 8px;
+    border-radius: 0;
     border: 2px solid rgba(0,0,0,0.1);
     cursor: pointer;
     flex-shrink: 0;
@@ -600,7 +634,7 @@
 .color-hex-input {
     padding: 10px 12px;
     border: 2px solid #e8e0f0;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.9rem;
     font-family: monospace;
     width: 100px;
@@ -617,7 +651,7 @@
     gap: 12px;
     padding: 12px;
     background: white;
-    border-radius: 10px;
+    border-radius: 0;
     margin-bottom: 12px;
 }
 
@@ -626,7 +660,7 @@
     width: 140px;
     height: 140px;
     cursor: crosshair;
-    border-radius: 6px;
+    border-radius: 0;
     overflow: hidden;
 }
 
@@ -641,7 +675,7 @@
     width: 12px;
     height: 12px;
     border: 2px solid white;
-    border-radius: 50%;
+    border-radius: 0;
     box-shadow: 0 0 4px rgba(0,0,0,0.4);
     pointer-events: none;
     transform: translate(-50%, -50%);
@@ -652,7 +686,7 @@
     width: 20px;
     height: 140px;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 0;
     overflow: hidden;
 }
 
@@ -669,7 +703,7 @@
     height: 4px;
     background: white;
     border: 1px solid #333;
-    border-radius: 2px;
+    border-radius: 0;
     pointer-events: none;
     transform: translateY(-50%);
 }
@@ -683,6 +717,9 @@
 /* Coterie Stats */
 .coterie-stats {
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .coterie-info {
@@ -690,20 +727,20 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
+    width: 100%;
 }
 
 .coterie-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    justify-content: center;
     gap: 8px;
     width: 100%;
-    max-width: 280px;
 }
 
 .coterie-stat {
     padding: 12px 8px;
     background: white;
-    border-radius: 8px;
+    border-radius: 0;
     text-align: center;
 }
 
@@ -738,13 +775,13 @@
     gap: 6px;
     padding: 6px 10px;
     background: white;
-    border-radius: 20px;
+    border-radius: 0;
 }
 
 .coterie-member .member-avatar {
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: 0;
     object-fit: cover;
 }
 
@@ -754,14 +791,14 @@
 }
 
 /* Actions */
-.ambassador-actions .section-title {
+.herald-actions .section-title {
     margin-bottom: 14px;
 }
 
 .action-group {
     padding: 14px;
     background: white;
-    border-radius: 10px;
+    border-radius: 0;
     margin-bottom: 10px;
 }
 
@@ -789,17 +826,17 @@
     gap: 8px;
 }
 
-.embassy-select {
+.heraldry-select {
     width: 100%;
     padding: 10px 12px;
     border: 2px solid #e8e0f0;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.85rem;
     background: white;
     cursor: pointer;
 }
 
-.embassy-select:focus {
+.heraldry-select:focus {
     outline: none;
     border-color: #87408d;
 }
@@ -820,7 +857,7 @@
 }
 
 /* Dashboard back link */
-.embassy-dashboard .embassy-back-link {
+.heraldry-dashboard .heraldry-back-link {
     padding: 16px;
     margin: 0;
     border-top: 1px solid #e8e0f0;
@@ -831,20 +868,20 @@
    ============================================================================= */
 
 @media (min-width: 480px) {
-    .embassy-container {
+    .heraldry-container {
         padding: 24px;
         max-width: 440px;
     }
     
-    .embassy-login {
+    .heraldry-login {
         padding: 40px 32px;
     }
     
-    .embassy-logo {
+    .heraldry-logo {
         width: 64px;
     }
     
-    .embassy-title {
+    .heraldry-title {
         font-size: 1.5rem;
     }
     
@@ -871,7 +908,7 @@
         flex-direction: row;
     }
     
-    .embassy-select {
+    .heraldry-select {
         flex: 1;
     }
     

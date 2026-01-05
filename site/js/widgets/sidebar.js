@@ -936,7 +936,7 @@ class Sidebar {
                     serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                 }
             } else {
-                const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(dreamer || u || match) : null;
+                const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(match) : null;
                     serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';       
                 serverIconStyle = '';
             }

@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Embassy - Reverie House</title>
+    <title>Heraldry - Reverie House</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Community Embassy - Ambassadors manage their PDS community's heraldry and identity.">
+    <meta name="description" content="Community Heraldry - Heralds manage their PDS community's heraldry and identity.">
     
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/heraldry.css">
-    <link rel="stylesheet" href="css/pages/embassy.css">
+    <link rel="stylesheet" href="css/pages/heraldry.css">
+    <link rel="stylesheet" href="css/widgets/header.css">
+    <link rel="stylesheet" href="css/widgets/drawer.css">
     <link rel="stylesheet" href="css/widgets/login.css">
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
     
@@ -27,11 +29,12 @@
     <script src="js/widgets/sidebar.js" defer></script>
     <script src="js/widgets/drawer.js" defer></script>
     
-    <!-- Embassy scripts -->
-    <script src="js/pages/embassy.js" defer></script>
+    <!-- Heraldry scripts -->
+    <script src="js/pages/heraldry.js" defer></script>
 </head>
-<body class="embassy-page">
+<body class="heraldry-page">
     <div id="header-container"></div>
+    <div id="search-container"></div>
     
     <!-- Full-Screen Background Scene (matches dreamers page) -->
     <div class="fullscreen-background">
@@ -42,24 +45,24 @@
 
     <!-- Main Content (positioned above background) -->
     <div class="main-content">
-        <div class="embassy-container">
-            <!-- Embassy Modal (centered in page, not overlay) -->
-            <div class="embassy-modal" id="embassyModal">
+        <div class="heraldry-container">
+            <!-- Heraldry Modal (centered in page, not overlay) -->
+            <div class="heraldry-modal" id="heraldryModal">
                 <!-- Login View -->
-                <div class="embassy-view embassy-login" id="embassyLogin">
-                    <div class="embassy-header">
-                        <img src="/assets/logo.png" alt="Reverie House" class="embassy-logo">
-                        <h1 class="embassy-title">Community Embassy</h1>
-                        <p class="embassy-subtitle">Ambassadors manage their community's heraldry</p>
+                <div class="heraldry-view heraldry-login" id="heraldryLogin">
+                    <div class="heraldry-header">
+                        <img src="/assets/logo.png" alt="Reverie House" class="heraldry-logo">
+                        <h1 class="heraldry-title">Community Heraldry</h1>
+                        <p class="heraldry-subtitle">Heralds manage their community's heraldry</p>
                     </div>
 
-                    <div class="embassy-login-form">
+                    <div class="heraldry-login-form">
                         <div class="form-group">
                             <label class="form-label">Your Handle</label>
                             <div class="handle-input-wrapper">
                                 <span class="handle-prefix">@</span>
                                 <input type="text" 
-                                       id="ambassadorHandle" 
+                                       id="heraldHandle" 
                                        class="handle-input"
                                        placeholder="yourname.bsky.social"
                                        autocomplete="off"
@@ -67,9 +70,9 @@
                             </div>
                         </div>
 
-                        <div id="loginStatusMessage" class="embassy-status-message">
+                        <div id="loginStatusMessage" class="heraldry-status-message">
                             <img src="/assets/icon.png" alt="" class="status-icon">
-                            <span>Enter your handle to check ambassador status</span>
+                            <span>Enter your handle to check herald status</span>
                         </div>
 
                         <!-- Password field (shown for PDS residents) -->
@@ -86,42 +89,42 @@
                             <p class="form-hint">Create an app password in your Bluesky settings</p>
                         </div>
 
-                        <div id="loginError" class="embassy-error" style="display: none;"></div>
+                        <div id="loginError" class="heraldry-error" style="display: none;"></div>
 
-                        <div class="embassy-buttons">
-                            <button id="loginBtn" class="embassy-btn primary" disabled>
+                        <div class="heraldry-buttons">
+                            <button id="loginBtn" class="heraldry-btn primary" disabled>
                                 <span class="btn-text">Check Status</span>
                                 <span class="btn-spinner" style="display: none;"></span>
                             </button>
                             
                             <!-- OAuth button for non-residents -->
-                            <button id="oauthBtn" class="embassy-btn secondary" style="display: none;">
+                            <button id="oauthBtn" class="heraldry-btn secondary" style="display: none;">
                                 <span class="btn-text">Sign in with Bluesky</span>
                             </button>
                         </div>
 
-                        <div class="embassy-info-box">
-                            <p>Only designated <strong>ambassadors</strong> can access the embassy to manage their community's heraldry.</p>
+                        <div class="heraldry-info-box">
+                            <p>Only designated <strong>heralds</strong> can access heraldry settings to manage their community's heraldry.</p>
                         </div>
                     </div>
 
-                    <a href="/" class="embassy-back-link">Return to Reverie House</a>
+                    <a href="/" class="heraldry-back-link">Return to Reverie House</a>
                 </div>
 
                 <!-- Dashboard View (shown when authenticated as ambassador) -->
-                <div class="embassy-view embassy-dashboard" id="embassyDashboard" style="display: none;">
-                    <div class="embassy-dashboard-header">
-                        <div class="ambassador-profile" id="ambassadorProfile">
+                <div class="heraldry-view heraldry-dashboard" id="heraldryDashboard" style="display: none;">
+                    <div class="heraldry-dashboard-header">
+                        <div class="herald-profile" id="heraldProfile">
                             <!-- Filled dynamically -->
                         </div>
-                        <button class="embassy-signout-btn" id="signOutBtn">
+                        <button class="heraldry-signout-btn" id="signOutBtn">
                             Sign Out
                         </button>
                     </div>
 
-                    <div class="embassy-dashboard-content">
+                    <div class="heraldry-dashboard-content">
                         <!-- Heraldry Editor Section -->
-                        <section class="embassy-section heraldry-editor">
+                        <section class="heraldry-section heraldry-editor">
                             <h2 class="section-title">Community Heraldry</h2>
                             <div class="heraldry-preview" id="heraldryPreview">
                                 <!-- Filled dynamically -->
@@ -134,12 +137,12 @@
                                     <div class="icon-editor">
                                         <img id="heraldryIconPreview" src="/assets/heraldry/default.png" alt="Icon" class="icon-preview-large">
                                         <div class="icon-buttons">
-                                            <button id="uploadIconBtn" class="embassy-btn secondary small">Upload</button>
-                                            <button id="clearIconBtn" class="embassy-btn warning small">Clear</button>
-                                            <button id="saveIconBtn" class="embassy-btn primary small" style="display: none;">Save</button>
+                                            <button id="uploadIconBtn" class="heraldry-btn secondary small">Upload</button>
+                                            <button id="clearIconBtn" class="heraldry-btn warning small">Clear</button>
+                                            <button id="saveIconBtn" class="heraldry-btn primary small" style="display: none;">Save</button>
                                         </div>
                                         <input type="file" id="iconFileInput" accept="image/png" style="display: none;">
-                                        <p class="icon-hint">PNG, max 1MB, 256x256</p>
+                                        <p class="icon-hint">PNG, max 5MB, resized to 512x512</p>
                                     </div>
                                 </div>
 
@@ -160,7 +163,7 @@
                                             <div class="color-hue-cursor" id="colorHueCursor"></div>
                                         </div>
                                     </div>
-                                    <button id="saveColorBtn" class="embassy-btn secondary">
+                                    <button id="saveColorBtn" class="heraldry-btn secondary">
                                         Save Color
                                     </button>
                                 </div>
@@ -168,25 +171,25 @@
                         </section>
 
                         <!-- Coterie Stats Section -->
-                        <section class="embassy-section coterie-stats">
+                        <section class="heraldry-section coterie-stats">
                             <h2 class="section-title">Your Coterie</h2>
                             <div class="coterie-info" id="coterieInfo">
                                 <!-- Filled dynamically -->
                             </div>
                         </section>
 
-                        <!-- Ambassador Actions Section -->
-                        <section class="embassy-section ambassador-actions">
-                            <h2 class="section-title">Ambassador Actions</h2>
+                        <!-- Herald Actions Section -->
+                        <section class="heraldry-section herald-actions">
+                            <h2 class="section-title">Herald Actions</h2>
                             
                             <div class="action-group">
-                                <h3>Transfer Ambassadorship</h3>
-                                <p class="action-description">Assign a member of your coterie as the new ambassador.</p>
+                                <h3>Transfer Herald Role</h3>
+                                <p class="action-description">Assign a member of your coterie as the new herald.</p>
                                 <div class="transfer-controls">
-                                    <select id="transferSelect" class="embassy-select">
-                                        <option value="">Select new ambassador...</option>
+                                    <select id="transferSelect" class="heraldry-select">
+                                        <option value="">Select new herald...</option>
                                     </select>
-                                    <button id="transferBtn" class="embassy-btn warning" disabled>
+                                    <button id="transferBtn" class="heraldry-btn warning" disabled>
                                         Transfer Role
                                     </button>
                                 </div>
@@ -195,14 +198,14 @@
                             <div class="action-group danger-zone">
                                 <h3>Step Down</h3>
                                 <p class="action-description">Relinquish your role. The most active coterie member will become ambassador.</p>
-                                <button id="stepDownBtn" class="embassy-btn danger">
-                                    Step Down as Ambassador
+                                <button id="stepDownBtn" class="heraldry-btn danger">
+                                    Step Down as Herald
                                 </button>
                             </div>
                         </section>
                     </div>
 
-                    <a href="/" class="embassy-back-link">Return to Reverie House</a>
+                    <a href="/" class="heraldry-back-link">Return to Reverie House</a>
                 </div>
             </div>
         </div>

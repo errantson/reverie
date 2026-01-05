@@ -3208,45 +3208,45 @@ class Dashboard {
     }
     
     displayStatus(statusEl) {
-        // Use status from database if available, otherwise default to 'dreamer'
-        const status = this.dreamerData.status || 'dreamer';
-        statusEl.textContent = status;
-        console.log(`[Dashboard] Status displayed: ${status}`);
+        // Display designation in uppercase
+        const designation = (this.dreamerData.designation || 'Dreamer').toUpperCase();
+        statusEl.textContent = designation;
+        console.log(`[Dashboard] Designation displayed: ${designation}`);
     }
     
     async refreshUserStatus() {
-        console.log('🔄 [Dashboard] refreshUserStatus() called');
+        console.log('🔄 [Dashboard] refreshUserDesignation() called');
         const token = await this.getOAuthToken();
         if (!token) {
-            console.warn('⚠️ [Dashboard] No auth token for status refresh');
+            console.warn('⚠️ [Dashboard] No auth token for designation refresh');
             return;
         }
         
         try {
-            const response = await fetch('/api/user/refresh-status', {
+            const response = await fetch('/api/user/refresh-designation', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ [Dashboard] Status refreshed from server:', data.status);
+                console.log('✅ [Dashboard] Designation refreshed from server:', data.designation);
                 
                 // Update local dreamer data
                 if (this.dreamerData) {
-                    this.dreamerData.status = data.status;
+                    this.dreamerData.designation = data.designation;
                 }
                 
-                // Update status display
+                // Update designation display
                 const statusEl = document.getElementById('dashboardStatusDisplay');
                 if (statusEl) {
-                    statusEl.textContent = data.status;
+                    statusEl.textContent = data.designation.toUpperCase();
                 }
             } else {
-                console.warn('⚠️ [Dashboard] Failed to refresh status:', response.status);
+                console.warn('⚠️ [Dashboard] Failed to refresh designation:', response.status);
             }
         } catch (error) {
-            console.error('❌ [Dashboard] Error refreshing status:', error);
+            console.error('❌ [Dashboard] Error refreshing designation:', error);
         }
     }
     
@@ -3673,33 +3673,33 @@ class Dashboard {
                 console.log('✅ Character unregistered:', result);
             }
             
-            // Refresh user status in database
-            console.log('🔄 [Dashboard] Refreshing user status after character toggle');
+            // Refresh user designation in database
+            console.log('🔄 [Dashboard] Refreshing user designation after character toggle');
             try {
-                const statusResponse = await fetch('/api/user/refresh-status', {
+                const statusResponse = await fetch('/api/user/refresh-designation', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
                 if (statusResponse.ok) {
                     const statusData = await statusResponse.json();
-                    console.log('✅ [Dashboard] Status refreshed:', statusData.status);
+                    console.log('✅ [Dashboard] Designation refreshed:', statusData.designation);
                     
                     // Update local dreamer data
                     if (this.dreamerData) {
-                        this.dreamerData.status = statusData.status;
+                        this.dreamerData.designation = statusData.designation;
                     }
                     
-                    // Update status display
+                    // Update designation display
                     const statusEl = document.getElementById('dashboardStatusDisplay');
                     if (statusEl) {
-                        statusEl.textContent = statusData.status;
+                        statusEl.textContent = statusData.designation.toUpperCase();
                     }
                 } else {
-                    console.warn('⚠️ [Dashboard] Failed to refresh status');
+                    console.warn('⚠️ [Dashboard] Failed to refresh designation');
                 }
             } catch (error) {
-                console.error('❌ [Dashboard] Error refreshing status:', error);
+                console.error('❌ [Dashboard] Error refreshing designation:', error);
             }
             
             // Refresh the section
@@ -3738,29 +3738,29 @@ class Dashboard {
                         });
                     }
                     
-                    // Refresh user status in database
-                    console.log('🔄 [Dashboard] Refreshing user status after stepping down');
+                    // Refresh user designation in database
+                    console.log('🔄 [Dashboard] Refreshing user designation after stepping down');
                     try {
-                        const statusResponse = await fetch('/api/user/refresh-status', {
+                        const statusResponse = await fetch('/api/user/refresh-designation', {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         
                         if (statusResponse.ok) {
                             const statusData = await statusResponse.json();
-                            console.log('✅ [Dashboard] Status refreshed:', statusData.status);
+                            console.log('✅ [Dashboard] Designation refreshed:', statusData.designation);
                             
                             // Update local dreamer data and display
                             if (this.dreamerData) {
-                                this.dreamerData.status = statusData.status;
+                                this.dreamerData.designation = statusData.designation;
                             }
                             const statusEl = document.getElementById('dashboardStatusDisplay');
                             if (statusEl) {
-                                statusEl.textContent = statusData.status;
+                                statusEl.textContent = statusData.designation.toUpperCase();
                             }
                         }
                     } catch (error) {
-                        console.error('❌ [Dashboard] Error refreshing status:', error);
+                        console.error('❌ [Dashboard] Error refreshing designation:', error);
                     }
                     
                     // Refresh the section
@@ -3797,29 +3797,29 @@ class Dashboard {
                         });
                     }
                     
-                    // Refresh user status in database
-                    console.log('🔄 [Dashboard] Refreshing user status after stepping down');
+                    // Refresh user designation in database
+                    console.log('🔄 [Dashboard] Refreshing user designation after stepping down');
                     try {
-                        const statusResponse = await fetch('/api/user/refresh-status', {
+                        const statusResponse = await fetch('/api/user/refresh-designation', {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         
                         if (statusResponse.ok) {
                             const statusData = await statusResponse.json();
-                            console.log('✅ [Dashboard] Status refreshed:', statusData.status);
+                            console.log('✅ [Dashboard] Designation refreshed:', statusData.designation);
                             
                             // Update local dreamer data and display
                             if (this.dreamerData) {
-                                this.dreamerData.status = statusData.status;
+                                this.dreamerData.designation = statusData.designation;
                             }
                             const statusEl = document.getElementById('dashboardStatusDisplay');
                             if (statusEl) {
-                                statusEl.textContent = statusData.status;
+                                statusEl.textContent = statusData.designation.toUpperCase();
                             }
                         }
                     } catch (error) {
-                        console.error('❌ [Dashboard] Error refreshing status:', error);
+                        console.error('❌ [Dashboard] Error refreshing designation:', error);
                     }
                     
                     // Refresh the section

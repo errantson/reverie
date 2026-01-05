@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Profile Refresh Utility
-Manually refreshes profile data (avatar, display name, description) from Bluesky
-for dreamers with outdated information.
+Refreshes profile data (avatar, display name, description) and designation
+from Bluesky for dreamers with outdated information.
 """
 
 import sys
@@ -14,9 +14,15 @@ from core.network import NetworkClient
 from datetime import datetime, timedelta
 
 
-def refresh_profile(did: str, handle: str, verbose: bool = True) -> bool:
+def refresh_profile(did: str, handle: str, verbose: bool = True, refresh_designation: bool = True) -> bool:
     """
     Refresh a single dreamer's profile from Bluesky.
+    
+    Args:
+        did: User's DID
+        handle: User's handle
+        verbose: Print progress messages
+        refresh_designation: Also recalculate and update designation
     
     Returns:
         True if successful, False otherwise
@@ -90,6 +96,26 @@ def refresh_profile(did: str, handle: str, verbose: bool = True) -> bool:
                 changes.append("bio")
             
             print(f"   ✅ Updated: {', '.join(changes)}")
+        
+        # Also refresh designation if requested
+        if refresh_designation:
+            try:
+                from utils.designation import Designation
+                
+                # Get server from database
+                server_row = db.fetch_one("SELECT server FROM dreamers WHERE did = %s", (did,))
+                server = server_row['server'] if server_row else None
+                
+                old_designation_row = db.fetch_one("SELECT designation FROM dreamers WHERE did = %s", (did,))
+                old_designation = old_designation_row['designation'] if old_designation_row else None
+                
+                new_designation = Designation.calculate_and_save(did, handle, server)
+                
+                if verbose and new_designation != old_designation:
+                    print(f"   🏷️  Designation: {old_designation} → {new_designation}")
+            except Exception as e:
+                if verbose:
+                    print(f"   ⚠️  Could not refresh designation: {e}")
         
         return True
         

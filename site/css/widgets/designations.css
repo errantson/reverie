@@ -1,14 +1,18 @@
-.status-explainer-trigger {
-    position: relative;
+/**
+ * Designation Explainer Popup Styles
+ * Matches axis explainer style - simple glossary
+ */
+
+.designation-trigger {
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: opacity 0.2s ease;
 }
 
-.status-explainer-trigger:hover {
+.designation-trigger:hover {
     opacity: 0.8;
 }
 
-.status-explainer-overlay {
+.designation-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -21,17 +25,19 @@
     backdrop-filter: blur(4px);
 }
 
-.status-explainer-overlay.active {
+.designation-overlay.active {
     opacity: 1;
 }
 
-.status-explainer-popup {
+.designation-popup {
     position: fixed;
+    top: 50%;
+    left: 50%;
     background: white;
-    border: 3px solid var(--status-color, var(--user-color, #734ba1));
+    border: 3px solid var(--designation-color, var(--user-color, #734ba1));
     border-radius: 0;
     padding: 0;
-    max-width: 500px;
+    max-width: 420px;
     width: 90%;
     box-shadow: 0 10px 40px rgba(115, 75, 161, 0.4);
     z-index: 9999;
@@ -41,30 +47,21 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.status-explainer-popup.active {
+.designation-popup.active {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
 }
 
-.status-explainer-header {
+.designation-header {
     display: flex;
     align-items: center;
-    gap: 12px;
     padding: 10px 20px;
-    background: var(--status-color, var(--user-color, #734ba1));
+    background: var(--designation-color, var(--user-color, #734ba1));
     color: white;
     border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 }
 
-.status-explainer-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    flex-shrink: 0;
-    filter: brightness(0) invert(1);
-}
-
-.status-explainer-title {
+.designation-title {
     flex: 1;
     font-size: 1rem;
     font-weight: 700;
@@ -73,67 +70,91 @@
     font-family: monospace;
 }
 
-.status-explainer-list {
-    padding: 20px 24px;
+.designation-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    line-height: 1;
+    padding: 0;
+}
+
+.designation-close:hover {
+    opacity: 1;
+}
+
+.designation-list {
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     max-height: 70vh;
     overflow-y: auto;
 }
 
-.status-group {
+.designation-section {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    background: rgba(0, 0, 0, 0.02);
+    gap: 8px;
 }
 
-.status-item {
+.designation-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
+.designation-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 
-.status-label {
+.designation-item.active .designation-label {
+    text-decoration: underline;
+}
+
+.designation-label {
     font-size: 0.9rem;
     font-weight: 700;
-    color: var(--status-color, var(--user-color, #734ba1));
+    color: var(--designation-color, var(--user-color, #734ba1));
     font-family: monospace;
     letter-spacing: 0.3px;
+    text-transform: uppercase;
 }
 
-.status-description {
+.designation-desc {
     font-size: 0.85rem;
-    line-height: 1.5;
+    line-height: 1.4;
     color: #5a4a7a;
     padding-left: 8px;
     font-style: italic;
 }
 
 @media (max-width: 600px) {
-    .status-explainer-popup {
+    .designation-popup {
         max-width: calc(100vw - 40px);
         width: calc(100vw - 40px);
     }
     
-    .status-explainer-list {
-        padding: 16px 20px;
-        gap: 16px;
-    }
-    
-    .status-group {
+    .designation-list {
+        padding: 14px 16px;
         gap: 10px;
-        padding: 10px;
     }
     
-    .status-label {
+    .designation-label {
         font-size: 0.85rem;
     }
     
-    .status-description {
+    .designation-desc {
         font-size: 0.8rem;
     }
 }

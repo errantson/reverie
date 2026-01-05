@@ -3435,7 +3435,7 @@
         background: none !important;
         border-radius: 0 !important;
         margin: 0;
-        text-transform: lowercase;
+        text-transform: uppercase;
         letter-spacing: 0;
         /* Color retained via inline style from JS */
     }

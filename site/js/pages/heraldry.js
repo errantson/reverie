@@ -1,16 +1,16 @@
 /**
- * Embassy System - Ambassador Dashboard
- * Allows community ambassadors to manage their PDS heraldry
+ * Heraldry System - Herald Dashboard
+ * Allows community heralds to manage their PDS heraldry
  * 
  * Security: Uses OAuth or App Password verification via PDS createSession
  */
 
-console.log('[Embassy] Loading embassy.js...');
+console.log('[Heraldry] Loading heraldry.js...');
 
-class Embassy {
+class Heraldry {
     constructor() {
-        console.log('[Embassy] Constructor called');
-        this.currentAmbassador = null;
+        console.log('[Heraldry] Constructor called');
+        this.currentHerald = null;
         this.currentHeraldry = null;
         this.coterie = [];
         this.hue = 280;
@@ -24,13 +24,13 @@ class Embassy {
     }
 
     async init() {
-        console.log('[Embassy] Initializing...');
+        console.log('[Heraldry] Initializing...');
         
         // Check if user explicitly logged out (flag in sessionStorage)
-        const wasLoggedOut = sessionStorage.getItem('embassy_logged_out');
+        const wasLoggedOut = sessionStorage.getItem('heraldry_logged_out');
         if (wasLoggedOut) {
-            console.log('[Embassy] User recently logged out, showing login form');
-            sessionStorage.removeItem('embassy_logged_out');
+            console.log('[Heraldry] User recently logged out, showing login form');
+            sessionStorage.removeItem('heraldry_logged_out');
             this.setupEventListeners();
             return;
         }
@@ -38,63 +38,63 @@ class Embassy {
         // Wait for OAuth manager
         await this.waitForOAuthManager();
         
-        // Check for embassy-specific session (PDS auth) FIRST
-        // This takes priority over OAuth since it's embassy-specific
-        const embassySession = this.getEmbassySession();
-        console.log('[Embassy] Embassy session:', embassySession);
+        // Check for heraldry-specific session (PDS auth) FIRST
+        // This takes priority over OAuth since it's heraldry-specific
+        const heraldrySession = this.getHeraldrySession();
+        console.log('[Heraldry] Heraldry session:', heraldrySession);
         
-        if (embassySession && embassySession.did && embassySession.heraldryId) {
-            console.log('[Embassy] Found valid embassy session, loading dashboard');
-            await this.loadDashboard(embassySession);
+        if (heraldrySession && heraldrySession.did && heraldrySession.heraldryId) {
+            console.log('[Heraldry] Found valid heraldry session, loading dashboard');
+            await this.loadDashboard(heraldrySession);
             return;
         }
         
-        // Check for existing OAuth session (only if no embassy session)
+        // Check for existing OAuth session (only if no heraldry session)
         if (this.oauthManager) {
             const oauthSession = this.oauthManager.getSession();
-            console.log('[Embassy] OAuth session:', oauthSession ? { did: oauthSession.did, handle: oauthSession.handle } : null);
+            console.log('[Heraldry] OAuth session:', oauthSession ? { did: oauthSession.did, handle: oauthSession.handle } : null);
             
             if (oauthSession && oauthSession.did) {
-                console.log('[Embassy] Checking if OAuth user is an ambassador...');
-                // Check if this user is an ambassador
-                const heraldry = await this.checkAmbassadorByDid(oauthSession.did);
-                console.log('[Embassy] Ambassador check result:', heraldry);
+                console.log('[Heraldry] Checking if OAuth user is a herald...');
+                // Check if this user is a herald
+                const heraldry = await this.checkHeraldByDid(oauthSession.did);
+                console.log('[Heraldry] Ambassador check result:', heraldry);
                 
                 if (heraldry) {
-                    console.log('[Embassy] User is ambassador, loading dashboard');
-                    // Create an embassy session from OAuth
-                    const embassyData = {
+                    console.log('[Heraldry] User is herald, loading dashboard');
+                    // Create an heraldry session from OAuth
+                    const heraldryData = {
                         did: oauthSession.did,
                         handle: oauthSession.handle,
                         heraldryId: heraldry.id,
                         authMode: 'oauth'
                     };
-                    this.setEmbassySession(embassyData);
-                    await this.loadDashboard(embassyData);
+                    this.setHeraldrySession(heraldryData);
+                    await this.loadDashboard(heraldryData);
                     return;
                 } else {
-                    console.log('[Embassy] OAuth user is not an ambassador');
+                    console.log('[Heraldry] OAuth user is not a herald');
                 }
             }
         }
         
-        console.log('[Embassy] No valid session, showing login form');
+        console.log('[Heraldry] No valid session, showing login form');
         // Setup event listeners for login form
         this.setupEventListeners();
     }
 
     async waitForOAuthManager() {
-        console.log('[Embassy] Waiting for OAuth manager...');
+        console.log('[Heraldry] Waiting for OAuth manager...');
         return new Promise((resolve) => {
             const check = (attempts = 0) => {
                 if (window.oauthManager) {
                     this.oauthManager = window.oauthManager;
-                    console.log('[Embassy] OAuth manager connected');
+                    console.log('[Heraldry] OAuth manager connected');
                     resolve();
                 } else if (attempts < 50) {
                     setTimeout(() => check(attempts + 1), 20);
                 } else {
-                    console.warn('[Embassy] OAuth manager not available after 1s');
+                    console.warn('[Heraldry] OAuth manager not available after 1s');
                     resolve();
                 }
             };
@@ -103,10 +103,10 @@ class Embassy {
     }
 
     setupEventListeners() {
-        console.log('[Embassy] Setting up event listeners');
+        console.log('[Heraldry] Setting up event listeners');
         
         // Handle input - check on typing
-        const handleInput = document.getElementById('ambassadorHandle');
+        const handleInput = document.getElementById('heraldHandle');
         if (handleInput) {
             let debounceTimer = null;
             handleInput.addEventListener('input', () => {
@@ -200,7 +200,7 @@ class Embassy {
         // Transfer button
         const transferBtn = document.getElementById('transferBtn');
         if (transferBtn) {
-            transferBtn.addEventListener('click', () => this.transferAmbassador());
+            transferBtn.addEventListener('click', () => this.transferHerald());
         }
         
         // Step down button
@@ -223,21 +223,35 @@ class Embassy {
         
         // Sign out
         setupButton('signOutBtn', () => {
-            console.log('[Embassy] Sign out button clicked');
+            console.log('[Heraldry] Sign out button clicked');
             this.logout();
         });
         
-        // Icon buttons
-        const iconFileInput = document.getElementById('iconFileInput');
-        setupButton('uploadIconBtn', () => iconFileInput?.click());
-        setupButton('clearIconBtn', () => this.clearIcon());
-        setupButton('saveIconBtn', () => this.saveIcon());
+        // Icon buttons - need to handle file input carefully
+        let iconFileInput = document.getElementById('iconFileInput');
         
+        // Clone and replace file input to ensure clean event listener
         if (iconFileInput) {
             const newInput = iconFileInput.cloneNode(true);
             iconFileInput.parentNode.replaceChild(newInput, iconFileInput);
-            newInput.addEventListener('change', (e) => this.handleIconUpload(e));
+            iconFileInput = newInput;  // Update reference to the new input
+            iconFileInput.addEventListener('change', (e) => {
+                console.log('[Heraldry] File input change event fired');
+                this.handleIconUpload(e);
+            });
         }
+        
+        // Now set up buttons with the correct reference
+        setupButton('uploadIconBtn', () => {
+            console.log('[Heraldry] Upload button clicked');
+            if (iconFileInput) {
+                iconFileInput.click();
+            } else {
+                console.error('[Heraldry] iconFileInput not found!');
+            }
+        });
+        setupButton('clearIconBtn', () => this.clearIcon());
+        setupButton('saveIconBtn', () => this.saveIcon());
         
         // Color controls
         setupButton('saveColorBtn', () => this.saveColor());
@@ -258,7 +272,7 @@ class Embassy {
             });
         }
         
-        setupButton('transferBtn', () => this.transferAmbassador());
+        setupButton('transferBtn', () => this.transferHerald());
         setupButton('stepDownBtn', () => this.stepDown());
     }
 
@@ -266,26 +280,26 @@ class Embassy {
     // SESSION MANAGEMENT
     // =========================================================================
 
-    getEmbassySession() {
+    getHeraldrySession() {
         try {
-            const session = localStorage.getItem('embassy_session');
+            const session = localStorage.getItem('heraldry_session');
             return session ? JSON.parse(session) : null;
         } catch {
             return null;
         }
     }
 
-    setEmbassySession(data) {
-        localStorage.setItem('embassy_session', JSON.stringify(data));
+    setHeraldrySession(data) {
+        localStorage.setItem('heraldry_session', JSON.stringify(data));
     }
 
-    clearEmbassySession() {
-        localStorage.removeItem('embassy_session');
+    clearHeraldrySession() {
+        localStorage.removeItem('heraldry_session');
     }
 
     getAuthHeaders() {
         // Get headers for authenticated requests
-        const session = this.getEmbassySession();
+        const session = this.getHeraldrySession();
         return {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session?.authToken || ''}`,
@@ -294,28 +308,28 @@ class Embassy {
     }
 
     logout() {
-        console.log('[Embassy] Logging out...');
+        console.log('[Heraldry] Logging out...');
         
-        // Clear embassy session
-        this.clearEmbassySession();
+        // Clear heraldry session
+        this.clearHeraldrySession();
         
         // Set flag to prevent auto-login on next init
         // Using sessionStorage so it persists across the page reload but not browser restart
-        sessionStorage.setItem('embassy_logged_out', 'true');
+        sessionStorage.setItem('heraldry_logged_out', 'true');
         
         // Clear internal state
-        this.currentAmbassador = null;
+        this.currentHerald = null;
         this.currentHeraldry = null;
         this.resolvedProfile = null;
         this.authMode = null;
         this.isLoggedOut = true;
         
-        console.log('[Embassy] Session cleared, resetting UI');
+        console.log('[Heraldry] Session cleared, resetting UI');
         
         // Reset UI
-        const loginView = document.getElementById('embassyLogin');
-        const dashboardView = document.getElementById('embassyDashboard');
-        const handleInput = document.getElementById('ambassadorHandle');
+        const loginView = document.getElementById('heraldryLogin');
+        const dashboardView = document.getElementById('heraldryDashboard');
+        const handleInput = document.getElementById('heraldHandle');
         const passwordInput = document.getElementById('appPassword');
         const passwordGroup = document.getElementById('passwordGroup');
         const oauthBtn = document.getElementById('oauthBtn');
@@ -339,7 +353,7 @@ class Embassy {
         // Re-setup event listeners since we're back to login view
         this.setupEventListeners();
         
-        console.log('[Embassy] Logout complete');
+        console.log('[Heraldry] Logout complete');
     }
 
     // =========================================================================
@@ -347,7 +361,7 @@ class Embassy {
     // =========================================================================
 
     async checkHandle() {
-        const handleInput = document.getElementById('ambassadorHandle');
+        const handleInput = document.getElementById('heraldHandle');
         const statusMessage = document.getElementById('loginStatusMessage');
         const loginBtn = document.getElementById('loginBtn');
         const passwordGroup = document.getElementById('passwordGroup');
@@ -370,7 +384,7 @@ class Embassy {
         }
         
         // Show checking status
-        statusMessage.className = 'embassy-status-message';
+        statusMessage.className = 'heraldry-status-message';
         statusMessage.innerHTML = `
             <img src="/assets/icon_face.png" alt="" class="status-icon" style="animation: spin 1.5s linear infinite;">
             <span>Finding you...</span>
@@ -414,14 +428,14 @@ class Embassy {
                 pdsDomain = 'bsky.social';
             }
             
-            // Check if this user is an ambassador
+            // Check if this user is a herald
             const heraldryResponse = await fetch(`/api/heraldry/for-domain/${encodeURIComponent(pdsDomain)}`);
             let heraldry = null;
-            let isAmbassador = false;
+            let isHerald = false;
             
             if (heraldryResponse.ok) {
                 heraldry = await heraldryResponse.json();
-                isAmbassador = heraldry.ambassador_did === did;
+                isHerald = heraldry.ambassador_did === did;
             }
             
             // Store resolved profile
@@ -431,7 +445,7 @@ class Embassy {
                 pdsEndpoint: pdsEndpoint,
                 pdsDomain: pdsDomain,
                 heraldry: heraldry,
-                isAmbassador: isAmbassador
+                isHerald: isHerald
             };
             
             // Determine auth mode: PDS residents use app password, others use OAuth
@@ -446,8 +460,8 @@ class Embassy {
             oauthBtn.innerHTML = '<span class="btn-text">Sign in with Bluesky</span>';
             
             // Update UI based on ambassador status
-            if (isAmbassador) {
-                statusMessage.className = 'embassy-status-message success';
+            if (isHerald) {
+                statusMessage.className = 'heraldry-status-message success';
                 statusMessage.innerHTML = `
                     <img src="${heraldry.icon_path || '/assets/heraldry/default.png'}" alt="" class="status-icon">
                     <span><strong>Welcome, Ambassador</strong> of ${this.escapeHtml(heraldry.name)}</span>
@@ -467,7 +481,7 @@ class Embassy {
                 loginBtn.disabled = false;
             } else if (heraldry && heraldry.ambassador_did) {
                 // Not the ambassador - show who is
-                statusMessage.className = 'embassy-status-message info';
+                statusMessage.className = 'heraldry-status-message info';
                 
                 // Try to get ambassador info
                 let ambassadorInfo = 'another user';
@@ -492,7 +506,7 @@ class Embassy {
                 loginBtn.querySelector('.btn-text').textContent = 'Not Ambassador';
             } else {
                 // No heraldry record for this PDS yet - show invitation to enter via main site
-                statusMessage.className = 'embassy-status-message info';
+                statusMessage.className = 'heraldry-status-message info';
                 statusMessage.innerHTML = `
                     <img src="/assets/heraldry/default.png" alt="" class="status-icon" style="border: 2px solid #87408d;">
                     <span><strong>${this.escapeHtml(pdsDomain)}</strong> hasn't visited yet. <a href="/?login=true" class="status-link">Sign in</a> to become the first ambassador.</span>
@@ -512,7 +526,7 @@ class Embassy {
         }
     }
 
-    async checkAmbassadorByDid(did) {
+    async checkHeraldByDid(did) {
         try {
             // Get user's PDS from DID doc
             let didDocResponse;
@@ -547,7 +561,7 @@ class Embassy {
     }
 
     async attemptLogin() {
-        if (!this.resolvedProfile || !this.resolvedProfile.isAmbassador) {
+        if (!this.resolvedProfile || !this.resolvedProfile.isHerald) {
             return;
         }
         
@@ -602,7 +616,7 @@ class Embassy {
         const result = await response.json();
         
         // Store session
-        this.setEmbassySession({
+        this.setHeraldrySession({
             did: this.resolvedProfile.did,
             handle: this.resolvedProfile.handle,
             heraldryId: this.resolvedProfile.heraldry.id,
@@ -635,48 +649,48 @@ class Embassy {
     // =========================================================================
 
     async loadDashboard(session) {
-        console.log('[Embassy] Loading dashboard for:', session);
+        console.log('[Heraldry] Loading dashboard for:', session);
         
         // Clear logout flag if present
-        sessionStorage.removeItem('embassy_logged_out');
+        sessionStorage.removeItem('heraldry_logged_out');
         
-        const loginView = document.getElementById('embassyLogin');
-        const dashboardView = document.getElementById('embassyDashboard');
+        const loginView = document.getElementById('heraldryLogin');
+        const dashboardView = document.getElementById('heraldryDashboard');
         
         if (loginView) loginView.style.display = 'none';
         if (dashboardView) dashboardView.style.display = 'block';
         
         try {
-            console.log('[Embassy] Fetching heraldry data...');
+            console.log('[Heraldry] Fetching heraldry data...');
             // Load heraldry
             const heraldryResponse = await fetch(`/api/heraldry/${session.heraldryId}`);
             if (!heraldryResponse.ok) {
                 throw new Error('Could not load heraldry');
             }
             this.currentHeraldry = await heraldryResponse.json();
-            console.log('[Embassy] Heraldry loaded:', this.currentHeraldry.name);
+            console.log('[Heraldry] Heraldry loaded:', this.currentHeraldry.name);
             
             // Load ambassador profile
-            console.log('[Embassy] Fetching ambassador profile...');
+            console.log('[Heraldry] Fetching ambassador profile...');
             const profileResponse = await fetch(`/api/dreamer/did/${encodeURIComponent(session.did)}`);
             if (profileResponse.ok) {
-                this.currentAmbassador = await profileResponse.json();
-                console.log('[Embassy] Ambassador profile loaded:', this.currentAmbassador.handle);
+                this.currentHerald = await profileResponse.json();
+                console.log('[Heraldry] Ambassador profile loaded:', this.currentHerald.handle);
             } else {
-                console.log('[Embassy] Could not fetch full profile, using session data');
-                this.currentAmbassador = { did: session.did, handle: session.handle };
+                console.log('[Heraldry] Could not fetch full profile, using session data');
+                this.currentHerald = { did: session.did, handle: session.handle };
             }
             
             // Load coterie
-            console.log('[Embassy] Fetching coterie...');
+            console.log('[Heraldry] Fetching coterie...');
             const coterieResponse = await fetch(`/api/heraldry/${session.heraldryId}/coterie`);
             if (coterieResponse.ok) {
                 this.coterie = await coterieResponse.json();
-                console.log('[Embassy] Coterie loaded:', this.coterie.length, 'members');
+                console.log('[Heraldry] Coterie loaded:', this.coterie.length, 'members');
             }
             
             // Render dashboard
-            console.log('[Embassy] Rendering dashboard...');
+            console.log('[Heraldry] Rendering dashboard...');
             this.renderAmbassadorProfile();
             this.renderHeraldryPreview();
             this.renderHeraldryControls();
@@ -686,22 +700,22 @@ class Embassy {
             // Setup dashboard button listeners
             this.setupDashboardListeners();
             
-            console.log('[Embassy] Dashboard loaded successfully');
+            console.log('[Heraldry] Dashboard loaded successfully');
             
         } catch (error) {
-            console.error('[Embassy] Error loading dashboard:', error);
+            console.error('[Heraldry] Error loading dashboard:', error);
             this.showError('Failed to load dashboard. Please try again.');
             this.logout();
         }
     }
 
     renderAmbassadorProfile() {
-        const container = document.getElementById('ambassadorProfile');
-        if (!container || !this.currentAmbassador) return;
+        const container = document.getElementById('heraldProfile');
+        if (!container || !this.currentHerald) return;
         
-        const avatar = this.currentAmbassador.avatar || '/assets/icon.png';
-        const name = this.currentAmbassador.display_name || this.currentAmbassador.name || this.currentAmbassador.handle;
-        const handle = this.currentAmbassador.handle || '';
+        const avatar = this.currentHerald.avatar || '/assets/icon.png';
+        const name = this.currentHerald.display_name || this.currentHerald.name || this.currentHerald.handle;
+        const handle = this.currentHerald.handle || '';
         
         container.innerHTML = `
             <img src="${avatar}" alt="${name}" class="profile-avatar" onerror="this.src='/assets/icon.png'">
@@ -780,7 +794,7 @@ class Embassy {
         if (!select) return;
         
         // Filter out current ambassador
-        const candidates = this.coterie.filter(m => m.did !== this.currentAmbassador?.did);
+        const candidates = this.coterie.filter(m => m.did !== this.currentHerald?.did);
         
         select.innerHTML = '<option value="">Select new ambassador...</option>' +
             candidates.map(m => `
@@ -946,8 +960,14 @@ class Embassy {
     // =========================================================================
 
     async handleIconUpload(e) {
+        console.log('[Heraldry] handleIconUpload called');
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+            console.log('[Heraldry] No file selected');
+            return;
+        }
+        
+        console.log('[Heraldry] File:', file.name, 'Size:', file.size, 'Type:', file.type);
         
         // Validate
         if (!file.type.includes('png')) {
@@ -955,21 +975,28 @@ class Embassy {
             return;
         }
         
-        if (file.size > 1024 * 1024) {
-            this.showError('Image must be less than 1MB');
+        if (file.size > 5 * 1024 * 1024) {
+            this.showError('Image must be less than 5MB');
             return;
         }
+        
+        console.log('[Heraldry] File validation passed, creating preview');
         
         // Preview
         const reader = new FileReader();
         reader.onload = (e) => {
+            console.log('[Heraldry] File read complete, updating preview');
             const iconPreview = document.getElementById('heraldryIconPreview');
             if (iconPreview) {
                 iconPreview.src = e.target.result;
+                console.log('[Heraldry] Preview updated');
             }
             // Show save button when icon changes
             const saveBtn = document.getElementById('saveIconBtn');
-            if (saveBtn) saveBtn.style.display = 'inline-flex';
+            if (saveBtn) {
+                saveBtn.style.display = 'inline-flex';
+                console.log('[Heraldry] Save button shown');
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -994,17 +1021,23 @@ class Embassy {
     }
 
     async saveIcon() {
+        console.log('[Heraldry] saveIcon called');
         const fileInput = document.getElementById('iconFileInput');
         const saveBtn = document.getElementById('saveIconBtn');
+        
+        console.log('[Heraldry] pendingIconClear:', this.pendingIconClear);
+        console.log('[Heraldry] fileInput.files:', fileInput?.files?.length);
         
         saveBtn.disabled = true;
         const originalText = saveBtn.textContent;
         saveBtn.textContent = 'Saving...';
         
         try {
-            const session = this.getEmbassySession();
+            const session = this.getHeraldrySession();
+            console.log('[Heraldry] Session DID:', session?.did);
             
             if (this.pendingIconClear) {
+                console.log('[Heraldry] Clearing icon...');
                 // Clear the icon by sending a DELETE or empty update
                 const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/icon`, {
                     method: 'DELETE',
@@ -1014,6 +1047,8 @@ class Embassy {
                     }
                 });
                 
+                console.log('[Heraldry] Clear response:', response.status);
+                
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.error || 'Failed to clear icon');
@@ -1022,6 +1057,7 @@ class Embassy {
                 this.currentHeraldry.icon_path = '/assets/heraldry/default.png';
                 this.pendingIconClear = false;
             } else if (fileInput.files[0]) {
+                console.log('[Heraldry] Uploading icon...');
                 // Upload new icon
                 const formData = new FormData();
                 formData.append('icon', fileInput.files[0]);
@@ -1035,13 +1071,18 @@ class Embassy {
                     body: formData
                 });
                 
+                console.log('[Heraldry] Upload response:', response.status);
+                
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.error || 'Failed to save icon');
                 }
                 
                 const result = await response.json();
+                console.log('[Heraldry] Upload result:', result);
                 this.currentHeraldry.icon_path = result.icon_path;
+            } else {
+                console.log('[Heraldry] Nothing to save');
             }
             
             this.renderHeraldryPreview();
@@ -1070,7 +1111,7 @@ class Embassy {
         saveBtn.textContent = 'Saving...';
         
         try {
-            const session = this.getEmbassySession();
+            const session = this.getHeraldrySession();
             const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}`, {
                 method: 'PUT',
                 headers: {
@@ -1098,19 +1139,26 @@ class Embassy {
         }
     }
 
-    async transferAmbassador() {
+    async transferHerald() {
+        console.log('[Heraldry] transferHerald called');
         const select = document.getElementById('transferSelect');
         const newDid = select.value;
         
-        if (!newDid) return;
+        console.log('[Heraldry] Selected new ambassador DID:', newDid);
+        
+        if (!newDid) {
+            console.log('[Heraldry] No DID selected');
+            return;
+        }
         
         if (!confirm('Are you sure you want to transfer ambassadorship? This cannot be undone.')) {
             return;
         }
         
         try {
-            const session = this.getEmbassySession();
-            const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/transfer`, {
+            const session = this.getHeraldrySession();
+            console.log('[Heraldry] Sending transfer request...');
+            const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/transfer-ambassador`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1120,12 +1168,16 @@ class Embassy {
                 body: JSON.stringify({ new_ambassador_did: newDid })
             });
             
+            console.log('[Heraldry] Transfer response:', response.status);
+            
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error || 'Failed to transfer ambassadorship');
             }
             
-            alert('Ambassadorship transferred successfully!');
+            const result = await response.json();
+            console.log('[Heraldry] Transfer successful:', result);
+            alert(`Ambassadorship transferred successfully to @${result.new_ambassador_handle}!`);
             this.logout();
             
         } catch (error) {
@@ -1135,12 +1187,16 @@ class Embassy {
     }
 
     async stepDown() {
+        console.log('[Heraldry] stepDown called');
+        
         if (!confirm('Are you sure you want to step down as ambassador? The most active community member will be promoted.')) {
+            console.log('[Heraldry] Step down cancelled by user');
             return;
         }
         
         try {
-            const session = this.getEmbassySession();
+            const session = this.getHeraldrySession();
+            console.log('[Heraldry] Sending step-down request...');
             const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/step-down`, {
                 method: 'POST',
                 headers: {
@@ -1149,12 +1205,21 @@ class Embassy {
                 }
             });
             
+            console.log('[Heraldry] Step-down response:', response.status);
+            
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error || 'Failed to step down');
             }
             
-            alert('You have stepped down as ambassador.');
+            const result = await response.json();
+            console.log('[Heraldry] Step-down successful:', result);
+            
+            if (result.new_ambassador_did) {
+                alert(`You have stepped down. @${result.new_ambassador_handle} is now the ambassador.`);
+            } else {
+                alert('You have stepped down. No successor was available.');
+            }
             this.logout();
             
         } catch (error) {
@@ -1174,7 +1239,7 @@ class Embassy {
         const oauthBtn = document.getElementById('oauthBtn');
         
         if (statusMessage) {
-            statusMessage.className = 'embassy-status-message';
+            statusMessage.className = 'heraldry-status-message';
             statusMessage.innerHTML = `
                 <img src="/assets/icon.png" alt="" class="status-icon">
                 <span>Enter your handle to check ambassador status</span>
@@ -1199,7 +1264,7 @@ class Embassy {
         const loginBtn = document.getElementById('loginBtn');
         
         if (statusMessage) {
-            statusMessage.className = 'embassy-status-message error';
+            statusMessage.className = 'heraldry-status-message error';
             statusMessage.innerHTML = `
                 <img src="/assets/icon_face.png" alt="" class="status-icon">
                 <span>${this.escapeHtml(message)}</span>
@@ -1219,9 +1284,9 @@ class Embassy {
     }
 
     addSpinKeyframes() {
-        if (!document.getElementById('embassy-spin-keyframes')) {
+        if (!document.getElementById('heraldry-spin-keyframes')) {
             const style = document.createElement('style');
-            style.id = 'embassy-spin-keyframes';
+            style.id = 'heraldry-spin-keyframes';
             style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
             document.head.appendChild(style);
         }
@@ -1301,5 +1366,5 @@ class Embassy {
 
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.embassy = new Embassy();
+    window.heraldry = new Heraldry();
 });

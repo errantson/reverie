@@ -67,7 +67,7 @@ def get_dreamers():
                 d.server, d.avatar, d.banner,
                 d.followers_count, d.follows_count, d.posts_count,
                 d.created_at, d.arrival, d.heading, d.color_hex, d.phanera,
-                d.status, d.alts,
+                d.status, d.designation, d.alts,
                 d.canon_score, d.lore_score, d.patron_score, d.contribution_score,
                 s.oblivion, s.authority, s.skeptic, s.receptive, 
                 s.liberty, s.entropy, s.octant,
@@ -130,6 +130,7 @@ def get_dreamers():
                 'color_hex': dreamer['color_hex'],
                 'phanera': dreamer['phanera'],
                 'status': dreamer['status'],
+                'designation': dreamer['designation'],
                 'alt_names': dreamer['alts'] or '',
                 'spectrum': {
                     'entropy': dreamer['entropy'] or 0,
@@ -454,7 +455,7 @@ def get_dreamer_by_handle(handle):
 
 @bp.route('/dreamer/did/<did>')
 def get_dreamer_profile_by_did(did):
-    """Get minimal dreamer profile by DID (for embassy ambassador lookup)"""
+    """Get minimal dreamer profile by DID (for heraldry ambassador lookup)"""
     try:
         from core.database import DatabaseManager
         

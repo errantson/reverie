@@ -13,7 +13,7 @@ class LoginWidget {
     }
     
     checkLoginUrlParam() {
-        // Check if ?login=true is in URL (e.g., from Embassy redirect)
+        // Check if ?login=true is in URL (e.g., from Heraldry redirect)
         const params = new URLSearchParams(window.location.search);
         if (params.get('login') === 'true') {
             console.log('🔐 Login param detected, opening login popup');

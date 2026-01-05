@@ -82,7 +82,7 @@ class Profile {
         // Then widgets that may depend on core utilities
         this.dependencyPromises.push(
             loadScript('/js/widgets/axisexplainer.js', 'axisExplainerWidget'),
-            loadScript('/js/widgets/statusexplainer.js'),
+            loadScript('/js/widgets/designations.js'),
             loadScript('/js/widgets/dreamer-hover.js', 'DreamerHoverWidget'),
             loadScript('/js/widgets/octantshowcase.js', 'OctantShowcase'),
             loadScript('/js/widgets/octantdisplay.js', 'OctantDisplay'),
@@ -381,13 +381,8 @@ class Profile {
         const handleEl = identityEl.querySelector('.profile-handle');
         const arrivalEl = identityEl.querySelector('.profile-arrival');
 
-        // Use status from database (pre-calculated and saved)
-        let status = dreamer.status || 'dreamer';
-        
-        // Capitalize first letter if lowercase
-        if (status && status[0] === status[0].toLowerCase()) {
-            status = status.charAt(0).toUpperCase() + status.slice(1);
-        }
+        // Display designation in uppercase
+        let designation = (dreamer.designation || 'Dreamer').toUpperCase();
 
         // Name without icon
         nameEl.innerHTML = `
@@ -396,19 +391,19 @@ class Profile {
             </h1>
         `;
 
-        // Handle with status below (make status clickable)
+        // Handle with designation below (make designation clickable)
         handleEl.innerHTML = `
             <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" rel="noopener noreferrer">
                 @${dreamer.handle}
             </a>
-            <div class="profile-status" data-status="${status}">${status}</div>
+            <div class="profile-status" data-status="${designation}">${designation}</div>
         `;
 
-        // Attach status explainer after a short delay to ensure widget is loaded
+        // Attach designation explainer after a short delay to ensure widget is loaded
         setTimeout(() => {
             const statusEl = handleEl.querySelector('.profile-status');
-            if (statusEl && window.statusExplainerWidget) {
-                window.statusExplainerWidget.attach(statusEl, null, dreamer.color_hex);
+            if (statusEl && window.designationExplainerWidget) {
+                window.designationExplainerWidget.attach(statusEl, designation, dreamer.color_hex);
             }
         }, 200);
 

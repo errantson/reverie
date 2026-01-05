@@ -771,13 +771,16 @@
                     const libertyWidth = total > 0 ? (Math.abs(creative) / total * 100) : 0;
                     const entropyWidth = total > 0 ? (Math.abs(reactive) / total * 100) : 0;
                     
-                    // Determine status
-                    let status = 'Dreamer';
-                    if (dreamer.known_dreamer) {
-                        status = 'Known';
-                    }
-                    if (dreamer.status === 'resident') {
-                        status = 'Resident';
+                    // Get designation (or derive from known_dreamer/resident for backward compatibility)
+                    let designation = dreamer.designation || 'Dreamer';
+                    if (!dreamer.designation) {
+                        if (dreamer.known_dreamer) {
+                            designation = 'Known Dreamer';
+                        }
+                        // Check server for Resident
+                        if (dreamer.server === 'https://reverie.house') {
+                            designation = dreamer.known_dreamer ? 'Known Resident' : 'Resident';
+                        }
                     }
                     
                     const earnedTime = timeAgo(keeper.epoch);

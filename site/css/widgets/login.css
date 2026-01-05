@@ -61,7 +61,7 @@
     opacity: 1;
     transform: scale(1.15);
     background: rgba(135, 64, 141, 0.1);
-    border-radius: 4px;
+    border-radius: 0;
 }
 
 .login-box .login-close-btn:active,

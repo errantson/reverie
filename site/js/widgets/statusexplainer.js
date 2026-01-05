@@ -16,22 +16,37 @@ class StatusExplainer {
 
     getStatusList() {
         return [
+            // Singular Overrides
+            [
+                { label: 'House Patron', description: 'the greatest benefactor of Reverie House' },
+                { label: 'Keeper of Reverie House', description: 'stalwart for the canon of our wild mindscape' }
+            ],
             // Work roles
             [
-                { label: 'Keeper of Reverie House', description: 'stalwart for the canon of our wild mindscape' },
-                { label: 'Greeter of Reveries', description: 'welcoming guide for newcomers to Reverie House' }
+                { label: 'Greeter of Reveries', description: 'welcoming guide for newcomers to Reverie House' },
+                { label: 'Spectrum Mapper', description: 'charting the origins of dreamers across the wild mindscape' },
+                { label: 'Cogitarian', description: 'fostering thoughtful discourse in Reverie House' },
+                { label: 'Provisioner', description: 'keeper of the pantry, provider of sustenance' }
             ],
-            // Lore status
+            // Character recognition
             [
-                { label: 'Revered Character', description: 'honored storyteller whose tales instantly become canon' },
-                { label: 'Well-Known Character', description: 'recognized voice whose stories inherently enrich our lore' },
-                { label: 'Known Character', description: 'willing participant and subject of our shared narrative' }
+                { label: 'Revered', description: 'honored storyteller whose tales instantly become canon' },
+                { label: 'Well-Known', description: 'recognized voice whose stories inherently enrich our lore' },
+                { label: 'Known', description: 'willing participant and subject of our shared narrative' }
             ],
-            // Server status
+            // Base identity
             [
-                { label: 'Resident', description: 'a literal fixture of Reverie House' },
-                { label: 'Dreamweaver', description: 'dedicated crafter of exquisite dreams' },
-                { label: 'Dreamer', description: 'liberated explorer of our wild mindscape' }
+                { label: 'Resident', description: 'a literal fixture of Reverie House (PDS hosted here)' },
+                { label: 'Dreamweaver', description: 'dedicated crafter of exquisite dreams (.reverie.house handle)' },
+                { label: 'Dreamer', description: 'liberated explorer of our wild mindscape' },
+                { label: 'Dreaming', description: 'Dreamer touched by patronage' }
+            ],
+            // Patronage tiers
+            [
+                { label: 'Altruist', description: 'extraordinarily generous patron ($150+)' },
+                { label: 'Patron', description: 'generous supporter of Reverie House ($15+)' },
+                { label: 'Reader', description: 'supporter who has acquired books of lore' },
+                { label: 'Reading', description: 'patronage modifier for work roles and Dreamweavers' }
             ]
         ];
     }

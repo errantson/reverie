@@ -1,6 +1,6 @@
 """
 Heraldry Routes Blueprint
-Handles heraldry/PDS community management for the Embassy system
+Handles heraldry/PDS community management for the Heraldry system
 """
 
 from flask import Blueprint, request, jsonify, current_app
@@ -468,8 +468,6 @@ def update_heraldry(heraldry_id, ambassador_did):
             VALUES (%s, %s, 'update', %s)
         """, (heraldry_id, ambassador_did, str(data)))
         
-        db.commit()
-        
         return jsonify({'success': True})
         
     except Exception as e:
@@ -513,9 +511,9 @@ def upload_icon(heraldry_id, ambassador_did):
         # Read file
         file_data = file.read()
         
-        # Validate size (1MB max)
-        if len(file_data) > 1024 * 1024:
-            return jsonify({'error': 'File too large. Maximum size is 1MB'}), 400
+        # Validate size (5MB max)
+        if len(file_data) > 5 * 1024 * 1024:
+            return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
         
         # Validate it's a valid PNG
         try:
@@ -524,9 +522,9 @@ def upload_icon(heraldry_id, ambassador_did):
             if img.format != 'PNG':
                 return jsonify({'error': 'Only PNG images are allowed'}), 400
             
-            # Resize to 256x256 if needed
-            if img.size != (256, 256):
-                img = img.resize((256, 256), Image.Resampling.LANCZOS)
+            # Resize to 512x512 if needed
+            if img.size != (512, 512):
+                img = img.resize((512, 512), Image.Resampling.LANCZOS)
                 
                 # Save resized image
                 output = io.BytesIO()
@@ -546,10 +544,16 @@ def upload_icon(heraldry_id, ambassador_did):
         os.makedirs(heraldry_dir, exist_ok=True)
         
         filepath = os.path.join(heraldry_dir, filename)
+        print(f"📁 Saving heraldry icon to: {filepath}")
+        
         with open(filepath, 'wb') as f:
             f.write(file_data)
         
-        icon_path = f'/assets/heraldry/{filename}'
+        print(f"✅ Icon saved successfully: {len(file_data)} bytes")
+        
+        # Add timestamp for cache busting
+        import time
+        icon_path = f'/assets/heraldry/{filename}?v={int(time.time())}'
         
         # Update database
         db.execute("""
@@ -561,8 +565,6 @@ def upload_icon(heraldry_id, ambassador_did):
             INSERT INTO heraldry_history (heraldry_id, changed_by_did, change_type, change_data)
             VALUES (%s, %s, 'icon_upload', %s)
         """, (heraldry_id, ambassador_did, icon_path))
-        
-        db.commit()
         
         return jsonify({
             'success': True,
@@ -607,8 +609,6 @@ def delete_icon(heraldry_id, ambassador_did):
             INSERT INTO heraldry_history (heraldry_id, changed_by_did, change_type, change_data)
             VALUES (%s, %s, 'icon_clear', %s)
         """, (heraldry_id, ambassador_did, f'Cleared from {old_icon_path}'))
-        
-        db.commit()
         
         # Optionally delete the old icon file if it's not the default
         if old_icon_path and old_icon_path != default_icon:
@@ -675,8 +675,6 @@ def transfer_ambassador(heraldry_id, ambassador_did):
             VALUES (%s, %s, 'ambassador_transfer', %s)
         """, (heraldry_id, ambassador_did, f"Transferred to {new_ambassador_did}"))
         
-        db.commit()
-        
         return jsonify({
             'success': True,
             'new_ambassador_did': new_ambassador_did,
@@ -726,7 +724,6 @@ def step_down(heraldry_id, ambassador_did):
                 VALUES (%s, %s, 'ambassador_step_down', 'No successor available')
             """, (heraldry_id, ambassador_did))
             
-            db.commit()
             return jsonify({'success': True, 'new_ambassador_did': None})
         
         # Find most active coterie member (excluding current ambassador)
@@ -768,8 +765,6 @@ def step_down(heraldry_id, ambassador_did):
                 VALUES (%s, %s, 'ambassador_step_down', %s)
             """, (heraldry_id, ambassador_did, f"Succeeded by {new_ambassador['did']}"))
             
-            db.commit()
-            
             return jsonify({
                 'success': True,
                 'new_ambassador_did': new_ambassador['did'],
@@ -786,8 +781,6 @@ def step_down(heraldry_id, ambassador_did):
                 INSERT INTO heraldry_history (heraldry_id, changed_by_did, change_type, change_data)
                 VALUES (%s, %s, 'ambassador_step_down', 'No successor available')
             """, (heraldry_id, ambassador_did))
-            
-            db.commit()
             
             return jsonify({'success': True, 'new_ambassador_did': None})
         
