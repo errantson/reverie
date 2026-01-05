@@ -407,6 +407,88 @@ def get_dreamer_by_did(did):
         }), 500
 
 
+@bp.route('/dreamer/by-handle/<path:handle>')
+def get_dreamer_by_handle(handle):
+    """Get a single dreamer by handle (case-insensitive)"""
+    try:
+        from core.database import DatabaseManager
+        
+        # Clean handle
+        handle = handle.strip().lstrip('@').lower()
+        
+        db = DatabaseManager()
+        
+        cursor = db.execute("""
+            SELECT 
+                d.did, d.handle, d.name, d.display_name, d.description,
+                d.server, d.avatar, d.banner
+            FROM dreamers d
+            WHERE LOWER(d.handle) = %s
+        """, (handle,))
+        
+        dreamer = cursor.fetchone()
+        
+        if not dreamer:
+            return jsonify({'error': 'Dreamer not found'}), 404
+        
+        return jsonify({
+            'did': dreamer['did'],
+            'handle': dreamer['handle'],
+            'name': dreamer['name'],
+            'display_name': dreamer['display_name'],
+            'description': dreamer['description'],
+            'server': dreamer['server'],
+            'avatar': dreamer['avatar'],
+            'banner': dreamer['banner']
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/dreamer/by-handle/<handle>: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@bp.route('/dreamer/did/<did>')
+def get_dreamer_profile_by_did(did):
+    """Get minimal dreamer profile by DID (for embassy ambassador lookup)"""
+    try:
+        from core.database import DatabaseManager
+        
+        db = DatabaseManager()
+        
+        cursor = db.execute("""
+            SELECT did, handle, name, display_name, avatar
+            FROM dreamers
+            WHERE did = %s
+        """, (did,))
+        
+        dreamer = cursor.fetchone()
+        
+        if not dreamer:
+            return jsonify({'error': 'Dreamer not found'}), 404
+        
+        return jsonify({
+            'did': dreamer['did'],
+            'handle': dreamer['handle'],
+            'name': dreamer['name'] or dreamer['display_name'],
+            'display_name': dreamer['display_name'],
+            'avatar': dreamer['avatar']
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/dreamer/did/<did>: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @bp.route('/formers/<identifier>')
 def get_former_by_identifier(identifier):
     """Get an archived 'formers' record by DID or handle"""

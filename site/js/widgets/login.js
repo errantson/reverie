@@ -9,6 +9,21 @@ class LoginWidget {
         this.initOAuthManager();
         this.loadCoreColor();
         this.setupLoginTriggers();
+        this.checkLoginUrlParam();
+    }
+    
+    checkLoginUrlParam() {
+        // Check if ?login=true is in URL (e.g., from Embassy redirect)
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('login') === 'true') {
+            console.log('🔐 Login param detected, opening login popup');
+            // Clean up the URL to remove the param
+            const url = new URL(window.location.href);
+            url.searchParams.delete('login');
+            window.history.replaceState({}, '', url.pathname + url.search);
+            // Wait for DOM and OAuth manager to be ready, then show popup
+            setTimeout(() => this.showLoginPopup(), 500);
+        }
     }
     setupLoginTriggers() {
         /**

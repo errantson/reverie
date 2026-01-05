@@ -1,0 +1,882 @@
+/* =============================================================================
+   EMBASSY PAGE STYLES
+   Mobile-first ambassador dashboard - Clean, balanced design
+   ============================================================================= */
+
+/* Page base */
+.embassy-page {
+    position: relative;
+    background-color: #1a1a2e;
+}
+
+/* Background */
+.embassy-page .fullscreen-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    overflow: hidden;
+    background-color: #1a1a2e;
+    pointer-events: none;
+}
+
+.embassy-page .scene-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a2e;
+}
+
+.embassy-page .scene-layer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.embassy-page .background-layer {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+    animation: subtle-breathing 6s ease-in-out infinite;
+    background-color: #1a1a2e;
+}
+
+@keyframes subtle-breathing {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* Main content positioning */
+.embassy-page .main-content {
+    position: relative;
+    z-index: 10;
+    padding-top: var(--content-top-spacing, 100px);
+    min-height: 100vh;
+    padding-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+    .embassy-page .main-content {
+        padding-top: var(--content-top-spacing-mobile, 70px);
+    }
+}
+
+/* Embassy container */
+.embassy-container {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Embassy Modal */
+.embassy-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    animation: modalFadeIn 0.3s ease-out;
+    overflow: hidden;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* View switching */
+.embassy-view {
+    display: block;
+}
+
+.embassy-view[style*="display: none"] {
+    display: none !important;
+}
+
+/* =============================================================================
+   LOGIN VIEW
+   ============================================================================= */
+
+.embassy-login {
+    padding: 32px 24px;
+}
+
+.embassy-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.embassy-logo {
+    width: 56px;
+    height: auto;
+    margin-bottom: 16px;
+}
+
+.embassy-title {
+    margin: 0 0 6px 0;
+    color: #87408d;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.embassy-subtitle {
+    margin: 0;
+    color: #888;
+    font-size: 0.85rem;
+}
+
+/* Form */
+.embassy-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group {
+    text-align: left;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #87408d;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-hint {
+    margin: 6px 0 0 0;
+    font-size: 0.7rem;
+    color: #999;
+}
+
+.handle-input-wrapper {
+    display: flex;
+    align-items: center;
+    border: 2px solid #e8e0f0;
+    border-radius: 8px;
+    background: white;
+    transition: border-color 0.2s;
+    overflow: hidden;
+}
+
+.handle-input-wrapper:focus-within {
+    border-color: #87408d;
+}
+
+.handle-prefix {
+    padding: 12px 14px;
+    color: #87408d;
+    font-weight: 600;
+    background: #faf8fc;
+    border-right: 1px solid #e8e0f0;
+    font-size: 0.9rem;
+}
+
+.handle-prefix.password-icon::before {
+    content: '\1F511';
+    font-size: 0.85rem;
+}
+
+.handle-input {
+    flex: 1;
+    padding: 12px 14px;
+    border: none;
+    font-size: 0.95rem;
+    outline: none;
+    background: transparent;
+    min-width: 0;
+}
+
+/* Status Message */
+.embassy-status-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #faf8fc;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: #666;
+    text-align: left;
+}
+
+.embassy-status-message .status-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: 6px;
+}
+
+.embassy-status-message.success {
+    background: rgba(72, 187, 120, 0.1);
+    color: #276749;
+}
+
+.embassy-status-message.error {
+    background: rgba(229, 62, 62, 0.1);
+    color: #c53030;
+}
+
+.embassy-status-message.info {
+    background: rgba(66, 153, 225, 0.1);
+    color: #2b6cb0;
+}
+
+.embassy-status-message .status-link {
+    color: #87408d;
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.embassy-status-message .status-link:hover {
+    color: #6b3370;
+}
+
+/* Error */
+.embassy-error {
+    padding: 12px 14px;
+    background: #fef2f2;
+    color: #c53030;
+    border-radius: 8px;
+    font-size: 0.8rem;
+}
+
+/* Buttons */
+.embassy-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.embassy-btn {
+    padding: 14px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.embassy-btn.primary {
+    width: 100%;
+    background: #87408d;
+    color: white;
+}
+
+.embassy-btn.primary:hover:not(:disabled) {
+    background: #6f336f;
+    transform: translateY(-1px);
+}
+
+.embassy-btn.secondary {
+    background: #4299e1;
+    color: white;
+}
+
+.embassy-btn.secondary:hover:not(:disabled) {
+    background: #3182ce;
+}
+
+.embassy-btn.warning {
+    background: #ed8936;
+    color: white;
+}
+
+.embassy-btn.danger {
+    background: #e53e3e;
+    color: white;
+}
+
+.embassy-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Info Box */
+.embassy-info-box {
+    margin-top: 8px;
+    padding: 14px;
+    background: #faf8fc;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    color: #777;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.embassy-info-box strong {
+    color: #87408d;
+}
+
+.embassy-info-box p {
+    margin: 0 0 4px 0;
+}
+
+.embassy-info-box p:last-child {
+    margin-bottom: 0;
+}
+
+/* Back Link */
+.embassy-back-link {
+    display: block;
+    margin-top: 20px;
+    color: #87408d;
+    text-decoration: none;
+    font-size: 0.8rem;
+    text-align: center;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.embassy-back-link:hover {
+    opacity: 1;
+}
+
+/* =============================================================================
+   DASHBOARD VIEW
+   ============================================================================= */
+
+.embassy-dashboard {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Dashboard Header */
+.embassy-dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: linear-gradient(135deg, #87408d 0%, #6f336f 100%);
+    color: white;
+}
+
+.ambassador-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ambassador-profile .profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3);
+    object-fit: cover;
+}
+
+.ambassador-profile .profile-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.ambassador-profile .profile-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: white;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.ambassador-profile .profile-handle {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.7);
+    margin: 0;
+}
+
+.ambassador-profile .profile-role {
+    display: none;
+}
+
+.embassy-signout-btn {
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.embassy-signout-btn:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+/* Dashboard Content */
+.embassy-dashboard-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Heraldry Preview Card */
+.heraldry-preview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: linear-gradient(135deg, #faf8fc 0%, #f0e8f4 100%);
+    border-radius: 12px;
+}
+
+.heraldry-preview .preview-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    object-fit: contain;
+    background: white;
+    padding: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.heraldry-preview .preview-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.heraldry-preview .preview-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 0 0 4px 0;
+}
+
+.heraldry-preview .preview-domains {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 0;
+}
+
+.heraldry-preview .preview-color-bar {
+    width: 100%;
+    height: 4px;
+    margin-top: 8px;
+    border-radius: 2px;
+}
+
+/* Section Cards */
+.embassy-section {
+    background: #faf8fc;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.embassy-section .section-title {
+    margin: 0 0 12px 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #87408d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Heraldry Editor */
+.heraldry-editor {
+    background: transparent;
+    padding: 0;
+}
+
+.heraldry-editor .section-title {
+    display: none;
+}
+
+.heraldry-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.control-group {
+    background: #faf8fc;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.control-label {
+    display: block;
+    font-weight: 600;
+    color: #87408d;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 10px;
+}
+
+/* Icon Upload - Button-based */
+.icon-control {
+    text-align: center;
+}
+
+.icon-editor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.icon-preview-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    object-fit: contain;
+    background: white;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 2px solid #e8e0f0;
+}
+
+.icon-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.embassy-btn.small {
+    padding: 8px 14px;
+    font-size: 0.75rem;
+}
+
+.icon-hint {
+    font-size: 0.7rem;
+    color: #999;
+    margin: 0;
+}
+
+/* Color Picker */
+.control-group:has(.color-picker-row) {
+    text-align: center;
+}
+
+.color-picker-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid rgba(0,0,0,0.1);
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.color-hex-input {
+    padding: 10px 12px;
+    border: 2px solid #e8e0f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: monospace;
+    width: 100px;
+    text-transform: uppercase;
+}
+
+.color-hex-input:focus {
+    outline: none;
+    border-color: #87408d;
+}
+
+.color-picker-widget {
+    display: inline-flex;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.color-shade-picker {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    cursor: crosshair;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.color-shade-picker canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.color-shade-cursor {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(0,0,0,0.4);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+.color-hue-slider {
+    position: relative;
+    width: 20px;
+    height: 140px;
+    cursor: pointer;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.color-hue-slider canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.color-hue-cursor {
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    height: 4px;
+    background: white;
+    border: 1px solid #333;
+    border-radius: 2px;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+#saveColorBtn {
+    padding: 10px 16px;
+    font-size: 0.8rem;
+    width: 100%;
+}
+
+/* Coterie Stats */
+.coterie-stats {
+    text-align: center;
+}
+
+.coterie-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.coterie-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 280px;
+}
+
+.coterie-stat {
+    padding: 12px 8px;
+    background: white;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.coterie-stat .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #87408d;
+    margin: 0;
+    line-height: 1;
+}
+
+.coterie-stat .stat-label {
+    font-size: 0.6rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin: 6px 0 0 0;
+}
+
+.coterie-members {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    text-align: center;
+}
+
+.coterie-member {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: white;
+    border-radius: 20px;
+}
+
+.coterie-member .member-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.coterie-member .member-handle {
+    font-size: 0.75rem;
+    color: #555;
+}
+
+/* Actions */
+.ambassador-actions .section-title {
+    margin-bottom: 14px;
+}
+
+.action-group {
+    padding: 14px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.action-group:last-child {
+    margin-bottom: 0;
+}
+
+.action-group h3 {
+    margin: 0 0 4px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.action-description {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.transfer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.embassy-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #e8e0f0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: white;
+    cursor: pointer;
+}
+
+.embassy-select:focus {
+    outline: none;
+    border-color: #87408d;
+}
+
+.action-group.danger-zone {
+    background: #fef5f5;
+}
+
+.action-group.danger-zone h3 {
+    color: #c53030;
+}
+
+#transferBtn,
+#stepDownBtn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+}
+
+/* Dashboard back link */
+.embassy-dashboard .embassy-back-link {
+    padding: 16px;
+    margin: 0;
+    border-top: 1px solid #e8e0f0;
+}
+
+/* =============================================================================
+   TABLET+ ADJUSTMENTS
+   ============================================================================= */
+
+@media (min-width: 480px) {
+    .embassy-container {
+        padding: 24px;
+        max-width: 440px;
+    }
+    
+    .embassy-login {
+        padding: 40px 32px;
+    }
+    
+    .embassy-logo {
+        width: 64px;
+    }
+    
+    .embassy-title {
+        font-size: 1.5rem;
+    }
+    
+    .heraldry-preview .preview-icon {
+        width: 64px;
+        height: 64px;
+    }
+    
+    .icon-upload-area {
+        width: 72px;
+        height: 72px;
+    }
+    
+    .color-shade-picker {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .color-hue-slider {
+        height: 160px;
+    }
+    
+    .transfer-controls {
+        flex-direction: row;
+    }
+    
+    .embassy-select {
+        flex: 1;
+    }
+    
+    #transferBtn {
+        width: auto;
+        flex-shrink: 0;
+    }
+}

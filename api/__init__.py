@@ -7,7 +7,7 @@ from flask import Blueprint
 
 def register_blueprints(app):
     """Register all API blueprints with the Flask app"""
-    from .routes import admin_routes, dreamer_routes, auth_routes, pigeons_routes, notifications_routes, invite_routes, util_routes, messages_routes, courier_routes, post_routes, credentials_routes, user_routes, interactions_routes, biblio_routes
+    from .routes import admin_routes, dreamer_routes, auth_routes, pigeons_routes, notifications_routes, invite_routes, util_routes, messages_routes, courier_routes, post_routes, credentials_routes, user_routes, interactions_routes, biblio_routes, heraldry_routes
     
     # Register blueprints
     app.register_blueprint(admin_routes.bp)
@@ -24,5 +24,6 @@ def register_blueprints(app):
     app.register_blueprint(user_routes.bp)
     app.register_blueprint(interactions_routes.bp)
     app.register_blueprint(biblio_routes.bp)
+    app.register_blueprint(heraldry_routes.bp)
     
     print("✅ API Blueprints registered")

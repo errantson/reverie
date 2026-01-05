@@ -53,6 +53,184 @@
     --heraldry-default-accent: #4a5568;
     --heraldry-default-bg: rgba(45, 55, 72, 0.05);
     --heraldry-default-border: rgba(45, 55, 72, 0.3);
+
+    /* ===================================================================
+     * January 2026 Network Expansion - Top 30 External PDS Servers
+     * =================================================================== */
+
+    /* Keik.info - Japanese "physical tweets" platform */
+    --heraldry-keik-primary: #1a1a2e;
+    --heraldry-keik-secondary: #16162a;
+    --heraldry-keik-bg: rgba(26, 26, 46, 0.05);
+    --heraldry-keik-border: rgba(26, 26, 46, 0.25);
+
+    /* Gems.xyz - Art and photography community */
+    --heraldry-gems-primary: #6C63FF;
+    --heraldry-gems-secondary: #5A52E0;
+    --heraldry-gems-bg: rgba(108, 99, 255, 0.05);
+    --heraldry-gems-border: rgba(108, 99, 255, 0.25);
+
+    /* Spark/sprk.so - User sovereignty advocates */
+    --heraldry-spark-primary: #FF6B35;
+    --heraldry-spark-secondary: #E85A2A;
+    --heraldry-spark-bg: rgba(255, 107, 53, 0.05);
+    --heraldry-spark-border: rgba(255, 107, 53, 0.25);
+
+    /* Tangled - Social Git hosting */
+    --heraldry-tangled-primary: #7C3AED;
+    --heraldry-tangled-secondary: #6D28D9;
+    --heraldry-tangled-bg: rgba(124, 58, 237, 0.05);
+    --heraldry-tangled-border: rgba(124, 58, 237, 0.25);
+
+    /* Matrix Social - Federated communications */
+    --heraldry-matrix-primary: #0DBD8B;
+    --heraldry-matrix-secondary: #0A9B73;
+    --heraldry-matrix-bg: rgba(13, 189, 139, 0.05);
+    --heraldry-matrix-border: rgba(13, 189, 139, 0.25);
+
+    /* WAFRN - Tumblr-inspired federation bridge */
+    --heraldry-wafrn-primary: #4ECDC4;
+    --heraldry-wafrn-secondary: #3DBDB4;
+    --heraldry-wafrn-bg: rgba(78, 205, 196, 0.05);
+    --heraldry-wafrn-border: rgba(78, 205, 196, 0.25);
+
+    /* Yinzcloud - Pittsburgh community */
+    --heraldry-yinzcloud-primary: #FFB81C;
+    --heraldry-yinzcloud-secondary: #E5A519;
+    --heraldry-yinzcloud-bg: rgba(255, 184, 28, 0.05);
+    --heraldry-yinzcloud-border: rgba(255, 184, 28, 0.25);
+
+    /* Skystack - PDS infrastructure */
+    --heraldry-skystack-primary: #3B82F6;
+    --heraldry-skystack-secondary: #2563EB;
+    --heraldry-skystack-bg: rgba(59, 130, 246, 0.05);
+    --heraldry-skystack-border: rgba(59, 130, 246, 0.25);
+
+    /* Aenead - Self-hosted digital life */
+    --heraldry-aenead-primary: #8B5CF6;
+    --heraldry-aenead-secondary: #7C3AED;
+    --heraldry-aenead-bg: rgba(139, 92, 246, 0.05);
+    --heraldry-aenead-border: rgba(139, 92, 246, 0.25);
+
+    /* SI46 - Element 46 territories */
+    --heraldry-si46-primary: #64748B;
+    --heraldry-si46-secondary: #475569;
+    --heraldry-si46-bg: rgba(100, 116, 139, 0.05);
+    --heraldry-si46-border: rgba(100, 116, 139, 0.25);
+
+    /* K4ZKA - Eastern European PDS */
+    --heraldry-k4zka-primary: #EF4444;
+    --heraldry-k4zka-secondary: #DC2626;
+    --heraldry-k4zka-bg: rgba(239, 68, 68, 0.05);
+    --heraldry-k4zka-border: rgba(239, 68, 68, 0.25);
+
+    /* Nobody Network - Privacy-focused */
+    --heraldry-nobody-primary: #1F2937;
+    --heraldry-nobody-secondary: #111827;
+    --heraldry-nobody-bg: rgba(31, 41, 55, 0.05);
+    --heraldry-nobody-border: rgba(31, 41, 55, 0.25);
+
+    /* Bluesky Global - Worldwide horizons */
+    --heraldry-bskyglobal-primary: #0EA5E9;
+    --heraldry-bskyglobal-secondary: #0284C7;
+    --heraldry-bskyglobal-bg: rgba(14, 165, 233, 0.05);
+    --heraldry-bskyglobal-border: rgba(14, 165, 233, 0.25);
+
+    /* Cannect - Connection constellation */
+    --heraldry-cannect-primary: #10B981;
+    --heraldry-cannect-secondary: #059669;
+    --heraldry-cannect-bg: rgba(16, 185, 129, 0.05);
+    --heraldry-cannect-border: rgba(16, 185, 129, 0.25);
+
+    /* Surf Social - Cross-platform aggregator */
+    --heraldry-surf-primary: #06B6D4;
+    --heraldry-surf-secondary: #0891B2;
+    --heraldry-surf-bg: rgba(6, 182, 212, 0.05);
+    --heraldry-surf-border: rgba(6, 182, 212, 0.25);
+
+    /* MARTA Fail - Atlanta transit alerts */
+    --heraldry-marta-primary: #EF4444;
+    --heraldry-marta-secondary: #DC2626;
+    --heraldry-marta-bg: rgba(239, 68, 68, 0.05);
+    --heraldry-marta-border: rgba(239, 68, 68, 0.25);
+
+    /* Catbird - Songbird sanctuary */
+    --heraldry-catbird-primary: #60A5FA;
+    --heraldry-catbird-secondary: #3B82F6;
+    --heraldry-catbird-bg: rgba(96, 165, 250, 0.05);
+    --heraldry-catbird-border: rgba(96, 165, 250, 0.25);
+
+    /* Snek - Infrastructure ecosystem */
+    --heraldry-snek-primary: #22C55E;
+    --heraldry-snek-secondary: #16A34A;
+    --heraldry-snek-bg: rgba(34, 197, 94, 0.05);
+    --heraldry-snek-border: rgba(34, 197, 94, 0.25);
+
+    /* Roomy - Digital gardens */
+    --heraldry-roomy-primary: #A855F7;
+    --heraldry-roomy-secondary: #9333EA;
+    --heraldry-roomy-bg: rgba(168, 85, 247, 0.05);
+    --heraldry-roomy-border: rgba(168, 85, 247, 0.25);
+
+    /* MPI-SWS - Academic research */
+    --heraldry-mpisws-primary: #1E40AF;
+    --heraldry-mpisws-secondary: #1E3A8A;
+    --heraldry-mpisws-bg: rgba(30, 64, 175, 0.05);
+    --heraldry-mpisws-border: rgba(30, 64, 175, 0.25);
+
+    /* Podping - Podcast network */
+    --heraldry-podping-primary: #F97316;
+    --heraldry-podping-secondary: #EA580C;
+    --heraldry-podping-bg: rgba(249, 115, 22, 0.05);
+    --heraldry-podping-border: rgba(249, 115, 22, 0.25);
+
+    /* Tribe - Ethiopian tech community */
+    --heraldry-tribe-primary: #059669;
+    --heraldry-tribe-secondary: #047857;
+    --heraldry-tribe-bg: rgba(5, 150, 105, 0.05);
+    --heraldry-tribe-border: rgba(5, 150, 105, 0.25);
+
+    /* Shinigami - Anime realm */
+    --heraldry-shinigami-primary: #7C2D12;
+    --heraldry-shinigami-secondary: #6B2710;
+    --heraldry-shinigami-bg: rgba(124, 45, 18, 0.05);
+    --heraldry-shinigami-border: rgba(124, 45, 18, 0.25);
+
+    /* Ocho - Figure eight */
+    --heraldry-ocho-primary: #F59E0B;
+    --heraldry-ocho-secondary: #D97706;
+    --heraldry-ocho-bg: rgba(245, 158, 11, 0.05);
+    --heraldry-ocho-border: rgba(245, 158, 11, 0.25);
+
+    /* Radixians - Root theorists */
+    --heraldry-radixians-primary: #DC2626;
+    --heraldry-radixians-secondary: #B91C1C;
+    --heraldry-radixians-bg: rgba(220, 38, 38, 0.05);
+    --heraldry-radixians-border: rgba(220, 38, 38, 0.25);
+
+    /* Reme - Rust-forged social */
+    --heraldry-reme-primary: #78350F;
+    --heraldry-reme-secondary: #6B2F0D;
+    --heraldry-reme-bg: rgba(120, 53, 15, 0.05);
+    --heraldry-reme-border: rgba(120, 53, 15, 0.25);
+
+    /* WNDR - Starship narrative */
+    --heraldry-wndr-primary: #1E3A5F;
+    --heraldry-wndr-secondary: #0F2942;
+    --heraldry-wndr-bg: rgba(30, 58, 95, 0.05);
+    --heraldry-wndr-border: rgba(30, 58, 95, 0.25);
+
+    /* TGirl Cloud - Trans community */
+    --heraldry-tgirl-primary: #F472B6;
+    --heraldry-tgirl-secondary: #EC4899;
+    --heraldry-tgirl-bg: rgba(244, 114, 182, 0.05);
+    --heraldry-tgirl-border: rgba(244, 114, 182, 0.25);
+
+    /* Evil Gay - Queer community */
+    --heraldry-evilgay-primary: #9333EA;
+    --heraldry-evilgay-secondary: #7C3AED;
+    --heraldry-evilgay-bg: rgba(147, 51, 234, 0.05);
+    --heraldry-evilgay-border: rgba(147, 51, 234, 0.25);
 }
 
 /* Heraldry Badge Styles */
@@ -108,6 +286,184 @@
     background: var(--heraldry-default-bg);
     border: 1px solid var(--heraldry-default-border);
     color: var(--heraldry-default-primary);
+}
+
+/* ===================================================================
+ * January 2026 Network Expansion - Badge Styles
+ * =================================================================== */
+
+.heraldry-keik {
+    background: var(--heraldry-keik-bg);
+    border: 1px solid var(--heraldry-keik-border);
+    color: var(--heraldry-keik-primary);
+}
+
+.heraldry-gems {
+    background: var(--heraldry-gems-bg);
+    border: 1px solid var(--heraldry-gems-border);
+    color: var(--heraldry-gems-primary);
+}
+
+.heraldry-spark {
+    background: var(--heraldry-spark-bg);
+    border: 1px solid var(--heraldry-spark-border);
+    color: var(--heraldry-spark-primary);
+}
+
+.heraldry-tangled {
+    background: var(--heraldry-tangled-bg);
+    border: 1px solid var(--heraldry-tangled-border);
+    color: var(--heraldry-tangled-primary);
+}
+
+.heraldry-matrix {
+    background: var(--heraldry-matrix-bg);
+    border: 1px solid var(--heraldry-matrix-border);
+    color: var(--heraldry-matrix-primary);
+}
+
+.heraldry-wafrn {
+    background: var(--heraldry-wafrn-bg);
+    border: 1px solid var(--heraldry-wafrn-border);
+    color: var(--heraldry-wafrn-primary);
+}
+
+.heraldry-yinzcloud {
+    background: var(--heraldry-yinzcloud-bg);
+    border: 1px solid var(--heraldry-yinzcloud-border);
+    color: var(--heraldry-yinzcloud-primary);
+}
+
+.heraldry-skystack {
+    background: var(--heraldry-skystack-bg);
+    border: 1px solid var(--heraldry-skystack-border);
+    color: var(--heraldry-skystack-primary);
+}
+
+.heraldry-aenead {
+    background: var(--heraldry-aenead-bg);
+    border: 1px solid var(--heraldry-aenead-border);
+    color: var(--heraldry-aenead-primary);
+}
+
+.heraldry-si46 {
+    background: var(--heraldry-si46-bg);
+    border: 1px solid var(--heraldry-si46-border);
+    color: var(--heraldry-si46-primary);
+}
+
+.heraldry-k4zka {
+    background: var(--heraldry-k4zka-bg);
+    border: 1px solid var(--heraldry-k4zka-border);
+    color: var(--heraldry-k4zka-primary);
+}
+
+.heraldry-nobody {
+    background: var(--heraldry-nobody-bg);
+    border: 1px solid var(--heraldry-nobody-border);
+    color: var(--heraldry-nobody-primary);
+}
+
+.heraldry-bskyglobal {
+    background: var(--heraldry-bskyglobal-bg);
+    border: 1px solid var(--heraldry-bskyglobal-border);
+    color: var(--heraldry-bskyglobal-primary);
+}
+
+.heraldry-cannect {
+    background: var(--heraldry-cannect-bg);
+    border: 1px solid var(--heraldry-cannect-border);
+    color: var(--heraldry-cannect-primary);
+}
+
+.heraldry-surf {
+    background: var(--heraldry-surf-bg);
+    border: 1px solid var(--heraldry-surf-border);
+    color: var(--heraldry-surf-primary);
+}
+
+.heraldry-marta {
+    background: var(--heraldry-marta-bg);
+    border: 1px solid var(--heraldry-marta-border);
+    color: var(--heraldry-marta-primary);
+}
+
+.heraldry-catbird {
+    background: var(--heraldry-catbird-bg);
+    border: 1px solid var(--heraldry-catbird-border);
+    color: var(--heraldry-catbird-primary);
+}
+
+.heraldry-snek {
+    background: var(--heraldry-snek-bg);
+    border: 1px solid var(--heraldry-snek-border);
+    color: var(--heraldry-snek-primary);
+}
+
+.heraldry-roomy {
+    background: var(--heraldry-roomy-bg);
+    border: 1px solid var(--heraldry-roomy-border);
+    color: var(--heraldry-roomy-primary);
+}
+
+.heraldry-mpisws {
+    background: var(--heraldry-mpisws-bg);
+    border: 1px solid var(--heraldry-mpisws-border);
+    color: var(--heraldry-mpisws-primary);
+}
+
+.heraldry-podping {
+    background: var(--heraldry-podping-bg);
+    border: 1px solid var(--heraldry-podping-border);
+    color: var(--heraldry-podping-primary);
+}
+
+.heraldry-tribe {
+    background: var(--heraldry-tribe-bg);
+    border: 1px solid var(--heraldry-tribe-border);
+    color: var(--heraldry-tribe-primary);
+}
+
+.heraldry-shinigami {
+    background: var(--heraldry-shinigami-bg);
+    border: 1px solid var(--heraldry-shinigami-border);
+    color: var(--heraldry-shinigami-primary);
+}
+
+.heraldry-ocho {
+    background: var(--heraldry-ocho-bg);
+    border: 1px solid var(--heraldry-ocho-border);
+    color: var(--heraldry-ocho-primary);
+}
+
+.heraldry-radixians {
+    background: var(--heraldry-radixians-bg);
+    border: 1px solid var(--heraldry-radixians-border);
+    color: var(--heraldry-radixians-primary);
+}
+
+.heraldry-reme {
+    background: var(--heraldry-reme-bg);
+    border: 1px solid var(--heraldry-reme-border);
+    color: var(--heraldry-reme-primary);
+}
+
+.heraldry-wndr {
+    background: var(--heraldry-wndr-bg);
+    border: 1px solid var(--heraldry-wndr-border);
+    color: var(--heraldry-wndr-primary);
+}
+
+.heraldry-tgirl {
+    background: var(--heraldry-tgirl-bg);
+    border: 1px solid var(--heraldry-tgirl-border);
+    color: var(--heraldry-tgirl-primary);
+}
+
+.heraldry-evilgay {
+    background: var(--heraldry-evilgay-bg);
+    border: 1px solid var(--heraldry-evilgay-border);
+    color: var(--heraldry-evilgay-primary);
 }
 
 /* Login button styles */

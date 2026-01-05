@@ -486,6 +486,18 @@ def work_all_routes():
     return send_from_directory('site', 'work.html')
 
 
+# ============================================================================
+# EMBASSY ROUTES - Ambassador heraldry management
+# ============================================================================
+
+@app.route('/embassy')
+@app.route('/embassy/')
+@app.route('/embassy.html')
+def embassy_page():
+    """Embassy page for PDS community ambassadors"""
+    return send_from_directory('site', 'embassy.html')
+
+
 @app.route('/api/random-handles')
 def api_random_handles():
     """
