@@ -242,6 +242,34 @@
     border-color: rgba(255, 255, 255, 0.6);
     transform: translateY(-50%) scale(1.05);
 }
+/* Logout button for mobile (mirrors login button styling, uses user color) */
+.drawer-logout-btn {
+    display: none;
+}
+.drawer-logout-btn.mobile-only {
+    display: none; 
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.2);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: monospace;
+}
+.drawer-logout-btn.mobile-only:hover,
+.drawer-logout-btn.mobile-only:active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-50%) scale(1.05);
+}
 .drawer-logo-simple {
     display: none;
 }

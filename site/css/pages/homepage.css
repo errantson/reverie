@@ -8,6 +8,7 @@
 }
 body {
     background: transparent;
+    overflow: hidden; /* Prevent scroll beyond viewport on homepage */
 }
 
 /* Full-screen background that covers entire viewport including header */
@@ -16,7 +17,8 @@ body {
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
+    height: 100vh; /* Fallback for older browsers */
+    height: 100dvh; /* Dynamic viewport height for mobile */
     z-index: 1;
     overflow: hidden;
     background-color: #1a1a2e; /* Dark blue-purple background to prevent white flash */
@@ -61,7 +63,8 @@ body {
     position: relative;
     z-index: 10;
     width: 100%;
-    height: 100vh;
+    height: 100vh; /* Fallback */
+    height: 100dvh; /* Dynamic viewport height for mobile */
     margin-top: 0;
     pointer-events: none;
 }
@@ -512,13 +515,16 @@ body {
 body.has-fixed-header .fullscreen-background {
     top: 0;
     height: 100vh;
+    height: 100dvh;
 }
 body.has-fixed-header .ui-overlay {
     margin-top: 0;
     height: 100vh;
+    height: 100dvh;
 }
 body.has-fixed-header .content-sections {
     margin-top: 100vh;
+    margin-top: 100dvh;
 }
 .widget-carousel .widget-title {
     font-family: Arial, sans-serif;
@@ -1162,6 +1168,7 @@ a:hover {
         height: 100%;
         min-width: 100vw;
         min-height: 100vh;
+        min-height: 100dvh;
         object-fit: cover;
         object-position: center center;
     }
@@ -1211,9 +1218,11 @@ a:hover {
     }
     .content-sections {
         margin-top: 100vh;
+        margin-top: 100dvh;
     }
     body.has-fixed-header .content-sections {
         margin-top: 100vh;
+        margin-top: 100dvh;
     }
     .about-container {
         width: 85%;

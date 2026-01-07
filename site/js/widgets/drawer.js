@@ -5,8 +5,29 @@ class Drawer {
         this.coreColor = '#87408d';
         this.loginsEnabled = false;
         this.loginsAlwaysShowPopup = true;
+        this.stylesLoaded = false;
         this.loadCoreColor();
-        this.loadStyles();
+        
+        // Defer render until DOM, CSS, and viewport are ready
+        this.deferredInit();
+    }
+
+    async deferredInit() {
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+        }
+        
+        // Load styles and wait for them
+        await this.loadStyles();
+        
+        // Wait for viewport stability with double-RAF
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+        });
+        
         this.render();
         this.initialize();
     }
@@ -44,11 +65,20 @@ class Drawer {
         }
     }
 
-    loadStyles() {
+    async loadStyles() {
+        const loadPromises = [];
+        
         if (!document.querySelector('link[href*="css/widgets/drawer.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = '/css/widgets/drawer.css?v=20';
+            loadPromises.push(new Promise((resolve, reject) => {
+                link.onload = resolve;
+                link.onerror = () => {
+                    console.warn('Failed to load drawer.css');
+                    resolve(); // Don't block on CSS failure
+                };
+            }));
             document.head.appendChild(link);
         }
         
@@ -57,6 +87,13 @@ class Drawer {
             const mobileLink = document.createElement('link');
             mobileLink.rel = 'stylesheet';
             mobileLink.href = '/css/widgets/drawer-mobile.css?v=5';
+            loadPromises.push(new Promise((resolve, reject) => {
+                mobileLink.onload = resolve;
+                mobileLink.onerror = () => {
+                    console.warn('Failed to load drawer-mobile.css');
+                    resolve(); // Don't block on CSS failure
+                };
+            }));
             document.head.appendChild(mobileLink);
         }
 
@@ -66,6 +103,16 @@ class Drawer {
             script.src = '/js/utils/orientation-handler.js';
             document.head.appendChild(script);
         }
+        
+        // Wait for all stylesheets to load (with timeout fallback)
+        if (loadPromises.length > 0) {
+            await Promise.race([
+                Promise.all(loadPromises),
+                new Promise(resolve => setTimeout(resolve, 1000)) // 1s timeout
+            ]);
+        }
+        
+        this.stylesLoaded = true;
     }
 
     render() {
@@ -95,6 +142,10 @@ class Drawer {
                     <!-- Mobile: Login Button (shown when not logged in) -->
                     <button class="drawer-login-btn mobile-only" id="drawerLoginBtn" title="Login">
                         LOGIN
+                    </button>
+                    <!-- Mobile: Logout Button (shown when logged in) -->
+                    <button class="drawer-logout-btn mobile-only" id="drawerLogoutBtn" title="Logout" style="display: none;">
+                        LOGOUT
                     </button>
                     <!-- Desktop: Grip Indicator (centered) -->
                     <div class="drawer-grip desktop-only">
@@ -133,7 +184,8 @@ class Drawer {
 
         if (this.drawerAvailable) {
             this.header.addEventListener('click', (e) => {
-                if (e.target.closest('.drawer-avatar-btn')) {
+                // Ignore clicks on login/logout/avatar buttons - they have their own handlers
+                if (e.target.closest('.drawer-avatar-btn, .drawer-login-btn, .drawer-logout-btn')) {
                     return;
                 }
                 e.stopPropagation();
@@ -211,6 +263,13 @@ class Drawer {
                 // Check if dialogue is active before allowing backdrop close
                 if (window.DialogueManager && window.DialogueManager.isBlocked) {
                     console.log('🚫 [Drawer] Backdrop click blocked - dialogue is active');
+                    return;
+                }
+                
+                // Check if login/logout overlay is visible - don't close drawer
+                const loginOverlay = document.querySelector('.login-overlay, .logout-overlay');
+                if (loginOverlay && loginOverlay.classList.contains('visible')) {
+                    console.log('🚫 [Drawer] Backdrop click blocked - login overlay is active');
                     return;
                 }
                 
@@ -323,7 +382,8 @@ class Drawer {
             const deltaY = Math.abs(touchCurrentY - touchStartY);
             const deltaX = Math.abs(touchCurrentX - touchStartX);
 
-            if (deltaY > 10 || deltaX > 10) {
+            // Increased threshold to 20px to distinguish swipes from taps
+            if (deltaY > 20 || deltaX > 20) {
                 this.wasSwiping = true;
             }
         }, { passive: true });
@@ -367,9 +427,9 @@ class Drawer {
                 return;
             }
 
-            const minSwipeDistance = 30;
-            const maxSwipeTime = 300;
-            const minVelocity = 0.3;
+            const minSwipeDistance = 50; // Increased to prevent accidental triggers
+            const maxSwipeTime = 400; // Slightly more lenient timing
+            const minVelocity = 0.4; // Higher velocity threshold for intentional swipes
 
             const isVerticalSwipe = Math.abs(deltaY) > Math.abs(deltaX);
 
@@ -721,6 +781,7 @@ class Drawer {
     setupAvatarButton() {
         const avatarBtn = document.getElementById('drawerAvatarBtn');
         const loginBtn = document.getElementById('drawerLoginBtn');
+        const logoutBtn = document.getElementById('drawerLogoutBtn');
 
         if (!avatarBtn) {
             return;
@@ -756,9 +817,26 @@ class Drawer {
             tryShowLogin();
         };
 
+        const handleLogoutClick = (e) => {
+            e.stopPropagation();
+            
+            // Close any active dialogue
+            if (window.DialogueManager && typeof window.DialogueManager.hideActive === 'function') {
+                window.DialogueManager.hideActive();
+            }
+            
+            // Show logout popup via login widget
+            if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                window.loginWidget.showLoginPopup();
+            }
+        };
+
         avatarBtn.addEventListener('click', handleLoginClick);
         if (loginBtn) {
             loginBtn.addEventListener('click', handleLoginClick);
+        }
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogoutClick);
         }
 
         // Update avatar on logout
@@ -778,6 +856,7 @@ class Drawer {
         const inboxCount = document.getElementById('drawerInboxCount');
         const firehoseIndicator = document.getElementById('firehoseIndicator');
         const loginBtn = document.getElementById('drawerLoginBtn');
+        const logoutBtn = document.getElementById('drawerLogoutBtn');
 
         if (!avatarBtn) return;
 
@@ -813,6 +892,9 @@ class Drawer {
             }
             if (loginBtn) {
                 loginBtn.style.display = 'none';
+            }
+            if (logoutBtn) {
+                logoutBtn.style.display = 'block';
             }
             if (handle) {
                 handle.textContent = displayName;
@@ -864,6 +946,9 @@ class Drawer {
 
             if (loginBtn) {
                 loginBtn.style.display = 'block';
+            }
+            if (logoutBtn) {
+                logoutBtn.style.display = 'none';
             }
             if (userSection) {
                 userSection.style.display = 'none';

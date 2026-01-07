@@ -85,7 +85,9 @@
 .login-content.login-compact .login-logo {
     width: auto;
     height: 110px;
+    max-height: 110px;
     flex-shrink: 0;
+    object-fit: contain;
 }
 .login-info-box {
     flex: 1;
@@ -406,9 +408,12 @@
     gap: 0px;
 }
 .login-logo {
-    width: 50%;
+    width: auto;
+    height: auto;
     max-width: 180px;
+    max-height: 100px;
     margin: 0 auto 8px auto;
+    object-fit: contain;
 }
 .login-title {
     margin: 0 0 0px 0;
@@ -545,8 +550,11 @@
         align-items: center;
     }
     .login-content.login-compact .login-logo {
-        width: 50%;
+        width: auto;
+        height: auto;
         max-width: 180px;
+        max-height: 100px;
+        object-fit: contain;
     }
     .login-info-box {
         width: 100%;
@@ -655,18 +663,22 @@
 }
 .login-form {
     width: 100%;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
     gap: 12px;
     margin: 16px 0 0 0;
+    box-sizing: border-box;
 }
 .login-handle-input-group {
     width: 100%;
+    max-width: 100%;
     display: flex;
     align-items: center;
     border: 2px solid #d0c7f0;
     background: white;
     transition: border-color 0.2s;
+    box-sizing: border-box;
 }
 .login-handle-input-group:focus-within {
     border-color: #87408d;
@@ -901,4 +913,371 @@
 }
 .error-shake input {
     border-color: #d94848 !important;
+}
+
+/* ============================================================================
+   MOBILE-FIRST STATUS & BUTTON STATES
+   ============================================================================ */
+
+/* Status message icon */
+.login-status-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Spinner animation for status icon */
+.login-status-spinner {
+    animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Status message states using CSS custom properties */
+.login-status-message.checking {
+    background: rgba(135, 64, 141, 0.05);
+    border: 1px solid rgba(135, 64, 141, 0.2);
+    color: #555;
+}
+
+.login-status-message.found {
+    background: color-mix(in srgb, var(--account-color, #87408d) 5%, white);
+    border: 1px solid color-mix(in srgb, var(--account-color, #87408d) 20%, transparent);
+    color: var(--account-color, #87408d);
+}
+
+.login-status-message.error {
+    background: rgba(217, 72, 72, 0.05);
+    border: 1px solid rgba(217, 72, 72, 0.2);
+    color: #d94848;
+}
+
+/* Login box found state */
+.login-box.login-box-found {
+    border-color: var(--account-color, #87408d);
+    background: linear-gradient(
+        color-mix(in srgb, var(--account-color, #87408d) 2%, white),
+        color-mix(in srgb, var(--account-color, #87408d) 2%, white)
+    ), white;
+}
+
+/* Submit button ready state */
+.login-main-btn.login-btn-ready {
+    opacity: 1;
+    cursor: pointer;
+    background: var(--account-color, #87408d);
+    border-color: var(--account-color, #87408d);
+    color: white;
+}
+
+.login-main-btn.login-btn-ready:hover {
+    filter: brightness(0.9);
+    transform: translateY(-1px);
+}
+
+/* ============================================================================
+   MOBILE TOUCH-FRIENDLY IMPROVEMENTS
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    /* Ensure login box doesn't overflow on mobile */
+    .login-box, .logout-box {
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+    
+    .login-form,
+    .login-handle-input-group,
+    .login-buttons-row {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Prevent iOS zoom on input focus */
+    .login-handle-input {
+        font-size: 16px !important;
+        max-width: 100%;
+    }
+    
+    /* Touch-friendly button sizing */
+    .login-side-door-btn {
+        min-width: 70px;
+        max-width: 80px;
+        min-height: 44px;
+        padding: 6px 10px;
+        font-size: 0.65rem;
+    }
+    
+    .login-side-door-sub {
+        font-size: 0.55rem;
+    }
+    
+    .login-main-btn {
+        min-height: 48px;
+        font-size: 1rem;
+    }
+    
+    .login-method-btn {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+    
+    /* Better status message on mobile */
+    .login-status-message {
+        padding: 12px 14px;
+        font-size: 0.9rem;
+    }
+    
+    .login-info-text {
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+    
+    /* Prevent text selection on buttons */
+    .login-method-btn,
+    .login-side-door-btn,
+    .login-main-btn,
+    .login-become-btn {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+@media (max-width: 380px) {
+    .login-box, .logout-box {
+        max-width: 100%;
+        width: 100%;
+        margin: 0 8px;
+        padding: 20px 16px;
+    }
+    
+    .login-header-row {
+        gap: 10px;
+    }
+    
+    .login-content.login-compact .login-logo {
+        width: 40%;
+        max-width: 120px;
+    }
+    
+    .login-info-box {
+        padding: 10px 12px;
+        min-height: 80px;
+    }
+    
+    .login-info-text {
+        font-size: 0.75rem;
+    }
+    
+    .login-divider span {
+        font-size: 0.7rem;
+        padding: 0 10px;
+    }
+    
+    .login-buttons-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .login-side-door-btn {
+        min-width: 100%;
+        max-width: 100%;
+        flex-direction: row;
+        gap: 6px;
+    }
+    
+    .login-main-btn {
+        width: 100%;
+    }
+}
+
+/* ============================================================================
+   DEACTIVATED PANEL - Mobile-Responsive Layout
+   ============================================================================ */
+
+.login-deactivated-box {
+    max-width: 480px;
+    width: 95%;
+    padding: 0;
+    overflow: hidden;
+}
+
+.deactivated-header {
+    padding: 12px 16px;
+    background: #f7fafc;
+    border-bottom: 1px solid var(--user-color, #87408d);
+    text-align: center;
+}
+
+.deactivated-title {
+    font-size: 1.1rem;
+    color: var(--user-color, #87408d);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.deactivated-explainer {
+    color: #4a5568;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    max-width: 360px;
+    margin: 0 auto;
+}
+
+.deactivated-explainer strong {
+    color: var(--user-color, #87408d);
+}
+
+.deactivated-profile-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px;
+    flex-wrap: wrap;
+}
+
+.deactivated-avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.deactivated-avatar-frame {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #f3f3f3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--user-color, #87408d);
+    flex-shrink: 0;
+}
+
+.deactivated-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.deactivated-name-section {
+    text-align: center;
+}
+
+.deactivated-display-name {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--user-color, #87408d);
+}
+
+.deactivated-handle-text {
+    color: var(--user-color, #87408d);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-top: 2px;
+}
+
+.deactivated-octant-section {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.deactivated-octant-container {
+    width: 220px;
+    height: 110px;
+}
+
+.deactivated-eventstack-section {
+    padding: 8px 16px;
+    text-align: center;
+}
+
+.deactivated-eventstack {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    max-height: 200px;
+    overflow: auto;
+    border: 1px solid var(--user-color, #87408d);
+    background: #ffffff;
+    -webkit-overflow-scrolling: touch;
+}
+
+.deactivated-actions {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.deactivated-close-btn {
+    width: 60%;
+    max-width: 200px;
+    background: #eef2f7;
+    color: #2d3748;
+    padding: 10px 16px;
+    border: 1px solid #cbd5e1;
+    min-height: 44px;
+}
+
+/* Mobile deactivated panel adjustments */
+@media (max-width: 480px) {
+    .login-deactivated-box {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 8px;
+    }
+    
+    .deactivated-header {
+        padding: 10px 12px;
+    }
+    
+    .deactivated-title {
+        font-size: 1rem;
+    }
+    
+    .deactivated-explainer {
+        font-size: 0.78rem;
+    }
+    
+    .deactivated-profile-row {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+    }
+    
+    .deactivated-avatar-frame {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .deactivated-octant-container {
+        width: 100%;
+        max-width: 280px;
+        height: 100px;
+    }
+    
+    .deactivated-eventstack-section {
+        padding: 8px 12px;
+    }
+    
+    .deactivated-eventstack {
+        max-height: 150px;
+    }
+    
+    .deactivated-close-btn {
+        width: 80%;
+    }
 }

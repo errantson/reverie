@@ -230,13 +230,16 @@ class LoginWidget {
             loginBox.classList.remove('visible');
             setTimeout(() => overlay.remove(), 300);
         });
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
-            }
-        });
+        // Delay click-outside handler to prevent mobile touch-to-click ghost click
+        setTimeout(() => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('visible');
+                    loginBox.classList.remove('visible');
+                    setTimeout(() => overlay.remove(), 300);
+                }
+            });
+        }, 400);
         const escapeHandler = (e) => {
             if (e.key === 'Escape') {
                 overlay.classList.remove('visible');
@@ -282,11 +285,14 @@ class LoginWidget {
             setTimeout(() => overlay.remove(), 300);
         };
         document.getElementById('messageOk').addEventListener('click', closeMessage);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                closeMessage();
-            }
-        });
+        // Delay click-outside handler to prevent mobile touch-to-click ghost click
+        setTimeout(() => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    closeMessage();
+                }
+            });
+        }, 400);
         const escapeHandler = (e) => {
             if (e.key === 'Escape') {
                 closeMessage();
@@ -433,38 +439,39 @@ class LoginWidget {
         }
 
         // Simplified layout: explainer, avatar|name, octant showcase, eventstack, actions
+        // Using CSS classes for mobile responsiveness
             box.innerHTML = `
-                <div style="padding:8px; background: #f7fafc; border-bottom: 1px solid ${userColor}; border-top-left-radius:0; border-top-right-radius:0; margin-bottom:6px; max-width:420px; margin-left:auto; margin-right:auto;">
-                    <strong id="deactivated-title" style="font-size:1.08rem;">${displayName} has Dissipated</strong>
-                    <div style="color:#4a5568; margin-top:6px; font-size:0.82rem; line-height:1.18; max-width:360px; margin-left:auto; margin-right:auto; text-align:center;">
+                <div class="deactivated-header" style="--user-color: ${userColor};">
+                    <strong id="deactivated-title" class="deactivated-title">${displayName} has Dissipated</strong>
+                    <div class="deactivated-explainer">
                         <div><strong id="deactivated-handle">@${handle}</strong> has dissipated their presence and can no longer roam our wild mindscape in this form.</div>
                         <div style="margin-top:6px;">Their impact on <strong id="deactivated-rh">Reverie House</strong> is remembered, and we seek their spirit in other personas.</div>
                     </div>
                 </div>
 
-            <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; gap:12px; padding:8px 12px; max-width:420px; margin:0 auto;">
-                <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
-                    <div style="width:88px; height:88px; border-radius:50%; overflow:hidden; background:#f3f3f3; display:flex; align-items:center; justify-content:center; border:2px solid ${userColor};">
-                            <img src="${avatar}" alt="${displayName}" style="width:88px; height:88px; object-fit:cover; border-radius:50%;" onerror="this.src='/assets/icon_face.png'">
-                        </div>
-                    <div style="text-align:center;">
-                        <div style="font-size:0.98rem; font-weight:800; color:${userColor};">${displayName}</div>
-                        <div style="color:${userColor}; font-weight:700; font-size:0.9rem; margin-top:2px;">@${handle}</div>
+            <div class="deactivated-profile-row" style="--user-color: ${userColor};">
+                <div class="deactivated-avatar-section">
+                    <div class="deactivated-avatar-frame">
+                        <img src="${avatar}" alt="${displayName}" class="deactivated-avatar-img" onerror="this.src='/assets/icon_face.png'">
+                    </div>
+                    <div class="deactivated-name-section">
+                        <div class="deactivated-display-name">${displayName}</div>
+                        <div class="deactivated-handle-text">@${handle}</div>
                     </div>
                 </div>
-                <div style="flex-shrink:0; display:flex; align-items:center; justify-content:center;">
-                    <div id="deactivated-octant" style="width:240px; height:120px; margin-left:6px;"></div>
+                <div class="deactivated-octant-section">
+                    <div id="deactivated-octant" class="deactivated-octant-container"></div>
                 </div>
             </div>
 
-            <div style="padding:8px 12px; text-align:center;">
-                <div id="deactivated-eventstack" style="width:100%; max-width:420px; margin: -5px auto 2px auto; max-height:240px; overflow:auto; border:1px solid ${userColor}; border-radius:0; background: #ffffff; box-shadow: none; padding:0;">
+            <div class="deactivated-eventstack-section">
+                <div id="deactivated-eventstack" class="deactivated-eventstack" style="--user-color: ${userColor};">
                     <!-- EventStack will render here; container constrained and scrollable when >4 events -->
                 </div>
             </div>
 
-            <div style="padding:12px; display:flex; flex-direction:column; align-items:center; gap:6px;">
-                <button id="deactivatedClose" class="login-method-btn" style="width:60%; background:#eef2f7; color:#2d3748; padding:8px 12px; border:1px solid #cbd5e1; border-radius:0;">Close</button>
+            <div class="deactivated-actions">
+                <button id="deactivatedClose" class="login-method-btn deactivated-close-btn">Close</button>
             </div>
         `;
 
@@ -579,13 +586,16 @@ class LoginWidget {
             setTimeout(() => overlay.remove(), 300);
         });
         // Contact Keepers button removed per UI update
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('visible');
-                box.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
-            }
-        });
+        // Delay click-outside handler to prevent mobile touch-to-click ghost click
+        setTimeout(() => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('visible');
+                    box.classList.remove('visible');
+                    setTimeout(() => overlay.remove(), 300);
+                }
+            });
+        }, 400);
     }
     showLoginPopupEnabled() {
         // Hide any active dialogues (login has higher priority)
@@ -606,7 +616,7 @@ class LoginWidget {
                 <div class="login-header-row">
                     <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
                     <div class="login-info-box">
-                        <p class="login-info-text" style="font-size: 0.75rem;">Discover a community of dreamweavers, exploring our wild mindscape.</p>
+                        <p class="login-info-text">Discover a community of dreamweavers, exploring our wild mindscape.</p>
                         <button id="loginBecomeResident" class="login-method-btn login-become-btn" style="--core-color: ${coreColor};">
                             <span class="become-btn-glow"></span>
                             <span>Become a Dreamweaver</span>
@@ -629,11 +639,12 @@ class LoginWidget {
                             autocomplete="username"
                             autocapitalize="off"
                             spellcheck="false"
+                            inputmode="email"
                         >
                     </div>
                     
                     <div id="loginStatusMessage" class="login-status-message">
-                        <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
+                        <img src="/assets/icon.png" alt="" class="login-status-icon">
                         <span>hello, dreamer?</span>
                     </div>
                     
@@ -698,11 +709,9 @@ class LoginWidget {
             }
             
             // Show checking status
-            statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
-            statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
-            statusMessage.style.color = '#555';
+            statusMessage.classList.add('checking');
             statusMessage.innerHTML = `
-                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px; animation: spin 1.5s linear infinite;">
+                <img src="/assets/icon_face.png" alt="" class="login-status-icon login-status-spinner">
                 <span>finding you...</span>
             `;
             if (!document.getElementById('spin-keyframes')) {
@@ -845,25 +854,27 @@ class LoginWidget {
                     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
                 };
                 
-                // Apply styling based on heraldry
-                statusMessage.style.background = hexToRgba(accountColor, 0.05);
-                statusMessage.style.border = `1px solid ${hexToRgba(accountColor, 0.2)}`;
-                statusMessage.style.color = accountColor;
+                // Apply styling based on heraldry using CSS custom properties
+                statusMessage.classList.remove('checking');
+                statusMessage.classList.add('found');
+                statusMessage.style.setProperty('--account-color', accountColor);
                 statusMessage.innerHTML = `
-                    <img src="${accountIcon}" alt="" style="width: 16px; height: 16px;">
+                    <img src="${accountIcon}" alt="" class="login-status-icon">
                     <strong>${accountName}</strong>
                 `;
                 
-                // Apply heraldry color to login box border and background tint
-                loginBox.style.borderColor = accountColor;
-                loginBox.style.background = `linear-gradient(${hexToRgba(accountColor, 0.02)}, ${hexToRgba(accountColor, 0.02)}), white`;
+                // Apply heraldry color using CSS custom property
+                loginBox.style.setProperty('--account-color', accountColor);
+                loginBox.classList.add('login-box-found');
                 
                 submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-                submitBtn.style.cursor = 'pointer';
+                submitBtn.classList.add('login-btn-ready');
+                // Set button colors directly for reliability (CSS vars on element don't always work)
                 submitBtn.style.background = accountColor;
                 submitBtn.style.borderColor = accountColor;
                 submitBtn.style.color = 'white';
+                submitBtn.style.opacity = '1';
+                console.log(`🎨 [Login] Applied button color: ${accountColor}`);
                 
                 // Determine button text based on account type
                 if (serviceEndpoint === 'https://reverie.house') {
@@ -887,18 +898,16 @@ class LoginWidget {
             passwordInput.value = '';
             sideDoorBtn.classList.remove('visible');
             sideDoorBtn.disabled = true;
-            statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
-            statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
-            statusMessage.style.color = '#555';
+            statusMessage.classList.remove('checking', 'found', 'error');
+            statusMessage.removeAttribute('style');
             statusMessage.innerHTML = `
-                <img src="/assets/icon.png" alt="" style="width: 18px; height: 18px;">
+                <img src="/assets/icon.png" alt="" class="login-status-icon">
                 <span>hello, dreamer?</span>
             `;
-            loginBox.style.borderColor = '';
-            loginBox.style.background = '';
+            loginBox.classList.remove('login-box-found');
+            loginBox.removeAttribute('style');
             submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.5';
-            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.classList.remove('login-btn-ready');
             submitBtn.style.background = '';
             submitBtn.style.borderColor = '';
             submitBtn.style.color = '';
@@ -910,16 +919,15 @@ class LoginWidget {
             passwordGroup.style.display = 'none';
             passwordInput.value = '';
             sideDoorBtn.classList.remove('visible');
-            statusMessage.style.background = 'rgba(217, 72, 72, 0.05)';
-            statusMessage.style.border = '1px solid rgba(217, 72, 72, 0.2)';
-            statusMessage.style.color = '#d94848';
+            statusMessage.classList.remove('checking', 'found');
+            statusMessage.classList.add('error');
+            statusMessage.removeAttribute('style');
             statusMessage.innerHTML = `
-                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px;">
+                <img src="/assets/icon_face.png" alt="" class="login-status-icon">
                 <span>we couldn't find you</span>
             `;
             submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.5';
-            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.classList.remove('login-btn-ready');
         };
         
         const showError = () => {
@@ -927,16 +935,15 @@ class LoginWidget {
             passwordGroup.style.display = 'none';
             passwordInput.value = '';
             sideDoorBtn.classList.remove('visible');
-            statusMessage.style.background = 'rgba(217, 72, 72, 0.05)';
-            statusMessage.style.border = '1px solid rgba(217, 72, 72, 0.2)';
-            statusMessage.style.color = '#d94848';
+            statusMessage.classList.remove('checking', 'found');
+            statusMessage.classList.add('error');
+            statusMessage.removeAttribute('style');
             statusMessage.innerHTML = `
-                <img src="/assets/icon_face.png" alt="" style="width: 18px; height: 18px;">
+                <img src="/assets/icon_face.png" alt="" class="login-status-icon">
                 <span>something went wrong</span>
             `;
             submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.5';
-            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.classList.remove('login-btn-ready');
         };
         
         // Debounced input handler
@@ -1118,15 +1125,17 @@ class LoginWidget {
             });
         }
         
-        // Click outside to close
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
-                window.dispatchEvent(new CustomEvent('oauth:cancel'));
-            }
-        });
+        // Click outside to close - delay to prevent mobile touch-to-click ghost click
+        setTimeout(() => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('visible');
+                    loginBox.classList.remove('visible');
+                    setTimeout(() => overlay.remove(), 300);
+                    window.dispatchEvent(new CustomEvent('oauth:cancel'));
+                }
+            });
+        }, 400);
     }
     
     // REMOVED: showBlueskyLoginForm and showDreamweaverLoginForm - functionality merged into showLoginPopupEnabled()
@@ -1192,13 +1201,16 @@ class LoginWidget {
             logoutBox.classList.remove('visible');
             setTimeout(() => overlay.remove(), 300);
         });
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('visible');
-                logoutBox.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
-            }
-        });
+        // Delay click-outside handler to prevent mobile touch-to-click ghost click
+        setTimeout(() => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('visible');
+                    logoutBox.classList.remove('visible');
+                    setTimeout(() => overlay.remove(), 300);
+                }
+            });
+        }, 400);
     }
 }
 window.loginWidget = new LoginWidget();

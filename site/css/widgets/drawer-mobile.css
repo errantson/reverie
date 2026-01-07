@@ -28,6 +28,8 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        will-change: transform;
     }
     
     .drawer-container.closed {
@@ -86,12 +88,19 @@
     }
     
     .drawer-avatar-btn {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
         width: 34px;
         height: 34px;
-        left: 14px;
-        aspect-ratio: 1;
+        min-width: 34px;
+        min-height: 34px;
+        max-width: 34px;
+        max-height: 34px;
         border-radius: 50%;
         overflow: hidden;
+        flex-shrink: 0;
     }
     
     .drawer-avatar-btn svg {
@@ -128,8 +137,13 @@
         display: none !important;
     }
     
-    /* Show mobile login button */
+    /* Show mobile login button (visibility controlled by JS based on auth state) */
     .drawer-login-btn.mobile-only {
+        display: block;
+    }
+    
+    /* Show mobile logout button (visibility controlled by JS based on auth state) */
+    .drawer-logout-btn.mobile-only {
         display: block;
     }
     
