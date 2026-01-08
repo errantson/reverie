@@ -45,7 +45,7 @@ class OrderWidget {
             synopsis: "After falling from his nightmare into the place between dreams, one lost dreamer finds our wild mindscape and Reverie House.<br><br>When an unending nightmare threatens to consume this strange but welcoming new home, Seeker must quickly master the art of dreamweaving before everything is lost to oblivion.",
             stats: {
                 genre: "Fantasy",
-                length: "155 pages",
+                length: "188 pages",
                 ages: "16+",
                 binding: "Softcover",
                 published: "29/03/25",
@@ -120,6 +120,7 @@ class OrderWidget {
                      class="hero-cover-img"
                      onclick="orderWidget.openTableOfContents()">
                 <button class="kindle-btn" onclick="orderWidget.handleKindleClick()">Read on Kindle</button>
+                <button class="epub-btn" onclick="orderWidget.handleEpubDownload()">Download ePub</button>
             </div>
         `;
     }
@@ -149,8 +150,12 @@ class OrderWidget {
                         <div class="carousel-slide" data-slide="1">
                             <div class="carousel-stats-container">
                                 <div class="shipping-notice-header">
+                                    <div class="shipping-badge">
+                                        <span class="shipping-icon">✦</span>
+                                        <span class="shipping-text">Free Worldwide Shipping</span>
+                                        <span class="shipping-icon">✦</span>
+                                    </div>
                                     <div class="edition-text">First Print Edition</div>
-                                    <div class="shipping-text">FREE WORLDWIDE SHIPPING</div>
                                 </div>
                                 <div class="book-info-grid">
                                     <span class="info-label">Author:</span><span>${author}</span>
@@ -255,8 +260,12 @@ class OrderWidget {
                     <div class="carousel-slide" data-slide="1">
                         <div class="carousel-stats-container">
                             <div class="shipping-notice-header">
+                                <div class="shipping-badge">
+                                    <span class="shipping-icon">✦</span>
+                                    <span class="shipping-text">Free Worldwide Shipping</span>
+                                    <span class="shipping-icon">✦</span>
+                                </div>
                                 <div class="edition-text">First Print Edition</div>
-                                <div class="shipping-text">FREE WORLDWIDE SHIPPING</div>
                             </div>
                             <div class="book-info-grid">
                                 <span class="info-label">Author:</span><span>${author}</span>
@@ -1021,6 +1030,13 @@ class OrderWidget {
     async handleKindleClick() {
         const link = await (window.getRegionalAmazonLink?.() || 'https://amazon.com');
         window.open(link, '_blank');
+    }
+
+    handleEpubDownload() {
+        const epubUrl = this.bookData.epubUrl;
+        if (epubUrl) {
+            window.open(epubUrl, '_blank');
+        }
     }
 
     openTableOfContents() {
