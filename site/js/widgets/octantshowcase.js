@@ -371,9 +371,10 @@ class OctantShowcase {
         return dreamers.map(dreamer => {
             const avatarUrl = dreamer.avatar || '/assets/icon_face.png';
             const displayName = dreamer.name || dreamer.handle;
+            const cleanHandle = dreamer.handle ? dreamer.handle.replace('.bsky.social', '') : displayName;
 
             return `
-                <a href="/dreamer.html?did=${encodeURIComponent(dreamer.did)}" 
+                <a href="/dreamers/${encodeURIComponent(cleanHandle)}" 
                    class="dreamer-avatar-link"
                    title="${displayName}">
                     <img src="${avatarUrl}" 

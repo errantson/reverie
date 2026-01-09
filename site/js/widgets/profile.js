@@ -581,14 +581,15 @@ class Profile {
                     const avatarUrl = targetDreamer.avatar 
                         ? `https://cdn.bsky.app/img/avatar/plain/${targetDreamer.did}/${targetDreamer.avatar.ref.$link}@jpeg`
                         : '/assets/icon_face.png';
+                    const cleanHandle = targetDreamer.handle.replace('.bsky.social', '');
                     
                     headingHTML += `
                         <div class="heading-dreamer">
-                            <a href="/dreamer.html?did=${encodeURIComponent(targetDreamer.did)}" class="heading-avatar">
+                            <a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="heading-avatar">
                                 <img src="${avatarUrl}" alt="${targetDreamer.name || targetDreamer.handle}">
                             </a>
                             <div class="heading-info">
-                                <a href="/dreamer.html?did=${encodeURIComponent(targetDreamer.did)}" class="heading-name">
+                                <a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="heading-name">
                                     ${targetDreamer.name || targetDreamer.handle}
                                 </a>
                                 <div class="heading-handle">@${targetDreamer.handle}</div>
@@ -1017,9 +1018,10 @@ class Profile {
                             const k = kindredDreamers[idx];
                             if (k) {
                                 const avatarUrl = k.avatar?.url || k.avatar || '/assets/icon_face.png';
+                                const cleanHandle = k.handle.replace('.bsky.social', '');
                                 return `
                                     <div class="profile-kindred-card" data-dreamer-did="${k.did}" data-dreamer-handle="${k.handle}">
-                                        <a href="/dreamer.html?did=${k.did}" 
+                                        <a href="/dreamers/${encodeURIComponent(cleanHandle)}" 
                                            class="profile-kindred-link"
                                            data-dreamer-did="${k.did}"
                                            data-dreamer-handle="${k.handle}">
@@ -2062,8 +2064,9 @@ class Profile {
                     userColor: userColor,
                     onDotClick: (clickedDreamer) => {
                         // Navigate to dreamer page
-                        if (clickedDreamer.did) {
-                            window.location.href = `/dreamer.html?did=${encodeURIComponent(clickedDreamer.did)}`;
+                        if (clickedDreamer.handle) {
+                            const cleanHandle = clickedDreamer.handle.replace('.bsky.social', '');
+                            window.location.href = `/dreamers/${encodeURIComponent(cleanHandle)}`;
                         }
                     }
                 });
@@ -2846,17 +2849,13 @@ class Profile {
             
             if (window.sidebarWidget?.displayDreamer) {
                 window.sidebarWidget.displayDreamer(dreamer);
-                const url = new URL(window.location);
-                url.searchParams.set('did', dreamer.did);
-                url.searchParams.delete('name');
-                url.searchParams.delete('handle');
-                window.history.pushState({}, '', url);
             } else {
-                window.location.href = `/dreamer.html?did=${dreamer.did}`;
+                const cleanHandle = dreamer.handle.replace('.bsky.social', '');
+                window.location.href = `/dreamers/${encodeURIComponent(cleanHandle)}`;
             }
         } catch (error) {
             console.error('Error navigating to dreamer:', error);
-            window.location.href = `/dreamer.html?name=${encodeURIComponent(name)}`;
+            window.location.href = `/dreamers/${encodeURIComponent(name)}`;
         }
     }
 

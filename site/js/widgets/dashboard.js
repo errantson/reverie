@@ -754,7 +754,7 @@ class Dashboard {
                                     <div class="account-info-grid-two-column">
                                         <div class="account-info-row">
                                             <span class="dashboard-info-label">Name</span>
-                                            <a href="/dreamer.html?did=${d.did}" class="dashboard-info-value dashboard-info-link" title="View dreamer profile">${d.name || d.handle}</a>
+                                            <a href="/dreamers/${(d.handle || '').replace('.bsky.social', '')}" class="dashboard-info-value dashboard-info-link" title="View dreamer profile">${d.name || d.handle}</a>
                                         </div>
                                         <div class="account-info-row">
                                             <span class="dashboard-info-label">Pseudonyms</span>
@@ -1747,9 +1747,10 @@ class Dashboard {
                 <div class="dashboard-kindred-list">
                     ${selected.map(k => {
                         if (k) {
+                            const cleanHandle = k.handle ? k.handle.replace('.bsky.social', '') : k.name;
                             return `
                                 <div class="dashboard-kindred-card" data-dreamer-did="${k.did}" data-dreamer-handle="${k.handle}">
-                                    <a href="/dreamer.html?did=${k.did}" 
+                                    <a href="/dreamers/${encodeURIComponent(cleanHandle)}" 
                                        class="dashboard-kindred-link"
                                        data-dreamer-did="${k.did}"
                                        data-dreamer-handle="${k.handle}">

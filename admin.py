@@ -8616,6 +8616,308 @@ def step_down_dreamstyler():
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================================================
+# BURSAR WORK ENDPOINTS (Single-worker role, top-patron only)
+# ============================================================================
+
+@app.route('/api/work/bursar/status')
+@rate_limit()
+def get_bursar_status():
+    """Get current bursar work status"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        valid, user_did, handle = validate_work_token(token)
+        
+        db_manager = DatabaseManager()
+        row = db_manager.fetch_one("""
+            SELECT workers, status, forced_retirement, worker_limit, created_at, updated_at
+            FROM work 
+            WHERE role = 'bursar' 
+            LIMIT 1
+        """)
+        
+        if not row:
+            return jsonify({
+                'success': True,
+                'is_worker': False,
+                'current_worker': None,
+                'role_info': None
+            })
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        # Find current worker (bursar is single-worker)
+        current_worker = workers[0] if workers else None
+        
+        # Check if the logged-in user is the bursar
+        is_worker = False
+        worker_status = None
+        
+        if user_did and current_worker:
+            is_worker = (user_did == current_worker.get('did'))
+            if is_worker:
+                worker_status = current_worker.get('status', 'working')
+        
+        # Include role info in response
+        role_info = {
+            'role': 'bursar',
+            'status': row['status'],
+            'forced_retirement': row['forced_retirement'],
+            'worker_limit': row['worker_limit'],
+            'workers': workers,
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at']
+        }
+        
+        return jsonify({
+            'success': True,
+            'is_worker': is_worker,
+            'status': worker_status,
+            'current_worker': {
+                'did': current_worker['did'],
+                'status': current_worker.get('status', 'working')
+            } if current_worker else None,
+            'role_info': role_info
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/bursar/activate', methods=['POST'])
+@rate_limit()
+def activate_bursar():
+    """Activate as bursar - requires being the top patron"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        print(f"\n{'='*80}")
+        print(f"💰 BURSAR ACTIVATION REQUEST")
+        print(f"{'='*80}")
+        print(f"Session DID: {user_did}")
+        print(f"Session handle: {handle}")
+        print(f"{'='*80}\n")
+        
+        # Verify user is the top patron
+        top_patron = db_manager.fetch_one("""
+            SELECT did, patron_score
+            FROM dreamers
+            WHERE patron_score > 0
+            ORDER BY patron_score DESC
+            LIMIT 1
+        """)
+        
+        if not top_patron or top_patron['did'] != user_did:
+            return jsonify({'error': 'Only the top patron may become Bursar'}), 403
+        
+        # Check if there's already an active bursar
+        work_row = db_manager.fetch_one("""
+            SELECT workers, status FROM work
+            WHERE role = 'bursar'
+        """)
+        
+        if not work_row:
+            return jsonify({'error': 'Bursar role not found in work table'}), 404
+        
+        workers = json.loads(work_row['workers']) if work_row['workers'] else []
+        
+        # If there's already a bursar and it's not us, check if they're retiring
+        if workers and workers[0].get('did') != user_did:
+            if workers[0].get('status') != 'retiring':
+                return jsonify({'error': 'There is already an active bursar. Wait for them to retire.'}), 409
+        
+        # Update unified system
+        print(f"💾 Updating unified user_roles table...")
+        existing_role = db_manager.fetch_one("""
+            SELECT 1 FROM user_roles WHERE did = %s AND role = 'bursar'
+        """, (user_did,))
+        
+        if existing_role:
+            db_manager.execute("""
+                UPDATE user_roles
+                SET status = 'active', activated_at = CURRENT_TIMESTAMP, deactivated_at = NULL
+                WHERE did = %s AND role = 'bursar'
+            """, (user_did,))
+            print(f"  ✓ Reactivated bursar role")
+        else:
+            db_manager.execute("""
+                INSERT INTO user_roles (did, role, status)
+                VALUES (%s, 'bursar', 'active')
+            """, (user_did,))
+            print(f"  ✓ Created bursar role")
+        
+        # Update legacy work table
+        print(f"💾 Updating legacy work table...")
+        new_worker = {
+            'did': user_did,
+            'status': 'working'
+        }
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, status = 'working', updated_at = %s
+            WHERE role = 'bursar'
+        """, (json.dumps([new_worker]), int(time.time())))
+        
+        # Add first-time work canon entry
+        add_first_time_work_canon(
+            db_manager, 
+            user_did, 
+            'bursar',
+            'became Bursar of Schemes',
+            'bursar'
+        )
+        
+        print(f"✅ Bursar activated for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': True,
+            'status': 'working'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/bursar/step-down', methods=['POST'])
+@rate_limit()
+def step_down_bursar():
+    """Step down as bursar"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        print(f"📝 BURSAR STEP-DOWN: {user_did}")
+        
+        # Unified system
+        db_manager.execute("""
+            UPDATE user_roles
+            SET status = 'inactive', deactivated_at = CURRENT_TIMESTAMP
+            WHERE did = %s AND role = 'bursar'
+        """, (user_did,))
+        print(f"  ✓ Deactivated bursar role in unified system")
+        
+        # Legacy system
+        cursor = db_manager.execute("SELECT workers FROM work WHERE role = 'bursar'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Bursar role not found'}), 404
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        if not workers or workers[0].get('did') != user_did:
+            return jsonify({'error': 'You are not the current bursar'}), 403
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = '[]', status = 'seeking', updated_at = %s
+            WHERE role = 'bursar'
+        """, (int(time.time()),))
+        print(f"  ✓ Cleared bursar from legacy work table")
+        
+        print(f"✅ Bursar step-down complete for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': False
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/bursar/set-status', methods=['POST'])
+@rate_limit()
+def set_bursar_status():
+    """Set bursar status (working/retiring)"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        new_status = data.get('status')
+        
+        if new_status not in ['working', 'retiring']:
+            return jsonify({'error': 'Invalid status'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        cursor = db_manager.execute("SELECT workers FROM work WHERE role = 'bursar'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Bursar role not found'}), 404
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        if not workers or workers[0].get('did') != user_did:
+            return jsonify({'error': 'You are not the current bursar'}), 403
+        
+        workers[0]['status'] = new_status
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'bursar'
+        """, (json.dumps(workers), int(time.time())))
+        
+        print(f"✅ Bursar status set to {new_status} for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'status': new_status
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/work/provisioner/send-request', methods=['POST'])
 @rate_limit()
 def send_provisioner_request():

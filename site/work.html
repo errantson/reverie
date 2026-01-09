@@ -1451,9 +1451,10 @@
                 const listHTML = workerDetails.map(w => {
                     // Calculate lighter background from user color
                     const bgColor = w.color + '20'; // 20 is hex for ~12% opacity
+                    const cleanHandle = w.handle.replace('.bsky.social', '');
                     return `
                         <div class="dreamstyler-row" style="background: ${bgColor}; border-left: 3px solid ${w.color};">
-                            <a href="/dreamer.html?did=${w.did}" class="dreamstyler-link dreamer-link" data-did="${w.did}">
+                            <a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="dreamstyler-link dreamer-link" data-did="${w.did}">
                                 <img src="${w.avatar}" alt="${w.handle}" class="dreamstyler-avatar" style="border-color: ${w.color};">
                                 <span class="dreamstyler-name" style="color: ${w.color};">${w.displayName}</span>
                             </a>
@@ -2639,7 +2640,8 @@
                 const youLink = document.getElementById('you-link');
                 if (youLink) {
                     if (userHandle && userHandle !== 'Unknown') {
-                        youLink.innerHTML = `<a href="/dreamer.html?did=${userDid}" class="dreamer-link" data-did="${userDid}" target="_blank" style="color: inherit; text-decoration: none;">you</a>`;
+                        const cleanHandle = userHandle.replace('.bsky.social', '');
+                        youLink.innerHTML = `<a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="dreamer-link" data-did="${userDid}" target="_blank" style="color: inherit; text-decoration: none;">you</a>`;
                     } else {
                         youLink.textContent = 'you';
                     }
@@ -3326,16 +3328,18 @@
                         carousel.dataset.current = current;
                     })(this)">◀</button>
                     <div class="carousel-slides" style="flex: 1; min-width: 0;">
-                        ${shuffledWorkers.map((w, i) => `
+                        ${shuffledWorkers.map((w, i) => {
+                            const cleanHandle = w.handle.replace('.bsky.social', '');
+                            return `
                             <div class="dreamstyler-slide" data-index="${i}" style="display: ${i === 0 ? 'block' : 'none'}; text-align: center;">
-                                <a href="/dreamer.html?did=${w.did}" class="dreamer-link" data-did="${w.did}" style="text-decoration: none;">
+                                <a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="dreamer-link" data-did="${w.did}" style="text-decoration: none;">
                                     <img src="${w.avatar}" alt="${w.handle}" 
                                          style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid ${w.color}; object-fit: cover; margin: 0 auto 0.35rem; display: block;">
                                     <div style="color: ${w.color}; font-weight: 600; font-size: 0.8rem;">${w.displayName}</div>
                                     <div style="color: #999; font-size: 0.65rem;">@${w.handle}</div>
                                 </a>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                     <button class="carousel-arrow carousel-next" style="background: none; border: none; color: #ccc; font-size: 1.2rem; cursor: pointer; padding: 0.25rem; opacity: ${shuffledWorkers.length > 1 ? '1' : '0.3'};" ${shuffledWorkers.length <= 1 ? 'disabled' : ''} onclick="(function(btn){
                         const carousel = btn.closest('.dreamstyler-carousel');

@@ -222,7 +222,10 @@ class Sidebar {
             container.querySelectorAll('.top-contributor-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const did = decodeURIComponent(item.dataset.did);
-                    window.location.href = `${window.location.pathname}?did=${encodeURIComponent(did)}`;
+                    const dreamer = this.dreamers.find(d => d.did === did);
+                    if (dreamer) {
+                        this.displayDreamer(dreamer);
+                    }
                 });
             });
             
@@ -310,7 +313,10 @@ class Sidebar {
             container.querySelectorAll('.current-worker-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const did = decodeURIComponent(item.dataset.did);
-                    window.location.href = `${window.location.pathname}?did=${encodeURIComponent(did)}`;
+                    const dreamer = this.dreamers.find(d => d.did === did);
+                    if (dreamer) {
+                        this.displayDreamer(dreamer);
+                    }
                 });
             });
             
@@ -396,7 +402,10 @@ class Sidebar {
             container.querySelectorAll('.recent-arrival-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const did = decodeURIComponent(item.dataset.did);
-                    window.location.href = `${window.location.pathname}?did=${encodeURIComponent(did)}`;
+                    const dreamer = this.dreamers.find(d => d.did === did);
+                    if (dreamer) {
+                        this.displayDreamer(dreamer);
+                    }
                 });
             });
             
@@ -552,7 +561,10 @@ class Sidebar {
             container.querySelectorAll('.active-dreamer-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const did = decodeURIComponent(item.dataset.did);
-                    window.location.href = `${window.location.pathname}?did=${encodeURIComponent(did)}`;
+                    const dreamer = this.dreamers.find(d => d.did === did);
+                    if (dreamer) {
+                        this.displayDreamer(dreamer);
+                    }
                 });
             });
             
@@ -631,7 +643,10 @@ class Sidebar {
             container.querySelectorAll('.honoured-guest-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const did = decodeURIComponent(item.dataset.did);
-                    window.location.href = `${window.location.pathname}?did=${encodeURIComponent(did)}`;
+                    const dreamer = this.dreamers.find(d => d.did === did);
+                    if (dreamer) {
+                        this.displayDreamer(dreamer);
+                    }
                 });
             });
             
@@ -701,7 +716,10 @@ class Sidebar {
             container.querySelectorAll('.great-patron-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const did = decodeURIComponent(item.dataset.did);
-                    window.location.href = `${window.location.pathname}?did=${encodeURIComponent(did)}`;
+                    const dreamer = this.dreamers.find(d => d.did === did);
+                    if (dreamer) {
+                        this.displayDreamer(dreamer);
+                    }
                 });
             });
             
@@ -787,7 +805,10 @@ class Sidebar {
             container.querySelectorAll('.active-dreamer-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const did = decodeURIComponent(item.dataset.did);
-                    window.location.href = `${window.location.pathname}?did=${encodeURIComponent(did)}`;
+                    const dreamer = this.dreamers.find(d => d.did === did);
+                    if (dreamer) {
+                        this.displayDreamer(dreamer);
+                    }
                 });
             });
             
@@ -799,23 +820,69 @@ class Sidebar {
     handleUrlParams() {
         const params = new URLSearchParams(window.location.search);
         let foundDreamer;
-        if (params.has('name')) {
+        
+        // Priority 1: Check URL path for /dreamers/{handle} format (clean URLs)
+        const pathMatch = window.location.pathname.match(/^\/dreamers\/(.+)$/);
+        if (pathMatch) {
+            const pathHandle = decodeURIComponent(pathMatch[1]).toLowerCase();
+            // Try matching by handle first (most common), then name, then display_name
+            foundDreamer = this.dreamers.find(d => 
+                d.handle.toLowerCase() === pathHandle ||
+                d.handle.toLowerCase().replace('.bsky.social', '') === pathHandle ||
+                d.name?.toLowerCase() === pathHandle ||
+                d.display_name?.toLowerCase() === pathHandle
+            );
+        }
+        
+        // Priority 2: Query parameters (legacy support)
+        if (!foundDreamer && params.has('name')) {
             const queryName = params.get('name').toLowerCase();
             foundDreamer = this.dreamers.find(d => d.name.toLowerCase() === queryName);
-        } else if (params.has('handle')) {
+        } else if (!foundDreamer && params.has('handle')) {
             const queryHandle = params.get('handle').toLowerCase();
             foundDreamer = this.dreamers.find(d => d.handle.toLowerCase() === queryHandle);
-        } else if (params.has('did')) {
+        } else if (!foundDreamer && params.has('did')) {
             const queryDid = params.get('did').toLowerCase();
             foundDreamer = this.dreamers.find(d => d.did.toLowerCase() === queryDid);
         }
         if (foundDreamer) {
-            this.displayDreamer(foundDreamer);
+            // Skip pushState on initial load to avoid duplicate history entry
+            this.displayDreamer(foundDreamer, { skipPushState: true });
+            // Replace URL with clean version if using legacy query params
+            if (params.has('did') || params.has('name') || params.has('handle')) {
+                const cleanHandle = foundDreamer.handle.replace('.bsky.social', '');
+                history.replaceState({ dreamerHandle: foundDreamer.handle, dreamerDid: foundDreamer.did }, '', `/dreamers/${encodeURIComponent(cleanHandle)}`);
+            }
         } else {
             this.displayRandomProfile();
         }
+        
+        // Setup popstate listener for browser back/forward
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.dreamerHandle) {
+                const dreamer = this.dreamers.find(d => d.handle === event.state.dreamerHandle);
+                if (dreamer) {
+                    this.displayDreamer(dreamer, { skipPushState: true });
+                }
+            } else {
+                // Parse URL path
+                const pathMatch = window.location.pathname.match(/^\/dreamers\/(.+)$/);
+                if (pathMatch) {
+                    const pathHandle = decodeURIComponent(pathMatch[1]).toLowerCase();
+                    const dreamer = this.dreamers.find(d => 
+                        d.handle.toLowerCase() === pathHandle ||
+                        d.handle.toLowerCase().replace('.bsky.social', '') === pathHandle
+                    );
+                    if (dreamer) {
+                        this.displayDreamer(dreamer, { skipPushState: true });
+                    }
+                }
+            }
+        });
     }
-    displayDreamer(dreamer) {
+    displayDreamer(dreamer, options = {}) {
+        const skipPushState = options.skipPushState || false;
+        
         if (dreamer && dreamer.did && dreamer.handle) {
             localStorage.setItem('lastViewedDreamer', JSON.stringify({
                 did: dreamer.did,
@@ -824,6 +891,14 @@ class Sidebar {
             }));
             if (window.spectrumDrawer && typeof window.spectrumDrawer.updateAvatarButton === 'function') {
                 window.spectrumDrawer.updateAvatarButton();
+            }
+            
+            // Update URL with clean path (unless skipped)
+            if (!skipPushState) {
+                // Use handle without .bsky.social for cleaner URLs
+                const cleanHandle = dreamer.handle.replace('.bsky.social', '');
+                const newUrl = `/dreamers/${encodeURIComponent(cleanHandle)}`;
+                history.pushState({ dreamerHandle: dreamer.handle, dreamerDid: dreamer.did }, '', newUrl);
             }
         }
         const profileContainer = document.getElementById('profile-container');

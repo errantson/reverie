@@ -55,7 +55,54 @@ class SpectrumPreview {
         
         this.loadStyles();
         this.loadDependencies();
-        this.render();
+        this.init();
+    }
+    
+    async init() {
+        await this.render();
+        
+        // Load a random pre-generated spectrum image for preview
+        this.loadRandomPreviewImage();
+    }
+    
+    async loadRandomPreviewImage() {
+        try {
+            let previewHandle = this.options.previewHandle;
+            
+            // If no specific handle provided, fetch a random one
+            if (!previewHandle) {
+                const response = await fetch('/api/random-handles');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.handles && data.handles.length > 0) {
+                        previewHandle = data.handles[Math.floor(Math.random() * data.handles.length)];
+                    }
+                }
+            }
+            
+            if (previewHandle) {
+                const imageUrl = `https://reverie.house/spectrum/${previewHandle}.png`;
+                
+                // Display the preview image
+                const rightCol = document.querySelector('.mapper-column-right');
+                if (rightCol) {
+                    const media = rightCol.querySelector('.origin-preview-media');
+                    if (media) {
+                        const img = new Image();
+                        img.onload = () => {
+                            media.innerHTML = `<img src="${imageUrl}" alt="Sample Origin" class="origin-preview-image" style="max-width: 100%;">`;
+                        };
+                        img.onerror = () => {
+                            // Keep "No preview yet" if image doesn't exist
+                            console.log('[SpectrumPreview] Preview image not found:', imageUrl);
+                        };
+                        img.src = imageUrl;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[SpectrumPreview] Failed to load preview image:', e);
+        }
     }
     
     loadStyles() {
@@ -76,7 +123,26 @@ class SpectrumPreview {
         }
     }
     
-    render() {
+    /**
+     * Get a handle for placeholder text: current user's handle if logged in, else default
+     */
+    async getAutofillHandle() {
+        // Try to get current logged-in user's handle
+        if (window.oauthManager) {
+            const session = window.oauthManager.getSession();
+            if (session && session.profile && session.profile.handle) {
+                return session.profile.handle;
+            }
+            if (session && session.handle) {
+                return session.handle;
+            }
+        }
+        
+        // Default placeholder
+        return 'handle.bsky.social';
+    }
+    
+    async render() {
         // Respect in-page Force Calculator toggle if present
         const forceToggle = document.getElementById('forceCalculateToggle');
         const forced = !!(forceToggle && forceToggle.checked);
@@ -84,8 +150,8 @@ class SpectrumPreview {
         const disabledClass = enabled ? '' : 'disabled';
         const disabledAttr = enabled ? '' : 'disabled';
         
-        // Pick a random suggestion handle for placeholder
-        const randomHandle = this.suggestionHandles[Math.floor(Math.random() * this.suggestionHandles.length)];
+        // Get autofill handle (user's handle or random from DB)
+        const autofillHandle = await this.getAutofillHandle();
         
         this.container.innerHTML = `
             <div class="spectrum-preview-widget ${disabledClass}">
@@ -100,7 +166,7 @@ class SpectrumPreview {
                                 type="text" 
                                 id="spectrum-handle-input"
                                 class="spectrum-preview-input"
-                                placeholder="@${randomHandle}"
+                                placeholder="@${autofillHandle}"
                                 ${disabledAttr}
                             >
                             <button 
@@ -124,9 +190,9 @@ class SpectrumPreview {
             this.attachEventListeners();
         } else if (forceToggle) {
             // If a force toggle exists, listen for changes and re-render so button/input enable state updates
-            forceToggle.addEventListener('change', () => {
+            forceToggle.addEventListener('change', async () => {
                 try {
-                    this.render();
+                    await this.render();
                 } catch (e) {
                     console.warn('Failed to re-render SpectrumPreview on force toggle change', e);
                 }
@@ -266,8 +332,13 @@ ${originUrl}`;
                         }
                     }
 
-                    // Still proceed with local compose/post flow so modal shows here as well
-                    await this.composeOriginPost(this.currentHandle);
+                    // DEPRECATED: Skip the local compose/post popup modal
+                    // The Bluesky compose in new tab is sufficient
+                    // await this.composeOriginPost(this.currentHandle);
+                    
+                    // Reset button for next calculation
+                    this.hasCalculated = false;
+                    calculateBtn.textContent = 'Calculate Origin';
                 } else if (!this.isLoading) {
                     console.log('🔄 [Button] Entering CALCULATE mode - fetching spectrum');
                     console.log('  Reason: Missing required state for INVITE mode');
@@ -324,7 +395,13 @@ ${originUrl}`;
         let identifier = input.value.trim();
         console.log('📝 [Calculate] Input value:', identifier);
         
-        if (!identifier) {
+        // If input is empty, use the placeholder (logged-in user's handle)
+        if (!identifier && input.placeholder) {
+            identifier = input.placeholder.replace(/^@/, '');
+            console.log('📝 [Calculate] Using placeholder handle:', identifier);
+        }
+        
+        if (!identifier || identifier === 'handle.bsky.social') {
             this.showError('Please enter a handle or DID');
             return null;
         }
@@ -1474,9 +1551,9 @@ ${originUrl}`;
         }
     }
     
-    setMapperStatus(isMapper) {
+    async setMapperStatus(isMapper) {
         this.options.isMapper = isMapper;
-        this.render();
+        await this.render();
     }
     
     showProgressModal() {
