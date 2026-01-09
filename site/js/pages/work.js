@@ -160,6 +160,12 @@
         } else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) {
             userRole = 'provisioner';
             roleStatus = roleStatuses.provisioner;
+        } else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) {
+            userRole = 'dreamstyler';
+            roleStatus = roleStatuses.dreamstyler;
+        } else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) {
+            userRole = 'bursar';
+            roleStatus = roleStatuses.bursar;
         }
         
         if (!userRole) {
@@ -176,7 +182,9 @@
             greeter: { title: 'GREETER' },
             mapper: { title: 'MAPPER' },
             cogitarian: { title: 'COGITARIAN' },
-            provisioner: { title: 'PROVISIONER' }
+            provisioner: { title: 'PROVISIONER' },
+            dreamstyler: { title: 'DREAMSTYLER' },
+            bursar: { title: 'BURSAR' }
         };
 
         const roleTitle = roleConfigs[userRole]?.title || userRole.toUpperCase();
@@ -193,17 +201,29 @@
         `;
         
         // Add action buttons based on current status
+        // Dreamstylers don't retire - they just step down
         if (status === 'working') {
-            statusHtml += `
-                <div class="sidebar-work-actions">
-                    <button class="sidebar-action-btn retiring-btn" onclick="setRoleRetiring('${userRole}')" title="Begin retiring from this role" style="background: ${userColor}; border-color: ${userColor};">
-                        Begin Retiring
-                    </button>
-                    <button class="sidebar-action-btn stepdown-btn" onclick="deactivateRole('${userRole}')" title="Step down immediately" style="background: ${userColor}; border-color: ${userColor}; filter: brightness(0.8);">
-                        Step Down
-                    </button>
-                </div>
-            `;
+            if (userRole === 'dreamstyler') {
+                // Dreamstylers only get a "Step Down" button, no retiring
+                statusHtml += `
+                    <div class="sidebar-work-actions">
+                        <button class="sidebar-action-btn stepdown-btn" onclick="deactivateRole('${userRole}')" title="Step down from being a Dreamstyler" style="background: ${userColor}; border-color: ${userColor};">
+                            Step Down
+                        </button>
+                    </div>
+                `;
+            } else {
+                statusHtml += `
+                    <div class="sidebar-work-actions">
+                        <button class="sidebar-action-btn retiring-btn" onclick="setRoleRetiring('${userRole}')" title="Begin retiring from this role" style="background: ${userColor}; border-color: ${userColor};">
+                            Begin Retiring
+                        </button>
+                        <button class="sidebar-action-btn stepdown-btn" onclick="deactivateRole('${userRole}')" title="Step down immediately" style="background: ${userColor}; border-color: ${userColor}; filter: brightness(0.8);">
+                            Step Down
+                        </button>
+                    </div>
+                `;
+            }
         } else if (status === 'retiring') {
             statusHtml += `
                 <div class="sidebar-work-actions">
@@ -231,6 +251,11 @@
             window.WorkEvents.on(eventName, () => {
                 console.log('🎨 [Work] WorkEvent received:', eventName);
                 setTimeout(updateSidebarWorkStatus, 200);
+                
+                // Dispatch a custom event so work.html can also react
+                window.dispatchEvent(new CustomEvent('work:role-changed', { 
+                    detail: { eventName } 
+                }));
             });
         });
     }

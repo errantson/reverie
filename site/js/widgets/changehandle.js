@@ -130,34 +130,49 @@ class ChangeHandleWidget {
             return `<option value="${handle}" ${isSelected ? 'selected' : ''}>@${handle}</option>`;
         }).join('');
         
-        // Get provisioner handle for the message
-        const provisionerHandle = this.config.provisionerHandle || 'the Head of Pantry';
+        // Get role-specific messaging based on reason
+        const reason = this.config.reason || 'default';
+        const roleColor = this.config.roleColor || 'var(--role-provisioner)';
+        const roleColorLight = this.config.roleColorLight || 'var(--role-provisioner-light)';
+        const roleClass = this.config.roleClass || 'provisioner';
+        
+        let titleText = 'Adopt Handle';
+        let introText = 'Only confirmed dreamweavers may directly message our <strong>Head of Pantry</strong> for food pickups.';
+        let instructionText = 'Adopt one of your available handles';
+        let recipientName = this.config.provisionerHandle || 'the Head of Pantry';
+        
+        if (reason === 'entreat_dreamstyler') {
+            titleText = 'Adopt Handle';
+            introText = 'Only confirmed dreamweavers may directly entreat our <strong>Dreamstylers</strong> for their services.';
+            instructionText = 'Adopt one of your available handles';
+            recipientName = this.config.dreamstylerHandle || 'the Dreamstyler';
+        }
         
         this.modal.innerHTML = `
-            <div class="change-handle-content">
-                <div class="change-handle-header">
-                    <h3 class="change-handle-title">Adopt Handle</h3>
+            <div class="change-handle-content" style="border-color: ${roleColor}; background: linear-gradient(135deg, #f8f5e6, ${roleColorLight});">
+                <div class="change-handle-header" style="border-bottom-color: ${roleColor}; background: ${roleColorLight};">
+                    <h3 class="change-handle-title" style="color: ${roleColor};">${titleText}</h3>
                     <button class="change-handle-close" onclick="window.changeHandleWidget.close()">×</button>
                 </div>
                 
                 <div class="change-handle-message">
-                    <p class="change-handle-intro">Only confirmed dreamweavers may directly message our <strong>Head of Pantry</strong> for food pickups.</p>
-                    <p class="change-handle-instruction">Adopt one of your available handles so that <strong>@${provisionerHandle}</strong> can receive your private message.</p>
+                    <p class="change-handle-intro" style="color: ${roleColor};">${introText}</p>
+                    <p class="change-handle-instruction">${instructionText} so that <strong style="color: ${roleColor};">@${recipientName}</strong> can receive your private message.</p>
                 </div>
                 
                 <div class="handle-selector-container">
-                    <select id="handle-dropdown" class="handle-dropdown">
+                    <select id="handle-dropdown" class="handle-dropdown" style="border-color: ${roleColor};">
                         ${optionsHTML}
                     </select>
                 </div>
                 
-                <div class="change-handle-footer">
-                    <p class="change-handle-current">Your current handle is: <strong>@${this.currentHandle || 'unknown'}</strong></p>
-                    <p class="change-handle-preview">Adopting <strong id="preview-handle">@${this.selectedHandle}</strong> will be recognized across our wild mindscape.</p>
+                <div class="change-handle-footer" style="background: ${roleColorLight};">
+                    <p class="change-handle-current">Your current handle is: <strong style="color: ${roleColor};">@${this.currentHandle || 'unknown'}</strong></p>
+                    <p class="change-handle-preview">Adopting <strong id="preview-handle" style="color: ${roleColor};">@${this.selectedHandle}</strong> will be recognized across our wild mindscape.</p>
                 </div>
                 
                 <div class="change-handle-actions">
-                    <button class="handle-adopt-btn" id="adopt-handle-btn">ADOPT HANDLE</button>
+                    <button class="handle-adopt-btn" id="adopt-handle-btn" style="background: ${roleColor}; border-color: ${roleColor}; color: white;">ADOPT HANDLE</button>
                     <button class="handle-cancel-btn" onclick="window.changeHandleWidget.close()">CANCEL</button>
                 </div>
             </div>

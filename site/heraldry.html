@@ -48,12 +48,53 @@
         <div class="heraldry-container">
             <!-- Heraldry Modal (centered in page, not overlay) -->
             <div class="heraldry-modal" id="heraldryModal">
+                <!-- Not a Herald View (shown when OAuth user is not a herald) -->
+                <div class="heraldry-view heraldry-not-herald" id="heraldryNotHerald" style="display: none;">
+                    <div class="heraldry-header">
+                        <img src="/assets/logo.png" alt="Reverie House" class="heraldry-logo">
+                        <h1 class="heraldry-title">Community Heraldry</h1>
+                        <p class="heraldry-subtitle">Herald management for PDS communities</p>
+                    </div>
+
+                    <div class="not-herald-content">
+                        <div class="user-status-card">
+                            <img id="notHeraldAvatar" src="/assets/icon.png" alt="" class="user-avatar">
+                            <div class="user-info">
+                                <span class="user-handle" id="notHeraldHandle">@handle</span>
+                                <span class="user-pds" id="notHeraldPds">on bsky.social</span>
+                            </div>
+                        </div>
+
+                        <div class="not-herald-message">
+                            <div class="message-icon">🛡️</div>
+                            <h2>Not a Herald</h2>
+                            <p>You're signed in, but you're not designated as a <strong>herald</strong> for any PDS community.</p>
+                        </div>
+
+                        <div class="herald-explainer">
+                            <h3>What is a Herald?</h3>
+                            <p>A <strong>herald</strong> is the designated representative for a Personal Data Server (PDS) community. Heralds can:</p>
+                            <ul>
+                                <li>Upload a custom icon for their PDS</li>
+                                <li>Set the primary color for their community's heraldry</li>
+                                <li>Transfer the herald role to another member</li>
+                            </ul>
+                            <p class="herald-note">Each PDS can have only one herald at a time. Heralds are typically the PDS operator or a trusted community member.</p>
+                        </div>
+
+                        <div class="not-herald-actions">
+                            <a href="/" class="heraldry-btn primary">Return to Reverie House</a>
+                            <button id="notHeraldSignOutBtn" class="heraldry-btn secondary">Sign Out</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Login View -->
                 <div class="heraldry-view heraldry-login" id="heraldryLogin">
                     <div class="heraldry-header">
                         <img src="/assets/logo.png" alt="Reverie House" class="heraldry-logo">
                         <h1 class="heraldry-title">Community Heraldry</h1>
-                        <p class="heraldry-subtitle">Heralds manage their community's heraldry</p>
+                        <p class="heraldry-subtitle">Herald management for PDS communities</p>
                     </div>
 
                     <div class="heraldry-login-form">
@@ -104,7 +145,9 @@
                         </div>
 
                         <div class="heraldry-info-box">
-                            <p>Only designated <strong>heralds</strong> can access heraldry settings to manage their community's heraldry.</p>
+                            <h4>What is a Herald?</h4>
+                            <p>A <strong>herald</strong> is the designated representative for a Personal Data Server (PDS) community. Only heralds can customize their community's icon and color.</p>
+                            <p>If you're a PDS operator, you may already be listed as the herald. Check by entering your handle above.</p>
                         </div>
                     </div>
 

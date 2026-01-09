@@ -47,8 +47,6 @@
     <style>
     /* Bursar-specific enforcement when bursar is the current role */
     body[data-current-role="bursar"] .bursar-box,
-    body[data-current-role="bursar"] .role-worker-card,
-    body[data-current-role="bursar"] .worker-card-header,
     body[data-current-role="bursar"] .role-separator,
     body[data-current-role="bursar"] .role-content-separator {
         border-color: var(--role-bursar-medium) !important;
@@ -56,6 +54,8 @@
     body[data-current-role="bursar"] .bursar-box {
         border: 2px solid var(--role-bursar-medium) !important;
     }
+    /* Note: .role-worker-card and .worker-card-header excluded to allow 
+       user's personal color (set via JavaScript) to show through */
 
     /* Make all links on the page use the active role's link color */
     body[data-current-role="bursar"] a {
@@ -64,6 +64,65 @@
     body[data-current-role="bursar"] a:hover,
     body[data-current-role="bursar"] a:focus {
         color: var(--role-bursar-dark) !important;
+    }
+    
+    /* Tangled Dolly icon styling */
+    .tangled-dolly-icon {
+        width: 16px;
+        height: 16px;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 4px;
+    }
+    
+    /* Tangled integration note styling */
+    .tangled-integration-note {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        margin-top: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        font-size: 0.85em;
+        color: var(--text-muted);
+    }
+    .tangled-integration-note .tangled-text {
+        flex: 1;
+    }
+    .tangled-integration-note code {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+    
+    /* Disabled bursar box styling */
+    .bursar-box-disabled {
+        opacity: 0.5;
+        pointer-events: none;
+        position: relative;
+    }
+    .bursar-box-disabled::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(128, 128, 128, 0.1);
+        border-radius: inherit;
+    }
+    .bursar-box-disabled input,
+    .bursar-box-disabled button,
+    .bursar-box-disabled textarea {
+        cursor: not-allowed !important;
+    }
+    .bursar-box-subtext {
+        font-size: 0.85em;
+        color: var(--text-muted);
+        font-style: italic;
+        margin-top: 8px;
     }
     </style>
     
@@ -213,7 +272,7 @@
                                 </svg>
                                 <span class="role-tab-name">Provisioner</span>
                             </button>
-                            <button class="role-tab" data-role="bursar" onclick="selectRole('bursar')">
+                            <button id="role-tab-bursar" class="role-tab admin-only-role" data-role="bursar" onclick="selectRole('bursar')" style="display: none;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
                                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                                     <path d="M12 8v8"/>
@@ -223,7 +282,7 @@
                                 </svg>
                                 <span class="role-tab-name">Bursar</span>
                             </button>
-                            <button class="role-tab" data-role="dreamstyler" onclick="selectRole('dreamstyler')">
+                            <button id="role-tab-dreamstyler" class="role-tab" data-role="dreamstyler" onclick="selectRole('dreamstyler')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
                                     <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
                                     <path d="M20 3v4"></path>
@@ -244,8 +303,8 @@
                         <option value="mapper">Mapper</option>
                         <option value="cogitarian">Cogitarian</option>
                         <option value="provisioner">Provisioner</option>
-                        <option value="bursar">Bursar</option>
-                        <option value="dreamstyler">Dreamstyler</option>
+                        <option id="mobile-option-bursar" value="bursar" class="admin-only-role" style="display: none;">Bursar</option>
+                        <option id="mobile-option-dreamstyler" value="dreamstyler">Dreamstyler</option>
                     </select>
                 </div>
 
@@ -308,10 +367,10 @@
                         <!-- Bursar Description -->
                         <div id="bursar-description" class="role-desc-content" style="display: none;">
                             <p class="role-description">
-                                Coordinating the use of valuable resources is an indispensible role (according to the <b class="role-text-bursar">Bursar of Schemes</b>).
+                                Coordinating the use of scarce resources is a vital and indispensible role (according to the <b class="role-text-bursar">Bursar of Schemes</b>).
                             </p>
                             <p class="role-description">
-                                This guardian of transparency works as the connective tissue between various patrons and the dreams that need their support.
+                                This guardian of transparency works as the connective tissue between various patrons and the amazing dreams that need their support.
                             </p>
                         </div>
                     </div>
@@ -543,10 +602,10 @@
                 <!-- Dreamstyler Content Section -->
                 <div id="dreamstyler-content-section" class="dreamstyler-content-container" style="display: none;">
                     <div class="dreamstyler-content-grid">
-                        <!-- Left: Active Dreamstylers List -->
+                        <!-- Left: Find Dreamstylers List -->
                         <div class="repo-card dreamstyler-list-card">
                             <div class="repo-card-header">
-                                <div class="repo-card-title">Active Dreamstylers</div>
+                                <div class="repo-card-title">Find Dreamstylers</div>
                             </div>
                             <div id="dreamstyler-list" class="dreamstyler-list">
                                 <div class="dreamstyler-loading">Loading dreamstylers...</div>
@@ -558,26 +617,23 @@
                             </div>
                         </div>
                         
-                        <!-- Right: Aesthetic Adjustments + Unfinished Dreams -->
+                        <!-- Right: Aesthetic Adjustments -->
                         <div class="dreamstyler-right-column">
-                            <div class="repo-data-box aesthetic-adjustments-box">
+                            <div class="repo-data-box aesthetic-adjustments-box" style="flex: 1;">
                                 <h3 class="repo-data-header">Aesthetic Adjustments</h3>
                                 <div id="dreamstyler-commits-list" class="dreamstyler-commits-list">
-                                    <div class="commit-row placeholder-row">
-                                        <span class="commit-message" style="color: #999; font-style: italic;">Loading...</span>
-                                    </div>
-                                </div>
-                                <div class="tangled-integration-note">
-                                    <span class="tangled-icon">🧶</span>
-                                    <span class="tangled-text">Tag commits with #dreamstyler via <a href="https://tangled.sh" target="_blank">tangled.sh</a></span>
+                                    <!-- Empty placeholder rows with alternating colors -->
+                                    <div class="commit-row empty-row even"></div>
+                                    <div class="commit-row empty-row odd"></div>
+                                    <div class="commit-row empty-row even"></div>
+                                    <div class="commit-row empty-row odd"></div>
+                                    <div class="commit-row empty-row even"></div>
                                 </div>
                             </div>
-                            
-                            <div class="repo-data-box unfinished-dreams-box">
-                                <h3 class="repo-data-header">Unfinished Dreams</h3>
-                                <div id="unfinished-dreams-list" class="unfinished-dreams-list">
-                                    <span style="color: #999; font-size: 0.75rem;">Loading...</span>
-                                </div>
+                            <!-- Tangled integration footer (outside the box) -->
+                            <div class="tangled-integration-footer">
+                                <img src="/assets/brands/tangled-dolly-black.svg" alt="Tangled" class="tangled-dolly-icon">
+                                <span class="tangled-text">Tag commits with <code>#dreamstyler</code> on <a href="https://tangled.org" target="_blank">tangled.org</a></span>
                             </div>
                         </div>
                     </div>
@@ -621,21 +677,22 @@
                         </div>
                         
                         <!-- Right Box: Submit a Scheme -->
-                        <div class="bursar-box">
+                        <div class="bursar-box bursar-box-disabled">
                             <h3 class="bursar-box-title">Submit a Scheme</h3>
                             <p class="bursar-box-text">
                                 Have a domain that dreams? Submit it for treasury integration.
                             </p>
                             <div class="bursar-submit-form">
-                                <input type="text" class="bursar-domain-input" id="scheme-domain-input" placeholder="yourdream.domain" />
-                                <button class="bursar-box-button" onclick="submitScheme()">
+                                <input type="text" class="bursar-domain-input" id="scheme-domain-input" placeholder="yourdream.domain" disabled />
+                                <button class="bursar-box-button" disabled title="Coming soon">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="22" y1="2" x2="11" y2="13"></line>
                                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                                     </svg>
-                                    Send
+                                    Coming Soon
                                 </button>
                             </div>
+                            <p class="bursar-box-subtext">Scheme submissions opening soon</p>
                         </div>
                     </div>
                 </div>
@@ -705,14 +762,96 @@
         let sessionCheckComplete = false;
         let isInitializing = false; // Prevent duplicate initialization
         let profileLoaded = false; // Track if profile is ready
+        let isAdminUser = false; // Track if user is admin (via /admin login)
         
-        // All roles are now always visible - no admin restrictions
+        // Check if user is logged in via /admin (admin session)
+        async function checkAdminStatus() {
+            try {
+                const adminToken = localStorage.getItem('admin_token');
+                if (!adminToken) {
+                    isAdminUser = false;
+                    updateAdminRoleVisibility();
+                    return;
+                }
+                
+                const response = await fetch('/api/admin/verify', {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    isAdminUser = data.valid && data.role === 'superadmin';
+                } else {
+                    isAdminUser = false;
+                }
+            } catch (error) {
+                console.error('Failed to check admin status:', error);
+                isAdminUser = false;
+            }
+            
+            updateAdminRoleVisibility();
+        }
+        
+        // Show or hide admin-only roles (bursar only - dreamstyler is now public)
+        function updateAdminRoleVisibility() {
+            const bursarTab = document.getElementById('role-tab-bursar');
+            const dreamstylerTab = document.getElementById('role-tab-dreamstyler');
+            const bursarMobile = document.getElementById('mobile-option-bursar');
+            const dreamstylerMobile = document.getElementById('mobile-option-dreamstyler');
+            
+            console.log('🎨 [Visibility] Checking tabs:', {
+                bursarTab: !!bursarTab,
+                dreamstylerTab: !!dreamstylerTab,
+                bursarMobile: !!bursarMobile,
+                dreamstylerMobile: !!dreamstylerMobile,
+                isAdminUser: isAdminUser
+            });
+            
+            // Dreamstyler is always visible (public)
+            if (dreamstylerTab) {
+                dreamstylerTab.style.display = 'flex';
+                console.log('✨ [Visibility] Dreamstyler tab shown (public)');
+            } else {
+                console.error('❌ [Visibility] Dreamstyler tab not found in DOM!');
+            }
+            if (dreamstylerMobile) dreamstylerMobile.style.display = '';
+            
+            if (isAdminUser) {
+                // Show admin-only roles (bursar)
+                if (bursarTab) bursarTab.style.display = 'flex';
+                if (bursarMobile) bursarMobile.style.display = '';
+                console.log('🔓 [Admin] Showing admin-only role: bursar');
+            } else {
+                // Hide admin-only roles (bursar)
+                if (bursarTab) bursarTab.style.display = 'none';
+                if (bursarMobile) bursarMobile.style.display = 'none';
+                
+                // If user was viewing bursar, redirect to greeter
+                if (currentRole === 'bursar') {
+                    console.log('🔒 [Admin] User viewing admin-only role without access, redirecting to greeter');
+                    selectRole('greeter');
+                }
+            }
+            
+            // DEBUG: Check tabs after visibility update
+            setTimeout(() => {
+                const allTabs = document.querySelectorAll('.role-tab');
+                console.log('🔍 [DEBUG] Tabs after visibility update:', allTabs.length);
+                allTabs.forEach((t, i) => {
+                    console.log(`🔍 [DEBUG] Tab ${i}: ${t.dataset.role}, display: ${t.style.display}, computed: ${getComputedStyle(t).display}`);
+                });
+            }, 100);
+        }
+        
+        // Legacy function name for backward compatibility
         function enforceProvisionerVisibility() {
-            // No-op: All 6 role tabs are always visible
+            // Now handled by updateAdminRoleVisibility
+            updateAdminRoleVisibility();
         }
 
         // Role selection function
-        function selectRole(role) {
+        function selectRole(role, options = {}) {
+            const skipPushState = options.skipPushState || false;
             currentRole = role;
             
             // Set data attribute on body for CSS role-specific styling
@@ -720,6 +859,12 @@
             
             // Save current role to localStorage
             localStorage.setItem('work_current_tab', role);
+            
+            // Update URL with pushState (unless skipped for initial load or popstate)
+            if (!skipPushState) {
+                const newUrl = `/${role}`;
+                history.pushState({ role: role }, '', newUrl);
+            }
             
             // Update tab button states
             document.querySelectorAll('.role-tab').forEach(btn => {
@@ -886,7 +1031,7 @@
         }
         
         // Spectrum Preview Widget Management
-        function updateSpectrumPreview(role) {
+        async function updateSpectrumPreview(role) {
             if (role !== 'mapper') {
                 hideSpectrumPreview();
                 return;
@@ -902,10 +1047,25 @@
             console.log('🔍 [SPECTRUM] updateSpectrumPreview called');
             console.log('🔍 [SPECTRUM] hasActiveMapper:', hasActiveMapper);
             
+            // Get the current mapper's handle for the preview image
+            let mapperHandle = null;
+            const mapperStatus = roleStatuses.mapper;
+            if (mapperStatus && mapperStatus.role_info && mapperStatus.role_info.workers && mapperStatus.role_info.workers.length > 0) {
+                const mapperDid = mapperStatus.role_info.workers[0].did;
+                try {
+                    const dreamerResponse = await fetch(`/api/dreamers/${mapperDid}`);
+                    if (dreamerResponse.ok) {
+                        const dreamer = await dreamerResponse.json();
+                        mapperHandle = dreamer.handle;
+                    }
+                } catch (e) { /* ignore */ }
+            }
+            
             // Initialize widget if not already created
             if (!spectrumPreviewWidget && window.SpectrumPreview) {
                 spectrumPreviewWidget = new window.SpectrumPreview(container, {
-                    isMapper: hasActiveMapper
+                    isMapper: hasActiveMapper,
+                    previewHandle: mapperHandle
                 });
             } else if (spectrumPreviewWidget) {
                 // Update mapper status if widget exists
@@ -1412,15 +1572,31 @@
                         message = 'Please log in to entreat a dreamstyler.';
                         break;
                     case 'not_dreamweaver':
-                        message = 'Only dreamweavers can entreat dreamstylers.\n\nUse a .reverie.house handle or connect via the Reverie House PDS.';
-                        break;
+                        // Show the changehandle widget to let them switch to a .reverie.house handle
+                        if (window.changeHandleWidget) {
+                            window.changeHandleWidget.show({
+                                reason: 'entreat_dreamstyler',
+                                dreamstylerHandle: handle,
+                                roleColor: 'var(--role-dreamstyler)',
+                                roleColorLight: 'var(--role-dreamstyler-light)',
+                                roleClass: 'dreamstyler',
+                                onSuccess: () => {
+                                    // Retry the entreat after handle change
+                                    entreatDreamstyler(handle);
+                                }
+                            });
+                        } else {
+                            message = 'Entreating dreamstylers is only available to dreamweavers using their .reverie.house handle.\n\nPlease switch to your Reverie House handle and try again.';
+                            showCelebration(message, 'error');
+                        }
+                        return;
                     case 'no_phanera':
                         message = 'You must declare a phanera before entreating a dreamstyler.\n\nA phanera is a domain you\'re building that you want styled. Create a house.reverie.dream record to declare one.';
                         break;
                     default:
                         message = 'Unable to entreat at this time.';
                 }
-                showCelebration(message, 'error');
+                if (message) showCelebration(message, 'error');
                 return;
             }
             
@@ -1483,20 +1659,58 @@
             }
         }
         
-        // Load treasury data from OpenCollective (placeholder for API integration)
+        // Load treasury data from OpenCollective API
         async function loadTreasuryData() {
             const balanceEl = document.getElementById('oc-balance');
             const totalRaisedEl = document.getElementById('oc-total-raised');
             
-            // For now, show placeholder - OpenCollective API integration coming
-            if (balanceEl) {
-                balanceEl.textContent = '$0.00';
-                balanceEl.title = 'Connect OpenCollective to view balance';
-            }
-            
-            if (totalRaisedEl) {
-                totalRaisedEl.textContent = '$0.00';
-                totalRaisedEl.title = 'Connect OpenCollective to view total raised';
+            try {
+                const response = await fetch('https://api.opencollective.com/graphql/v2', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `query {
+                            account(slug: "reverie-house") {
+                                name
+                                stats {
+                                    balance { value currency }
+                                    totalAmountReceived { value currency }
+                                }
+                            }
+                        }`
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.data && data.data.account) {
+                    const stats = data.data.account.stats;
+                    const currency = stats.balance.currency || 'CAD';
+                    
+                    if (balanceEl) {
+                        const balance = parseFloat(stats.balance.value) || 0;
+                        balanceEl.textContent = `$${balance.toFixed(2)} ${currency}`;
+                        balanceEl.title = 'Current OpenCollective balance';
+                    }
+                    
+                    if (totalRaisedEl) {
+                        const totalRaised = parseFloat(stats.totalAmountReceived.value) || 0;
+                        totalRaisedEl.textContent = `$${totalRaised.toFixed(2)} ${currency}`;
+                        totalRaisedEl.title = 'Total amount received on OpenCollective';
+                    }
+                } else {
+                    throw new Error('No data returned from OpenCollective');
+                }
+            } catch (error) {
+                console.error('Failed to load OpenCollective data:', error);
+                if (balanceEl) {
+                    balanceEl.textContent = 'Unable to load';
+                    balanceEl.title = 'Error loading OpenCollective data';
+                }
+                if (totalRaisedEl) {
+                    totalRaisedEl.textContent = 'Unable to load';
+                    totalRaisedEl.title = 'Error loading OpenCollective data';
+                }
             }
             
             // Project cards already have static placeholder content
@@ -1610,6 +1824,9 @@
                     window.changeHandleWidget.show({
                         reason: 'food_request',
                         provisionerHandle: provisionerHandle,
+                        roleColor: 'var(--role-provisioner)',
+                        roleColorLight: 'var(--role-provisioner-light)',
+                        roleClass: 'provisioner',
                         onSuccess: () => {
                             // Retry the food request after handle change
                             requestFoodPickup();
@@ -2160,18 +2377,18 @@
             let attempts = 0;
             const maxAttempts = 5;
             
-            // Show/hide admin-only tabs based on access
-            enforceProvisionerVisibility();
+            // Check admin status and show/hide admin-only tabs
+            checkAdminStatus();
             
-            // Check URL path for direct role navigation (e.g., /work/greeter, /work/mapper)
-            const pathParts = window.location.pathname.split('/');
-            const urlRole = pathParts[pathParts.length - 1]; // Get last part of path
+            // Check URL path for direct role navigation (e.g., /greeter, /mapper, /cogitarian)
+            const pathParts = window.location.pathname.split('/').filter(p => p); // Filter out empty parts
+            const urlRole = pathParts.length > 0 ? pathParts[0] : null; // Get first non-empty part of path
             
             // Also check for hash fragment (e.g., #greeter, #mapper, #cogitarian)
             const hashRole = window.location.hash.replace('#', '');
             
-            // Build allowed roles list
-            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler'];
+            // Build allowed roles list (admin-only roles handled by updateAdminRoleVisibility)
+            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar'];
             
             let initialTab = null;
             
@@ -2206,11 +2423,16 @@
                 if (mobileSelector) {
                     mobileSelector.value = initialTab;
                 }
-                // Update the role display
-                selectRole(initialTab);
+                // Update the role display (skipPushState to avoid adding history entry on initial load)
+                selectRole(initialTab, { skipPushState: true });
+                
+                // Replace current history state with the role URL
+                history.replaceState({ role: initialTab }, '', `/${initialTab}`);
             } else {
                 // Set default role if none specified
                 document.body.setAttribute('data-current-role', currentRole);
+                // Set URL to default role
+                history.replaceState({ role: currentRole }, '', `/${currentRole}`);
             }
             
             // Load greeting templates immediately
@@ -2229,53 +2451,6 @@
             
             // Load greeting events for greeter tab
             loadGreetingEvents();
-            
-            // Add global click handler for dreamer-link elements to show Bluesky profile popups
-            // Use capture phase to intercept clicks before EventStack row handlers
-            document.addEventListener('click', (e) => {
-                const dreamerLink = e.target.closest('.dreamer-link');
-                if (dreamerLink) {
-                    console.log('🔍 [Work] Dreamer link clicked:', {
-                        element: dreamerLink,
-                        dataset: dreamerLink.dataset,
-                        'data-dreamer-did': dreamerLink.getAttribute('data-dreamer-did'),
-                        'data-did': dreamerLink.getAttribute('data-did'),
-                        href: dreamerLink.getAttribute('href'),
-                        showDreamer: !!window.showDreamer
-                    });
-                    
-                    // Try both data-dreamer-did and data-did attributes
-                    const did = dreamerLink.dataset.dreamerDid || dreamerLink.dataset.did;
-                    
-                    if (!did) {
-                        console.warn('[Work] Dreamer link has no DID attribute');
-                        return;
-                    }
-                    
-                    // Check if the link has a bsky.app href (external profile link)
-                    const href = dreamerLink.getAttribute('href');
-                    if (href && href.includes('bsky.app/profile')) {
-                        console.log('[Work] External bsky link, allowing default navigation');
-                        // Don't prevent default for external bsky links
-                        return;
-                    }
-                    
-                    // Prevent default navigation to /dreamer page
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    console.log(`✨ [Work] Showing dreamer popup for DID: ${did}`);
-                    
-                    // Show dreamer popup
-                    if (window.showDreamer) {
-                        window.showDreamer(did);
-                    } else {
-                        console.warn('[Work] showDreamer not available, falling back to navigation');
-                        window.location.href = `/dreamer?did=${encodeURIComponent(did)}`;
-                    }
-                }
-            }, true); // USE CAPTURE PHASE to intercept before row handlers
-            
             
             // Setup work event listeners for cross-page synchronization
             const setupWorkEvents = () => {
@@ -2307,10 +2482,67 @@
                     await loadRoleStatus('greeter');
                     updateUI();
                 });
+                
+                // Listen for dreamstyler activation - refresh Find Dreamstylers carousel
+                window.WorkEvents.on(window.WorkEvents.EVENTS.DREAMSTYLER_ACTIVATED, async (data) => {
+                    console.log('🎯 Work: Received DREAMSTYLER_ACTIVATED event', data);
+                    await loadRoleStatus('dreamstyler');
+                    updateUI();
+                    // Refresh the Find Dreamstylers carousel
+                    const roleInfo = roleStatuses.dreamstyler;
+                    if (roleInfo && roleInfo.role_info) {
+                        await updateMultiWorkerDisplay(roleInfo.role_info, 'dreamstyler');
+                    }
+                });
+                
+                // Listen for dreamstyler step-down - refresh Find Dreamstylers carousel
+                window.WorkEvents.on(window.WorkEvents.EVENTS.DREAMSTYLER_STEPPED_DOWN, async (data) => {
+                    console.log('🎯 Work: Received DREAMSTYLER_STEPPED_DOWN event', data);
+                    await loadRoleStatus('dreamstyler');
+                    updateUI();
+                    // Refresh the Find Dreamstylers carousel
+                    const roleInfo = roleStatuses.dreamstyler;
+                    if (roleInfo && roleInfo.role_info) {
+                        await updateMultiWorkerDisplay(roleInfo.role_info, 'dreamstyler');
+                    }
+                });
+                
+                // Listen for dreamstyler status changes
+                window.WorkEvents.on(window.WorkEvents.EVENTS.DREAMSTYLER_STATUS_CHANGED, async (data) => {
+                    console.log('🎯 Work: Received DREAMSTYLER_STATUS_CHANGED event', data);
+                    await loadRoleStatus('dreamstyler');
+                    updateUI();
+                    // Refresh the Find Dreamstylers carousel
+                    const roleInfo = roleStatuses.dreamstyler;
+                    if (roleInfo && roleInfo.role_info) {
+                        await updateMultiWorkerDisplay(roleInfo.role_info, 'dreamstyler');
+                    }
+                });
             };
             
             // Start setup (will retry if not ready)
             setupWorkEvents();
+            
+            // Handle browser back/forward navigation
+            window.addEventListener('popstate', (event) => {
+                const allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar'];
+                let role = null;
+                
+                // Check state first
+                if (event.state && event.state.role && allowedRoles.includes(event.state.role)) {
+                    role = event.state.role;
+                } else {
+                    // Fallback to parsing URL path
+                    const path = window.location.pathname.replace('/', '');
+                    if (allowedRoles.includes(path)) {
+                        role = path;
+                    }
+                }
+                
+                if (role) {
+                    selectRole(role, { skipPushState: true });
+                }
+            });
             
             // Set initial loading state
             const loadingStateText = document.getElementById('loading-state-text');
@@ -3059,43 +3291,64 @@
             
             const workerInfos = await Promise.all(workerInfoPromises);
             
-            // Build compact list of workers
-            const workerListHTML = workerInfos.map(w => `
-                <a href="/dreamer.html?did=${w.did}" 
-                   class="dreamer-link" 
-                   data-did="${w.did}"
-                   style="display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; text-decoration: none;">
-                    <img src="${w.avatar}" alt="${w.handle}" 
-                         style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid ${w.color}; object-fit: cover;">
-                    <span style="color: ${w.color}; font-weight: 500; font-size: 0.9rem;">${w.displayName}</span>
-                    <span style="color: #999; font-size: 0.8rem;">@${w.handle}</span>
-                </a>
-            `).join('');
+            // Randomize order of workers in carousel
+            const shuffledWorkers = [...workerInfos].sort(() => Math.random() - 0.5);
             
-            // Only show "Become Dreamstyler" button if user is NOT already a dreamstyler
-            const becomeButton = isCurrentUserWorker ? '' : `
+            // Always show "Become Dreamstyler" button, but disable it if user is already a dreamstyler
+            const becomeButton = `
                     <button class="become-role-btn" onclick="openWorkerModal('dreamstyler')" style="
-                        background: var(--role-dreamstyler);
-                        color: white;
+                        background: ${isCurrentUserWorker ? '#ddd' : 'var(--role-dreamstyler)'};
+                        color: ${isCurrentUserWorker ? '#999' : 'white'};
                         border: none;
-                        padding: 0.4rem 0.8rem;
-                        font-size: 0.75rem;
+                        padding: 0.5rem 1rem;
+                        font-size: 0.7rem;
                         font-weight: 600;
-                        cursor: pointer;
+                        cursor: ${isCurrentUserWorker ? 'not-allowed' : 'pointer'};
                         transition: all 0.2s ease;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
+                        width: 100%;
                         margin-top: 0.5rem;
-                    ">Become Dreamstyler</button>`;
+                        opacity: ${isCurrentUserWorker ? '0.6' : '1'};
+                    " ${isCurrentUserWorker ? 'disabled' : ''}>Become Dreamstyler</button>`;
             
+            // Build carousel-style display with arrows (simpler, smaller)
             workerDisplay.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 150px; overflow-y: auto;">
-                    ${workerListHTML}
+                <div class="dreamstyler-carousel" data-current="0" data-total="${shuffledWorkers.length}" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <button class="carousel-arrow carousel-prev" style="background: none; border: none; color: #ccc; font-size: 1.2rem; cursor: pointer; padding: 0.25rem; opacity: ${shuffledWorkers.length > 1 ? '1' : '0.3'};" ${shuffledWorkers.length <= 1 ? 'disabled' : ''} onclick="(function(btn){
+                        const carousel = btn.closest('.dreamstyler-carousel');
+                        let current = parseInt(carousel.dataset.current) || 0;
+                        const total = parseInt(carousel.dataset.total) || 1;
+                        const slides = carousel.querySelectorAll('.dreamstyler-slide');
+                        slides[current].style.display = 'none';
+                        current = (current - 1 + total) % total;
+                        slides[current].style.display = 'block';
+                        carousel.dataset.current = current;
+                    })(this)">◀</button>
+                    <div class="carousel-slides" style="flex: 1; min-width: 0;">
+                        ${shuffledWorkers.map((w, i) => `
+                            <div class="dreamstyler-slide" data-index="${i}" style="display: ${i === 0 ? 'block' : 'none'}; text-align: center;">
+                                <a href="/dreamer.html?did=${w.did}" class="dreamer-link" data-did="${w.did}" style="text-decoration: none;">
+                                    <img src="${w.avatar}" alt="${w.handle}" 
+                                         style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid ${w.color}; object-fit: cover; margin: 0 auto 0.35rem; display: block;">
+                                    <div style="color: ${w.color}; font-weight: 600; font-size: 0.8rem;">${w.displayName}</div>
+                                    <div style="color: #999; font-size: 0.65rem;">@${w.handle}</div>
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="carousel-arrow carousel-next" style="background: none; border: none; color: #ccc; font-size: 1.2rem; cursor: pointer; padding: 0.25rem; opacity: ${shuffledWorkers.length > 1 ? '1' : '0.3'};" ${shuffledWorkers.length <= 1 ? 'disabled' : ''} onclick="(function(btn){
+                        const carousel = btn.closest('.dreamstyler-carousel');
+                        let current = parseInt(carousel.dataset.current) || 0;
+                        const total = parseInt(carousel.dataset.total) || 1;
+                        const slides = carousel.querySelectorAll('.dreamstyler-slide');
+                        slides[current].style.display = 'none';
+                        current = (current + 1) % total;
+                        slides[current].style.display = 'block';
+                        carousel.dataset.current = current;
+                    })(this)">▶</button>
                 </div>
-                <div style="text-align: center; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(158, 117, 229, 0.2);">
-                    <span style="color: #999; font-size: 0.7rem;">${workers.length} active dreamstyler${workers.length !== 1 ? 's' : ''}</span>
-                    ${becomeButton}
-                </div>
+                ${becomeButton}
             `;
             
             // Initialize dreamer-hover
@@ -3226,7 +3479,7 @@
                 roleNameLower: 'dreamstyler',
                 buttonText: 'BECOME DREAMSTYLER',
                 confirmTitle: 'Become Dreamstyler?',
-                confirmMessage: 'As Dreamstyler, you will help shape the aesthetic elements of Reverie House.',
+                confirmMessage: 'As a <strong>Dreamstyler</strong>, other dreamweavers may entreat you for help shaping aesthetic elements of their dreams. Respond as you please, and use your own discretion when collaborating.<br><br>Contact help@reverie.house if necessary.',
                 activationMessage: 'You are now a Dreamstyler\nThank you for working!\nPlease stop if it feels like work.',
                 showExamples: false,
                 requiresAppPassword: false,
@@ -3234,7 +3487,7 @@
             },
             bursar: {
                 title: 'Bursar of Schemes',
-                description: 'Coordinating the use of valuable resources is an indispensible role (according to the Bursar of Schemes)<br><br>This guardian of transparency works as the connective tissue between various patrons and the dreams that need their support.',
+                description: 'Coordinating the use of scarce resources is a vital and indispensible role (according to the Bursar of Schemes)<br><br>This guardian of transparency works as the connective tissue between various patrons and the amazing dreams that need their support.',
                 exampleLabel: 'Treasury Updates',
                 appPasswordName: null, // Bursar holds no app password
                 passwordPurpose: null,
@@ -4414,6 +4667,14 @@
                         roleStatuses[role] = { is_worker: false, status: null };
                         await loadRoleStatus(role);
                         updateUI();
+                        
+                        // If stepping down from dreamstyler, refresh the Find Dreamstylers display
+                        if (role === 'dreamstyler') {
+                            const roleInfo = roleStatuses.dreamstyler;
+                            if (roleInfo) {
+                                await updateMultiWorkerDisplay(roleInfo, 'dreamstyler');
+                            }
+                        }
                         
                         if (window.WorkEvents) {
                             const eventName = `${role.toUpperCase()}_STEPPED_DOWN`;

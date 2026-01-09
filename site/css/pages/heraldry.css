@@ -396,6 +396,158 @@ body.heraldry-page {
 }
 
 /* =============================================================================
+   NOT A HERALD VIEW
+   ============================================================================= */
+
+.heraldry-not-herald {
+    padding: 24px 20px;
+}
+
+.not-herald-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* User status card - shows who is signed in */
+.user-status-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f8f4fa 0%, #f0e8f3 100%);
+    border-left: 3px solid #87408d;
+}
+
+.user-status-card .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.user-status-card .user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.user-status-card .user-handle {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-status-card .user-pds {
+    font-size: 0.8rem;
+    color: #777;
+}
+
+/* Not herald message */
+.not-herald-message {
+    text-align: center;
+    padding: 24px 16px;
+    background: #fef9f9;
+    border: 1px solid #fde8e8;
+}
+
+.not-herald-message .message-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.not-herald-message h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.25rem;
+    color: #c53030;
+    font-weight: 600;
+}
+
+.not-herald-message p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.not-herald-message strong {
+    color: #87408d;
+}
+
+/* Herald explainer box */
+.herald-explainer {
+    padding: 20px;
+    background: #faf8fc;
+    border: 1px solid #e8dde8;
+}
+
+.herald-explainer h3 {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
+    color: #87408d;
+    font-weight: 600;
+}
+
+.herald-explainer p {
+    margin: 0 0 12px 0;
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.5;
+}
+
+.herald-explainer ul {
+    margin: 0 0 14px 0;
+    padding-left: 20px;
+}
+
+.herald-explainer li {
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+
+.herald-explainer strong {
+    color: #87408d;
+}
+
+.herald-explainer .herald-note {
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px solid #e8dde8;
+    font-size: 0.8rem;
+    color: #777;
+    font-style: italic;
+}
+
+/* Action buttons */
+.not-herald-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.not-herald-actions .heraldry-btn {
+    width: 100%;
+    text-align: center;
+    text-decoration: none;
+}
+
+/* Info box improvements */
+.heraldry-info-box h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    color: #87408d;
+    font-weight: 600;
+}
+
+/* =============================================================================
    DASHBOARD VIEW
    ============================================================================= */
 
@@ -915,5 +1067,22 @@ body.heraldry-page {
     #transferBtn {
         width: auto;
         flex-shrink: 0;
+    }
+    
+    /* Not-herald view tablet+ */
+    .heraldry-not-herald {
+        padding: 32px 28px;
+    }
+    
+    .not-herald-message {
+        padding: 28px 24px;
+    }
+    
+    .not-herald-message .message-icon {
+        font-size: 3rem;
+    }
+    
+    .herald-explainer {
+        padding: 24px;
     }
 }

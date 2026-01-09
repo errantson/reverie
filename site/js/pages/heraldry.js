@@ -73,12 +73,14 @@ class Heraldry {
                     await this.loadDashboard(heraldryData);
                     return;
                 } else {
-                    console.log('[Heraldry] OAuth user is not a herald');
+                    console.log('[Heraldry] OAuth user is not a herald, showing not-herald view');
+                    await this.showNotHeraldView(oauthSession);
+                    return;
                 }
             }
         }
         
-        console.log('[Heraldry] No valid session, showing login form');
+        console.log('[Heraldry] No session, showing login form');
         // Setup event listeners for login form
         this.setupEventListeners();
     }
@@ -210,6 +212,79 @@ class Heraldry {
         }
     }
 
+    async showNotHeraldView(oauthSession) {
+        console.log('[Heraldry] Showing not-herald view for:', oauthSession.handle);
+        
+        // Hide other views, show not-herald view
+        const loginView = document.getElementById('heraldryLogin');
+        const dashboardView = document.getElementById('heraldryDashboard');
+        const notHeraldView = document.getElementById('heraldryNotHerald');
+        
+        if (loginView) loginView.style.display = 'none';
+        if (dashboardView) dashboardView.style.display = 'none';
+        if (notHeraldView) notHeraldView.style.display = 'block';
+        
+        // Get user's profile and PDS info
+        let avatar = '/assets/icon.png'; // Default fallback
+        let pdsDisplay = 'Bluesky';
+        
+        try {
+            // Try to get avatar from OAuth session (profile is stored on currentSession)
+            const session = this.oauthManager.currentSession || this.oauthManager.getSession();
+            if (session) {
+                // Avatar can be on session directly or in session.profile
+                if (session.avatar) {
+                    avatar = session.avatar;
+                } else if (session.profile && session.profile.avatar) {
+                    avatar = session.profile.avatar;
+                }
+            }
+            
+            // Get PDS from DID doc
+            let didDocResponse;
+            if (oauthSession.did.startsWith('did:web:')) {
+                const domain = oauthSession.did.replace('did:web:', '');
+                didDocResponse = await fetch(`https://${domain}/.well-known/did.json`);
+            } else {
+                didDocResponse = await fetch(`https://plc.directory/${oauthSession.did}`);
+            }
+            
+            if (didDocResponse.ok) {
+                const didDoc = await didDocResponse.json();
+                const service = didDoc.service?.find(s => s.id === '#atproto_pds');
+                const pdsEndpoint = service?.serviceEndpoint || '';
+                const pdsDomain = pdsEndpoint.replace(/^https?:\/\//, '').split('/')[0];
+                if (pdsDomain) {
+                    pdsDisplay = pdsDomain;
+                }
+            }
+        } catch (e) {
+            console.warn('[Heraldry] Could not load profile/PDS info:', e);
+        }
+        
+        // Update the view with user info
+        const avatarEl = document.getElementById('notHeraldAvatar');
+        const handleEl = document.getElementById('notHeraldHandle');
+        const pdsEl = document.getElementById('notHeraldPds');
+        
+        if (avatarEl) avatarEl.src = avatar;
+        if (handleEl) handleEl.textContent = `@${oauthSession.handle}`;
+        if (pdsEl) pdsEl.textContent = `on ${pdsDisplay}`;
+        
+        // Setup sign out button
+        const signOutBtn = document.getElementById('notHeraldSignOutBtn');
+        if (signOutBtn) {
+            signOutBtn.addEventListener('click', () => {
+                console.log('[Heraldry] Signing out from not-herald view');
+                sessionStorage.setItem('heraldry_logged_out', 'true');
+                // Show login form
+                if (notHeraldView) notHeraldView.style.display = 'none';
+                if (loginView) loginView.style.display = 'block';
+                this.setupEventListeners();
+            });
+        }
+    }
+
     setupDashboardListeners() {
         // Helper to clone and add listener (prevents duplicate listeners)
         const setupButton = (id, handler) => {
@@ -326,9 +401,10 @@ class Heraldry {
         
         console.log('[Heraldry] Session cleared, resetting UI');
         
-        // Reset UI
+        // Reset UI - hide all views except login
         const loginView = document.getElementById('heraldryLogin');
         const dashboardView = document.getElementById('heraldryDashboard');
+        const notHeraldView = document.getElementById('heraldryNotHerald');
         const handleInput = document.getElementById('heraldHandle');
         const passwordInput = document.getElementById('appPassword');
         const passwordGroup = document.getElementById('passwordGroup');
@@ -337,6 +413,7 @@ class Heraldry {
         
         if (loginView) loginView.style.display = 'block';
         if (dashboardView) dashboardView.style.display = 'none';
+        if (notHeraldView) notHeraldView.style.display = 'none';
         if (handleInput) handleInput.value = '';
         if (passwordInput) passwordInput.value = '';
         if (passwordGroup) passwordGroup.style.display = 'none';

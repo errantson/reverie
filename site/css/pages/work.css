@@ -497,6 +497,24 @@ body {
     border: 1px solid var(--role-cogitarian-medium);
 }
 
+.status-badge.role-provisioner {
+    background: var(--role-provisioner-light);
+    color: var(--role-provisioner-dark);
+    border: 1px solid var(--role-provisioner-medium);
+}
+
+.status-badge.role-dreamstyler {
+    background: var(--role-dreamstyler-light);
+    color: var(--role-dreamstyler-dark);
+    border: 1px solid var(--role-dreamstyler-medium);
+}
+
+.status-badge.role-bursar {
+    background: var(--role-bursar-light);
+    color: var(--role-bursar-dark);
+    border: 1px solid var(--role-bursar-medium);
+}
+
 .status-role {
     font-size: 0.75rem;
     color: #666;
@@ -635,6 +653,7 @@ body {
 /* Role Tabs (now inside card) */
 .role-tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
     padding-right: 3rem; /* Make room for rotate button */
@@ -748,7 +767,7 @@ body {
 .role-tab[data-role="dreamstyler"] {
     background: var(--role-dreamstyler);
     border-color: var(--role-dreamstyler);
-    display: none; /* Hidden by default, shown via JS for admins */
+    /* Now public - no longer hidden by default */
 }
 
 .role-tab[data-role="dreamstyler"]:hover:not(.active) {
@@ -908,6 +927,11 @@ body[data-current-role="provisioner"] .role-title {
     color: var(--role-provisioner);
 }
 
+.role-tab[data-role="dreamstyler"].active ~ .role-card .role-title,
+body[data-current-role="dreamstyler"] .role-title {
+    color: var(--role-dreamstyler);
+}
+
 .role-tab[data-role="bursar"].active ~ .role-card .role-title,
 body[data-current-role="bursar"] .role-title {
     color: var(--role-bursar);
@@ -942,6 +966,14 @@ body[data-current-role="bursar"] .role-worker-card {
     border-color: var(--role-bursar-medium);
 }
 
+body[data-current-role="provisioner"] .role-worker-card {
+    border-color: var(--role-provisioner-medium);
+}
+
+body[data-current-role="dreamstyler"] .role-worker-card {
+    border-color: var(--role-dreamstyler-medium);
+}
+
 .worker-card-header {
     border-bottom: 2px solid #e0e0e0;
     padding-bottom: 0.5rem;
@@ -963,6 +995,14 @@ body[data-current-role="cogitarian"] .worker-card-header {
 
 body[data-current-role="bursar"] .worker-card-header {
     border-color: var(--role-bursar-medium);
+}
+
+body[data-current-role="provisioner"] .worker-card-header {
+    border-color: var(--role-provisioner-medium);
+}
+
+body[data-current-role="dreamstyler"] .worker-card-header {
+    border-color: var(--role-dreamstyler-medium);
 }
 
 .worker-card-header .worker-label {
@@ -2412,10 +2452,15 @@ body[data-current-role="cogitarian"] .action-button.primary {
 .dreamstyler-list-card .repo-card-header {
     background: var(--role-dreamstyler-light, rgba(158, 117, 229, 0.1));
     border-bottom: 2px solid var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.5));
+    padding: 0.5rem 1rem;
 }
 
 .dreamstyler-list-card .repo-card-title {
     color: var(--role-dreamstyler-dark, rgb(118, 77, 189));
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
 }
 
 .dreamstyler-list {
@@ -2431,8 +2476,9 @@ body[data-current-role="cogitarian"] .action-button.primary {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.75rem;
+    padding: 0.3rem 0.5rem;
     transition: all 0.2s;
+    gap: 0.4rem;
 }
 
 .dreamstyler-row:hover {
@@ -2442,24 +2488,24 @@ body[data-current-role="cogitarian"] .action-button.primary {
 .dreamstyler-link {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.4rem;
     text-decoration: none;
     flex: 1;
     min-width: 0;
 }
 
 .dreamstyler-avatar {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    border: 2px solid;
+    border: 1.5px solid;
     object-fit: cover;
     flex-shrink: 0;
 }
 
 .dreamstyler-name {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     font-family: 'Courier New', monospace;
     white-space: nowrap;
     overflow: hidden;
@@ -2550,10 +2596,24 @@ body[data-current-role="cogitarian"] .action-button.primary {
     gap: 1rem;
 }
 
-.aesthetic-adjustments-box,
-.unfinished-dreams-box {
+.aesthetic-adjustments-box {
     background: white;
     border: 2px solid var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.5));
+    display: flex;
+    flex-direction: column;
+}
+
+.aesthetic-adjustments-box .repo-data-header {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--role-dreamstyler-dark, rgb(118, 77, 189));
+    margin: 0;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 1rem;
+    border-bottom: 2px solid var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.5));
+    background: var(--role-dreamstyler-light, rgba(158, 117, 229, 0.1));
 }
 
 .dreamstyler-commits-list {
@@ -2608,6 +2668,45 @@ body[data-current-role="cogitarian"] .action-button.primary {
 .tangled-integration-note a {
     color: var(--role-dreamstyler, #9e75e5);
     text-decoration: underline;
+}
+
+/* Tangled footer - flat footer outside the aesthetic adjustments box */
+.tangled-integration-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem;
+    background: var(--role-dreamstyler-light, rgba(158, 117, 229, 0.1));
+    border: 2px solid var(--role-dreamstyler-medium, rgba(158, 117, 229, 0.3));
+    font-size: 0.7rem;
+    font-family: 'Courier New', monospace;
+    color: var(--role-dreamstyler-dark, rgb(118, 77, 189));
+}
+
+.tangled-integration-footer a {
+    color: var(--role-dreamstyler, #9e75e5);
+    text-decoration: underline;
+}
+
+.tangled-integration-footer code {
+    background: rgba(158, 117, 229, 0.15);
+    padding: 0.1rem 0.3rem;
+    font-size: 0.65rem;
+}
+
+/* Empty placeholder rows for dreamstyler commits */
+.commit-row.empty-row {
+    min-height: 2rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.commit-row.empty-row.even {
+    background: var(--role-dreamstyler-light, rgba(158, 117, 229, 0.08));
+}
+
+.commit-row.empty-row.odd {
+    background: white;
 }
 
 .unfinished-dreams-list {
@@ -2924,6 +3023,14 @@ body[data-current-role="cogitarian"] .action-button.primary {
 .bursar-domain-input::placeholder {
     color: #999;
     font-style: italic;
+}
+
+.bursar-box-subtext {
+    font-size: 0.75rem;
+    color: var(--role-bursar);
+    font-style: italic;
+    text-align: center;
+    margin-top: 0.5rem;
 }
 
 /* Extra small screens (< 480px) - Overridden by mobile renovation below */
