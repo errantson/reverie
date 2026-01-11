@@ -41,6 +41,12 @@
     --role-bursar-light: rgba(16, 185, 129, 0.12);
     --role-bursar-medium: rgba(16, 185, 129, 0.25);
     --role-bursar-dark: rgb(5, 150, 105);
+    
+    /* Cheerful - Vibrant pink tones (positivity, warmth, cheer) */
+    --role-cheerful: rgb(224, 94, 207);
+    --role-cheerful-light: rgba(224, 94, 207, 0.12);
+    --role-cheerful-medium: rgba(224, 94, 207, 0.25);
+    --role-cheerful-dark: rgb(180, 60, 165);
 }
 
 /* Role-specific utility classes */
@@ -50,6 +56,7 @@
 .role-bg-provisioner { background-color: var(--role-provisioner-light) !important; }
 .role-bg-dreamstyler { background-color: var(--role-dreamstyler-light) !important; }
 .role-bg-bursar { background-color: var(--role-bursar-light) !important; }
+.role-bg-cheerful { background-color: var(--role-cheerful-light) !important; }
 
 .role-text-greeter { color: var(--role-greeter) !important; }
 .role-text-mapper { color: var(--role-mapper) !important; }
@@ -57,6 +64,7 @@
 .role-text-provisioner { color: var(--role-provisioner) !important; }
 .role-text-dreamstyler { color: var(--role-dreamstyler) !important; }
 .role-text-bursar { color: var(--role-bursar) !important; }
+.role-text-cheerful { color: var(--role-cheerful) !important; }
 
 /* Role link colors */
 .role-link-greeter { color: var(--role-greeter); }
@@ -65,6 +73,7 @@
 .role-link-provisioner { color: var(--role-provisioner); }
 .role-link-dreamstyler { color: var(--role-dreamstyler); }
 .role-link-bursar { color: var(--role-bursar); }
+.role-link-cheerful { color: var(--role-cheerful); }
 
 .role-link-greeter:hover { color: var(--role-greeter-dark); }
 .role-link-mapper:hover { color: var(--role-mapper-dark); }
@@ -72,6 +81,7 @@
 .role-link-provisioner:hover { color: var(--role-provisioner-dark); }
 .role-link-dreamstyler:hover { color: var(--role-dreamstyler-dark); }
 .role-link-bursar:hover { color: var(--role-bursar-dark); }
+.role-link-cheerful:hover { color: var(--role-cheerful-dark); }
 
 /* Spectrum preview helper text styling moved here so role color tokens are available */
 .spectrum-preview-helper-text {

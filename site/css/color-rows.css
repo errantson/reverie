@@ -624,6 +624,19 @@
     font-weight: 500;
 }
 
+/* Apply cogitarian color uniformly to all cells */
+.row-entry.color-role.role-cogitarian .cell,
+.row-entry.color-role.role-cogitarian .cell * {
+    color: inherit;
+}
+
+/* Force event text to inherit cogitarian color */
+.row-entry.color-role.role-cogitarian .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-role.role-cogitarian.intensity-highlight .cell span,
+.row-entry.color-role.role-cogitarian.intensity-special .cell span {
+    color: inherit !important;
+}
+
 /* Provisioner - Harvest wheat yellow tones */
 .row-entry.color-role.role-provisioner.intensity-none {
     border-left: 2px solid var(--role-provisioner);
@@ -708,6 +721,94 @@
 .row-entry.color-role.role-dreamstyler .cell span[style*="color: var(--text-secondary)"],
 .row-entry.color-role.role-dreamstyler.intensity-highlight .cell span,
 .row-entry.color-role.role-dreamstyler.intensity-special .cell span {
+    color: inherit !important;
+}
+
+/* Bursar - Emerald green tones */
+.row-entry.color-role.role-bursar.intensity-none {
+    border-left: 2px solid var(--role-bursar);
+    color: color-mix(in srgb, var(--role-bursar) 80%, #333);
+}
+
+.row-entry.color-role.role-bursar.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--role-bursar-medium) 0%,
+        var(--role-bursar-light) 50%,
+        transparent 100%
+    );
+    border-left: 3px solid var(--role-bursar);
+    border-right: none;
+    color: var(--role-bursar-dark);
+}
+
+.row-entry.color-role.role-bursar.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--role-bursar-medium) 0%,
+        var(--role-bursar-light) 100%
+    );
+    border-left: 4px solid var(--role-bursar);
+    border-right: none;
+    box-shadow: inset 0 0 0 1px var(--role-bursar-light);
+    color: var(--role-bursar-dark);
+    font-weight: 600;
+}
+
+/* Apply bursar color uniformly to all cells */
+.row-entry.color-role.role-bursar .cell,
+.row-entry.color-role.role-bursar .cell * {
+    color: inherit;
+}
+
+/* Force event text to inherit bursar color */
+.row-entry.color-role.role-bursar .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-role.role-bursar.intensity-highlight .cell span,
+.row-entry.color-role.role-bursar.intensity-special .cell span {
+    color: inherit !important;
+}
+
+/* Cheerful - Warm pink tones */
+.row-entry.color-role.role-cheerful.intensity-none {
+    border-left: 2px solid var(--role-cheerful);
+    color: color-mix(in srgb, var(--role-cheerful) 80%, #333);
+}
+
+.row-entry.color-role.role-cheerful.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--role-cheerful-medium) 0%,
+        var(--role-cheerful-light) 50%,
+        transparent 100%
+    );
+    border-left: 3px solid var(--role-cheerful);
+    border-right: none;
+    color: var(--role-cheerful-dark);
+}
+
+.row-entry.color-role.role-cheerful.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--role-cheerful-medium) 0%,
+        var(--role-cheerful-light) 100%
+    );
+    border-left: 4px solid var(--role-cheerful);
+    border-right: none;
+    box-shadow: inset 0 0 0 1px var(--role-cheerful-light);
+    color: var(--role-cheerful-dark);
+    font-weight: 600;
+}
+
+/* Apply cheerful color uniformly to all cells */
+.row-entry.color-role.role-cheerful .cell,
+.row-entry.color-role.role-cheerful .cell * {
+    color: inherit;
+}
+
+/* Force event text to inherit cheerful color */
+.row-entry.color-role.role-cheerful .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-role.role-cheerful.intensity-highlight .cell span,
+.row-entry.color-role.role-cheerful.intensity-special .cell span {
     color: inherit !important;
 }
 

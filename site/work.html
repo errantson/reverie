@@ -57,13 +57,13 @@
     /* Note: .role-worker-card and .worker-card-header excluded to allow 
        user's personal color (set via JavaScript) to show through */
 
-    /* Make all links on the page use the active role's link color */
-    body[data-current-role="bursar"] a {
-        color: var(--role-bursar) !important;
+    /* Scoped bursar link colors - only within work content, not header */
+    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link) {
+        color: var(--role-bursar);
     }
-    body[data-current-role="bursar"] a:hover,
-    body[data-current-role="bursar"] a:focus {
-        color: var(--role-bursar-dark) !important;
+    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):hover,
+    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):focus {
+        color: var(--role-bursar-dark);
     }
     
     /* Tangled Dolly icon styling */
@@ -117,6 +117,23 @@
     .bursar-box-disabled button,
     .bursar-box-disabled textarea {
         cursor: not-allowed !important;
+    }
+    
+    /* Cheerful-specific enforcement when cheerful is the current role */
+    body[data-current-role="cheerful"] .cheerful-list-card,
+    body[data-current-role="cheerful"] .cheerful-stats-box,
+    body[data-current-role="cheerful"] .role-separator,
+    body[data-current-role="cheerful"] .role-content-separator {
+        border-color: var(--role-cheerful-medium) !important;
+    }
+    
+    /* Scoped cheerful link colors - only within work content, not header */
+    body[data-current-role="cheerful"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link) {
+        color: var(--role-cheerful);
+    }
+    body[data-current-role="cheerful"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):hover,
+    body[data-current-role="cheerful"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):focus {
+        color: var(--role-cheerful-dark);
     }
     .bursar-box-subtext {
         font-size: 0.85em;
@@ -246,7 +263,10 @@
                         <div class="role-tabs">
                             <button class="role-tab active" data-role="greeter" onclick="selectRole('greeter')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                    <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"></path>
+                                    <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"></path>
+                                    <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"></path>
+                                    <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
                                 </svg>
                                 <span class="role-tab-name">Greeter</span>
                             </button>
@@ -292,6 +312,12 @@
                                 </svg>
                                 <span class="role-tab-name">Dreamstyler</span>
                             </button>
+                            <button id="role-tab-cheerful" class="role-tab admin-only-role" data-role="cheerful" onclick="selectRole('cheerful')" style="display: none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                </svg>
+                                <span class="role-tab-name">Cheerful</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -305,6 +331,7 @@
                         <option value="provisioner">Provisioner</option>
                         <option id="mobile-option-bursar" value="bursar" class="admin-only-role" style="display: none;">Bursar</option>
                         <option id="mobile-option-dreamstyler" value="dreamstyler">Dreamstyler</option>
+                        <option id="mobile-option-cheerful" value="cheerful" class="admin-only-role" style="display: none;">Cheerful</option>
                     </select>
                 </div>
 
@@ -372,6 +399,15 @@
                             <p class="role-description">
                                 This guardian of transparency works as the connective tissue between various patrons and the amazing dreams that need their support.
                             </p>
+                        </div>
+                        
+                        <!-- Cheerful Description -->
+                        <div id="cheerful-description" class="role-desc-content" style="display: none;">
+                            <p class="role-description">
+                                Uplifting others is both a calling and a labour worthy of recognition. It can be challenging to maintain our positivity, so <b class="role-text-cheerful">The Cheerful</b> lend their optimism as a constant. With trust in community, they surrender themselves to wild support.
+                            </p>
+                            <p class="role-description">
+                                Like buoyant sprites, <b class="role-text-cheerful">The Cheerful of Reverie House</b> are compelled beyond any will to give favor to their community, no matter how quiet their voice.</p>
                         </div>
                     </div>
 
@@ -696,6 +732,50 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Cheerful Content Section -->
+                <div id="cheerful-content-section" class="cheerful-content-container" style="display: none;">
+                    <div class="cheerful-content-grid">
+                        <!-- Left: The Cheerful List -->
+                        <div class="repo-card cheerful-list-card">
+                            <div class="repo-card-header">
+                                <div class="repo-card-title">The Cheerful</div>
+                            </div>
+                            <div id="cheerful-list" class="cheerful-list">
+                                <div class="cheerful-loading">Loading cheerful members...</div>
+                            </div>
+                            <div class="cheerful-footer">
+                                <p class="cheerful-footer-text">The Cheerful like you!</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Right: Spreading Cheer -->
+                        <div class="cheerful-right-column">
+                            <div class="repo-data-box cheerful-stats-box">
+                                <h3 class="repo-data-header">Spreading Cheer</h3>
+                                <div class="cheerful-stats-compact">
+                                    <div class="cheerful-stat-row">
+                                        <span class="cheerful-stat-label">The Cheerful:</span>
+                                        <span class="cheerful-stat-value" id="cheerful-total-members">0</span>
+                                    </div>
+                                    <div class="cheerful-stat-row">
+                                        <span class="cheerful-stat-label">Things Liked:</span>
+                                        <span class="cheerful-stat-value" id="cheerful-total-likes">0</span>
+                                    </div>
+                                    <div class="cheerful-stat-row">
+                                        <span class="cheerful-stat-label">Folks Cheered:</span>
+                                        <span class="cheerful-stat-value" id="cheerful-folks-cheered">0</span>
+                                    </div>
+                                </div>
+                                <div class="cheerful-summary">
+                                    <p class="cheerful-summary-text"><b>The Cheerful</b> may automatically like content from residents and other dreamweavers as a show of general support. They  also reinforce each other's likes in cascades of positivity.</p>
+                                    <br>
+                                    <p class="cheerful-summary-text"><i>Unconditional approval dilutes the weight of appreciation.</i></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -747,14 +827,15 @@
             cogitarian: null,
             provisioner: null,
             dreamstyler: null,
-            bursar: null
+            bursar: null,
+            cheerful: null
         };
         let currentTab = 'greeter';
         let spectrumPreviewWidget = null; // Global spectrum preview widget instance
         
         // Restore tab from localStorage on page load
         const savedTab = localStorage.getItem('work_current_tab');
-        const allowedSavedTabs = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'bursar', 'dreamstyler'];
+        const allowedSavedTabs = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'bursar', 'dreamstyler', 'cheerful'];
         if (savedTab && allowedSavedTabs.includes(savedTab)) {
             currentTab = savedTab;
         }
@@ -792,19 +873,33 @@
             updateAdminRoleVisibility();
         }
         
-        // Show or hide admin-only roles (bursar only - dreamstyler is now public)
+        // Show or hide admin-only roles (bursar and cheerful - dreamstyler is now public)
         function updateAdminRoleVisibility() {
             const bursarTab = document.getElementById('role-tab-bursar');
             const dreamstylerTab = document.getElementById('role-tab-dreamstyler');
+            const cheerfulTab = document.getElementById('role-tab-cheerful');
             const bursarMobile = document.getElementById('mobile-option-bursar');
             const dreamstylerMobile = document.getElementById('mobile-option-dreamstyler');
+            const cheerfulMobile = document.getElementById('mobile-option-cheerful');
+            
+            // Check if current user is a bursar-allowed DID
+            const currentUserDid = currentSession?.sub || currentSession?.did;
+            const bursarAllowedDids = [
+                'did:plc:ujsxisg5ogc2qikdioxw6y4u',  // Original admin
+                'did:plc:zdxbourfcbv66iq2xfpb233q'   // dreamer.reverie.house
+            ];
+            const isBursarAllowedUser = currentUserDid && bursarAllowedDids.includes(currentUserDid);
             
             console.log('🎨 [Visibility] Checking tabs:', {
                 bursarTab: !!bursarTab,
                 dreamstylerTab: !!dreamstylerTab,
+                cheerfulTab: !!cheerfulTab,
                 bursarMobile: !!bursarMobile,
                 dreamstylerMobile: !!dreamstylerMobile,
-                isAdminUser: isAdminUser
+                cheerfulMobile: !!cheerfulMobile,
+                isAdminUser: isAdminUser,
+                isBursarAllowedUser: isBursarAllowedUser,
+                currentUserDid: currentUserDid
             });
             
             // Dreamstyler is always visible (public)
@@ -816,18 +911,22 @@
             }
             if (dreamstylerMobile) dreamstylerMobile.style.display = '';
             
-            if (isAdminUser) {
-                // Show admin-only roles (bursar)
+            if (isAdminUser || isBursarAllowedUser) {
+                // Show admin-only roles (bursar, cheerful)
                 if (bursarTab) bursarTab.style.display = 'flex';
                 if (bursarMobile) bursarMobile.style.display = '';
-                console.log('🔓 [Admin] Showing admin-only role: bursar');
+                if (cheerfulTab) cheerfulTab.style.display = 'flex';
+                if (cheerfulMobile) cheerfulMobile.style.display = '';
+                console.log('🔓 [Admin] Showing admin-only roles: bursar, cheerful');
             } else {
-                // Hide admin-only roles (bursar)
+                // Hide admin-only roles (bursar, cheerful)
                 if (bursarTab) bursarTab.style.display = 'none';
                 if (bursarMobile) bursarMobile.style.display = 'none';
+                if (cheerfulTab) cheerfulTab.style.display = 'none';
+                if (cheerfulMobile) cheerfulMobile.style.display = 'none';
                 
-                // If user was viewing bursar, redirect to greeter
-                if (currentRole === 'bursar') {
+                // If user was viewing admin-only role, redirect to greeter
+                if (currentRole === 'bursar' || currentRole === 'cheerful') {
                     console.log('🔒 [Admin] User viewing admin-only role without access, redirecting to greeter');
                     selectRole('greeter');
                 }
@@ -901,7 +1000,8 @@
                 'cogitarian': 'CURRENT COGITARIAN:',
                 'provisioner': 'CURRENT PROVISIONER:',
                 'dreamstyler': 'ACTIVE DREAMSTYLERS:',
-                'bursar': 'CURRENT BURSAR:'
+                'bursar': 'CURRENT BURSAR:',
+                'cheerful': 'THE CHEERFUL:'
             };
             document.getElementById('worker-label').textContent = labels[role];
             
@@ -921,6 +1021,8 @@
                 hideDreamstylerContent();
                 // Hide bursar content for cogitarian
                 hideBursarContent();
+                // Hide cheerful content for cogitarian
+                hideCheerfulContent();
                 // Show cogitarian content
                 showCogitarianContent();
             } else if (role === 'mapper') {
@@ -941,6 +1043,8 @@
                 hideDreamstylerContent();
                 // Hide bursar content for mapper
                 hideBursarContent();
+                // Hide cheerful content for mapper
+                hideCheerfulContent();
                 // Show mapper content
                 showMapperContent();
             } else if (role === 'greeter') {
@@ -962,6 +1066,8 @@
                 hideDreamstylerContent();
                 // Hide bursar content for greeter
                 hideBursarContent();
+                // Hide cheerful content for greeter
+                hideCheerfulContent();
             } else if (role === 'provisioner') {
                 // Load role status for provisioner
                 loadRoleStatus(role);
@@ -972,6 +1078,7 @@
                 hideCogitarianContent();
                 hideDreamstylerContent();
                 hideBursarContent();
+                hideCheerfulContent();
                 // Show provisioner content
                 showProvisionerContent();
                 // Populate food request form with user data
@@ -986,6 +1093,7 @@
                 hideCogitarianContent();
                 hideProvisionerContent();
                 hideBursarContent();
+                hideCheerfulContent();
                 // Show dreamstyler content
                 showDreamstylerContent();
             } else if (role === 'bursar') {
@@ -998,8 +1106,22 @@
                 hideCogitarianContent();
                 hideProvisionerContent();
                 hideDreamstylerContent();
+                hideCheerfulContent();
                 // Show bursar content
                 showBursarContent();
+            } else if (role === 'cheerful') {
+                // Load role status for cheerful
+                loadRoleStatus(role);
+                // Hide all other content
+                hideEventStack();
+                hideSpectrumPreview();
+                hideMapperContent();
+                hideCogitarianContent();
+                hideProvisionerContent();
+                hideDreamstylerContent();
+                hideBursarContent();
+                // Show cheerful content
+                showCheerfulContent();
             } else {
                 // Load role status for the selected role
                 loadRoleStatus(role);
@@ -1451,10 +1573,9 @@
                 const listHTML = workerDetails.map(w => {
                     // Calculate lighter background from user color
                     const bgColor = w.color + '20'; // 20 is hex for ~12% opacity
-                    const cleanHandle = w.handle.replace('.bsky.social', '');
                     return `
                         <div class="dreamstyler-row" style="background: ${bgColor}; border-left: 3px solid ${w.color};">
-                            <a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="dreamstyler-link dreamer-link" data-did="${w.did}">
+                            <a href="/dreamer?did=${encodeURIComponent(w.did)}" class="dreamstyler-link dreamer-link" data-did="${w.did}">
                                 <img src="${w.avatar}" alt="${w.handle}" class="dreamstyler-avatar" style="border-color: ${w.color};">
                                 <span class="dreamstyler-name" style="color: ${w.color};">${w.displayName}</span>
                             </a>
@@ -1570,8 +1691,10 @@
                 let message = '';
                 switch (entreatStatus.reason) {
                     case 'login':
-                        message = 'Please log in to entreat a dreamstyler.';
-                        break;
+                        if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                            window.loginWidget.showLoginPopup();
+                        }
+                        return;
                     case 'not_dreamweaver':
                         // Show the changehandle widget to let them switch to a .reverie.house handle
                         if (window.changeHandleWidget) {
@@ -1658,6 +1781,240 @@
             if (container) {
                 container.style.display = 'none';
             }
+        }
+        
+        function showCheerfulContent() {
+            console.log('🌸 [Cheerful] showCheerfulContent() called');
+            const container = document.getElementById('cheerful-content-section');
+            console.log('🌸 [Cheerful] Container element:', container);
+            if (container) {
+                container.style.display = 'block';
+                console.log('🌸 [Cheerful] Container shown, loading data...');
+                // Load cheerful data when showing
+                loadCheerfulList();
+                loadCheerfulStats();
+            } else {
+                console.log('🌸 [Cheerful] Container NOT FOUND!');
+            }
+        }
+        
+        function hideCheerfulContent() {
+            console.log('🌸 [Cheerful] hideCheerfulContent() called');
+            const container = document.getElementById('cheerful-content-section');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        // Load cheerful members list
+        async function loadCheerfulList() {
+            const listContainer = document.getElementById('cheerful-list');
+            console.log('🌸 [Cheerful List] Starting to load cheerful list...');
+            console.log('🌸 [Cheerful List] List container element:', listContainer);
+            if (!listContainer) {
+                console.log('🌸 [Cheerful List] No list container found, returning');
+                return;
+            }
+            
+            try {
+                console.log('🌸 [Cheerful List] Fetching /api/work/cheerful/status...');
+                const response = await fetch('/api/work/cheerful/status');
+                console.log('🌸 [Cheerful List] Response status:', response.status);
+                if (!response.ok) throw new Error('Failed to fetch cheerful status');
+                
+                const data = await response.json();
+                console.log('🌸 [Cheerful List] Response data:', data);
+                const workers = data.role_info?.workers || [];
+                console.log('🌸 [Cheerful List] Workers found:', workers.length, workers);
+                
+                if (workers.length === 0) {
+                    console.log('🌸 [Cheerful List] No workers, showing empty message');
+                    listContainer.innerHTML = `
+                        <div class="cheerful-empty">
+                            <div class="cheerful-empty-text">None among The Cheerful yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Fetch all worker details in parallel
+                console.log('🌸 [Cheerful List] Fetching worker details...');
+                const workerPromises = workers.map(async (worker) => {
+                    try {
+                        const dreamerRes = await fetch(`/api/dreamers/${worker.did}`);
+                        if (dreamerRes.ok) {
+                            const dreamer = await dreamerRes.json();
+                            return {
+                                did: worker.did,
+                                handle: dreamer.handle || 'unknown',
+                                displayName: dreamer.display_name || dreamer.handle || 'Unknown',
+                                avatar: dreamer.avatar || '/assets/default-avatar.png',
+                                color: dreamer.color_hex || '#e05ecf'
+                            };
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch dreamer:', e);
+                    }
+                    return {
+                        did: worker.did,
+                        handle: 'unknown',
+                        displayName: 'Unknown',
+                        avatar: '/assets/default-avatar.png',
+                        color: '#e05ecf'
+                    };
+                });
+                
+                const workerInfos = await Promise.all(workerPromises);
+                
+                // Build cheerful list HTML
+                let html = '';
+                for (const w of workerInfos) {
+                    // Create lightened background from user color
+                    const bgColor = w.color + '15'; // 15 = ~9% opacity in hex
+                    html += `
+                        <a href="/dreamer?did=${encodeURIComponent(w.did)}" class="cheerful-member-row" style="text-decoration: none; display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 6px; transition: background 0.2s; background: ${bgColor}; margin-bottom: 4px;">
+                            <img src="${w.avatar}" alt="${w.handle}" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid ${w.color}; object-fit: cover;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="color: ${w.color}; font-weight: 600; font-size: 0.85rem;">${w.displayName}</div>
+                                <div style="color: #999; font-size: 0.7rem;">@${w.handle}</div>
+                            </div>
+                        </a>
+                    `;
+                }
+                
+                listContainer.innerHTML = html;
+                
+                // Update member count
+                const membersEl = document.getElementById('cheerful-total-members');
+                if (membersEl) membersEl.textContent = workerInfos.length.toString();
+                
+            } catch (error) {
+                console.error('Failed to load cheerful list:', error);
+                listContainer.innerHTML = '<div class="cheerful-empty">Error loading cheerful members</div>';
+            }
+        }
+        
+        // Load cheerful statistics with counting animation
+        async function loadCheerfulStats() {
+            const membersEl = document.getElementById('cheerful-total-members');
+            const likesEl = document.getElementById('cheerful-total-likes');
+            const cheeredEl = document.getElementById('cheerful-folks-cheered');
+            
+            console.log('🌸 [Cheerful Stats] Starting to load cheerful statistics...');
+            
+            try {
+                // Get cheerful workers
+                console.log('🌸 [Cheerful Stats] Fetching /api/work/cheerful/status...');
+                const response = await fetch('/api/work/cheerful/status');
+                if (!response.ok) {
+                    console.error('🌸 [Cheerful Stats] Failed to fetch status:', response.status);
+                    throw new Error('Failed to fetch cheerful status');
+                }
+                
+                const data = await response.json();
+                const workers = data.role_info?.workers || [];
+                console.log('🌸 [Cheerful Stats] Found', workers.length, 'cheerful workers:', workers);
+                
+                // Member count is set by loadCheerfulList
+                
+                // Fetch like counts from PDS directly using com.atproto.repo.listRecords
+                // This works for reverie.house accounts that aren't on the public Bluesky relay
+                let totalLikes = 0;
+                let folksSet = new Set();
+                
+                for (const worker of workers) {
+                    console.log('🌸 [Cheerful Stats] Processing worker:', worker.did);
+                    try {
+                        // Fetch likes from PDS directly with pagination
+                        let cursor = null;
+                        let workerLikes = 0;
+                        let pageCount = 0;
+                        
+                        do {
+                            // Use com.atproto.repo.listRecords to get like records from the PDS
+                            const url = `/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(worker.did)}&collection=app.bsky.feed.like&limit=100${cursor ? '&cursor=' + encodeURIComponent(cursor) : ''}`;
+                            console.log('🌸 [Cheerful Stats] Fetching likes page', pageCount + 1, 'for', worker.did);
+                            console.log('🌸 [Cheerful Stats] URL:', url);
+                            
+                            const likesRes = await fetch(url);
+                            console.log('🌸 [Cheerful Stats] Response status:', likesRes.status);
+                            
+                            if (likesRes.ok) {
+                                const likesData = await likesRes.json();
+                                const records = likesData.records || [];
+                                pageCount++;
+                                workerLikes += records.length;
+                                totalLikes += records.length;
+                                
+                                console.log('🌸 [Cheerful Stats] Page', pageCount, 'returned', records.length, 'likes');
+                                console.log('🌸 [Cheerful Stats] Worker total so far:', workerLikes);
+                                console.log('🌸 [Cheerful Stats] Grand total so far:', totalLikes);
+                                
+                                // Count unique folks cheered by extracting DIDs from subject URIs
+                                for (const record of records) {
+                                    const subjectUri = record.value?.subject?.uri;
+                                    if (subjectUri) {
+                                        // Extract DID from AT URI: at://did:plc:xxxx/collection/rkey
+                                        const match = subjectUri.match(/^at:\/\/([^\/]+)/);
+                                        if (match && match[1]) {
+                                            folksSet.add(match[1]);
+                                        }
+                                    }
+                                }
+                                console.log('🌸 [Cheerful Stats] Unique folks cheered so far:', folksSet.size);
+                                
+                                cursor = likesData.cursor;
+                                console.log('🌸 [Cheerful Stats] Cursor for next page:', cursor ? cursor : 'none (done)');
+                                
+                                // Animate count up as we fetch
+                                if (likesEl) {
+                                    animateCount(likesEl, parseInt(likesEl.textContent) || 0, totalLikes);
+                                }
+                                if (cheeredEl) {
+                                    animateCount(cheeredEl, parseInt(cheeredEl.textContent) || 0, folksSet.size);
+                                }
+                            } else {
+                                const errorText = await likesRes.text();
+                                console.error('🌸 [Cheerful Stats] Failed to fetch likes:', likesRes.status, errorText);
+                                break;
+                            }
+                        } while (cursor);
+                        
+                        console.log('🌸 [Cheerful Stats] Finished worker', worker.did, '- total likes:', workerLikes);
+                        
+                    } catch (e) {
+                        console.error('🌸 [Cheerful Stats] Failed to fetch likes for', worker.did, e);
+                    }
+                }
+                
+                // Final update
+                console.log('🌸 [Cheerful Stats] FINAL TOTALS - Likes:', totalLikes, 'Folks:', folksSet.size);
+                if (likesEl) likesEl.textContent = totalLikes.toString();
+                if (cheeredEl) cheeredEl.textContent = folksSet.size.toString();
+                
+            } catch (error) {
+                console.error('🌸 [Cheerful Stats] Failed to load cheerful stats:', error);
+            }
+        }
+        
+        // Animate count from start to end
+        function animateCount(element, start, end) {
+            if (start === end) return;
+            const duration = 500;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const current = Math.floor(start + (end - start) * progress);
+                element.textContent = current.toString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            requestAnimationFrame(update);
         }
         
         // Load treasury data from OpenCollective API
@@ -2168,7 +2525,9 @@
             }
             
             if (!currentSession || !currentSession.profile) {
-                showCelebration('Please log in to send a request', 'error');
+                if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                    window.loginWidget.showLoginPopup();
+                }
                 return;
             }
             
@@ -2268,6 +2627,7 @@
             else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) userCurrentRole = 'provisioner';
             else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) userCurrentRole = 'dreamstyler';
             else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) userCurrentRole = 'bursar';
+            else if (roleStatuses.cheerful && roleStatuses.cheerful.is_worker) userCurrentRole = 'cheerful';
             
             // If user has a different role, disable the button
             if (userCurrentRole && userCurrentRole !== role) {
@@ -2303,8 +2663,10 @@
             await loadRoleStatus('provisioner');
             await loadRoleStatus('dreamstyler');
             await loadRoleStatus('bursar');
+            await loadRoleStatus('cheerful');
             updateUI();
             updateProvisionerToolsVisibility();
+            updateAdminRoleVisibility(); // Re-check now that currentSession is available
             isInitializing = false;
         });
 
@@ -2325,7 +2687,8 @@
                 cogitarian: null,
                 provisioner: null,
                 dreamstyler: null,
-                bursar: null
+                bursar: null,
+                cheerful: null
             };
             sessionCheckComplete = true;
             profileLoaded = false;
@@ -2359,7 +2722,9 @@
                         await loadRoleStatus('provisioner');
                         await loadRoleStatus('dreamstyler');
                         await loadRoleStatus('bursar');
+                        await loadRoleStatus('cheerful');
                         updateUI();
+                        updateAdminRoleVisibility(); // Re-check now that currentSession is available
                         
                         isInitializing = false;
                         return true;
@@ -2389,7 +2754,7 @@
             const hashRole = window.location.hash.replace('#', '');
             
             // Build allowed roles list (admin-only roles handled by updateAdminRoleVisibility)
-            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar'];
+            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful'];
             
             let initialTab = null;
             
@@ -2526,7 +2891,7 @@
             
             // Handle browser back/forward navigation
             window.addEventListener('popstate', (event) => {
-                const allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar'];
+                const allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful'];
                 let role = null;
                 
                 // Check state first
@@ -2635,13 +3000,11 @@
             // Update "you" link
             if (currentSession && profileLoaded) {
                 const userDid = currentSession.sub || currentSession.did;
-                const userHandle = currentSession.profile?.handle || currentSession.handle;
                 
                 const youLink = document.getElementById('you-link');
                 if (youLink) {
-                    if (userHandle && userHandle !== 'Unknown') {
-                        const cleanHandle = userHandle.replace('.bsky.social', '');
-                        youLink.innerHTML = `<a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="dreamer-link" data-did="${userDid}" target="_blank" style="color: inherit; text-decoration: none;">you</a>`;
+                    if (userDid) {
+                        youLink.innerHTML = `<a href="/dreamer?did=${encodeURIComponent(userDid)}" class="dreamer-link" data-did="${userDid}" target="_blank" style="color: inherit; text-decoration: none;">you</a>`;
                     } else {
                         youLink.textContent = 'you';
                     }
@@ -2716,6 +3079,7 @@
             console.log('   roleStatuses.provisioner:', roleStatuses.provisioner);
             console.log('   roleStatuses.dreamstyler:', roleStatuses.dreamstyler);
             console.log('   roleStatuses.bursar:', roleStatuses.bursar);
+            console.log('   roleStatuses.cheerful:', roleStatuses.cheerful);
             
             if (roleStatuses.greeter && roleStatuses.greeter.is_worker) actualUserRole = 'greeter';
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) actualUserRole = 'mapper';
@@ -2723,6 +3087,7 @@
             else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) actualUserRole = 'provisioner';
             else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) actualUserRole = 'dreamstyler';
             else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) actualUserRole = 'bursar';
+            else if (roleStatuses.cheerful && roleStatuses.cheerful.is_worker) actualUserRole = 'cheerful';
             
             console.log('   → actualUserRole determined:', actualUserRole);
             
@@ -2730,15 +3095,29 @@
             const viewingOwnRole = actualUserRole && actualUserRole === currentRole;
             const hasRole = actualUserRole !== null;
             
+            console.log('🔍 [DEBUG] Role comparison:');
+            console.log('   currentRole (selected tab):', currentRole);
+            console.log('   actualUserRole:', actualUserRole);
+            console.log('   viewingOwnRole:', viewingOwnRole);
+            console.log('   hasRole:', hasRole);
+            
             // Get status for the selected tab role
             const selectedRoleStatus = roleStatuses[currentRole];
             const isWorkerForSelectedRole = selectedRoleStatus && selectedRoleStatus.is_worker;
             const status = selectedRoleStatus?.status;
             
+            console.log('🔍 [DEBUG] Selected role status:');
+            console.log('   selectedRoleStatus:', selectedRoleStatus);
+            console.log('   isWorkerForSelectedRole:', isWorkerForSelectedRole);
+            console.log('   status:', status);
+            console.log('   Will show Step Down card?', isWorkerForSelectedRole && viewingOwnRole);
+            
             // Show worker status card ONLY if viewing own role
             if (isWorkerForSelectedRole && viewingOwnRole) {
+                console.log('✅ [DEBUG] Showing Step Down card for', currentRole);
                 // Skip if elements don't exist (work.html uses different structure)
                 if (!userStatus || !activateBtn) {
+                    console.log('⚠️ [DEBUG] userStatus or activateBtn element not found, skipping');
                     return;
                 }
                 
@@ -2893,6 +3272,19 @@
                         onclickHandler: 'openWorkerModal(\'dreamstyler\')',
                         workerNamePlaceholder: 'dreamstyler-name-placeholder',
                         activeNamePlaceholder: 'dreamstyler-name-placeholder-active',
+                        retiringText: '',  // No retiring for multi-worker
+                        notRetiredText: '',  // No retiring for multi-worker
+                        comingSoon: false,
+                        multiWorker: true  // Flag for multi-worker role
+                    },
+                    'cheerful': {
+                        title: roleConfigs.cheerful.title,
+                        description: 'Donates positivity to the community through automatic likes.',
+                        buttonText: 'JOIN THE CHEERFUL',
+                        replaceText: 'JOIN THE CHEERFUL',  // Same as button - no replacement concept
+                        onclickHandler: 'openWorkerModal(\'cheerful\')',
+                        workerNamePlaceholder: 'cheerful-name-placeholder',
+                        activeNamePlaceholder: 'cheerful-name-placeholder-active',
                         retiringText: '',  // No retiring for multi-worker
                         notRetiredText: '',  // No retiring for multi-worker
                         comingSoon: false,
@@ -3053,6 +3445,8 @@
                 if (!token && currentSession && currentSession.accessJwt) {
                     token = currentSession.accessJwt;
                 }
+                
+                console.log(`🔐 [${role}] loadRoleStatus - token found: ${!!token}, source: ${localStorage.getItem('oauth_token') ? 'oauth_token' : localStorage.getItem('admin_token') ? 'admin_token' : currentSession?.accessJwt ? 'currentSession.accessJwt' : 'none'}`);
 
                 const headers = {};
                 if (token) {
@@ -3066,6 +3460,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     roleStatuses[role] = data;
+                    console.log(`✅ [${role}] Status loaded - is_worker: ${data.is_worker}, status: ${data.status}`);
                     
                     // Update worker display if this is the current role and we got role_info
                     if (role === currentRole && data.role_info) {
@@ -3111,7 +3506,7 @@
             const workerDisplay = document.getElementById('worker-display');
             
             if (!roleInfo.workers || roleInfo.workers.length === 0) {
-                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : role === 'provisioner' ? 'Provisioner' : role === 'bursar' ? 'Bursar' : 'Dreamstyler';
+                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : role === 'provisioner' ? 'Provisioner' : role === 'bursar' ? 'Bursar' : role === 'cheerful' ? 'Cheerful' : 'Dreamstyler';
                 
                 // Reset worker card borders to default when no worker
                 const workerCard = document.querySelector('.role-worker-card');
@@ -3130,12 +3525,13 @@
                     'cogitarian': 'var(--role-cogitarian)',
                     'provisioner': 'var(--role-provisioner)',
                     'dreamstyler': 'var(--role-dreamstyler)',
-                    'bursar': 'var(--role-bursar)'
+                    'bursar': 'var(--role-bursar)',
+                    'cheerful': 'var(--role-cheerful)'
                 };
                 const roleColor = roleColors[role] || 'var(--role-greeter)';
                 
                 // Different empty messages for special roles
-                const emptyMessage = role === 'dreamstyler' ? 'No Active Dreamstylers' : role === 'bursar' ? 'No Current Bursar' : 'No Current Worker';
+                const emptyMessage = role === 'dreamstyler' ? 'No Active Dreamstylers' : role === 'bursar' ? 'No Current Bursar' : role === 'cheerful' ? 'No Current Cheerful' : 'No Current Worker';
                 
                 workerDisplay.innerHTML = `
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5" style="margin: 0 auto; display: block;">
@@ -3162,8 +3558,8 @@
                 return;
             }
 
-            // Special handling for multi-worker roles (dreamstyler)
-            if (role === 'dreamstyler') {
+            // Special handling for multi-worker roles (dreamstyler, cheerful)
+            if (role === 'dreamstyler' || role === 'cheerful') {
                 await updateMultiWorkerDisplay(roleInfo, role);
                 return;
             }
@@ -3183,15 +3579,59 @@
                     const dreamer = await dreamerResponse.json();
                     console.log('✅ Work: Dreamer info received:', dreamer);
                     const userColor = dreamer.color_hex || '#8b7355';
-                    const statusText = worker.status === 'retiring'
-                        ? ` <span onclick="event.stopPropagation(); openWorkerModal('${role}');" role="button" style="color: ${userColor}; font-weight: 400; font-size: 0.85rem; text-decoration: none; cursor: pointer;">(retiring)</span>`
-                        : worker.status === 'working'
-                            ? ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(working)</span>`
-                            : '';
+                    
+                    // Extract handle first - needed for challenge button and display
                     const rawHandle = dreamer.handle || 'unknown';
                     const handle = String(rawHandle).replace(/^@/, '');
                     const displayName = dreamer.display_name || handle;
                     const avatar = dreamer.avatar || '/assets/default-avatar.png';
+                    
+                    // Cogitarian Challenge button - always show for cogitarian, handle auth in onclick
+                    let statusText = '';
+                    let showChallengeButton = false;
+                    
+                    if (role === 'cogitarian' && worker.status === 'working') {
+                        // Fetch current cogitarian rank for button text
+                        let currentRankForButton = 'Prime';
+                        try {
+                            const historyResp = await fetch('/api/cogitarian/history');
+                            if (historyResp.ok) {
+                                const historyData = await historyResp.json();
+                                currentRankForButton = historyData.current_rank || 'Prime';
+                            }
+                        } catch (e) {
+                            console.warn('Could not fetch cogitarian rank:', e);
+                        }
+                        
+                        // Always show challenge button (auth handled in openCogitarianChallenge)
+                        showChallengeButton = true;
+                        statusText = `
+                            <button onclick="openCogitarianChallenge('${worker.did}', '${handle}')" 
+                                class="challenge-btn"
+                                style="
+                                    margin-top: 0.25rem;
+                                    background: var(--role-cogitarian);
+                                    color: #fff;
+                                    border: 1px solid var(--role-cogitarian-dark);
+                                    padding: 0.25rem 0.5rem;
+                                    font-size: 0.75rem;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    border-radius: 0;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.5px;
+                                    transition: all 0.2s ease;
+                                    font-family: 'Courier New', monospace;
+                                "
+                                onmouseover="this.style.background='var(--role-cogitarian-dark)'"
+                                onmouseout="this.style.background='var(--role-cogitarian)'"
+                            >Challenge Cogitarian (${currentRankForButton})</button>
+                        `;
+                    } else if (worker.status === 'retiring') {
+                        statusText = ` <span onclick="event.stopPropagation(); openWorkerModal('${role}');" role="button" style="color: ${userColor}; font-weight: 400; font-size: 0.85rem; text-decoration: none; cursor: pointer;">(retiring)</span>`;
+                    } else if (worker.status === 'working') {
+                        statusText = ` <span style="color: ${userColor}; font-weight: 400; font-size: 0.85rem;">(working)</span>`;
+                    }
                     
                     // Apply worker color to the worker card border
                     const workerCard = document.querySelector('.role-worker-card');
@@ -3206,14 +3646,14 @@
                     // Use DID for Bluesky link to avoid PDS handle resolution issues
                     // (handles for users on external PDS won't resolve via local PDS)
                     workerDisplay.innerHTML = `
-                        <a href="/dreamers?did=${worker.did}" style="display:block; text-align:center;">
+                        <a href="/dreamer?did=${worker.did}" style="display:block; text-align:center;">
                             <img src="${avatar}" 
                                  alt="${handle}" 
                                  class="greeter-avatar"
                                  style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid ${userColor}; object-fit: cover; display:block; margin: 0 auto;">
                         </a>
                         <div style="text-align: center; margin-top: 0.5rem;">
-                            <a href="/dreamers?did=${worker.did}" class="worker-name" style="font-size: 1.1rem; font-weight: 600; color: ${userColor}; text-decoration: none; display:block;">${displayName}</a>
+                            <a href="/dreamer?did=${worker.did}" class="worker-name" style="font-size: 1.1rem; font-weight: 600; color: ${userColor}; text-decoration: none; display:block;">${displayName}</a>
                             <a href="https://bsky.app/profile/${worker.did}" target="_blank" rel="noopener noreferrer" class="worker-handle" style="color: #999; font-weight: 400; font-size: 0.85rem; text-decoration: none;">@${handle}</a>
                             <div style="margin-top: 0.25rem;">${statusText}</div>
                         </div>
@@ -3231,7 +3671,7 @@
                     console.error('❌ Work: Dreamer API failed:', dreamerResponse.status);
                     // Fallback if API fails - show DID
                     workerDisplay.innerHTML = `
-                        <a href="/dreamers?did=${worker.did}" 
+                        <a href="/dreamer?did=${worker.did}" 
                            style="font-size: 1rem; color: #8b7355; text-decoration: none;">
                             ${worker.did.substring(0, 20)}...
                         </a>
@@ -3241,7 +3681,7 @@
                 console.error('❌ Work: Failed to fetch dreamer info:', error);
                 // Fallback if network error - show DID
                 workerDisplay.innerHTML = `
-                    <a href="/dreamers?did=${worker.did}" 
+                    <a href="/dreamer?did=${worker.did}" 
                        style="font-size: 1rem; color: #8b7355; text-decoration: none;">
                         ${worker.did.substring(0, 20)}...
                     </a>
@@ -3249,17 +3689,47 @@
             }
         }
 
-        // Display multiple workers for multi-worker roles (like dreamstyler)
+        // Display multiple workers for multi-worker roles (like dreamstyler, cheerful)
         async function updateMultiWorkerDisplay(roleInfo, role) {
             const workerDisplay = document.getElementById('worker-display');
             const workers = roleInfo.workers || [];
-            const roleColor = 'var(--role-dreamstyler)';
+            const roleColor = role === 'cheerful' ? 'var(--role-cheerful)' : 'var(--role-dreamstyler)';
+            const defaultColor = role === 'cheerful' ? '#e05ecf' : '#9e75e5';
+            const buttonText = role === 'cheerful' ? 'Join The Cheerful' : 'Become Dreamstyler';
+            const emptyMessage = role === 'cheerful' ? 'No Current Cheerful' : 'No Active Dreamstylers';
             
             // Set card border color
             const workerCard = document.querySelector('.role-worker-card');
             const workerCardHeader = document.querySelector('.worker-card-header');
             if (workerCard) workerCard.style.borderColor = roleColor;
             if (workerCardHeader) workerCardHeader.style.borderColor = roleColor;
+            
+            // Handle empty workers array
+            if (workers.length === 0) {
+                workerDisplay.innerHTML = `
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5" style="margin: 0 auto; display: block;">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="10" r="3" />
+                        <path d="M6.168 18.849A4 4 0 0 1 10 16h4a4 4 0 0 1 3.834 2.855" />
+                    </svg>
+                    <div style="text-align: center; margin-top: 0.5rem;">
+                        <span style="color: #999; font-size: 0.75rem; display: block; margin-bottom: 0.5rem;">${emptyMessage}</span>
+                        <button class="become-role-btn" onclick="openWorkerModal('${role}')" style="
+                            background: ${roleColor};
+                            color: white;
+                            border: none;
+                            padding: 0.4rem 0.8rem;
+                            font-size: 0.75rem;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        ">${buttonText}</button>
+                    </div>
+                `;
+                return;
+            }
             
             // Check if current user is already a worker for this role
             const currentUserDID = currentSession?.sub || currentSession?.did;
@@ -3276,7 +3746,7 @@
                             handle: dreamer.handle || 'unknown',
                             displayName: dreamer.display_name || dreamer.handle || 'Unknown',
                             avatar: dreamer.avatar || '/assets/default-avatar.png',
-                            color: dreamer.color_hex || '#9e75e5'
+                            color: dreamer.color_hex || defaultColor
                         };
                     }
                 } catch (e) {
@@ -3287,7 +3757,7 @@
                     handle: 'unknown',
                     displayName: 'Unknown',
                     avatar: '/assets/default-avatar.png',
-                    color: '#9e75e5'
+                    color: defaultColor
                 };
             });
             
@@ -3296,10 +3766,10 @@
             // Randomize order of workers in carousel
             const shuffledWorkers = [...workerInfos].sort(() => Math.random() - 0.5);
             
-            // Always show "Become Dreamstyler" button, but disable it if user is already a dreamstyler
+            // Button for becoming a member of this role
             const becomeButton = `
-                    <button class="become-role-btn" onclick="openWorkerModal('dreamstyler')" style="
-                        background: ${isCurrentUserWorker ? '#ddd' : 'var(--role-dreamstyler)'};
+                    <button class="become-role-btn" onclick="openWorkerModal('${role}')" style="
+                        background: ${isCurrentUserWorker ? '#ddd' : roleColor};
                         color: ${isCurrentUserWorker ? '#999' : 'white'};
                         border: none;
                         padding: 0.5rem 1rem;
@@ -3312,7 +3782,7 @@
                         width: 100%;
                         margin-top: 0.5rem;
                         opacity: ${isCurrentUserWorker ? '0.6' : '1'};
-                    " ${isCurrentUserWorker ? 'disabled' : ''}>Become Dreamstyler</button>`;
+                    " ${isCurrentUserWorker ? 'disabled' : ''}>${buttonText}</button>`;
             
             // Build carousel-style display with arrows (simpler, smaller)
             workerDisplay.innerHTML = `
@@ -3329,10 +3799,9 @@
                     })(this)">◀</button>
                     <div class="carousel-slides" style="flex: 1; min-width: 0;">
                         ${shuffledWorkers.map((w, i) => {
-                            const cleanHandle = w.handle.replace('.bsky.social', '');
                             return `
                             <div class="dreamstyler-slide" data-index="${i}" style="display: ${i === 0 ? 'block' : 'none'}; text-align: center;">
-                                <a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="dreamer-link" data-did="${w.did}" style="text-decoration: none;">
+                                <a href="/dreamer?did=${encodeURIComponent(w.did)}" class="dreamer-link" data-did="${w.did}" style="text-decoration: none;">
                                     <img src="${w.avatar}" alt="${w.handle}" 
                                          style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid ${w.color}; object-fit: cover; margin: 0 auto 0.35rem; display: block;">
                                     <div style="color: ${w.color}; font-weight: 600; font-size: 0.8rem;">${w.displayName}</div>
@@ -3503,6 +3972,23 @@
                 activationMessage: 'You are now Bursar of Schemes\nMay your stewardship be transparent and true.\nScheme openly.',
                 showExamples: false,
                 requiresAppPassword: false,
+                getExamples: () => []
+            },
+            cheerful: {
+                title: 'The Cheerful',
+                description: 'The Cheerful surrender their positivity to the collective, and trust the community\'s intention.<br><br>By taking this role, you authorize Reverie House to influence our wild mindscape with your inherent positivity.',
+                exampleLabel: 'Positivity Network',
+                appPasswordName: 'The Cheerful',
+                passwordPurpose: 'for spreading positivity',
+                roleName: 'The Cheerful',
+                roleNameLower: 'cheerful',
+                buttonText: 'BECOME CHEERFUL',
+                confirmTitle: 'Join The Cheerful?',
+                confirmMessage: 'The Cheerful surrender their positivity to the collective, and trust the community\'s intention.<br><br>By taking this role, you authorize Reverie House to influence our wild mindscape with your inherent positivity.',
+                activationMessage: 'You have joined The Cheerful\nYour positivity will ripple outward.\nA welcome mat that never sleeps.',
+                showExamples: false,
+                requiresAppPassword: true,
+                multiWorker: true,
                 getExamples: () => []
             }
         };
@@ -3854,6 +4340,300 @@
             updateExamplePost();
         }
 
+        // ====== COGITARIAN CHALLENGE SYSTEM ======
+        
+        // Cogitarian succession ranks
+        const COGITARIAN_RANKS = [
+            'Prime', 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Theta',
+            'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho',
+            'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega'
+        ];
+        
+        // Open the cogitarian challenge popup
+        async function openCogitarianChallenge(challengedDid, challengedHandle) {
+            // Check if logged in
+            if (!currentSession) {
+                // Prompt login
+                if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                    window.loginWidget.showLoginPopup();
+                }
+                return;
+            }
+            
+            const challengerDid = currentSession.did || currentSession.sub;
+            const challengerHandle = currentSession.profile?.handle || currentSession.handle || '';
+            
+            // Must have .reverie.house handle - offer to adopt one
+            if (!challengerHandle.endsWith('.reverie.house')) {
+                // Try to show change handle widget to adopt a .reverie.house handle
+                if (window.changeHandleWidget) {
+                    window.changeHandleWidget.show({
+                        reason: 'cogitarian_challenge',
+                        provisionerHandle: 'reverie.house',
+                        onSuccess: () => {
+                            // Retry the challenge after handle change
+                            setTimeout(() => openCogitarianChallenge(challengedDid, challengedHandle), 500);
+                        }
+                    });
+                } else {
+                    showCelebration('Only dreamers with a .reverie.house handle may challenge the Cogitarian.\\n\\nPlease contact a Greeter to claim your Reverie House identity.', 'error');
+                }
+                return;
+            }
+            
+            // Can't challenge yourself
+            if (challengerDid === challengedDid) {
+                showCelebration('You cannot challenge yourself.', 'error');
+                return;
+            }
+            
+            // Fetch cogitarian history from dedicated API
+            let cogitarianHistory = [];
+            let currentRank = 'Prime';  // First cogitarian is always Prime
+            let challengerRank = 'Alpha';  // Challenger would be next in line
+            
+            try {
+                const historyResponse = await fetch('/api/cogitarian/history');
+                if (historyResponse.ok) {
+                    const historyData = await historyResponse.json();
+                    cogitarianHistory = historyData.history || [];
+                    currentRank = historyData.current_rank || 'Prime';
+                    challengerRank = historyData.next_rank || 'Alpha';
+                }
+            } catch (e) {
+                console.warn('Could not fetch cogitarian history:', e);
+            }
+            
+            // Fetch challenged dreamer details
+            let challengedDreamer = null;
+            try {
+                const dreamerResponse = await fetch(`/api/dreamers/${challengedDid}`);
+                if (dreamerResponse.ok) {
+                    challengedDreamer = await dreamerResponse.json();
+                }
+            } catch (e) {
+                console.warn('Could not fetch challenged dreamer:', e);
+            }
+            
+            // Fetch challenger dreamer details for color and avatar
+            let challengerColor = 'var(--role-cogitarian)';
+            let challengerAvatar = '/assets/default-avatar.png';
+            let challengerName = challengerHandle;
+            try {
+                const challengerResponse = await fetch(`/api/dreamers/${challengerDid}`);
+                if (challengerResponse.ok) {
+                    const challengerDreamer = await challengerResponse.json();
+                    challengerColor = challengerDreamer?.color_hex || 'var(--role-cogitarian)';
+                    challengerAvatar = challengerDreamer?.avatar || '/assets/default-avatar.png';
+                    challengerName = challengerDreamer?.display_name || challengerHandle;
+                }
+            } catch (e) {
+                console.warn('Could not fetch challenger dreamer:', e);
+            }
+            
+            const challengedName = challengedDreamer?.display_name || challengedHandle;
+            const challengedAvatar = challengedDreamer?.avatar || '/assets/default-avatar.png';
+            const challengedColor = challengedDreamer?.color_hex || 'var(--role-cogitarian)';
+            
+            // Create the challenge modal - matching existing modal styles
+            const modalOverlay = document.createElement('div');
+            modalOverlay.id = 'cogitarian-challenge-modal';
+            modalOverlay.className = 'modal show';
+            
+            modalOverlay.innerHTML = `
+                <div class="modal-content" style="max-width: 520px; border: 3px solid var(--role-cogitarian-medium);">
+                    <div class="city-modal-title" style="color: var(--role-cogitarian-dark); border-color: var(--role-cogitarian-light);">
+                        Challenge the Cogitarian
+                    </div>
+                    
+                    <!-- Avatars with statement between: Challenger (left) vs Cogitarian (right) -->
+                    <div style="display: flex; align-items: stretch; gap: 0.5rem; margin-bottom: 1rem; background: #f8f8f8; padding: 0.75rem; border: 1px solid #ccc;">
+                        <!-- Left: Challenger -->
+                        <div style="text-align: center; min-width: 100px; background: white; border: 2px solid ${challengerColor}; padding: 0.5rem;">
+                            <div style="font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; font-family: 'Courier New', monospace;">
+                                Challenger
+                            </div>
+                            <img src="${challengerAvatar}" alt="${challengerName}" style="
+                                width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${challengerColor};
+                                object-fit: cover; margin-bottom: 0.3rem;
+                            ">
+                            <div style="font-weight: 600; color: ${challengerColor}; font-size: 0.8rem;">${challengerName}</div>
+                            <div style="color: #666; font-size: 0.65rem; font-family: 'Courier New', monospace;">@${challengerHandle}</div>
+                        </div>
+                        
+                        <!-- Center: Challenge Statement -->
+                        <div style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.8rem; color: #333; line-height: 1.6; padding: 0.5rem; background: white; border: 1px solid #ddd;">
+                            <div>
+                                <div style="font-weight: 600; color: ${challengerColor};">@${challengerHandle}</div>
+                                <div style="color: #666; font-size: 0.75rem;">challenges</div>
+                                <div style="font-weight: 600; color: ${challengedColor};">@${challengedHandle}</div>
+                                <div><strong class="role-text-cogitarian">Cogitarian</strong> (<strong class="role-text-cogitarian">${currentRank}</strong>)</div>
+                                <div style="color: #666; font-size: 0.75rem;">of <strong style="color: #704891;">Reverie House</strong></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right: Current Cogitarian (Challenged) -->
+                        <div style="text-align: center; min-width: 100px; background: white; border: 2px solid ${challengedColor}; padding: 0.5rem;">
+                            <div style="font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; font-family: 'Courier New', monospace;">
+                                <strong class="role-text-cogitarian">Cogitarian</strong> (<strong class="role-text-cogitarian">${currentRank}</strong>)
+                            </div>
+                            <img src="${challengedAvatar}" alt="${challengedName}" style="
+                                width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${challengedColor};
+                                object-fit: cover; margin-bottom: 0.3rem;
+                            ">
+                            <div style="font-weight: 600; color: ${challengedColor}; font-size: 0.8rem;">${challengedName}</div>
+                            <div style="color: #666; font-size: 0.65rem; font-family: 'Courier New', monospace;">@${challengedHandle}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reason for Challenge (beneath avatars) -->
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-weight: 600; margin-bottom: 0.4rem; color: var(--role-cogitarian-dark); font-family: 'Courier New', monospace; font-size: 0.8rem;">Reason:</div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <label style="flex: 1; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.4rem; background: #f9f9f9; border: 1px solid #ddd;">
+                                <input type="radio" name="challenge-reason" value="wish_to_be" checked style="accent-color: var(--role-cogitarian);">
+                                <span style="font-size: 0.8rem; color: #333;">I wish to be <strong class="role-text-cogitarian">Cogitarian</strong> (<strong class="role-text-cogitarian">${challengerRank}</strong>)</span>
+                            </label>
+                            <label style="flex: 1; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.4rem; background: #2a1a2a; border: 1px solid #3d2a3d;">
+                                <input type="radio" name="challenge-reason" value="wretched" style="accent-color: #8855aa;">
+                                <span style="font-size: 0.8rem; color: #fff;">They have become wretched</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Statement Field (required) -->
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-weight: 600; margin-bottom: 0.3rem; color: var(--role-cogitarian-dark); font-family: 'Courier New', monospace; font-size: 0.8rem;">Statement:</div>
+                        <textarea id="challenge-evidence" placeholder="Explain your challenge..." required style="
+                            width: 100%; min-height: 60px; padding: 0.5rem;
+                            background: #fff; border: 2px solid var(--role-cogitarian-light);
+                            font-size: 0.85rem; font-family: inherit;
+                            resize: vertical; box-sizing: border-box;
+                        "></textarea>
+                    </div>
+                    
+                    <!-- Warning -->
+                    <div style="
+                        background: #fef8e7;
+                        border: 1px solid #e6c65a;
+                        padding: 0.5rem;
+                        margin-bottom: 1rem;
+                        font-size: 0.7rem;
+                        color: #8a6d14;
+                    ">
+                        <strong>This challenge will be public.</strong> A record will be written to your PDS.<br>
+                        The challenge will remain open for 14 days.<br>
+                        <span id="challenge-oversight-text">It will be overseen by the Keeper.</span>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="city-modal-actions">
+                        <button onclick="submitCogitarianChallenge('${challengedDid}', '${challengedHandle}', '${currentRank}', '${challengerRank}')" class="city-modal-btn city-send-btn" style="background: var(--role-cogitarian); border-color: var(--role-cogitarian-dark);">
+                            Submit Challenge
+                        </button>
+                        <button onclick="closeCogitarianChallenge()" class="city-modal-btn city-cancel-btn">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modalOverlay);
+            
+            // Update oversight text when challenge type changes
+            const reasonRadios = modalOverlay.querySelectorAll('input[name="challenge-reason"]');
+            const oversightText = document.getElementById('challenge-oversight-text');
+            reasonRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (radio.value === 'wretched') {
+                        oversightText.textContent = 'Other dreamweavers will become involved.';
+                    } else {
+                        oversightText.textContent = 'It will be overseen by the Keeper.';
+                    }
+                });
+            });
+            
+            // Close on overlay click
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    closeCogitarianChallenge();
+                }
+            });
+        }
+        
+        function closeCogitarianChallenge() {
+            const modal = document.getElementById('cogitarian-challenge-modal');
+            if (modal) modal.remove();
+        }
+        
+        async function submitCogitarianChallenge(challengedDid, challengedHandle, challengedRank, challengerRank) {
+            const reasonInput = document.querySelector('input[name="challenge-reason"]:checked');
+            const evidenceInput = document.getElementById('challenge-evidence');
+            
+            if (!reasonInput) {
+                showCelebration('Please select a reason for your challenge.', 'error');
+                return;
+            }
+            
+            const challengeType = reasonInput.value;
+            const evidence = evidenceInput?.value?.trim() || '';
+            
+            // Statement is required
+            if (!evidence) {
+                showCelebration('A statement is required to submit a challenge.', 'error');
+                evidenceInput?.focus();
+                return;
+            }
+            
+            const submitBtn = document.querySelector('#cogitarian-challenge-modal .city-send-btn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+            }
+            
+            try {
+                const response = await fetch('/api/cogitarian/challenge', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('work_token') || ''}`
+                    },
+                    body: JSON.stringify({
+                        challenged_did: challengedDid,
+                        challenged_handle: challengedHandle,
+                        challenged_rank: challengedRank,
+                        challenger_rank: challengerRank,
+                        challenge_type: challengeType,
+                        evidence: evidence
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    closeCogitarianChallenge();
+                    showCelebration(`Challenge submitted successfully!\\n\\nChallenge ID: ${result.challenge_id}`, 'success');
+                    
+                    // Optionally redirect to the challenge page
+                    if (result.challenge_url) {
+                        setTimeout(() => {
+                            window.location.href = result.challenge_url;
+                        }, 2000);
+                    }
+                } else {
+                    throw new Error(result.error || 'Failed to submit challenge');
+                }
+            } catch (error) {
+                console.error('Challenge submission error:', error);
+                showCelebration(`Failed to submit challenge: ${error.message}`, 'error');
+                
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Challenge';
+                }
+            }
+        }
+
         // ====== UNIVERSAL WORKER MODAL SYSTEM ======
         
         let currentModalRole = null;
@@ -3861,7 +4641,9 @@
         // Universal worker modal opener
         async function openWorkerModal(role) {
             if (!currentSession) {
-                showCelebration('Please log in first', 'error');
+                if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                    window.loginWidget.showLoginPopup();
+                }
                 return;
             }
             
@@ -3880,6 +4662,7 @@
             else if (roleStatuses.provisioner && roleStatuses.provisioner.is_worker) userCurrentRole = 'provisioner';
             else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) userCurrentRole = 'dreamstyler';
             else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) userCurrentRole = 'bursar';
+            else if (roleStatuses.cheerful && roleStatuses.cheerful.is_worker) userCurrentRole = 'cheerful';
             
             if (userCurrentRole && userCurrentRole !== role) {
                 const currentRoleConfig = roleConfigs[userCurrentRole];
@@ -4351,7 +5134,9 @@
             const submitBtn = document.querySelector('.authorize-btn');
             
             if (!currentSession) {
-                showCelebration('Please log in first', 'error');
+                if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                    window.loginWidget.showLoginPopup();
+                }
                 return;
             }
 
@@ -4692,6 +5477,11 @@
                         const config = roleConfigs[role];
                         const roleTitle = config ? config.title : role;
                         showCelebration(`You are no longer ${roleTitle}.\nThank you for your work!\nPlease return if you ever desire.`, 'success');
+                        
+                        // Refresh page after step down to ensure clean state
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000); // Wait for celebration message to show
                     } else {
                         const errorText = await response.text();
                         console.error('❌ Work: Step down failed:', response.status, errorText);

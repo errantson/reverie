@@ -144,6 +144,9 @@
         const statusContentEl = document.getElementById('sidebar-status-content');
         if (!statusContentEl) return;
         
+        console.log('🎨 [Work] updateSidebarWorkStatus called, checking roleStatuses...');
+        console.log('🎨 [Work] roleStatuses.cheerful:', roleStatuses.cheerful);
+        
         // Find which role the user has
         let userRole = null;
         let roleStatus = null;
@@ -166,7 +169,12 @@
         } else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) {
             userRole = 'bursar';
             roleStatus = roleStatuses.bursar;
+        } else if (roleStatuses.cheerful && roleStatuses.cheerful.is_worker) {
+            userRole = 'cheerful';
+            roleStatus = roleStatuses.cheerful;
         }
+        
+        console.log('🎨 [Work] Detected userRole:', userRole, 'roleStatus:', roleStatus);
         
         if (!userRole) {
             // Not working - show as DREAMWEAVER
@@ -184,7 +192,8 @@
             cogitarian: { title: 'COGITARIAN' },
             provisioner: { title: 'PROVISIONER' },
             dreamstyler: { title: 'DREAMSTYLER' },
-            bursar: { title: 'BURSAR' }
+            bursar: { title: 'BURSAR' },
+            cheerful: { title: 'THE CHEERFUL' }
         };
 
         const roleTitle = roleConfigs[userRole]?.title || userRole.toUpperCase();
@@ -201,13 +210,13 @@
         `;
         
         // Add action buttons based on current status
-        // Dreamstylers don't retire - they just step down
+        // Dreamstylers and Cheerful don't retire - they just step down
         if (status === 'working') {
-            if (userRole === 'dreamstyler') {
-                // Dreamstylers only get a "Step Down" button, no retiring
+            if (userRole === 'dreamstyler' || userRole === 'cheerful') {
+                // Multi-worker roles only get a "Step Down" button, no retiring
                 statusHtml += `
                     <div class="sidebar-work-actions">
-                        <button class="sidebar-action-btn stepdown-btn" onclick="deactivateRole('${userRole}')" title="Step down from being a Dreamstyler" style="background: ${userColor}; border-color: ${userColor};">
+                        <button class="sidebar-action-btn stepdown-btn" onclick="deactivateRole('${userRole}')" title="Step down from this role" style="background: ${userColor}; border-color: ${userColor};">
                             Step Down
                         </button>
                     </div>

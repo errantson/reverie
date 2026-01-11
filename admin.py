@@ -1536,14 +1536,436 @@ def get_active_roles():
                     if isinstance(worker, dict) and worker.get('status') in ['working', 'retiring']:
                         result.append({
                             'did': worker.get('did'),
+                            'handle': worker.get('handle'),
                             'role': role_name,
-                            'status': worker.get('status')
+                            'status': worker.get('status'),
+                            'rank': worker.get('rank'),
+                            'activated_at': worker.get('started_at') or worker.get('activated_at')
                         })
         
         return jsonify(result)
         
     except Exception as e:
         print(f"Error in /api/work/active-roles: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify([]), 500
+
+
+# ============================================================================
+# COGITARIAN CHALLENGE ENDPOINTS
+# ============================================================================
+
+@app.route('/api/cogitarian/challenge/active')
+def get_active_challenge():
+    """Get the currently active Cogitarian challenge (public endpoint for scoreboard)"""
+    try:
+        from core.cogitarian_challenges import get_challenge_manager
+        
+        manager = get_challenge_manager()
+        challenge = manager.get_challenge_for_display()
+        
+        if challenge:
+            # Convert datetime objects to ISO strings
+            for key in ['created_at', 'expires_at', 'resolved_at', 'favor_set_at']:
+                if challenge.get(key) and hasattr(challenge[key], 'isoformat'):
+                    challenge[key] = challenge[key].isoformat()
+            
+            return jsonify({'challenge': challenge})
+        
+        return jsonify({'challenge': None})
+        
+    except Exception as e:
+        print(f"Error in /api/cogitarian/challenge/active: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'challenge': None, 'error': str(e)}), 500
+
+
+@app.route('/api/cogitarian/challenge/favor', methods=['POST'])
+@require_auth()
+def set_challenge_favor():
+    """Set the Keeper's Favor for the active challenge (Keeper only)"""
+    try:
+        from core.cogitarian_challenges import get_challenge_manager
+        
+        data = request.json
+        favor = data.get('favor')
+        
+        if favor not in ('challenger', 'cogitarian'):
+            return jsonify({'error': 'Invalid favor value'}), 400
+        
+        # Get admin DID from session
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        session = auth.validate_session(token)
+        if not session:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        manager = get_challenge_manager()
+        challenge = manager.get_active_challenge()
+        
+        if not challenge:
+            return jsonify({'error': 'No active challenge'}), 404
+        
+        success, message = manager.set_favor(
+            challenge['challenge_id'],
+            favor,
+            session['did']
+        )
+        
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'error': message}), 400
+        
+    except Exception as e:
+        print(f"Error in /api/cogitarian/challenge/favor: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cogitarian/challenge/resolve', methods=['POST'])
+@require_auth()
+def resolve_challenge():
+    """Resolve the active challenge based on current favor (Keeper only)"""
+    try:
+        from core.cogitarian_challenges import get_challenge_manager
+        
+        data = request.json or {}
+        notes = data.get('notes')
+        
+        # Get admin DID from session
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        session = auth.validate_session(token)
+        if not session:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        manager = get_challenge_manager()
+        challenge = manager.get_active_challenge()
+        
+        if not challenge:
+            return jsonify({'error': 'No active challenge'}), 404
+        
+        success, message, outcome = manager.resolve_challenge(
+            challenge['challenge_id'],
+            resolver_did=session['did'],
+            notes=notes
+        )
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message,
+                'outcome': outcome
+            })
+        else:
+            return jsonify({'error': message}), 400
+        
+    except Exception as e:
+        print(f"Error in /api/cogitarian/challenge/resolve: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cogitarian/challenge/disqualify', methods=['POST'])
+@require_auth()
+def disqualify_challenger():
+    """Disqualify the challenger (Keeper only)"""
+    try:
+        from core.cogitarian_challenges import get_challenge_manager
+        
+        data = request.json or {}
+        reason = data.get('reason')
+        
+        if not reason:
+            return jsonify({'error': 'Reason required'}), 400
+        
+        # Get admin DID from session
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        session = auth.validate_session(token)
+        if not session:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        manager = get_challenge_manager()
+        challenge = manager.get_active_challenge()
+        
+        if not challenge:
+            return jsonify({'error': 'No active challenge'}), 404
+        
+        success, message = manager.disqualify_challenger(
+            challenge['challenge_id'],
+            reason,
+            session['did']
+        )
+        
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'error': message}), 400
+        
+    except Exception as e:
+        print(f"Error in /api/cogitarian/challenge/disqualify: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# WRETCH SYSTEM ENDPOINTS
+# ============================================================================
+
+@app.route('/api/wretched/<handle>')
+def get_wretched_state(handle):
+    """Public: Get wretched state for a user. Returns 404 if not wretched."""
+    try:
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+        
+        row = db.fetch_one("""
+            SELECT wp.*, d.handle, d.display_name
+            FROM wretched_profiles wp
+            JOIN dreamers d ON wp.did = d.did
+            WHERE d.handle = %s AND wp.status = 'wretched'
+            ORDER BY wp.wretched_at DESC LIMIT 1
+        """, (handle,))
+        
+        if not row:
+            return jsonify({"error": "Not wretched"}), 404
+        
+        return jsonify({
+            "handle": row['handle'],
+            "display_name": row.get('display_name') or row['handle'],
+            "wretched_avatar": row.get('wretched_avatar'),
+            "wretched_at": row['wretched_at'].isoformat() if row.get('wretched_at') else None,
+            "soothe_target_at": row['soothe_target_at'].isoformat() if row.get('soothe_target_at') else None,
+            "soothe_likes_count": row.get('soothe_likes_count', 0)
+        })
+    except Exception as e:
+        print(f"Error getting wretched state: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/admin/wretch/preview')
+@require_auth()
+def wretch_preview():
+    """Preview what wretching would do to a user (admin only)"""
+    try:
+        from core.wretched import get_transformer
+        
+        did = request.args.get('did')
+        if not did:
+            return jsonify({'error': 'DID required'}), 400
+        
+        transformer = get_transformer()
+        result = transformer.preview(did)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in wretch preview: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/wretch/execute', methods=['POST'])
+@require_auth()
+def wretch_execute():
+    """Execute a wretch transformation (admin only)"""
+    try:
+        from core.wretched import get_transformer
+        
+        data = request.get_json()
+        did = data.get('did')
+        reason = data.get('reason', 'banished')
+        challenge_id = data.get('challenge_id')
+        
+        if not did:
+            return jsonify({'error': 'DID required'}), 400
+        
+        transformer = get_transformer()
+        result = transformer.wretch(did, reason=reason, challenge_id=challenge_id)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in wretch execute: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/wretch/restore', methods=['POST'])
+@require_auth()
+def wretch_restore():
+    """Restore a user from wretched state (admin only)"""
+    try:
+        from core.wretched import get_transformer
+        
+        # Get admin DID from session
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        valid, admin_did, _ = validate_work_token(token)
+        if not valid:
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        data = request.get_json()
+        did = data.get('did')
+        
+        if not did:
+            return jsonify({'error': 'DID required'}), 400
+        
+        transformer = get_transformer()
+        result = transformer.restore(did, restored_by=admin_did)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error in wretch restore: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/wretch/avatars')
+@require_auth()
+def wretch_avatars():
+    """Get list of wretched avatars and their status"""
+    try:
+        from core.wretched import get_transformer
+        
+        transformer = get_transformer()
+        return jsonify(transformer.list_avatars())
+        
+    except Exception as e:
+        print(f"Error in wretch avatars: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'avatars': [], 'available': 0}), 500
+
+
+@app.route('/api/admin/wretched/profiles')
+@require_auth()
+def get_wretched_profiles():
+    """Get list of all currently wretched users"""
+    try:
+        from core.database import DatabaseManager
+        
+        db = DatabaseManager()
+        
+        # Get all wretched profiles that are currently active
+        cursor = db.execute("""
+            SELECT 
+                wp.did, wp.handle, wp.wretched_avatar, wp.wretched_at,
+                d.avatar, d.color_hex
+            FROM wretched_profiles wp
+            LEFT JOIN dreamers d ON wp.did = d.did
+            WHERE wp.status = 'wretched'
+            ORDER BY wp.wretched_at DESC
+        """)
+        
+        profiles = []
+        for row in cursor.fetchall():
+            row_dict = dict(row)
+            profiles.append({
+                'did': row_dict.get('did'),
+                'handle': row_dict.get('handle'),
+                'wretched_avatar': row_dict.get('wretched_avatar'),
+                'wretched_avatar_url': f"/assets/wretched/{row_dict.get('wretched_avatar')}" if row_dict.get('wretched_avatar') else None,
+                'wretched_at': row_dict.get('wretched_at'),
+                'color': row_dict.get('color_hex')
+            })
+        
+        return jsonify({'profiles': profiles, 'total': len(profiles)})
+        
+    except Exception as e:
+        print(f"Error getting wretched profiles: {e}")
+        return jsonify({'error': str(e), 'profiles': [], 'total': 0}), 500
+
+
+@app.route('/api/admin/app-passwords')
+@require_auth()
+def get_app_passwords():
+    """Get app password status for all dreamers with stored passwords (admin only)"""
+    try:
+        from core.database import DatabaseManager
+        
+        db = DatabaseManager()
+        
+        # Get all stored app passwords with basic validity info
+        # Table is user_credentials, not app_passwords
+        cursor = db.execute("""
+            SELECT uc.did, uc.valid, uc.is_valid, uc.verified, uc.created_at,
+                   d.handle, d.display_name, d.avatar
+            FROM user_credentials uc
+            LEFT JOIN dreamers d ON uc.did = d.did
+            ORDER BY uc.created_at DESC
+        """)
+        
+        passwords = []
+        for row in cursor.fetchall():
+            # Handle both 'valid' and 'is_valid' columns for compatibility
+            is_valid = row.get('valid') or row.get('is_valid')
+            created_epoch = row.get('created_at')
+            verified_epoch = row.get('verified')
+            
+            passwords.append({
+                'did': row['did'],
+                'handle': row.get('handle'),
+                'valid': bool(is_valid),
+                'display_name': row.get('display_name'),
+                'avatar': row.get('avatar'),
+                'created_at': datetime.fromtimestamp(created_epoch).isoformat() if created_epoch else None,
+                'last_checked': datetime.fromtimestamp(verified_epoch).isoformat() if verified_epoch else None
+            })
+        
+        return jsonify(passwords)
+        
+    except Exception as e:
+        print(f"Error in /api/admin/app-passwords: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify([]), 500
+
+
+@app.route('/api/admin/role-events')
+@require_auth()
+def get_role_events():
+    """Get recent role-related events (admin only)"""
+    try:
+        from core.database import DatabaseManager
+        
+        db = DatabaseManager()
+        
+        # Get events related to work/roles
+        cursor = db.execute("""
+            SELECT * FROM events
+            WHERE type IN ('work', 'role', 'challenge', 'cogitarian')
+            ORDER BY epoch DESC
+            LIMIT 100
+        """)
+        
+        events = []
+        for row in cursor.fetchall():
+            events.append({
+                'id': row['id'],
+                'did': row['did'],
+                'type': row['type'],
+                'event': row['event'],
+                'key': row['key'],
+                'epoch': row['epoch'],
+                'timestamp': datetime.fromtimestamp(row['epoch']).isoformat() if row['epoch'] else None
+            })
+        
+        return jsonify(events)
+        
+    except Exception as e:
+        print(f"Error in /api/admin/role-events: {e}")
         import traceback
         traceback.print_exc()
         return jsonify([]), 500
@@ -7350,6 +7772,438 @@ def step_down_mapper():
 
 
 # ============================================================================
+# COGITARIAN CHALLENGE SYSTEM
+# ============================================================================
+
+@app.route('/api/cogitarian/history')
+@rate_limit()
+def get_cogitarian_history():
+    """Get historical list of all cogitarians with their ranks from canon events (key=cogitarian)"""
+    try:
+        from core.database import DatabaseManager
+        from core.cogitarian_ranks import COGITARIAN_RANKS, get_next_rank
+        
+        db_manager = DatabaseManager()
+        
+        # Get cogitarian events from canon (key='cogitarian'), not reactions
+        # Order by epoch ascending to get chronological order
+        rows = db_manager.fetch_all("""
+            SELECT c.did, c.handle, c.epoch, c.uri,
+                   d.display_name, d.color_hex, d.avatar
+            FROM canon c
+            LEFT JOIN dreamers d ON c.did = d.did
+            WHERE c.key = 'cogitarian' AND c.reaction_to IS NULL
+            ORDER BY c.epoch ASC
+        """)
+        
+        history = []
+        for i, row in enumerate(rows):
+            rank = COGITARIAN_RANKS[i] if i < len(COGITARIAN_RANKS) else 'Omega'
+            history.append({
+                'did': row['did'],
+                'handle': row['handle'] or 'unknown',
+                'display_name': row['display_name'],
+                'color_hex': row['color_hex'],
+                'avatar': row['avatar'],
+                'rank': rank,
+                'epoch': row['epoch']
+            })
+        
+        # Determine current rank (based on count - first is Prime at index 0)
+        # If there's 1 cogitarian event, they are Prime
+        current_rank = COGITARIAN_RANKS[len(history) - 1] if history else 'Prime'
+        next_rank = get_next_rank(current_rank) if history else 'Alpha'
+        
+        return jsonify({
+            'success': True,
+            'history': history,
+            'current_rank': current_rank,
+            'next_rank': next_rank or 'Omega',
+            'total_cogitarians': len(history)
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cogitarian/challenge', methods=['POST'])
+@rate_limit()
+def submit_cogitarian_challenge():
+    """Submit a challenge to the current cogitarian"""
+    try:
+        from core.database import DatabaseManager
+        from core.cogitarian_ranks import COGITARIAN_RANKS
+        from datetime import datetime, timedelta
+        
+        db_manager = DatabaseManager()
+        
+        # Get token from Authorization header
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        # Validate token
+        valid, challenger_did, challenger_handle = validate_work_token(token)
+        if not valid or not challenger_did:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        # Must have .reverie.house handle
+        if not challenger_handle or not challenger_handle.endswith('.reverie.house'):
+            return jsonify({'error': 'Only dreamers with a .reverie.house handle may challenge'}), 403
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid request data'}), 400
+        
+        challenged_did = data.get('challenged_did')
+        challenged_handle = data.get('challenged_handle')
+        challenged_rank = data.get('challenged_rank', 'Prime')
+        challenger_rank = data.get('challenger_rank', 'Alpha')
+        challenge_type = data.get('challenge_type')  # 'wish_to_be' or 'wretched'
+        evidence = data.get('evidence', '')
+        
+        if not challenged_did or not challenge_type:
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        if challenge_type not in ['wish_to_be', 'wretched']:
+            return jsonify({'error': 'Invalid challenge type'}), 400
+        
+        if challenger_did == challenged_did:
+            return jsonify({'error': 'You cannot challenge yourself'}), 400
+        
+        # Verify the challenged person is actually the current cogitarian
+        work_row = db_manager.fetch_one("""
+            SELECT workers FROM work WHERE role = 'cogitarian'
+        """)
+        
+        if not work_row:
+            return jsonify({'error': 'Cogitarian role not found'}), 404
+        
+        workers = json.loads(work_row['workers']) if work_row['workers'] else []
+        if not workers or workers[0].get('did') != challenged_did:
+            return jsonify({'error': 'Target is not the current cogitarian'}), 400
+        
+        # Check for existing active challenge from this user
+        existing = db_manager.fetch_one("""
+            SELECT challenge_id FROM cogitarian_challenges
+            WHERE challenger_did = %s AND status = 'active'
+        """, (challenger_did,))
+        
+        if existing:
+            return jsonify({'error': 'You already have an active challenge pending'}), 409
+        
+        # Generate challenge ID
+        count_result = db_manager.fetch_one("""
+            SELECT COUNT(*) as count FROM cogitarian_challenges
+        """)
+        challenge_num = (count_result['count'] or 0) + 1
+        challenge_id = f"challenge{challenge_num:03d}"
+        
+        # Calculate expiration (14 days from now)
+        expires_at = datetime.now() + timedelta(days=14)
+        
+        # Insert the challenge
+        db_manager.execute("""
+            INSERT INTO cogitarian_challenges (
+                challenge_id, challenger_did, challenger_handle, challenger_rank,
+                challenged_did, challenged_handle, challenged_rank,
+                challenge_type, evidence, expires_at, status
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active')
+        """, (
+            challenge_id, challenger_did, challenger_handle, challenger_rank,
+            challenged_did, challenged_handle, challenged_rank,
+            challenge_type, evidence, expires_at
+        ))
+        
+        print(f"\n{'='*80}")
+        print(f"⚔️ COGITARIAN CHALLENGE SUBMITTED")
+        print(f"{'='*80}")
+        print(f"Challenge ID: {challenge_id}")
+        print(f"Challenger: @{challenger_handle} ({challenger_did})")
+        print(f"Challenged: @{challenged_handle} ({challenged_did}) - {challenged_rank}")
+        print(f"Type: {challenge_type}")
+        print(f"Expires: {expires_at}")
+        print(f"{'='*80}\n")
+        
+        # TODO: Write ATProto records and create announcement post
+        # This will be implemented in the next phase
+        
+        challenge_url = f"/cogitarian/{challenge_id}"
+        
+        return jsonify({
+            'success': True,
+            'challenge_id': challenge_id,
+            'challenge_url': challenge_url,
+            'expires_at': expires_at.isoformat(),
+            'message': 'Challenge submitted successfully'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cogitarian/challenges')
+@rate_limit()
+def list_cogitarian_challenges():
+    """List all cogitarian challenges"""
+    try:
+        from core.database import DatabaseManager
+        
+        db_manager = DatabaseManager()
+        
+        status_filter = request.args.get('status', 'all')
+        
+        if status_filter == 'all':
+            rows = db_manager.fetch_all("""
+                SELECT * FROM cogitarian_challenges
+                ORDER BY created_at DESC
+                LIMIT 50
+            """)
+        else:
+            rows = db_manager.fetch_all("""
+                SELECT * FROM cogitarian_challenges
+                WHERE status = %s
+                ORDER BY created_at DESC
+                LIMIT 50
+            """, (status_filter,))
+        
+        challenges = []
+        for row in rows:
+            challenges.append({
+                'challenge_id': row['challenge_id'],
+                'challenger_did': row['challenger_did'],
+                'challenger_handle': row['challenger_handle'],
+                'challenger_rank': row['challenger_rank'],
+                'challenged_did': row['challenged_did'],
+                'challenged_handle': row['challenged_handle'],
+                'challenged_rank': row['challenged_rank'],
+                'challenge_type': row['challenge_type'],
+                'evidence': row['evidence'],
+                'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                'expires_at': row['expires_at'].isoformat() if row['expires_at'] else None,
+                'status': row['status'],
+                'votes_challenger': row['votes_challenger'],
+                'votes_challenged': row['votes_challenged'],
+                'outcome': row['outcome']
+            })
+        
+        return jsonify({
+            'success': True,
+            'challenges': challenges
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cogitarian/challenge/<challenge_id>')
+@rate_limit()
+def get_cogitarian_challenge(challenge_id):
+    """Get details of a specific challenge"""
+    try:
+        from core.database import DatabaseManager
+        
+        db_manager = DatabaseManager()
+        
+        row = db_manager.fetch_one("""
+            SELECT * FROM cogitarian_challenges
+            WHERE challenge_id = %s
+        """, (challenge_id,))
+        
+        if not row:
+            return jsonify({'error': 'Challenge not found'}), 404
+        
+        # Get votes breakdown
+        votes = db_manager.fetch_all("""
+            SELECT voter_did, voter_handle, vote_for, is_guest, voted_at
+            FROM cogitarian_challenge_votes
+            WHERE challenge_id = %s
+            ORDER BY voted_at DESC
+        """, (challenge_id,))
+        
+        # Get replies
+        replies = db_manager.fetch_all("""
+            SELECT id, reply_uri, author_did, author_handle, content, created_at
+            FROM cogitarian_challenge_replies
+            WHERE challenge_id = %s
+            ORDER BY created_at ASC
+        """, (challenge_id,))
+        
+        return jsonify({
+            'success': True,
+            'challenge': {
+                'challenge_id': row['challenge_id'],
+                'challenger_did': row['challenger_did'],
+                'challenger_handle': row['challenger_handle'],
+                'challenger_rank': row['challenger_rank'],
+                'challenged_did': row['challenged_did'],
+                'challenged_handle': row['challenged_handle'],
+                'challenged_rank': row['challenged_rank'],
+                'challenge_type': row['challenge_type'],
+                'evidence': row['evidence'],
+                'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                'expires_at': row['expires_at'].isoformat() if row['expires_at'] else None,
+                'resolved_at': row['resolved_at'].isoformat() if row['resolved_at'] else None,
+                'status': row['status'],
+                'votes_challenger': row['votes_challenger'],
+                'votes_challenged': row['votes_challenged'],
+                'outcome': row['outcome'],
+                'outcome_notes': row['outcome_notes']
+            },
+            'votes': [
+                {
+                    'voter_did': v['voter_did'],
+                    'voter_handle': v['voter_handle'],
+                    'vote_for': v['vote_for'],
+                    'is_guest': v['is_guest'],
+                    'voted_at': v['voted_at'].isoformat() if v['voted_at'] else None
+                } for v in votes
+            ],
+            'replies': [
+                {
+                    'id': r['id'],
+                    'reply_uri': r['reply_uri'],
+                    'author_did': r['author_did'],
+                    'author_handle': r['author_handle'],
+                    'content': r['content'],
+                    'created_at': r['created_at'].isoformat() if r['created_at'] else None
+                } for r in replies
+            ]
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cogitarian/challenge/<challenge_id>/vote', methods=['POST'])
+@rate_limit()
+def vote_on_challenge(challenge_id):
+    """Cast a vote on a challenge"""
+    try:
+        from core.database import DatabaseManager
+        
+        db_manager = DatabaseManager()
+        
+        # Get token (optional for guests)
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        valid, voter_did, voter_handle = validate_work_token(token) if token else (False, None, None)
+        
+        data = request.get_json()
+        vote_for = data.get('vote_for')  # 'challenger' or 'challenged'
+        
+        if vote_for not in ['challenger', 'challenged']:
+            return jsonify({'error': 'Invalid vote'}), 400
+        
+        # Check challenge exists and is active
+        challenge = db_manager.fetch_one("""
+            SELECT status, expires_at FROM cogitarian_challenges
+            WHERE challenge_id = %s
+        """, (challenge_id,))
+        
+        if not challenge:
+            return jsonify({'error': 'Challenge not found'}), 404
+        
+        if challenge['status'] != 'active':
+            return jsonify({'error': 'Challenge is no longer active'}), 400
+        
+        from datetime import datetime
+        if challenge['expires_at'] and datetime.now() > challenge['expires_at']:
+            return jsonify({'error': 'Challenge has expired'}), 400
+        
+        is_guest = not valid
+        
+        if is_guest:
+            # For guests, use IP hash as voter_did
+            import hashlib
+            client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            voter_did = 'guest:' + hashlib.sha256(client_ip.encode()).hexdigest()[:16]
+            voter_handle = None
+        
+        # Check for existing vote
+        existing = db_manager.fetch_one("""
+            SELECT vote_for FROM cogitarian_challenge_votes
+            WHERE challenge_id = %s AND voter_did = %s
+        """, (challenge_id, voter_did))
+        
+        if existing:
+            if existing['vote_for'] == vote_for:
+                return jsonify({'error': 'You have already voted this way'}), 409
+            
+            # Update vote
+            old_vote = existing['vote_for']
+            db_manager.execute("""
+                UPDATE cogitarian_challenge_votes
+                SET vote_for = %s, voted_at = CURRENT_TIMESTAMP
+                WHERE challenge_id = %s AND voter_did = %s
+            """, (vote_for, challenge_id, voter_did))
+            
+            # Update vote counts
+            if old_vote == 'challenger':
+                db_manager.execute("""
+                    UPDATE cogitarian_challenges
+                    SET votes_challenger = votes_challenger - 1, votes_challenged = votes_challenged + 1
+                    WHERE challenge_id = %s
+                """, (challenge_id,))
+            else:
+                db_manager.execute("""
+                    UPDATE cogitarian_challenges
+                    SET votes_challenged = votes_challenged - 1, votes_challenger = votes_challenger + 1
+                    WHERE challenge_id = %s
+                """, (challenge_id,))
+        else:
+            # Insert new vote
+            db_manager.execute("""
+                INSERT INTO cogitarian_challenge_votes
+                (challenge_id, voter_did, voter_handle, vote_for, is_guest)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (challenge_id, voter_did, voter_handle, vote_for, is_guest))
+            
+            # Update vote count
+            if vote_for == 'challenger':
+                db_manager.execute("""
+                    UPDATE cogitarian_challenges SET votes_challenger = votes_challenger + 1
+                    WHERE challenge_id = %s
+                """, (challenge_id,))
+            else:
+                db_manager.execute("""
+                    UPDATE cogitarian_challenges SET votes_challenged = votes_challenged + 1
+                    WHERE challenge_id = %s
+                """, (challenge_id,))
+        
+        # Get updated counts
+        updated = db_manager.fetch_one("""
+            SELECT votes_challenger, votes_challenged FROM cogitarian_challenges
+            WHERE challenge_id = %s
+        """, (challenge_id,))
+        
+        return jsonify({
+            'success': True,
+            'vote_for': vote_for,
+            'is_guest': is_guest,
+            'votes_challenger': updated['votes_challenger'],
+            'votes_challenged': updated['votes_challenged']
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
 # COGITARIAN WORK ENDPOINTS
 # ============================================================================
 
@@ -8918,6 +9772,262 @@ def set_bursar_status():
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================================================
+# CHEERFUL WORK ENDPOINTS (Multi-worker role, automatic positivity)
+# ============================================================================
+
+@app.route('/api/work/cheerful/status')
+@rate_limit()
+def get_cheerful_status():
+    """Get current cheerful work status"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        valid, user_did, handle = validate_work_token(token)
+        
+        db_manager = DatabaseManager()
+        row = db_manager.fetch_one("""
+            SELECT workers, status, worker_limit, created_at, updated_at
+            FROM work 
+            WHERE role = 'cheerful' 
+            LIMIT 1
+        """)
+        
+        if not row:
+            return jsonify({
+                'success': True,
+                'is_worker': False,
+                'current_worker': None,
+                'role_info': None
+            })
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        # Check if the logged-in user is among the cheerful
+        is_worker = False
+        worker_status = None
+        
+        if user_did:
+            for w in workers:
+                if w.get('did') == user_did:
+                    is_worker = True
+                    worker_status = w.get('status', 'working')
+                    break
+        
+        return jsonify({
+            'success': True,
+            'is_worker': is_worker,
+            'status': worker_status,
+            'current_worker': workers[0] if workers else None,
+            'role_info': {
+                'workers': workers,
+                'status': row['status'],
+                'worker_limit': row['worker_limit'],
+                'updated_at': row['updated_at']
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/cheerful/activate', methods=['POST'])
+@rate_limit()
+def activate_cheerful():
+    """Activate as cheerful - multi-worker role for spreading positivity"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        data = request.get_json() or {}
+        use_existing = data.get('use_existing_credentials', True)
+        
+        print(f"\n{'='*80}")
+        print(f"💖 CHEERFUL ACTIVATION REQUEST")
+        print(f"{'='*80}")
+        print(f"Session DID: {user_did}")
+        print(f"Session handle: {handle}")
+        print(f"{'='*80}\n")
+        
+        # Cheerful requires an app password for liking
+        existing_cred = db_manager.fetch_one("""
+            SELECT app_password_hash FROM user_credentials
+            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
+        """, (user_did,))
+        
+        if not existing_cred:
+            return jsonify({'error': 'No stored credentials found. Please connect your app password first.'}), 400
+        
+        password_hash = existing_cred['app_password_hash']
+        
+        # ===== UNIFIED SYSTEM (PRIMARY) =====
+        print(f"💾 Updating unified user_roles table...")
+        
+        existing_role = db_manager.fetch_one("""
+            SELECT 1 FROM user_roles WHERE did = %s AND role = 'cheerful'
+        """, (user_did,))
+        
+        if existing_role:
+            db_manager.execute("""
+                UPDATE user_roles
+                SET status = 'active', activated_at = CURRENT_TIMESTAMP, deactivated_at = NULL
+                WHERE did = %s AND role = 'cheerful'
+            """, (user_did,))
+            print(f"  ✓ Reactivated cheerful role")
+        else:
+            db_manager.execute("""
+                INSERT INTO user_roles (did, role, status)
+                VALUES (%s, 'cheerful', 'active')
+            """, (user_did,))
+            print(f"  ✓ Created cheerful role")
+        
+        # ===== LEGACY SYSTEM (BACKWARD COMPATIBILITY) =====
+        print(f"💾 Updating legacy work table...")
+        
+        work_row = db_manager.fetch_one("""
+            SELECT workers, status FROM work
+            WHERE role = 'cheerful'
+        """)
+        
+        if not work_row:
+            # Create cheerful role if it doesn't exist
+            db_manager.execute("""
+                INSERT INTO work (role, workers, status, worker_limit, created_at, updated_at)
+                VALUES ('cheerful', '[]', 'open', -1, %s, %s)
+            """, (int(time.time()), int(time.time())))
+            workers = []
+            print(f"  ✓ Created cheerful role in work table")
+        else:
+            workers = json.loads(work_row['workers']) if work_row['workers'] else []
+        
+        # Check if user is already in workers array
+        already_active = any(w['did'] == user_did for w in workers)
+        
+        if already_active:
+            for w in workers:
+                if w['did'] == user_did:
+                    w['status'] = 'working'
+                    break
+            print(f"  ✓ Updated existing worker to 'working'")
+        else:
+            new_worker = {
+                'did': user_did,
+                'status': 'working',
+                'passhash': password_hash
+            }
+            workers.append(new_worker)
+            print(f"  ✓ Added new cheerful member (total: {len(workers)})")
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'cheerful'
+        """, (json.dumps(workers), int(time.time())))
+        
+        # Add first-time work canon entry
+        add_first_time_work_canon(
+            db_manager, 
+            user_did, 
+            'cheerful',
+            'became Cheerful',
+            'cheerful'
+        )
+        
+        print(f"✅ Cheerful activated for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': True,
+            'status': 'working'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/cheerful/step-down', methods=['POST'])
+@rate_limit()
+def step_down_cheerful():
+    """Step down from The Cheerful"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        print(f"📝 CHEERFUL STEP-DOWN: {user_did}")
+        
+        # Unified system
+        db_manager.execute("""
+            UPDATE user_roles
+            SET status = 'inactive', deactivated_at = CURRENT_TIMESTAMP
+            WHERE did = %s AND role = 'cheerful'
+        """, (user_did,))
+        print(f"  ✓ Deactivated cheerful role in unified system")
+        
+        # Legacy system
+        cursor = db_manager.execute("SELECT workers FROM work WHERE role = 'cheerful'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Cheerful role not found'}), 404
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        updated_workers = [w for w in workers if w['did'] != user_did]
+        
+        if len(updated_workers) == len(workers):
+            return jsonify({'error': 'You are not currently among The Cheerful'}), 403
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'cheerful'
+        """, (json.dumps(updated_workers), int(time.time())))
+        print(f"  ✓ Removed from legacy work table (remaining: {len(updated_workers)})")
+        
+        print(f"✅ Cheerful step-down complete for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': False
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/work/provisioner/send-request', methods=['POST'])
 @rate_limit()
 def send_provisioner_request():
@@ -9579,6 +10689,19 @@ def update_user_profile():
             return jsonify({'error': 'Invalid or expired token'}), 401
         
         print(f"✅ [API] Token validated for user: {user_did}")
+        
+        # Check if user is wretched (locked from profile updates)
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+        wretch_check = db.fetch_one(
+            "SELECT is_wretched FROM dreamers WHERE did = %s", 
+            (user_did,)
+        )
+        if wretch_check and wretch_check.get('is_wretched'):
+            return jsonify({
+                'error': 'Profile changes are locked while wretched',
+                'wretched': True
+            }), 403
         
         # Get data from request
         data = request.get_json()

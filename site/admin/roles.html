@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roles Manager - Reverie House</title>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/color-rows.css">
+    <link rel="stylesheet" href="/css/roles.css">
+    <link rel="stylesheet" href="/css/octants.css">
+    <link rel="stylesheet" href="/css/souvenirs.css">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    
+    <!-- Core utilities (must load first) -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/core/rowstyle-registry.js"></script>
+    <script src="/js/core/rowstyle-engine.js"></script>
+    <script src="/js/widgets/eventstack.js"></script>
+    
+    <!-- Header and drawer widgets -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    
+    <style>
+        :root {
+            --sidebar-width: 300px;
+            --sidebar-bg: #fafafa;
+            --sidebar-border: #e5e5e5;
+            --card-bg: #ffffff;
+            --card-border: #e5e5e5;
+            --text-primary: #171717;
+            --text-secondary: #6b7280;
+            --text-dim: #9ca3af;
+            --hover-bg: #f3f4f6;
+            --active-bg: #f0f0ff;
+            --active-border: #734ba1;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--page-background-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        /* Main Layout */
+        .roles-manager-layout {
+            display: flex;
+            height: calc(100vh - 60px);
+            margin-top: 60px;
+        }
+        
+        /* Sidebar - Role List */
+        .roles-sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+            background: white;
+            text-align: center;
+        }
+        
+        .sidebar-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--active-border);
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .roles-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+        
+        .role-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.25rem;
+            background: white;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .role-item:hover {
+            background: var(--hover-bg);
+        }
+        
+        .role-item.active {
+            background: var(--active-bg);
+            border-color: var(--active-border);
+        }
+        
+        .role-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+        
+        .role-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: capitalize;
+        }
+        
+        .role-status {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .role-status.filled { background: #dcfce7; color: #166534; }
+        .role-status.vacant { background: #fef3c7; color: #92400e; }
+        .role-status.challenged { background: #fee2e2; color: #991b1b; }
+        
+        .role-holder {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .role-description {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            font-style: italic;
+            margin-top: 0.25rem;
+            line-height: 1.3;
+        }
+        
+        .role-req-indicators {
+            display: flex;
+            gap: 0.3rem;
+            margin-top: 0.4rem;
+        }
+        
+        .req-indicator {
+            font-size: 0.55rem;
+            padding: 0.15rem 0.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .req-indicator.met {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .req-indicator.unmet {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .req-indicator.challenge {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        /* Main Content */
+        .roles-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .main-header {
+            padding: 1rem 1.5rem;
+            background: white;
+            border-bottom: 1px solid var(--sidebar-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .main-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        
+        /* Role Detail Panel */
+        .role-detail-card {
+            background: white;
+            border: 1px solid var(--card-border);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .role-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .role-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .role-info h2 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.2rem;
+        }
+        
+        .role-info .handle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .role-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .meta-item {
+            background: #f9f9f9;
+            padding: 0.75rem;
+            border: 1px solid #eee;
+        }
+        
+        .meta-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .meta-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .meta-value.has-password { color: #059669; }
+        .meta-value.no-password { color: #dc2626; }
+        
+        /* Challenge Section */
+        .challenge-section {
+            background: white;
+            border: 2px solid var(--role-cogitarian-medium);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .challenge-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .challenge-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--role-cogitarian);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .challenge-badge {
+            background: var(--role-cogitarian);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .challenge-parties {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .challenge-party {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            background: #f9f9f9;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .challenge-party.favored {
+            border-color: #059669;
+            background: #dcfce7;
+        }
+        
+        .challenge-party img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .challenge-party .name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .challenge-party .role-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .challenge-vs {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-dim);
+        }
+        
+        /* Favor Toggle */
+        .favor-toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+        }
+        
+        .favor-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .favor-toggle {
+            display: flex;
+            background: #ddd;
+            border-radius: 0;
+            overflow: hidden;
+        }
+        
+        .favor-option {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .favor-option:hover {
+            background: #ccc;
+        }
+        
+        .favor-option.active {
+            background: #059669;
+            color: white;
+        }
+        
+        .favor-option.active.challenger {
+            background: var(--role-cogitarian);
+        }
+        
+        .favor-option.active.cogitarian {
+            background: #059669;
+        }
+        
+        /* Challenge Timeline */
+        .challenge-timeline {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .timeline-bar {
+            height: 8px;
+            background: #eee;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+        
+        .timeline-progress {
+            height: 100%;
+            background: var(--role-cogitarian);
+            transition: width 0.3s ease;
+        }
+        
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Event Stack Section */
+        .events-section {
+            background: white;
+            border: 1px solid var(--card-border);
+            padding: 1.5rem;
+        }
+        
+        .events-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .events-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .events-filter {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .filter-btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.75rem;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .filter-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        .filter-btn.active {
+            background: var(--active-border);
+            color: white;
+            border-color: var(--active-border);
+        }
+        
+        /* Password Section */
+        .passwords-section {
+            background: white;
+            border: 1px solid var(--card-border);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .password-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .password-table th,
+        .password-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .password-table th {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .password-valid { color: #059669; }
+        .password-invalid { color: #dc2626; }
+        
+        /* Actions */
+        .action-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .action-btn.primary {
+            background: var(--active-border);
+            color: white;
+        }
+        
+        .action-btn.primary:hover {
+            background: #5a3a80;
+        }
+        
+        .action-btn.danger {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .action-btn.danger:hover {
+            background: #b91c1c;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-dim);
+        }
+        
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* No Challenge State */
+        .no-challenge {
+            text-align: center;
+            padding: 2rem;
+            background: #f9f9f9;
+            border: 1px dashed #ddd;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <div class="roles-manager-layout">
+        <!-- Sidebar: Role List -->
+        <div class="roles-sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">Roles</h1>
+            </div>
+            <div class="roles-list" id="rolesList">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="roles-main">
+            <div class="main-header">
+                <h1 class="main-title" id="mainTitle">Select a Role</h1>
+                <div id="headerActions"></div>
+            </div>
+            
+            <div class="main-content" id="mainContent">
+                <div class="empty-state">
+                    <p>Select a role from the sidebar to view details</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Roles Manager Application
+        const RolesManager = {
+            roles: ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful'],
+            currentRole: null,
+            roleData: {},
+            profileData: {},  // ATProto profile data keyed by DID
+            challengeData: null,
+            passwordsData: [],
+            eventsData: [],
+            
+            // Bespoke requirements per role
+            // Only use checks that map to real database fields:
+            // - dreamer: exists in dreamers table
+            // - app_password: has record in user_credentials
+            // - password_valid: user_credentials.valid = true
+            // - has_banner: dreamer.banner is not null
+            // - has_spectrum: dreamer.color_hex is not null
+            roleRequirements: {
+                greeter: {
+                    description: 'Welcomes new dreamweavers to Reverie House',
+                    requirements: [
+                        { key: 'membership', label: 'Must be a Dreamer', check: 'dreamer' }
+                    ],
+                    needsAppPassword: false
+                },
+                mapper: {
+                    description: 'Charts the paths between dreams and reality',
+                    requirements: [
+                        { key: 'membership', label: 'Must be a Dreamer', check: 'dreamer' }
+                    ],
+                    needsAppPassword: false
+                },
+                cogitarian: {
+                    description: 'Guardian of thought, arbiter of reason',
+                    requirements: [
+                        { key: 'membership', label: 'Must be a Dreamer', check: 'dreamer' },
+                        { key: 'appPassword', label: 'App password stored', check: 'app_password' },
+                        { key: 'passwordValid', label: 'Password verified valid', check: 'password_valid' }
+                    ],
+                    needsAppPassword: true,
+                    challengeable: true
+                },
+                provisioner: {
+                    description: 'Manages resources and follows dreamweavers',
+                    requirements: [
+                        { key: 'membership', label: 'Must be a Dreamer', check: 'dreamer' },
+                        { key: 'appPassword', label: 'App password stored', check: 'app_password' },
+                        { key: 'passwordValid', label: 'Password verified valid', check: 'password_valid' }
+                    ],
+                    needsAppPassword: true
+                },
+                dreamstyler: {
+                    description: 'Curates the visual aesthetic of dreams',
+                    requirements: [
+                        { key: 'membership', label: 'Must be a Dreamer', check: 'dreamer' },
+                        { key: 'spectrum', label: 'Has spectrum color', check: 'has_spectrum' }
+                    ],
+                    needsAppPassword: false
+                },
+                bursar: {
+                    description: 'Oversees financial matters and patronage',
+                    requirements: [
+                        { key: 'membership', label: 'Must be a Dreamer', check: 'dreamer' },
+                        { key: 'appPassword', label: 'App password stored', check: 'app_password' }
+                    ],
+                    needsAppPassword: true
+                },
+                cheerful: {
+                    description: 'Donates positivity to the community through automatic likes',
+                    requirements: [
+                        { key: 'membership', label: 'Must be a Dreamer', check: 'dreamer' },
+                        { key: 'appPassword', label: 'App password stored', check: 'app_password' },
+                        { key: 'passwordValid', label: 'Password verified valid', check: 'password_valid' }
+                    ],
+                    needsAppPassword: true
+                }
+            },
+            
+            async init() {
+                // Check admin auth
+                const token = localStorage.getItem('admin_token');
+                if (!token) {
+                    window.location.href = '/admin/login.html';
+                    return;
+                }
+                
+                await this.loadRolesData();
+                this.renderRolesList();
+                
+                // Auto-select cogitarian if there's an active challenge
+                if (this.challengeData && this.challengeData.status === 'active') {
+                    this.selectRole('cogitarian');
+                }
+            },
+            
+            async loadRolesData() {
+                const token = localStorage.getItem('admin_token');
+                
+                try {
+                    // Load active workers for each role
+                    const workersResp = await fetch('/api/work/active-roles', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (workersResp.ok) {
+                        const workers = await workersResp.json();
+                        workers.forEach(w => {
+                            this.roleData[w.role] = w;
+                        });
+                    }
+                    
+                    // Fetch profile data for each worker from dreamers API
+                    const dids = Object.values(this.roleData).map(w => w.did).filter(Boolean);
+                    for (const did of dids) {
+                        try {
+                            const profileResp = await fetch(`/api/dreamers/${did}`);
+                            if (profileResp.ok) {
+                                const profile = await profileResp.json();
+                                this.profileData[did] = profile;
+                                // Merge profile data into roleData
+                                for (const role in this.roleData) {
+                                    if (this.roleData[role].did === did) {
+                                        this.roleData[role] = {
+                                            ...this.roleData[role],
+                                            handle: profile.handle || this.roleData[role].handle,
+                                            name: profile.display_name || profile.handle,
+                                            avatar: profile.avatar,
+                                            color_hex: profile.color_hex
+                                        };
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn(`Failed to load profile for ${did}:`, e);
+                        }
+                    }
+                    
+                    // Load active challenge
+                    const challengeResp = await fetch('/api/cogitarian/challenge/active', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (challengeResp.ok) {
+                        const data = await challengeResp.json();
+                        if (data.challenge) {
+                            this.challengeData = data.challenge;
+                        }
+                    }
+                    
+                    // Load app passwords
+                    const passwordsResp = await fetch('/api/admin/app-passwords', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (passwordsResp.ok) {
+                        this.passwordsData = await passwordsResp.json();
+                    }
+                    
+                    // Load role events
+                    const eventsResp = await fetch('/api/admin/role-events', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (eventsResp.ok) {
+                        this.eventsData = await eventsResp.json();
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading roles data:', error);
+                }
+            },
+            
+            renderRolesList() {
+                const container = document.getElementById('rolesList');
+                
+                container.innerHTML = this.roles.map(role => {
+                    const data = this.roleData[role];
+                    const reqs = this.roleRequirements[role];
+                    const hasChallenge = role === 'cogitarian' && this.challengeData;
+                    const password = data ? this.passwordsData.find(p => p.did === data.did) : null;
+                    
+                    let status = 'vacant';
+                    let holder = 'No one assigned';
+                    
+                    if (data) {
+                        status = hasChallenge ? 'challenged' : 'filled';
+                        holder = data.name || data.handle || data.did?.substring(0, 20) + '...';
+                    }
+                    
+                    const roleColor = `var(--role-${role})`;
+                    
+                    // Build requirements indicators
+                    let reqIndicators = '';
+                    if (reqs.needsAppPassword) {
+                        const hasValidPassword = password?.valid;
+                        reqIndicators += `<span class="req-indicator ${hasValidPassword ? 'met' : 'unmet'}" title="App Password: ${hasValidPassword ? 'Valid' : 'Missing/Invalid'}">KEY</span>`;
+                    }
+                    if (reqs.challengeable) {
+                        reqIndicators += `<span class="req-indicator challenge" title="Role can be challenged">CHG</span>`;
+                    }
+                    
+                    return `
+                        <div class="role-item ${this.currentRole === role ? 'active' : ''}" 
+                             onclick="RolesManager.selectRole('${role}')"
+                             style="border-left: 4px solid ${roleColor};">
+                            <div class="role-item-header">
+                                <span class="role-name" style="color: ${roleColor};">${role}</span>
+                                <span class="role-status ${status}">${status}</span>
+                            </div>
+                            <div class="role-holder">${holder}</div>
+                            <div class="role-description">${reqs.description}</div>
+                            ${reqIndicators ? `<div class="role-req-indicators">${reqIndicators}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            },
+            
+            async selectRole(role) {
+                this.currentRole = role;
+                this.renderRolesList();
+                
+                document.getElementById('mainTitle').textContent = role.charAt(0).toUpperCase() + role.slice(1);
+                
+                const content = document.getElementById('mainContent');
+                const data = this.roleData[role];
+                
+                if (role === 'cogitarian') {
+                    content.innerHTML = await this.renderCogitarianPanel(data);
+                } else {
+                    content.innerHTML = this.renderRolePanel(role, data);
+                }
+                
+                // Initialize EventStack if present
+                if (window.EventStack) {
+                    const eventsContainer = document.getElementById('roleEventsStack');
+                    if (eventsContainer) {
+                        const roleEvents = this.eventsData.filter(e => 
+                            e.role === role || e.type.includes(role)
+                        );
+                        window.EventStack.render(eventsContainer, roleEvents, {
+                            columns: { timestamp: true, type: true, description: true }
+                        });
+                    }
+                }
+            },
+            
+            renderRolePanel(role, data) {
+                const roleColor = `var(--role-${role})`;
+                const reqs = this.roleRequirements[role];
+                const password = data ? this.passwordsData.find(p => p.did === data.did) : null;
+                const profile = data ? this.profileData[data.did] : null;
+                
+                if (!data) {
+                    return `
+                        <div class="role-detail-card">
+                            <div class="no-challenge">
+                                <p>No one currently holds the <strong style="color: ${roleColor};">${role}</strong> role.</p>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; padding: 1rem; background: #f9f9f9; border: 1px solid #eee;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.8rem; color: #666;">ROLE REQUIREMENTS:</div>
+                                ${reqs.requirements.map(r => `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.8rem;">
+                                        <span style="color: #9ca3af;">○</span>
+                                        <span>${r.label}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Check each requirement against real data
+                const reqChecks = reqs.requirements.map(r => {
+                    let met = false;
+                    switch (r.check) {
+                        case 'dreamer': met = !!data.did; break;
+                        case 'app_password': met = !!password; break;
+                        case 'password_valid': met = password?.valid === true; break;
+                        case 'has_banner': met = !!(profile?.banner); break;
+                        case 'has_spectrum': met = !!(profile?.color_hex || data?.color_hex); break;
+                        default: met = false;
+                    }
+                    return { ...r, met };
+                });
+                
+                return `
+                    <div class="role-detail-card">
+                        <div class="role-detail-header">
+                            <img src="${data.avatar || '/assets/default-avatar.png'}" alt="${data.name || data.handle}" class="role-avatar" 
+                                 style="border: 3px solid ${data.color_hex || roleColor};">
+                            <div class="role-info">
+                                <h2 style="color: ${roleColor};">${data.name || data.handle}</h2>
+                                <div class="handle">@${data.handle}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="font-style: italic; color: #666; margin-bottom: 1rem; padding: 0.75rem; background: #f9f9f9; border-left: 3px solid ${roleColor};">
+                            ${reqs.description}
+                        </div>
+                        
+                        <div class="role-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">DID</div>
+                                <div class="meta-value" style="font-family: monospace; font-size: 0.7rem; word-break: break-all;">${data.did}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Status</div>
+                                <div class="meta-value">${data.status || 'active'}</div>
+                            </div>
+                            ${reqs.needsAppPassword ? `
+                            <div class="meta-item">
+                                <div class="meta-label">App Password</div>
+                                <div class="meta-value ${password?.valid ? 'has-password' : 'no-password'}">
+                                    ${password?.valid ? 'Valid' : password ? 'Invalid' : 'Not stored'}
+                                </div>
+                            </div>
+                            ` : ''}
+                            <div class="meta-item">
+                                <div class="meta-label">Since</div>
+                                <div class="meta-value">${data.activated_at ? new Date(data.activated_at * 1000).toLocaleDateString() : 'Unknown'}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: #f9f9f9; border: 1px solid #eee;">
+                            <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.8rem; color: #666;">REQUIREMENTS CHECK:</div>
+                            ${reqChecks.map(r => `
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.8rem;">
+                                    <span style="color: ${r.met ? '#166534' : '#991b1b'};">${r.met ? '●' : '○'}</span>
+                                    <span style="color: ${r.met ? '#166534' : '#991b1b'};">${r.label}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="events-section">
+                        <div class="events-header">
+                            <h3 class="events-title">Role Events</h3>
+                        </div>
+                        <div id="roleEventsStack"></div>
+                    </div>
+                `;
+            },
+            
+            async renderCogitarianPanel(data) {
+                const roleColor = 'var(--role-cogitarian)';
+                const reqs = this.roleRequirements['cogitarian'];
+                const password = data ? this.passwordsData.find(p => p.did === data.did) : null;
+                const profile = data ? this.profileData[data.did] : null;
+                
+                let challengeHtml = '';
+                
+                if (this.challengeData && this.challengeData.status === 'active') {
+                    const c = this.challengeData;
+                    const daysRemaining = Math.max(0, Math.ceil((new Date(c.expires_at) - new Date()) / (1000 * 60 * 60 * 24)));
+                    const progress = Math.min(100, ((14 - daysRemaining) / 14) * 100);
+                    
+                    challengeHtml = `
+                        <div class="challenge-section">
+                            <div class="challenge-header">
+                                <h3 class="challenge-title">
+                                    Active Challenge
+                                    <span class="challenge-badge">${daysRemaining} days left</span>
+                                </h3>
+                            </div>
+                            
+                            <div class="challenge-parties">
+                                <div class="challenge-party ${c.favor === 'challenger' ? 'favored' : ''}" id="challengerParty">
+                                    <img src="${c.challenger_avatar || '/assets/default-avatar.png'}" alt="Challenger">
+                                    <div class="name">${c.challenger_name || c.challenger_handle}</div>
+                                    <div class="role-label">Challenger</div>
+                                </div>
+                                
+                                <div class="challenge-vs">VS</div>
+                                
+                                <div class="challenge-party ${c.favor === 'cogitarian' ? 'favored' : ''}" id="cogitarianParty">
+                                    <img src="${c.cogitarian_avatar || '/assets/default-avatar.png'}" alt="Cogitarian">
+                                    <div class="name">${c.cogitarian_name || c.cogitarian_handle}</div>
+                                    <div class="role-label">Cogitarian (${c.current_rank})</div>
+                                </div>
+                            </div>
+                            
+                            <div class="favor-toggle-container">
+                                <span class="favor-label">KEEPER'S FAVOR:</span>
+                                <div class="favor-toggle">
+                                    <button class="favor-option ${c.favor === 'challenger' ? 'active challenger' : ''}" 
+                                            onclick="RolesManager.setFavor('challenger')">
+                                        Challenger
+                                    </button>
+                                    <button class="favor-option ${c.favor === 'cogitarian' ? 'active cogitarian' : ''}"
+                                            onclick="RolesManager.setFavor('cogitarian')">
+                                        Cogitarian
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div style="background: #f9f9f9; padding: 1rem; margin-bottom: 1rem; border: 1px solid #eee;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.8rem; color: #666;">STATEMENT:</div>
+                                <div style="font-style: italic; font-size: 0.9rem;">"${c.statement || 'No statement provided.'}"</div>
+                            </div>
+                            
+                            <div class="challenge-timeline">
+                                <div class="timeline-labels">
+                                    <span>Challenge Started</span>
+                                    <span>Resolution</span>
+                                </div>
+                                <div class="timeline-bar">
+                                    <div class="timeline-progress" style="width: ${progress}%;"></div>
+                                </div>
+                                <div class="timeline-labels">
+                                    <span>${new Date(c.created_at).toLocaleDateString()}</span>
+                                    <span>${new Date(c.expires_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <button class="action-btn primary" onclick="RolesManager.resolveChallenge()">
+                                    Resolve Now
+                                </button>
+                                <button class="action-btn danger" onclick="RolesManager.disqualifyChallenge()">
+                                    Disqualify Challenger
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    challengeHtml = `
+                        <div class="challenge-section" style="border-color: #ddd;">
+                            <div class="no-challenge">
+                                <p>No active challenge. The Cogitarian's position is uncontested.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (!data) {
+                    return `
+                        <div class="role-detail-card">
+                            <div class="no-challenge">
+                                <p>No one currently holds the <strong style="color: ${roleColor};">Cogitarian</strong> role.</p>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; padding: 1rem; background: #f9f9f9; border: 1px solid #eee;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.8rem; color: #666;">ROLE REQUIREMENTS:</div>
+                                ${reqs.requirements.map(r => `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.8rem;">
+                                        <span style="color: #9ca3af;">○</span>
+                                        <span>${r.label}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ${challengeHtml}
+                    `;
+                }
+                
+                // Check requirements
+                const reqChecks = reqs.requirements.map(r => {
+                    let met = false;
+                    switch (r.check) {
+                        case 'dreamer': met = !!data.did; break;
+                        case 'app_password': met = !!password; break;
+                        case 'password_valid': met = password?.valid === true; break;
+                        default: met = false;
+                    }
+                    return { ...r, met };
+                });
+                
+                return `
+                    <div class="role-detail-card">
+                        <div class="role-detail-header">
+                            <img src="${data.avatar || '/assets/default-avatar.png'}" alt="${data.name || data.handle}" class="role-avatar"
+                                 style="border: 3px solid ${data.color_hex || roleColor};">
+                            <div class="role-info">
+                                <h2 style="color: ${roleColor};">${data.name || data.handle}</h2>
+                                <div class="handle">@${data.handle}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="font-style: italic; color: #666; margin-bottom: 1rem; padding: 0.75rem; background: #f9f9f9; border-left: 3px solid ${roleColor};">
+                            ${reqs.description}
+                        </div>
+                        
+                        <div class="role-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">DID</div>
+                                <div class="meta-value" style="font-family: monospace; font-size: 0.7rem; word-break: break-all;">${data.did}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Rank</div>
+                                <div class="meta-value" style="color: ${roleColor};">${data.rank || 'Prime'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">App Password</div>
+                                <div class="meta-value ${password?.valid ? 'has-password' : 'no-password'}">
+                                    ${password?.valid ? 'Valid' : password ? 'Invalid' : 'Not stored'}
+                                </div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Since</div>
+                                <div class="meta-value">${data.activated_at ? new Date(data.activated_at * 1000).toLocaleDateString() : 'Unknown'}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: #f9f9f9; border: 1px solid #eee;">
+                            <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.8rem; color: #666;">REQUIREMENTS CHECK:</div>
+                            ${reqChecks.map(r => `
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.8rem;">
+                                    <span style="color: ${r.met ? '#166534' : '#991b1b'};">${r.met ? '●' : '○'}</span>
+                                    <span style="color: ${r.met ? '#166534' : '#991b1b'};">${r.label}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    ${challengeHtml}
+                    
+                    <div class="events-section">
+                        <div class="events-header">
+                            <h3 class="events-title">Cogitarian Events</h3>
+                        </div>
+                        <div id="roleEventsStack"></div>
+                    </div>
+                `;
+            },
+            
+            async setFavor(favor) {
+                const token = localStorage.getItem('admin_token');
+                
+                try {
+                    const resp = await fetch('/api/cogitarian/challenge/favor', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ favor })
+                    });
+                    
+                    if (resp.ok) {
+                        this.challengeData.favor = favor;
+                        this.selectRole('cogitarian');
+                    } else {
+                        alert('Failed to set favor');
+                    }
+                } catch (error) {
+                    console.error('Error setting favor:', error);
+                    alert('Error setting favor');
+                }
+            },
+            
+            async resolveChallenge() {
+                if (!confirm('Are you sure you want to resolve this challenge now? The current favor will determine the winner.')) {
+                    return;
+                }
+                
+                const token = localStorage.getItem('admin_token');
+                
+                try {
+                    const resp = await fetch('/api/cogitarian/challenge/resolve', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (resp.ok) {
+                        alert('Challenge resolved successfully!');
+                        await this.loadRolesData();
+                        this.selectRole('cogitarian');
+                    } else {
+                        const data = await resp.json();
+                        alert('Failed to resolve: ' + (data.error || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Error resolving challenge:', error);
+                    alert('Error resolving challenge');
+                }
+            },
+            
+            async disqualifyChallenge() {
+                const reason = prompt('Enter disqualification reason:');
+                if (!reason) return;
+                
+                const token = localStorage.getItem('admin_token');
+                
+                try {
+                    const resp = await fetch('/api/cogitarian/challenge/disqualify', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ reason })
+                    });
+                    
+                    if (resp.ok) {
+                        alert('Challenger disqualified!');
+                        await this.loadRolesData();
+                        this.selectRole('cogitarian');
+                    } else {
+                        const data = await resp.json();
+                        alert('Failed to disqualify: ' + (data.error || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Error disqualifying:', error);
+                    alert('Error disqualifying challenger');
+                }
+            }
+        };
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            RolesManager.init();
+        });
+    </script>
+</body>
+</html>

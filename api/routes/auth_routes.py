@@ -62,7 +62,7 @@ def reverie_login():
         "success": true,
         "method": "pds",
         "session": {...},
-        "redirect": "/dreamers?name=..." | null
+        "redirect": "/dreamer?name=..." | null
     }
     """
     try:

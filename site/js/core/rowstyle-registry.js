@@ -449,6 +449,50 @@ const RowStyleRegistry = {
             return (event.color_source === 'role' && event.key === 'dreamstyler') || (event.type === 'work' && event.key === 'dreamstyler');
         }
     },
+
+    bursar: {
+        name: "bursar",
+        description: "Emerald green for bursar work",
+        category: "role",
+        rendering: {
+            cssClasses: ['row-entry', 'color-role', 'role-bursar', 'intensity-highlight'],
+            cssFiles: ['color-rows.css', 'roles.css'],
+            cssVariables: ['--role-bursar', '--role-bursar-light', '--role-bursar-medium', '--role-bursar-dark'],
+            effects: [],
+            appearance: {
+                background: 'Emerald green gradient (medium to light to transparent)',
+                border: '3px solid emerald (--role-bursar)',
+                color: 'Deep green',
+                animation: 'None',
+                special: 'Financial and resource management tones for bursar role'
+            }
+        },
+        matches: (event) => {
+            return (event.color_source === 'role' && event.key === 'bursar') || (event.type === 'work' && event.key === 'bursar');
+        }
+    },
+
+    cheerful: {
+        name: "cheerful",
+        description: "Warm pink for cheerful work",
+        category: "role",
+        rendering: {
+            cssClasses: ['row-entry', 'color-role', 'role-cheerful', 'intensity-highlight'],
+            cssFiles: ['color-rows.css', 'roles.css'],
+            cssVariables: ['--role-cheerful', '--role-cheerful-light', '--role-cheerful-medium', '--role-cheerful-dark'],
+            effects: [],
+            appearance: {
+                background: 'Warm pink gradient (medium to light to transparent)',
+                border: '3px solid pink (--role-cheerful)',
+                color: 'Deep pink',
+                animation: 'None',
+                special: 'Cheerful and positive tones for spreading joy'
+            }
+        },
+        matches: (event) => {
+            return (event.color_source === 'role' && event.key === 'cheerful') || (event.type === 'work' && event.key === 'cheerful');
+        }
+    },
     
     // =========================================================================
     // OCTANT STYLES (Generated dynamically)
@@ -535,7 +579,7 @@ function computeRowStyle(event) {
         // User color variations
         'user-highlight', 'user',
         // Role styles
-        'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler',
+        'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful',
         // Octant styles (checked dynamically)
         ...['adaptive', 'chaotic', 'intended', 'prepared', 'contented', 'assertive', 'ordered', 'guarded', 'equilibrium', 'confused', 'singling', 'uncertain']
     ];

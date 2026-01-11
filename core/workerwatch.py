@@ -332,7 +332,7 @@ class WorkerhoseMonitor:
             db = DatabaseManager()
             
             # Define roles that should exist
-            valid_roles = {'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler'}
+            valid_roles = {'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful'}
             
             # Get all current roles
             cursor = db.execute("SELECT role FROM work")
