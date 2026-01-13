@@ -31,6 +31,15 @@ def refresh_profile(did: str, handle: str, verbose: bool = True, refresh_designa
         network = NetworkClient()
         db = DatabaseManager()
         
+        # Check if user is deactivated - don't refresh deleted/dissipated accounts
+        deactivated_check = db.fetch_one(
+            "SELECT deactivated FROM dreamers WHERE did = %s", (did,)
+        )
+        if deactivated_check and deactivated_check.get('deactivated'):
+            if verbose:
+                print(f"⏭️  Skipping @{handle} (deactivated/dissipated)")
+            return True  # Return True since skipping is intentional, not a failure
+        
         if verbose:
             print(f"🔄 Refreshing @{handle} ({did[:20]}...)")
         
@@ -42,19 +51,21 @@ def refresh_profile(did: str, handle: str, verbose: bool = True, refresh_designa
                 print(f"   ❌ Could not fetch profile")
             return False
         
-        # Extract fields
+        # Extract fields - only update if values are non-empty
+        # This prevents overwriting valid data with empty responses
         updates = {}
         
-        if 'displayName' in profile:
+        if 'displayName' in profile and profile['displayName']:
             updates['display_name'] = profile['displayName']
         
         if 'description' in profile:
+            # Description can legitimately be empty, so always update
             updates['description'] = profile['description']
         
-        if 'avatar' in profile:
+        if 'avatar' in profile and profile['avatar']:
             updates['avatar'] = profile['avatar']
         
-        if 'banner' in profile:
+        if 'banner' in profile and profile['banner']:
             updates['banner'] = profile['banner']
         
         if 'followersCount' in profile:
@@ -138,11 +149,12 @@ def refresh_all_profiles(days_old: int = 7, limit: int = None, verbose: bool = T
     
     cutoff_timestamp = int((datetime.now() - timedelta(days=days_old)).timestamp())
     
-    # Get dreamers with outdated profiles
+    # Get dreamers with outdated profiles (excluding deactivated/dissipated accounts)
     query = """
         SELECT did, handle, name, updated_at
         FROM dreamers
-        WHERE updated_at < %s OR updated_at IS NULL
+        WHERE (updated_at < %s OR updated_at IS NULL)
+          AND (deactivated IS NULL OR deactivated = FALSE)
         ORDER BY updated_at ASC NULLS FIRST
     """
     

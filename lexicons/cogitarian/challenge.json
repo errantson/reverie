@@ -1,0 +1,94 @@
+{
+  "lexicon": 1,
+  "id": "house.reverie.cogitarian.challenge",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A Cogitarian challenge record. Updated/amended as challenge progresses.",
+      "record": {
+        "type": "object",
+        "required": ["challengeId", "challengeType", "status", "createdAt"],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "description": "Unique challenge identifier (e.g., challenge001)"
+          },
+          "challengeType": {
+            "type": "string",
+            "enum": ["wish_to_be", "wretched"],
+            "description": "Type: succession (wish_to_be) or accusation (wretched)"
+          },
+          "challengerDid": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the challenger"
+          },
+          "challengerHandle": {
+            "type": "string",
+            "format": "handle"
+          },
+          "cogitarianDid": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the current Cogitarian being challenged"
+          },
+          "cogitarianHandle": {
+            "type": "string",
+            "format": "handle"
+          },
+          "cogitarianRank": {
+            "type": "string",
+            "description": "Current rank (Prime, Alpha, Beta, etc.)"
+          },
+          "statement": {
+            "type": "string",
+            "maxLength": 3000,
+            "description": "Challenger's statement"
+          },
+          "response": {
+            "type": "string",
+            "maxLength": 3000,
+            "description": "Cogitarian's response (added when they respond)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "resolved", "disqualified", "withdrawn"],
+            "description": "Current challenge status"
+          },
+          "favor": {
+            "type": "string",
+            "enum": ["challenger", "cogitarian"],
+            "description": "Current Keeper's Favor (I Wish) or vote lead (Wretched)"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": ["challenger_wins", "cogitarian_wins", "disqualified", "withdrawn"],
+            "description": "Final outcome (set when resolved)"
+          },
+          "outcomeNotes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Last update timestamp"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cogitarian Challenge | reverie.house</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <style>
+        :root {
+            --bg-dark: #0d0d0d;
+            --bg-card: #1a1a1a;
+            --bg-hover: #252525;
+            --border-color: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+            --accent-gold: #d4af37;
+            --accent-purple: #9370db;
+            --accent-red: #dc3545;
+            --accent-green: #28a745;
+            --accent-blue: #4a9eff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-bottom: 1rem;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+        
+        .challenge-header {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .challenge-title {
+            font-size: 1.8rem;
+            color: var(--accent-gold);
+            margin-bottom: 0.5rem;
+        }
+        
+        .challenge-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .status-active {
+            background: rgba(40, 167, 69, 0.2);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+        }
+        
+        .status-resolved {
+            background: rgba(136, 136, 136, 0.2);
+            color: var(--text-secondary);
+            border: 1px solid var(--text-secondary);
+        }
+        
+        .status-expired {
+            background: rgba(220, 53, 69, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+        }
+        
+        .versus-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .combatant {
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--bg-hover);
+            border-radius: 12px;
+            min-width: 200px;
+            flex: 1;
+        }
+        
+        .combatant-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .combatant-rank {
+            font-size: 1.5rem;
+            color: var(--accent-purple);
+            font-weight: bold;
+        }
+        
+        .combatant-handle {
+            color: var(--accent-blue);
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+            word-break: break-all;
+        }
+        
+        .versus-symbol {
+            font-size: 2rem;
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+        
+        .challenge-type {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--accent-gold);
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+        
+        .challenge-type.wretched {
+            background: rgba(220, 53, 69, 0.1);
+            border-color: var(--accent-red);
+        }
+        
+        .evidence-section {
+            margin-top: 1.5rem;
+        }
+        
+        .evidence-section h3 {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .evidence-text {
+            background: var(--bg-hover);
+            padding: 1rem;
+            border-radius: 8px;
+            font-style: italic;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+        }
+        
+        .timer-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .timer-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .timer-countdown {
+            font-size: 2rem;
+            font-family: 'Courier New', monospace;
+            color: var(--accent-gold);
+        }
+        
+        .timer-countdown.expired {
+            color: var(--accent-red);
+        }
+        
+        .voting-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .voting-title {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .vote-question {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+        
+        .vote-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .vote-btn {
+            padding: 1rem 2rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 200px;
+        }
+        
+        .vote-btn:hover {
+            background: var(--bg-card);
+            border-color: var(--accent-gold);
+        }
+        
+        .vote-btn.selected {
+            border-color: var(--accent-green);
+            background: rgba(40, 167, 69, 0.2);
+        }
+        
+        .vote-btn .count {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-gold);
+            margin-top: 0.5rem;
+        }
+        
+        .vote-results {
+            margin-top: 1.5rem;
+        }
+        
+        .vote-bar-container {
+            display: flex;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: var(--bg-hover);
+        }
+        
+        .vote-bar-challenger {
+            background: var(--accent-purple);
+            transition: width 0.3s;
+        }
+        
+        .vote-bar-challenged {
+            background: var(--accent-gold);
+            transition: width 0.3s;
+        }
+        
+        .vote-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .replies-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+        
+        .replies-title {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+        
+        .reply-item {
+            padding: 1rem;
+            background: var(--bg-hover);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .reply-author {
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+        
+        .reply-time {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        
+        .reply-content {
+            margin-top: 0.5rem;
+        }
+        
+        .no-replies {
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .outcome-banner {
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+        }
+        
+        .outcome-challenger-won {
+            background: rgba(147, 112, 219, 0.2);
+            border: 2px solid var(--accent-purple);
+            color: var(--accent-purple);
+        }
+        
+        .outcome-challenged-won {
+            background: rgba(212, 175, 55, 0.2);
+            border: 2px solid var(--accent-gold);
+            color: var(--accent-gold);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+        }
+        
+        .error {
+            text-align: center;
+            padding: 4rem;
+            color: var(--accent-red);
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .versus-container {
+                flex-direction: column;
+            }
+            
+            .combatant {
+                width: 100%;
+            }
+            
+            .versus-symbol {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/work" class="back-link">← Back to Work</a>
+        
+        <div id="challenge-content" class="loading">
+            Loading challenge details...
+        </div>
+    </div>
+    
+    <script>
+        let challengeData = null;
+        let userVote = null;
+        
+        // Get challenge ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const challengeId = pathParts[pathParts.length - 1];
+        
+        async function loadChallenge() {
+            try {
+                const response = await fetch(`/api/cogitarian/challenge/${challengeId}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    document.getElementById('challenge-content').innerHTML = `
+                        <div class="error">${data.error || 'Challenge not found'}</div>
+                    `;
+                    return;
+                }
+                
+                challengeData = data;
+                renderChallenge(data);
+                
+            } catch (error) {
+                console.error('Error loading challenge:', error);
+                document.getElementById('challenge-content').innerHTML = `
+                    <div class="error">Failed to load challenge</div>
+                `;
+            }
+        }
+        
+        function formatTimeRemaining(expiresAt) {
+            const now = new Date();
+            const expires = new Date(expiresAt);
+            const diff = expires - now;
+            
+            if (diff <= 0) {
+                return { text: 'EXPIRED', expired: true };
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            return {
+                text: `${days}d ${hours}h ${minutes}m ${seconds}s`,
+                expired: false
+            };
+        }
+        
+        function renderChallenge(data) {
+            const c = data.challenge;
+            const timeInfo = formatTimeRemaining(c.expires_at);
+            
+            const challengeTypeText = c.challenge_type === 'wish_to_be' 
+                ? '"I wish to be Cogitarian"' 
+                : '"They have become wretched"';
+            
+            const typeClass = c.challenge_type === 'wretched' ? 'wretched' : '';
+            
+            // Status display
+            let statusClass = 'status-active';
+            let statusText = 'ACTIVE';
+            if (c.status === 'resolved') {
+                statusClass = 'status-resolved';
+                statusText = 'RESOLVED';
+            } else if (timeInfo.expired) {
+                statusClass = 'status-expired';
+                statusText = 'EXPIRED';
+            }
+            
+            // Outcome banner
+            let outcomeBanner = '';
+            if (c.outcome) {
+                const outcomeClass = c.outcome === 'challenger_won' ? 'outcome-challenger-won' : 'outcome-challenged-won';
+                const outcomeText = c.outcome === 'challenger_won' 
+                    ? `${c.challenger_handle} (${c.challenger_rank}) is now the Cogitarian`
+                    : `${c.challenged_handle} (${c.challenged_rank}) remains the Cogitarian`;
+                outcomeBanner = `<div class="outcome-banner ${outcomeClass}">${outcomeText}</div>`;
+            }
+            
+            // Calculate vote percentages
+            const totalVotes = c.votes_challenger + c.votes_challenged;
+            const challengerPct = totalVotes > 0 ? (c.votes_challenger / totalVotes) * 100 : 50;
+            const challengedPct = totalVotes > 0 ? (c.votes_challenged / totalVotes) * 100 : 50;
+            
+            document.getElementById('challenge-content').innerHTML = `
+                <div class="challenge-header">
+                    <div class="challenge-title">
+                        Cogitarian Challenge #${c.challenge_id.replace('challenge', '')}
+                    </div>
+                    <span class="challenge-status ${statusClass}">${statusText}</span>
+                    
+                    <div class="versus-container">
+                        <div class="combatant">
+                            <div class="combatant-label">Challenger</div>
+                            <div class="combatant-rank">${c.challenger_rank}</div>
+                            <div class="combatant-handle">@${c.challenger_handle}</div>
+                        </div>
+                        
+                        <div class="versus-symbol">vs</div>
+                        
+                        <div class="combatant">
+                            <div class="combatant-label">Cogitarian</div>
+                            <div class="combatant-rank">${c.challenged_rank}</div>
+                            <div class="combatant-handle">@${c.challenged_handle}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="challenge-type ${typeClass}">
+                        ${challengeTypeText}
+                    </div>
+                    
+                    ${c.evidence ? `
+                        <div class="evidence-section">
+                            <h3>Statement</h3>
+                            <div class="evidence-text">${escapeHtml(c.evidence)}</div>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                ${outcomeBanner}
+                
+                ${c.status === 'active' ? `
+                    <div class="timer-section">
+                        <div class="timer-label">Time Remaining</div>
+                        <div class="timer-countdown ${timeInfo.expired ? 'expired' : ''}" id="countdown">
+                            ${timeInfo.text}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div class="voting-section">
+                    <div class="voting-title">Trust Poll</div>
+                    <div class="vote-question">Who do you trust to serve as Cogitarian?</div>
+                    
+                    ${c.status === 'active' && !timeInfo.expired ? `
+                        <div class="vote-buttons">
+                            <button class="vote-btn" onclick="castVote('challenger')" id="vote-challenger">
+                                Trust ${c.challenger_handle}
+                                <span class="count">${c.votes_challenger}</span>
+                            </button>
+                            <button class="vote-btn" onclick="castVote('challenged')" id="vote-challenged">
+                                Trust ${c.challenged_handle}
+                                <span class="count">${c.votes_challenged}</span>
+                            </button>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="vote-results">
+                        <div class="vote-bar-container">
+                            <div class="vote-bar-challenger" style="width: ${challengerPct}%"></div>
+                            <div class="vote-bar-challenged" style="width: ${challengedPct}%"></div>
+                        </div>
+                        <div class="vote-labels">
+                            <span>${c.challenger_handle}: ${c.votes_challenger} (${Math.round(challengerPct)}%)</span>
+                            <span>${c.challenged_handle}: ${c.votes_challenged} (${Math.round(challengedPct)}%)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="replies-section">
+                    <div class="replies-title">Discussion (${data.replies.length})</div>
+                    ${data.replies.length > 0 ? data.replies.map(r => `
+                        <div class="reply-item">
+                            <span class="reply-author">@${r.author_handle || 'anonymous'}</span>
+                            <span class="reply-time">${new Date(r.created_at).toLocaleString()}</span>
+                            <div class="reply-content">${escapeHtml(r.content)}</div>
+                        </div>
+                    `).join('') : '<div class="no-replies">No replies yet. Discussion happens on Bluesky.</div>'}
+                </div>
+            `;
+            
+            // Start countdown timer if active
+            if (c.status === 'active' && !timeInfo.expired) {
+                startCountdown(c.expires_at);
+            }
+        }
+        
+        function startCountdown(expiresAt) {
+            const countdownEl = document.getElementById('countdown');
+            if (!countdownEl) return;
+            
+            setInterval(() => {
+                const info = formatTimeRemaining(expiresAt);
+                countdownEl.textContent = info.text;
+                if (info.expired) {
+                    countdownEl.classList.add('expired');
+                }
+            }, 1000);
+        }
+        
+        async function castVote(voteFor) {
+            try {
+                const token = localStorage.getItem('work_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch(`/api/cogitarian/challenge/${challengeId}/vote`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ vote_for: voteFor })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update vote counts
+                    const c = challengeData.challenge;
+                    c.votes_challenger = data.votes_challenger;
+                    c.votes_challenged = data.votes_challenged;
+                    
+                    // Re-render
+                    renderChallenge(challengeData);
+                    
+                    // Highlight selected button
+                    userVote = voteFor;
+                    document.getElementById(`vote-${voteFor}`)?.classList.add('selected');
+                } else {
+                    alert(data.error || 'Failed to cast vote');
+                }
+            } catch (error) {
+                console.error('Error voting:', error);
+                alert('Failed to cast vote');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Load on page load
+        loadChallenge();
+    </script>
+</body>
+</html>

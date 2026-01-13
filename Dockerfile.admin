@@ -18,7 +18,8 @@ RUN pip install --no-cache-dir \
     pyjwt \
     cryptography \
     Pillow \
-    psycopg2-binary
+    psycopg2-binary \
+    aiohttp
 
 # The actual code will be mounted as a volume
 # This just ensures dependencies are cached
