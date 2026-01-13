@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Wretched - Reverie House</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="A soul consumed by wretchedness. Help soothe their spirit.">
+    <meta name="keywords" content="wretched, soothe, reverie house, dreamers">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/wretched">
+    <meta property="og:title" content="The Wretched - Reverie House">
+    <meta property="og:description" content="A soul consumed by wretchedness. Help soothe their spirit.">
+    <meta property="og:image" content="https://reverie.house/assets/wretched/wretch001.png">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/widgets/controls.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    
+    <style>
+        body {
+            background: #0a0508;
+            color: #8a7a7a;
+            min-height: 100vh;
+            font-family: var(--font-primary);
+        }
+
+        .wretched-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .wretched-avatar {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 4px solid #3a2020;
+            box-shadow: 0 0 30px rgba(139, 0, 0, 0.3);
+            margin: 2rem auto;
+            display: block;
+            animation: pulse-shadow 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse-shadow {
+            0%, 100% { box-shadow: 0 0 30px rgba(139, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 50px rgba(139, 0, 0, 0.5); }
+        }
+
+        .wretched-name {
+            font-size: 1.8rem;
+            color: #b03030;
+            margin-bottom: 0.5rem;
+            font-weight: normal;
+        }
+
+        .wretched-handle {
+            font-size: 0.9rem;
+            color: #5a4a4a;
+            margin-bottom: 2rem;
+        }
+
+        .wretched-bio {
+            font-style: italic;
+            color: #6a5a5a;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            border-left: 2px solid #3a2020;
+            text-align: left;
+        }
+
+        .soothe-section {
+            background: rgba(30, 10, 10, 0.5);
+            border: 1px solid #2a1515;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .soothe-title {
+            color: #907070;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .soothe-clock {
+            font-family: 'Courier New', monospace;
+            font-size: 2rem;
+            color: #b05050;
+            margin: 1rem 0;
+            letter-spacing: 2px;
+        }
+
+        .soothe-explanation {
+            font-size: 0.85rem;
+            color: #6a5a5a;
+            line-height: 1.6;
+            margin-top: 1rem;
+        }
+
+        .soothe-likes {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #2a1515;
+        }
+
+        .soothe-stat {
+            text-align: center;
+        }
+
+        .soothe-stat-value {
+            font-size: 1.5rem;
+            color: #a06060;
+        }
+
+        .soothe-stat-label {
+            font-size: 0.75rem;
+            color: #5a4a4a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .soothe-action {
+            margin-top: 2rem;
+        }
+
+        .soothe-action a {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(to bottom, #3a2020, #2a1515);
+            color: #c0a0a0;
+            text-decoration: none;
+            border-radius: 8px;
+            border: 1px solid #4a3030;
+            transition: all 0.3s ease;
+        }
+
+        .soothe-action a:hover {
+            background: linear-gradient(to bottom, #4a2525, #3a2020);
+            color: #e0c0c0;
+            box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
+        }
+
+        .not-wretched {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .not-wretched h2 {
+            color: #6a8a6a;
+            margin-bottom: 1rem;
+        }
+
+        .not-wretched a {
+            color: #8ab08a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: #5a4a4a;
+        }
+
+        .error-message {
+            background: rgba(139, 0, 0, 0.1);
+            border: 1px solid #4a2020;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #a05050;
+            margin: 2rem 0;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 2rem;
+            color: #6a5a5a;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #8a7a7a;
+        }
+
+        /* Creepypasta effect on the bio */
+        .wretched-bio::before {
+            content: '"';
+            font-size: 3rem;
+            color: #3a2020;
+            position: absolute;
+            margin-left: -2rem;
+            margin-top: -1rem;
+        }
+
+        .wretched-at {
+            font-size: 0.8rem;
+            color: #4a3a3a;
+            margin-top: 2rem;
+        }
+    </style>
+    
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <div class="wretched-container" id="wretch-content">
+        <div class="loading">
+            <p>Peering into the darkness...</p>
+        </div>
+    </div>
+
+    <script>
+        // Get handle from URL path
+        const path = window.location.pathname;
+        const match = path.match(/\/wretched\/(.+)/);
+        const handle = match ? match[1] : null;
+
+        async function loadWretchedState() {
+            const container = document.getElementById('wretch-content');
+            
+            if (!handle) {
+                container.innerHTML = `
+                    <div class="not-wretched">
+                        <h2>No soul specified</h2>
+                        <p>Lost in the shadows? <a href="/dreamers">Return to the light</a></p>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/wretched/${encodeURIComponent(handle)}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        // Not wretched - redirect to dreamer page
+                        container.innerHTML = `
+                            <div class="not-wretched">
+                                <h2>This soul is not wretched</h2>
+                                <p>They walk in the light. <a href="/dreamers/${handle}">Visit their profile</a></p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    throw new Error('Failed to load wretched state');
+                }
+
+                const data = await response.json();
+                renderWretched(data);
+
+            } catch (error) {
+                console.error('Error loading wretched state:', error);
+                container.innerHTML = `
+                    <div class="error-message">
+                        <p>The shadows are too thick. Could not peer into the abyss.</p>
+                    </div>
+                    <a href="/" class="back-link">← Return to the house</a>
+                `;
+            }
+        }
+
+        function formatTimeRemaining(targetDate) {
+            const now = new Date();
+            const target = new Date(targetDate);
+            const diff = target - now;
+
+            if (diff <= 0) {
+                return 'SOOTHING COMPLETE';
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            if (days > 0) {
+                return `${days}d ${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+                return `${hours}h ${minutes}m ${seconds}s`;
+            } else {
+                return `${minutes}m ${seconds}s`;
+            }
+        }
+
+        function renderWretched(data) {
+            const container = document.getElementById('wretch-content');
+            
+            const wretchedAt = new Date(data.wretched_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const avatarUrl = data.wretched_avatar 
+                ? `/assets/wretched/${data.wretched_avatar}`
+                : '/assets/wretched/wretch001.png';
+
+            container.innerHTML = `
+                <img src="${avatarUrl}" alt="Wretched soul" class="wretched-avatar">
+                
+                <h1 class="wretched-name">${data.display_name || data.handle}</h1>
+                <p class="wretched-handle">@${data.handle}</p>
+                
+                <div class="wretched-bio">
+                    wretchedness has consumed my dreams
+                </div>
+
+                <div class="soothe-section">
+                    <h3 class="soothe-title">⏳ Time Until Soothing</h3>
+                    <div class="soothe-clock" id="soothe-clock">
+                        ${formatTimeRemaining(data.soothe_target_at)}
+                    </div>
+                    
+                    <div class="soothe-likes">
+                        <div class="soothe-stat">
+                            <div class="soothe-stat-value">${data.soothe_likes_count || 0}</div>
+                            <div class="soothe-stat-label">Soothing Likes</div>
+                        </div>
+                        <div class="soothe-stat">
+                            <div class="soothe-stat-value">${data.soothe_posts_count || 0}</div>
+                            <div class="soothe-stat-label">Soothing Dreams</div>
+                        </div>
+                    </div>
+
+                    <p class="soothe-explanation">
+                        To soothe this wretched soul, compose a <strong>dream</strong> (a lore post)
+                        that @mentions their handle. When the wretch likes your dream, 
+                        their timer is halved.
+                    </p>
+
+                    <div class="soothe-action">
+                        <a href="/work?compose=true&mention=${encodeURIComponent('@' + data.handle)}">
+                            Compose a Soothing Dream
+                        </a>
+                    </div>
+                </div>
+
+                <p class="wretched-at">
+                    Consumed by wretchedness on ${wretchedAt}
+                </p>
+
+                <a href="/dreamers" class="back-link">← Return to Dreamers</a>
+            `;
+
+            // Update clock every second
+            setInterval(() => {
+                const clock = document.getElementById('soothe-clock');
+                if (clock) {
+                    clock.textContent = formatTimeRemaining(data.soothe_target_at);
+                }
+            }, 1000);
+
+            // Update page title
+            document.title = `${data.handle} the Wretch - Reverie House`;
+        }
+
+        // Load on page ready
+        loadWretchedState();
+    </script>
+</body>
+</html>
