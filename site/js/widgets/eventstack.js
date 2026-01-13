@@ -476,7 +476,7 @@ class EventStack {
         }
         
         // Role events
-        const roleKeys = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'architect', 'dreamstyler', 'bursar'];
+        const roleKeys = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'architect', 'dreamstyler', 'bursar', 'cheerful'];
         if (type === 'work' || roleKeys.includes(key)) {
             return {
                 source: 'role',

@@ -82,7 +82,9 @@ class Header {
                 { href: '/admin/quests.html', icon: '🎈', title: 'Quests' },
                 { href: '/admin/bugs.html', icon: '🐛', title: 'Bugs' },
                 { href: '/admin/dialogues.html', icon: '📣', title: 'Dialogues' },
-                { href: '/admin/history.html', icon: '⌛', title: 'Edit History' }
+                { href: '/admin/history.html', icon: '⌛', title: 'Edit History' },
+                { href: '/admin/roles.html', icon: '👥', title: 'Roles' },
+                { href: '/admin/wretching.html', icon: '🔮', title: 'Wretching' }
             );
         }
         

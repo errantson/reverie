@@ -132,8 +132,9 @@ class ChangeHandleWidget {
         
         // Get role-specific messaging based on reason
         const reason = this.config.reason || 'default';
-        const roleColor = this.config.roleColor || 'var(--role-provisioner)';
-        const roleColorLight = this.config.roleColorLight || 'var(--role-provisioner-light)';
+        let roleColor = this.config.roleColor || 'var(--role-provisioner)';
+        let roleColorLight = this.config.roleColorLight || '#faf5e6'; // Opaque cream-yellow for provisioner
+        let roleColorAccent = '#f5f0dc'; // Subtle accent for footer
         const roleClass = this.config.roleClass || 'provisioner';
         
         let titleText = 'Adopt Handle';
@@ -146,18 +147,33 @@ class ChangeHandleWidget {
             introText = 'Only confirmed dreamweavers may directly entreat our <strong>Dreamstylers</strong> for their services.';
             instructionText = 'Adopt one of your available handles';
             recipientName = this.config.dreamstylerHandle || 'the Dreamstyler';
+            roleColor = 'var(--role-dreamstyler)';
+            roleColorLight = '#f5f0fa'; // Opaque light lavender
+            roleColorAccent = '#ede6f5'; // Subtle lavender accent
+        } else if (reason === 'cogitarian_challenge') {
+            titleText = 'Adopt Handle';
+            introText = 'Only confirmed dreamweavers with a <strong>.reverie.house</strong> handle may challenge the Cogitarian.';
+            instructionText = 'Adopt one of your available handles:';
+            roleColor = 'var(--role-cogitarian)';
+            roleColorLight = '#faf2ed'; // Opaque warm cream-orange
+            roleColorAccent = '#f5e8df'; // Subtle warm accent
         }
+        
+        // Build instruction line based on reason
+        let instructionLine = reason === 'cogitarian_challenge' 
+            ? `<p class="change-handle-instruction">${instructionText}</p>`
+            : `<p class="change-handle-instruction">${instructionText} so that <strong style="color: ${roleColor};">@${recipientName}</strong> can receive your private message.</p>`;
         
         this.modal.innerHTML = `
             <div class="change-handle-content" style="border-color: ${roleColor}; background: linear-gradient(135deg, #f8f5e6, ${roleColorLight});">
-                <div class="change-handle-header" style="border-bottom-color: ${roleColor}; background: ${roleColorLight};">
+                <div class="change-handle-header" style="border-bottom-color: ${roleColor}; background: ${roleColorAccent};">
                     <h3 class="change-handle-title" style="color: ${roleColor};">${titleText}</h3>
                     <button class="change-handle-close" onclick="window.changeHandleWidget.close()">×</button>
                 </div>
                 
                 <div class="change-handle-message">
                     <p class="change-handle-intro" style="color: ${roleColor};">${introText}</p>
-                    <p class="change-handle-instruction">${instructionText} so that <strong style="color: ${roleColor};">@${recipientName}</strong> can receive your private message.</p>
+                    ${instructionLine}
                 </div>
                 
                 <div class="handle-selector-container">
@@ -166,7 +182,7 @@ class ChangeHandleWidget {
                     </select>
                 </div>
                 
-                <div class="change-handle-footer" style="background: ${roleColorLight};">
+                <div class="change-handle-footer" style="background: ${roleColorAccent};">
                     <p class="change-handle-current">Your current handle is: <strong style="color: ${roleColor};">@${this.currentHandle || 'unknown'}</strong></p>
                     <p class="change-handle-preview">Adopting <strong id="preview-handle" style="color: ${roleColor};">@${this.selectedHandle}</strong> will be recognized across our wild mindscape.</p>
                 </div>

@@ -86,12 +86,13 @@ def add_book():
             return jsonify({'status': 'error', 'error': 'No data provided'}), 400
         
         title = data.get('title', '').strip()
-        author = data.get('author', '').strip()
+        # Accept both 'authors' (v2 standard) and 'author' (legacy) for flexibility
+        authors = data.get('authors', '').strip() or data.get('author', '').strip()
         
-        print(f"📚 [BIBLIO] Book: '{title}' by '{author}'")
+        print(f"📚 [BIBLIO] Book: '{title}' by '{authors}'")
         
-        if not title or not author:
-            return jsonify({'status': 'error', 'error': 'Title and author required'}), 400
+        if not title or not authors:
+            return jsonify({'status': 'error', 'error': 'Title and authors required'}), 400
         
         # Get user's stored credentials
         db = DatabaseManager()
@@ -167,7 +168,7 @@ def add_book():
         record = {
             '$type': 'biblio.bond.book',
             'title': title,
-            'authors': author,  # v2.0 schema uses 'authors'
+            'authors': authors,  # v2.0 schema uses 'authors'
             'createdAt': now
         }
         

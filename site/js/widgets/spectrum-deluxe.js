@@ -12,12 +12,8 @@ class SpectrumDeluxe extends SpectrumVisualizer {
             showControls: false, // We'll create custom controls
             onDotClick: (dreamer) => {
                 // Navigate to dreamer page when clicking on a dot
-                // Use handle if available for clean URLs
-                if (dreamer.handle) {
-                    const cleanHandle = dreamer.handle.replace('.bsky.social', '');
-                    window.location.href = `/dreamers/${encodeURIComponent(cleanHandle)}`;
-                } else if (dreamer.name) {
-                    window.location.href = `/dreamers/${encodeURIComponent(dreamer.name)}`;
+                if (dreamer.did) {
+                    window.location.href = `/dreamer?did=${encodeURIComponent(dreamer.did)}`;
                 }
             }
         });
@@ -497,10 +493,9 @@ class SpectrumDeluxe extends SpectrumVisualizer {
         return dreamers.map(dreamer => {
             const avatarUrl = dreamer.avatar || '/assets/icon_face.png';
             const displayName = dreamer.name || dreamer.handle;
-            const cleanHandle = dreamer.handle ? dreamer.handle.replace('.bsky.social', '') : displayName;
             
             return `
-                <a href="/dreamers/${encodeURIComponent(cleanHandle)}" 
+                <a href="/dreamer?did=${encodeURIComponent(dreamer.did)}" 
                    class="dreamer-avatar-link dreamer-link"
                    data-dreamer-did="${dreamer.did}"
                    title="${displayName}">

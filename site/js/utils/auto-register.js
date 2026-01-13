@@ -96,8 +96,8 @@ class AutoRegister {
                     }));
                 }
                 if (shouldRedirect) {
-                    console.log(`   Redirecting to /dreamers?name=${dreamerName}`);
-                    window.location.href = `/dreamers?name=${dreamerName}`;
+                    console.log(`   Redirecting to /dreamer?name=${dreamerName}`);
+                    window.location.href = `/dreamer?name=${dreamerName}`;
                 }
             }
         } catch (error) {

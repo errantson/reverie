@@ -15,17 +15,17 @@ class Sidebar {
         // Determine server icon using heraldry system
         // Priority: Use actual server field if available (authoritative)
         if (dreamer.server === 'https://reverie.house') {
-            return 'assets/icon.png';
+            return '/assets/icon.png';
         } else if (dreamer.server && dreamer.server.includes('bsky.network')) {
-            return 'assets/bluesky.png';
+            return '/assets/bluesky.png';
         } else if (dreamer.server) {
             // Use heraldry system for foreign PDS (server field is authoritative)
             const heraldry = window.heraldrySystem ? window.heraldrySystem.getByServer(dreamer.server) : null;
-            return heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
+            return heraldry ? heraldry.icon : '/assets/wild_mindscape.svg';
         } else {
             // Fallback: try to determine from handle
             const heraldry = window.heraldrySystem ? window.heraldrySystem.getByHandle(dreamer.handle) : null;
-            return heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
+            return heraldry ? heraldry.icon : '/assets/wild_mindscape.svg';
         }
     }
     render() {
@@ -83,7 +83,7 @@ class Sidebar {
                 <div class="search-bar">
                     <input type="text" id="search-input" placeholder="Enter dreamer name...">
                     <button id="refresh-button">
-                        <img src="assets/refresh.svg" alt="Refresh">
+                        <img src="/assets/refresh.svg" alt="Refresh">
                     </button>
                 </div>
                 <div class="dreamers-list">
@@ -359,26 +359,26 @@ class Sidebar {
                 let serverIconStyle = '';
                 if (dreamer.server === 'https://reverie.house') {
                     if (dreamer.handle.endsWith('reverie.house')) {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = '';
                     } else {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = 'filter: saturate(40%);';
                     }
                 } else if (dreamer.server && dreamer.server.includes('bsky.network')) {
                     if (dreamer.handle.endsWith('bsky.social')) {
-                        serverIconSrc = 'assets/bluesky.png';
+                        serverIconSrc = '/assets/bluesky.png';
                         serverIconStyle = '';
                     } else if (dreamer.handle.endsWith('reverie.house')) {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = 'filter: saturate(40%);';
                     } else {
-                        serverIconSrc = 'assets/bluesky.svg';
+                        serverIconSrc = '/assets/bluesky.svg';
                         serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                     }
                 } else {
                     const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(dreamer || u || match) : null;
-                    serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
+                    serverIconSrc = heraldry ? heraldry.icon : '/assets/wild_mindscape.svg';
                     serverIconStyle = '';
                 }
                 
@@ -518,26 +518,26 @@ class Sidebar {
                 let serverIconStyle = '';
                 if (dreamer.server === 'https://reverie.house') {
                     if (dreamer.handle.endsWith('reverie.house')) {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = '';
                     } else {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = 'filter: saturate(40%);';
                     }
                 } else if (dreamer.server && dreamer.server.includes('bsky.network')) {
                     if (dreamer.handle.endsWith('bsky.social')) {
-                        serverIconSrc = 'assets/bluesky.png';
+                        serverIconSrc = '/assets/bluesky.png';
                         serverIconStyle = '';
                     } else if (dreamer.handle.endsWith('reverie.house')) {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = 'filter: saturate(40%);';
                     } else {
-                        serverIconSrc = 'assets/bluesky.svg';
+                        serverIconSrc = '/assets/bluesky.svg';
                         serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                     }
                 } else {
                     const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(dreamer || u || match) : null;
-                    serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
+                    serverIconSrc = heraldry ? heraldry.icon : '/assets/wild_mindscape.svg';
                     serverIconStyle = '';
                 }
                 
@@ -762,26 +762,26 @@ class Sidebar {
                 let serverIconStyle = '';
                 if (dreamer.server === 'https://reverie.house') {
                     if (dreamer.handle.endsWith('reverie.house')) {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = '';
                     } else {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = 'filter: saturate(40%);';
                     }
                 } else if (dreamer.server && dreamer.server.includes('bsky.network')) {
                     if (dreamer.handle.endsWith('bsky.social')) {
-                        serverIconSrc = 'assets/bluesky.png';
+                        serverIconSrc = '/assets/bluesky.png';
                         serverIconStyle = '';
                     } else if (dreamer.handle.endsWith('reverie.house')) {
-                        serverIconSrc = 'assets/icon.png';
+                        serverIconSrc = '/assets/icon.png';
                         serverIconStyle = 'filter: saturate(40%);';
                     } else {
-                        serverIconSrc = 'assets/bluesky.svg';
+                        serverIconSrc = '/assets/bluesky.svg';
                         serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                     }
                 } else {
                     const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(dreamer || u || match) : null;
-                    serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';
+                    serverIconSrc = heraldry ? heraldry.icon : '/assets/wild_mindscape.svg';
                     serverIconStyle = '';
                 }
                 
@@ -821,64 +821,23 @@ class Sidebar {
         const params = new URLSearchParams(window.location.search);
         let foundDreamer;
         
-        // Priority 1: Check URL path for /dreamers/{handle} format (clean URLs)
-        const pathMatch = window.location.pathname.match(/^\/dreamers\/(.+)$/);
-        if (pathMatch) {
-            const pathHandle = decodeURIComponent(pathMatch[1]).toLowerCase();
-            // Try matching by handle first (most common), then name, then display_name
-            foundDreamer = this.dreamers.find(d => 
-                d.handle.toLowerCase() === pathHandle ||
-                d.handle.toLowerCase().replace('.bsky.social', '') === pathHandle ||
-                d.name?.toLowerCase() === pathHandle ||
-                d.display_name?.toLowerCase() === pathHandle
-            );
-        }
-        
-        // Priority 2: Query parameters (legacy support)
-        if (!foundDreamer && params.has('name')) {
-            const queryName = params.get('name').toLowerCase();
-            foundDreamer = this.dreamers.find(d => d.name.toLowerCase() === queryName);
-        } else if (!foundDreamer && params.has('handle')) {
-            const queryHandle = params.get('handle').toLowerCase();
-            foundDreamer = this.dreamers.find(d => d.handle.toLowerCase() === queryHandle);
-        } else if (!foundDreamer && params.has('did')) {
+        // Check query parameters for dreamer lookup
+        if (params.has('did')) {
             const queryDid = params.get('did').toLowerCase();
             foundDreamer = this.dreamers.find(d => d.did.toLowerCase() === queryDid);
+        } else if (params.has('handle')) {
+            const queryHandle = params.get('handle').toLowerCase();
+            foundDreamer = this.dreamers.find(d => d.handle.toLowerCase() === queryHandle);
+        } else if (params.has('name')) {
+            const queryName = params.get('name').toLowerCase();
+            foundDreamer = this.dreamers.find(d => d.name.toLowerCase() === queryName);
         }
+        
         if (foundDreamer) {
-            // Skip pushState on initial load to avoid duplicate history entry
             this.displayDreamer(foundDreamer, { skipPushState: true });
-            // Replace URL with clean version if using legacy query params
-            if (params.has('did') || params.has('name') || params.has('handle')) {
-                const cleanHandle = foundDreamer.handle.replace('.bsky.social', '');
-                history.replaceState({ dreamerHandle: foundDreamer.handle, dreamerDid: foundDreamer.did }, '', `/dreamers/${encodeURIComponent(cleanHandle)}`);
-            }
         } else {
             this.displayRandomProfile();
         }
-        
-        // Setup popstate listener for browser back/forward
-        window.addEventListener('popstate', (event) => {
-            if (event.state && event.state.dreamerHandle) {
-                const dreamer = this.dreamers.find(d => d.handle === event.state.dreamerHandle);
-                if (dreamer) {
-                    this.displayDreamer(dreamer, { skipPushState: true });
-                }
-            } else {
-                // Parse URL path
-                const pathMatch = window.location.pathname.match(/^\/dreamers\/(.+)$/);
-                if (pathMatch) {
-                    const pathHandle = decodeURIComponent(pathMatch[1]).toLowerCase();
-                    const dreamer = this.dreamers.find(d => 
-                        d.handle.toLowerCase() === pathHandle ||
-                        d.handle.toLowerCase().replace('.bsky.social', '') === pathHandle
-                    );
-                    if (dreamer) {
-                        this.displayDreamer(dreamer, { skipPushState: true });
-                    }
-                }
-            }
-        });
     }
     displayDreamer(dreamer, options = {}) {
         const skipPushState = options.skipPushState || false;
@@ -893,13 +852,7 @@ class Sidebar {
                 window.spectrumDrawer.updateAvatarButton();
             }
             
-            // Update URL with clean path (unless skipped)
-            if (!skipPushState) {
-                // Use handle without .bsky.social for cleaner URLs
-                const cleanHandle = dreamer.handle.replace('.bsky.social', '');
-                const newUrl = `/dreamers/${encodeURIComponent(cleanHandle)}`;
-                history.pushState({ dreamerHandle: dreamer.handle, dreamerDid: dreamer.did }, '', newUrl);
-            }
+
         }
         const profileContainer = document.getElementById('profile-container');
         if (profileContainer) {
@@ -993,26 +946,26 @@ class Sidebar {
             let serverIconStyle = '';
             if (match.server === 'https://reverie.house') {
                 if (match.handle.endsWith('reverie.house')) {
-                    serverIconSrc = 'assets/icon.png';      
+                    serverIconSrc = '/assets/icon.png';      
                     serverIconStyle = '';
                 } else {
-                    serverIconSrc = 'assets/icon.png';      
+                    serverIconSrc = '/assets/icon.png';      
                     serverIconStyle = 'filter: saturate(40%);';    
                 }
             } else if (match.server && match.server.includes('bsky.network')) {
                 if (match.handle.endsWith('bsky.social')) {  
-                    serverIconSrc = 'assets/bluesky.png';
+                    serverIconSrc = '/assets/bluesky.png';
                     serverIconStyle = '';
                 } else if (match.handle.endsWith('reverie.house')) {
-                    serverIconSrc = 'assets/icon.png';      
+                    serverIconSrc = '/assets/icon.png';      
                     serverIconStyle = 'filter: saturate(40%);';    
                 } else {
-                    serverIconSrc = 'assets/bluesky.svg';
+                    serverIconSrc = '/assets/bluesky.svg';
                     serverIconStyle = 'filter: brightness(50%) saturate(80%);';
                 }
             } else {
                 const heraldry = window.heraldrySystem ? window.heraldrySystem.getByDreamer(match) : null;
-                    serverIconSrc = heraldry ? heraldry.icon : 'assets/wild_mindscape.svg';       
+                    serverIconSrc = heraldry ? heraldry.icon : '/assets/wild_mindscape.svg';       
                 serverIconStyle = '';
             }
             
@@ -1027,7 +980,7 @@ class Sidebar {
                 </div>
             </div>`;
             item.addEventListener('click', () => {
-                window.location.href = `${window.location.pathname}?name=${encodeURIComponent(match.name)}`;
+                this.displayDreamer(match);
             });
             container.appendChild(item);
         });
