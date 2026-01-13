@@ -136,7 +136,59 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
             result['errors'].append(f"Error executing {command}: {e}")
             result['success'] = False
     
+    # Queue celebration for successful quest completion
+    if result['success'] and result['commands_executed']:
+        _queue_quest_celebration(replies, quest_config, result['commands_executed'])
+    
     return result
+
+
+def _queue_quest_celebration(replies: List[Dict], quest_config: Dict, commands_executed: List[str]):
+    """
+    Queue a celebration for successful quest completion.
+    This triggers cheerful workers to like the post.
+    """
+    try:
+        from core.celebration import queue_celebration
+        
+        for reply in replies:
+            author_did = reply.get('author', {}).get('did')
+            author_handle = reply.get('author', {}).get('handle')
+            post_uri = reply.get('uri')
+            post_cid = reply.get('cid')
+            
+            if not author_did or not post_uri:
+                continue
+            
+            # Determine reason based on quest/commands
+            quest_title = quest_config.get('title', '').lower()
+            
+            if 'namegiver' in quest_title or 'name_dreamer' in commands_executed:
+                reason_key = 'name_chosen'
+            elif 'welcome' in quest_title or 'greet' in quest_title:
+                reason_key = 'welcome_post'
+            elif 'award_souvenir' in commands_executed:
+                reason_key = 'souvenir_earned'
+            elif quest_config.get('is_first_quest'):
+                reason_key = 'first_quest'
+            else:
+                reason_key = 'quest_complete'
+            
+            queue_celebration(
+                reason_key=reason_key,
+                target_did=author_did,
+                target_handle=author_handle,
+                post_uri=post_uri,
+                post_cid=post_cid,
+                metadata={
+                    'quest_title': quest_config.get('title'),
+                    'commands': commands_executed
+                }
+            )
+    except Exception as e:
+        # Don't fail quest execution if celebration fails
+        import logging
+        logging.getLogger('command_executor').warning(f"Celebration queue failed: {e}")
 
 
 def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = None, verbose: bool = False) -> Dict:

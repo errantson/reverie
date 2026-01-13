@@ -147,7 +147,7 @@ def create_post_with_token(access_jwt, pds, did, text, facets=None, reply_to=Non
         return None
 
 def apply_lore_label(post_uri, user_did, lore_type='observation', canon_id=None):
-    """Apply lore label to a post via lore.farm"""
+    """Apply lore label to a post via lore.farm and queue celebration"""
     try:
         # Construct label value
         label_val = f'lore:reverie.house'
@@ -165,6 +165,29 @@ def apply_lore_label(post_uri, user_did, lore_type='observation', canon_id=None)
         )
         
         print(f"✅ [Post] Lore label applied: {label_val} to {post_uri}")
+        
+        # Queue celebration for lore/canon
+        try:
+            from core.celebration import queue_lore_added, queue_canon_added
+            from core.database import DatabaseManager
+            
+            # Get user handle
+            db = DatabaseManager()
+            cursor = db.execute("SELECT handle FROM dreamers WHERE did = %s", (user_did,))
+            dreamer = cursor.fetchone()
+            handle = dreamer['handle'] if dreamer else ''
+            
+            if canon_id:
+                # This is a canon post
+                queue_canon_added(user_did, handle, post_uri, canon_id=canon_id)
+                print(f"🎉 [Post] Canon celebration queued for {post_uri}")
+            else:
+                # This is a lore post
+                queue_lore_added(user_did, handle, post_uri, lore_type=lore_type)
+                print(f"🎉 [Post] Lore celebration queued for {post_uri}")
+        except Exception as ce:
+            print(f"⚠️ [Post] Celebration queue failed: {ce}")
+        
         return True
     except Exception as e:
         print(f"❌ [Post] Lore label failed: {e}")

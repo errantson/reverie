@@ -521,7 +521,10 @@ class FeedHandler(EventHandler):
         try:
             from core.database import DatabaseManager
             db = DatabaseManager()
-            cursor = db.execute("SELECT did, handle FROM dreamers")
+            cursor = db.execute("""
+                SELECT did, handle, designation, first_post_celebrated 
+                FROM dreamers
+            """)
             dreamers = cursor.fetchall()
             
             self.tracked_dids = {d['did'] for d in dreamers}
@@ -607,7 +610,7 @@ class FeedHandler(EventHandler):
             self.executor.submit(self._delete_post, uri)
     
     def _index_post(self, uri: str, cid: str, did: str, text: str, created_at: str):
-        """Background: add post to feed database."""
+        """Background: add post to feed database and trigger celebrations."""
         try:
             from core.database import DatabaseManager
             from datetime import datetime, timezone
@@ -624,9 +627,39 @@ class FeedHandler(EventHandler):
                     indexed_at = EXCLUDED.indexed_at
             ''', (uri, cid, did, text, created_at, indexed_at))
             
+            # Get dreamer info for celebrations
+            dreamer = self.dreamer_by_did.get(did, {})
+            handle = dreamer.get('handle', '')
+            
+            # Trigger celebrations
+            self._trigger_celebrations(did, handle, uri, cid, dreamer)
+            
         except Exception as e:
             self.log(f"❌ Index error: {e}")
             self.stats['errors'] += 1
+    
+    def _trigger_celebrations(self, did: str, handle: str, uri: str, cid: str, dreamer: dict):
+        """Trigger first_post and any_post celebrations if applicable."""
+        try:
+            from core.celebration import queue_first_post, queue_any_post, is_resident_or_reverie_handle
+            
+            # Check first_post (only once per dreamer)
+            if not dreamer.get('first_post_celebrated'):
+                queue_first_post(did, handle, uri, cid)
+                # Update local cache
+                dreamer['first_post_celebrated'] = True
+                self.log(f"🎉 First post celebration queued for @{handle}")
+            
+            # Check any_post (residents and .reverie.house handles)
+            designation = dreamer.get('designation', '')
+            if is_resident_or_reverie_handle(handle, designation):
+                queue_any_post(did, handle, uri, cid)
+                self.log(f"💖 Any post celebration queued for @{handle}")
+                
+        except ImportError:
+            self.log("⚠️ Celebration module not available")
+        except Exception as e:
+            self.log(f"❌ Celebration trigger error: {e}")
     
     def _delete_post(self, uri: str):
         """Background: remove post from feed database."""

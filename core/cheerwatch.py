@@ -106,7 +106,8 @@ class CheerwatchMonitor:
             
             for w in workers_data:
                 did = w.get('did')
-                if not did or w.get('status') != 'active':
+                # Accept 'active' or 'working' status (admin.py uses 'working')
+                if not did or w.get('status') not in ('active', 'working'):
                     continue
                 cursor = db.execute("""
                     SELECT d.handle, uc.app_password_hash, uc.pds_url
