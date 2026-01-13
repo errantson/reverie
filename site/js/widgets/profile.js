@@ -581,15 +581,14 @@ class Profile {
                     const avatarUrl = targetDreamer.avatar 
                         ? `https://cdn.bsky.app/img/avatar/plain/${targetDreamer.did}/${targetDreamer.avatar.ref.$link}@jpeg`
                         : '/assets/icon_face.png';
-                    const cleanHandle = targetDreamer.handle.replace('.bsky.social', '');
                     
                     headingHTML += `
                         <div class="heading-dreamer">
-                            <a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="heading-avatar">
+                            <a href="/dreamer?did=${encodeURIComponent(targetDreamer.did)}" class="heading-avatar">
                                 <img src="${avatarUrl}" alt="${targetDreamer.name || targetDreamer.handle}">
                             </a>
                             <div class="heading-info">
-                                <a href="/dreamers/${encodeURIComponent(cleanHandle)}" class="heading-name">
+                                <a href="/dreamer?did=${encodeURIComponent(targetDreamer.did)}" class="heading-name">
                                     ${targetDreamer.name || targetDreamer.handle}
                                 </a>
                                 <div class="heading-handle">@${targetDreamer.handle}</div>
@@ -982,10 +981,12 @@ class Profile {
                     // Sort by created_at descending and take the single most recent
                     const book = allBooks
                         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                    const bookAuthors = book.authors || book.author;
                     recentlyReadHTML = `
                         <div class="identity-book-featured" style="margin-top: 6px;">
                             <div class="identity-book-title-featured" style="color: ${dreamerColor}; font-size: 1.0rem; font-weight: 500; line-height: 1.3;">${book.title || 'Untitled'}</div>
-                            ${book.author ? `<div class="identity-book-author-featured" style="color: ${dreamerColor}; opacity: 0.7; font-size: 0.85rem; margin-top: 4px;">by ${book.author}</div>` : ''}
+                            ${bookAuthors ? `<div class="identity-book-author-featured" style="color: ${dreamerColor}; opacity: 0.7; font-size: 0.85rem; margin-top: 4px;">by ${bookAuthors}</div>` : ''}
+                            <a href="https://biblio.bond/library/${dreamer.did}" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 6px; font-size: 0.7rem; padding: 2px 6px; border: 1px solid ${dreamerColor}; color: ${dreamerColor}; text-decoration: none; border-radius: 3px; opacity: 0.8;">View Library</a>
                         </div>
                     `;
                 }
@@ -1018,10 +1019,9 @@ class Profile {
                             const k = kindredDreamers[idx];
                             if (k) {
                                 const avatarUrl = k.avatar?.url || k.avatar || '/assets/icon_face.png';
-                                const cleanHandle = k.handle.replace('.bsky.social', '');
                                 return `
                                     <div class="profile-kindred-card" data-dreamer-did="${k.did}" data-dreamer-handle="${k.handle}">
-                                        <a href="/dreamers/${encodeURIComponent(cleanHandle)}" 
+                                        <a href="/dreamer?did=${encodeURIComponent(k.did)}" 
                                            class="profile-kindred-link"
                                            data-dreamer-did="${k.did}"
                                            data-dreamer-handle="${k.handle}">
@@ -2064,9 +2064,8 @@ class Profile {
                     userColor: userColor,
                     onDotClick: (clickedDreamer) => {
                         // Navigate to dreamer page
-                        if (clickedDreamer.handle) {
-                            const cleanHandle = clickedDreamer.handle.replace('.bsky.social', '');
-                            window.location.href = `/dreamers/${encodeURIComponent(cleanHandle)}`;
+                        if (clickedDreamer.did) {
+                            window.location.href = `/dreamer?did=${encodeURIComponent(clickedDreamer.did)}`;
                         }
                     }
                 });
@@ -2850,12 +2849,10 @@ class Profile {
             if (window.sidebarWidget?.displayDreamer) {
                 window.sidebarWidget.displayDreamer(dreamer);
             } else {
-                const cleanHandle = dreamer.handle.replace('.bsky.social', '');
-                window.location.href = `/dreamers/${encodeURIComponent(cleanHandle)}`;
+                window.location.href = `/dreamer?did=${encodeURIComponent(dreamer.did)}`;
             }
         } catch (error) {
             console.error('Error navigating to dreamer:', error);
-            window.location.href = `/dreamers/${encodeURIComponent(name)}`;
         }
     }
 

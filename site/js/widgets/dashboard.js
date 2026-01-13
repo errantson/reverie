@@ -754,7 +754,7 @@ class Dashboard {
                                     <div class="account-info-grid-two-column">
                                         <div class="account-info-row">
                                             <span class="dashboard-info-label">Name</span>
-                                            <a href="/dreamers/${(d.handle || '').replace('.bsky.social', '')}" class="dashboard-info-value dashboard-info-link" title="View dreamer profile">${d.name || d.handle}</a>
+                                            <a href="/dreamer?did=${encodeURIComponent(d.did)}" class="dashboard-info-value dashboard-info-link" title="View dreamer profile">${d.name || d.handle}</a>
                                         </div>
                                         <div class="account-info-row">
                                             <span class="dashboard-info-label">Pseudonyms</span>
@@ -1747,10 +1747,9 @@ class Dashboard {
                 <div class="dashboard-kindred-list">
                     ${selected.map(k => {
                         if (k) {
-                            const cleanHandle = k.handle ? k.handle.replace('.bsky.social', '') : k.name;
                             return `
                                 <div class="dashboard-kindred-card" data-dreamer-did="${k.did}" data-dreamer-handle="${k.handle}">
-                                    <a href="/dreamers/${encodeURIComponent(cleanHandle)}" 
+                                    <a href="/dreamer?did=${encodeURIComponent(k.did)}" 
                                        class="dashboard-kindred-link"
                                        data-dreamer-did="${k.did}"
                                        data-dreamer-handle="${k.handle}">
@@ -5170,9 +5169,9 @@ class Dashboard {
             const mostRecent = books
                 .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
             
-            // Autofill inputs with latest book
+            // Autofill inputs with latest book (use authors field, fallback to author for backward compat)
             titleInput.value = mostRecent.title || '';
-            authorInput.value = mostRecent.author || '';
+            authorInput.value = mostRecent.authors || mostRecent.author || '';
             
             // Store URI for potential updates
             this.currentBookUri = mostRecent.uri || null;
@@ -5253,9 +5252,10 @@ class Dashboard {
                         border-bottom: 1px solid #eee;
                         font-size: 0.8rem;
                     `;
+                    const bookAuthors = book.authors || book.author || '';
                     item.innerHTML = `
                         <div style="font-weight: 600; color: #333;">${this.escapeHtml(book.title)}</div>
-                        <div style="font-size: 0.75rem; color: #666; font-style: italic;">by ${this.escapeHtml(book.author)}</div>
+                        <div style="font-size: 0.75rem; color: #666; font-style: italic;">by ${this.escapeHtml(bookAuthors)}</div>
                     `;
                     item.addEventListener('mouseenter', () => {
                         item.style.background = '#f5f5f5';
@@ -5265,7 +5265,7 @@ class Dashboard {
                     });
                     item.addEventListener('click', () => {
                         titleInput.value = book.title;
-                        authorInput.value = book.author;
+                        authorInput.value = book.authors || book.author || '';
                         autocompleteContainer.style.display = 'none';
                     });
                     autocompleteContainer.appendChild(item);

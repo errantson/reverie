@@ -529,6 +529,14 @@ class Drawer {
 
         this.isOpen = true;
 
+        // On dreamers page, scope the drawer to use the logged-in user's color
+        // so the dashboard feels like "home" even when viewing another profile
+        if (window.location.pathname.startsWith('/dreamers') && window.oauthManager?.getSession()) {
+            const userColor = window.colorManager?.getColor() || this.coreColor;
+            this.drawer.style.setProperty('--user-color', userColor);
+            this.drawer.style.setProperty('--reverie-core-color', userColor);
+        }
+
         // Show backdrop on mobile
         if (isMobile && this.backdrop) {
             this.backdrop.classList.add('visible');
@@ -576,6 +584,12 @@ class Drawer {
 
     close_drawer() {
         if (!this.isOpen) return Promise.resolve();
+
+        // Remove drawer-scoped color overrides (restores page's profile color)
+        if (window.location.pathname.startsWith('/dreamers')) {
+            this.drawer.style.removeProperty('--user-color');
+            this.drawer.style.removeProperty('--reverie-core-color');
+        }
 
         return new Promise((resolve) => {
             this.isOpen = false;
