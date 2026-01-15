@@ -934,7 +934,17 @@ class OrderWidget {
     }
     
     handleReadOnline() {
-        window.location.href = this.bookData.readOnlineUrl;
+        // Use session progress if available
+        let url = this.bookData.readOnlineUrl;
+        try {
+            const lastChapter = sessionStorage.getItem('reading_progress_seekers-reverie');
+            if (lastChapter) {
+                url = `/books/seeker/${lastChapter}`;
+            }
+        } catch (e) {
+            // Session storage not available, use default
+        }
+        window.location.href = url;
     }
     
     handleDownloadEpub() {
@@ -1056,8 +1066,16 @@ class OrderWidget {
         }, 200);
         
         setTimeout(() => {
-            // Navigate to preface after animation
-            const url = '/books/seeker/00';
+            // Navigate to last read chapter or preface
+            let url = '/books/seeker/00';
+            try {
+                const lastChapter = sessionStorage.getItem('reading_progress_seekers-reverie');
+                if (lastChapter) {
+                    url = `/books/seeker/${lastChapter}`;
+                }
+            } catch (e) {
+                // Session storage not available, use default
+            }
             window.location.href = url;
         }, 300);
     }
@@ -1102,7 +1120,7 @@ class OrderWidget {
                 <div class="contact-whisper">Questions or special requests? Email <a href="mailto:books@reverie.house">books@reverie.house</a></div>
                 <div class="success-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
                     <button onclick="window.location.reload()" style="padding: 0.75rem 1.5rem; background: #734ba1; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Continue Shopping</button>
-                    <button onclick="window.location.href='/books/seeker/00'" style="padding: 0.75rem 1.5rem; background: white; color: #734ba1; border: 2px solid #734ba1; border-radius: 4px; cursor: pointer; font-weight: 600;">Read Now</button>
+                    <button onclick="orderWidget.handleReadOnline()" style="padding: 0.75rem 1.5rem; background: white; color: #734ba1; border: 2px solid #734ba1; border-radius: 4px; cursor: pointer; font-weight: 600;">Read Now</button>
                 </div>
             </div>
         `;

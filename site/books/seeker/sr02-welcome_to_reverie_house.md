@@ -1,4 +1,5 @@
 <!-- color: #6a5b9f -->
+
 Inside the house, Seeker is greeted warmly by more than a dozen kind folks whom he is made to nod at, shake hands with, or hug. The braided girl leads him through the entryway with a torrent of introductions he has no ability to register. They are amidst some group working as he intrudes. Many loiter around the foyer in rough disorder, blocking doorways and busying his view. Supplies, tools, and wooden chests clutter the remaining floorspace.
 
 There is a blond goliath who grips Seeker's palm too hard, and a short miffy girl with an overstuffed bag. There is a man holding a chicken, and a fierce gal with her adoring gump. Then a pair of twins, and a gnomish figure, and a frenetic ditz. More and more appear, whom he cannot fully register. They are too many. It's all too fast.
@@ -9,7 +10,7 @@ Having come from the terrible isolation in his world and then the calm of the fo
 
 "You're too kind," he laughs, "Good luck\!"
 
-Seeker continues pursuing Joy, but can't help feeling a little less certain as he thinks through the implications of their interaction. *Returning?* He'd yet to rationalize arriving at this place (let alone returning to it), nor what leaving will be required. There is a lot he doesn't know—which wasn't a problem when he was by himself—but now that there are other people (who all seem sure of something he is not). Seeker's ignorance leaves him at odds with the situation, and so he craves understanding. 
+Seeker continues pursuing Joy, but can't help feeling a little less certain as he thinks through the implications of their interaction. *Returning?* He'd yet to rationalize arriving at this place (let alone returning to it), nor what leaving will be required. There is a lot he doesn't know—which wasn't a problem when he was by himself—but now that there are other people (who all seem sure of something he is not), Seeker's ignorance leaves him at odds with the situation. Now he craves understanding. 
 
 They step into an open courtyard where people focus on picture-bubbles of various size. The orbs float in front of them as if held by an invisible tether. Some stand with their arms limp at the side, entranced by the spheres. Others take more concerted poses, exerting themself before the little worlds with obvious intentionality. A few of them even look artful while doing it.
 
@@ -137,12 +138,12 @@ Seeker is confused, but about things he doesn't think are important. "Alright…
 
 Joy stands to go, but gestures for Seeker to stay seated. She reaches forward and they shake hands—they are real friends now. Both inwardly hope that Seeker will be able to find his way back to Reverie House—that he can remember enough, and keep faith to return.
 
-"Thank you for coming," she lets him go.
+"Thank you for visiting," she lets him go.
 
-"Thank you for being here," he lets her go.
+He does not yet think to return thanks, so lets her go.
 
 Seeker yawns and Joy smiles knowingly. She turns, walks past the couch, and leaves him to coze by the fire.
 
 "Be seeing you," she whispers. His eyelids grow heavy.
 
-Fire warmth covers him like a blanket, and the sweet lullaby of the panflute eases him into a swaddled bliss. He has been soothed by the house and its comforts, cared for by Joy and her generous heart. Seeker is tucked sweetly in the true reverie, and for the first rest in many finds peaceful sleep.
+Fire warmth covers him like a blanket, and the sweet lullaby of the panflute eases him into a swaddled bliss. He has been soothed by the house and its comforts, cared for by Joy and her generous heart. Seeker is tucked in the truest reverie, and for the first rest in many finds peaceful sleep.

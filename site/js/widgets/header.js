@@ -1196,6 +1196,9 @@ class Header {
         
         if (!hamburgerBtn || !mobileMenu) return;
         
+        // Update library link to use saved reading progress
+        this.updateLibraryLink(mobileMenu);
+        
         hamburgerBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.mobileMenuOpen = !this.mobileMenuOpen;
@@ -1232,6 +1235,26 @@ class Header {
         if (hamburgerBtn) hamburgerBtn.classList.remove('active');
         if (mobileMenu) mobileMenu.classList.remove('open');
     }
+    
+    /**
+     * Update library link to use saved reading progress
+     */
+    updateLibraryLink(mobileMenu) {
+        try {
+            // Check for saved reading progress (matches ReaderWidget's session key pattern)
+            const savedProgress = sessionStorage.getItem('reading_progress_seekers-reverie');
+            if (savedProgress) {
+                // Find the library link (goes to /books/seeker/00 by default)
+                const libraryLink = mobileMenu.querySelector('a[href^="/books/seeker/"]');
+                if (libraryLink) {
+                    libraryLink.href = `/books/seeker/${savedProgress}`;
+                }
+            }
+        } catch (e) {
+            // sessionStorage not available, keep default
+        }
+    }
+    
     initializeReadingControls() {
         if (!document.querySelector('#enhanced-reader')) return;
         const backBtn = document.getElementById('back-to-library-btn');

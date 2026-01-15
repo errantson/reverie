@@ -585,7 +585,13 @@ class PrintWidget {
         }
     }
     handleReadOnlineClick() {
-        window.location.href = 'https://reverie.house/books/seeker/00';
+        // Check for saved reading progress
+        let chapter = '00';
+        try {
+            const saved = sessionStorage.getItem('reading_progress_seekers-reverie');
+            if (saved) chapter = saved;
+        } catch (e) {}
+        window.location.href = `https://reverie.house/books/seeker/${chapter}`;
     }
     attachEventListeners() {
         const quantitySlider = document.getElementById('quantity-slider');
@@ -597,9 +603,14 @@ class PrintWidget {
         const princesCover = document.querySelector('.princes-cover');
         if (coverArt) {
             coverArt.addEventListener('click', () => {
-                // On mobile, redirect to chapter
+                // On mobile, redirect to chapter (using saved progress)
                 if (window.innerWidth <= 768) {
-                    window.location.href = '/books/seekers/00';
+                    let chapter = '00';
+                    try {
+                        const saved = sessionStorage.getItem('reading_progress_seekers-reverie');
+                        if (saved) chapter = saved;
+                    } catch (e) {}
+                    window.location.href = `/books/seeker/${chapter}`;
                     return;
                 }
                 

@@ -1,4 +1,5 @@
-<!-- color: #FFB5A7 -->
+<!-- color: #c98cb1 -->
+
 Voluminous clouds abound his newest dream. Everything is a heaped, white, pillowy sky. It's beautiful.
 
 As he soars through the clouds, rays of sunshine peek through and brighten the patterns of a gargantuan turtle's shell. They are shimmer-coated in cloud dew.
@@ -27,7 +28,7 @@ The turtle has never seen the boy. Seeker is too small on the middle of its wide
 
 Despite having no proof of his existence or awareness of any self-sacrifice, the turtle matches Seeker's choice. With a great heave of its body, the turtle spins and flips itself over. A soft and wide underbelly is exposed to the looming storm. If the lightning strikes, the turtle will absorb it and *he* will be protected.
 
-Upside-down, dangling beneath the flipped turtle, Seeker is shielded from the downpouring rain. He is bewildered by the topsy-turvy upset, and takes a moment to recalibrate to his inversion. When he realizes what the turtle has done, the boy hypocritically rages against his dear friend's selflessness and scurries on all fours across the shell. It is not difficult. The gravity of their friendship is stronger than ever. Seeker climbs over turtle-belly and stands self-righteous before his amis—face to turtle-face, for the very first time.
+Upside-down, dangling beneath the flipped turtle, Seeker is shielded from the downpouring rain. He is bewildered by the topsy-turvy upset, and takes a moment to recalibrate to his inversion. When he realizes what the turtle has done, the boy hypocritically rages against his dear friend's selflessness and scurries on all fours across the shell. It is not difficult. The gravity of their friendship is stronger than ever. Seeker climbs over turtle-belly and stands self-righteous before his kindred—face to turtle-face, for the very first time.
 
 "There you are\!" says the turtle, "I never doubted you existed for a moment."
 
@@ -35,7 +36,7 @@ Upside-down, dangling beneath the flipped turtle, Seeker is shielded from the do
 
 "You need to go back now," says the turtle who does not speak human.
 
-It's useless. Seeker cannot bargain with his friend, or express any of the reasons for his wanting their safety. He cannot make clear the purpose of his sacrifice, or lend any understanding of how he'd rather die than lose what they have. The turtle knows that flipping once more will only have the boy scramble up its sides once again. They are stalemated in stoic defense of one another, and the storm is moved by their courageous acts of friendship. Perhaps it'll break habit and strike twice the same place—once apiece—as an honor to their devotion.
+It's useless. Seeker cannot bargain with his friend, or express any of the reasons for his wanting their safety. He cannot make clear the purpose of his sacrifice, or lend any understanding of how he'd rather die than lose what they have. The turtle knows that flipping once more will only have the boy scramble up its sides once again. They are stalemated in stoic defense of one another, and the storm is moved by their courageous acts of friendship. Perhaps the lightning will break old habits and strike twice the same place—once apiece—just to honor their devotion.
 
 Tears hide in the rain as Seeker realizes the end of their time together is nigh. Whichever of them will perish, the other will follow into a misery worse than death. It is a profound gift to Seeker, who now finds so much purpose in what they share—the freedom they enable for one another. Only now at the end of their lives does he fully understand how valuing this friendship more than himself gives greater meaning to both of them because it's returned. From deep in his heart, this reciprocity elevates them both to more than what either can be alone. Friendship brings them purpose.
 
@@ -56,3 +57,5 @@ Falling away from his friend, Seeker says goodbye to the turtle. The boy's spiri
 Seeker's consciousness falls away from the world of clouds until he comes once again to the soft forest floor of our wild mindscape. He has returned, just as Joy kindly said he might. Now, he remembers it all; the place between dreams, the forest path, the art of dreamweaving, and a shared home for all dreamers—Reverie House.
 
 He laughs aloud in total elation. Unprecedented relief, excitement, and accomplishment radiate through him. Never before has he felt such mastery over life and fate. Sitting up, he gazes over the dream-bubble he has come from. Softly, it glows with the cream-orange and blushing-pinks of a recovering sunrise. Closer, he sees the somber grace of a turtle who now knows that it can fly alone.
+
+![][image3]

@@ -1,4 +1,5 @@
 <!-- color: #5C7A5C -->
+
 Seeker is sorry to leave his friend, but grateful that they are both alright. The boy makes a conscious effort to trace his steps as he walks away from the dream of clouds and a turtle. He uses the sun to guide, and moves a straight line away from the soft hued bubble while searching for the path that will lead him to Reverie House.
 
 When he reaches the dirt road, he collects a handful of pebbles and draws an arrow on its side. It points back to where his dream remains. Seeker does not know much about dreamweaving, but if he can reunite with his friend then he would like to try.

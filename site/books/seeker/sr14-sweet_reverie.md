@@ -1,9 +1,10 @@
-<!-- color: #E5D8B0 -->
-The Unending Nightmare ceases in time. Dreamers save none but themselves. Whatever good is done, it is theirs to define—but not all things in our wild mindscape are lost. Reverie House persists, though it was destroyed long ago, and will again in due time.
+<!-- color: #cfbb7e -->
 
-No remnants of that chateau remain. No whitestone brick or lapis roof. All of the dreamers fell to darkness and suffered. All was lost to The Unending Nightmare, which expanded for epochs beyond destroying the dreamer's home.
+All nightmares cease in time, and dreamweavers save none but themselves. Whatever good was done, is theirs to define—but not all things in our wild mindscape are lost. Reverie House persists, though it was destroyed long ago, and will again in due time.
 
-Nature is the only thing which preserves itself well enough to survive the void, and it is strong where the house garden remains. Its old walkways and bushels mark their place out of time. When the darkness retreats, lost dreamers are drawn near. They are confused, weary, and hungry. Nature provides nexus and food. Each cycle beyond nightmare, their relationship renews. In time, as they get their bearings, good dreamweavers repay kindness with care.
+No remnants of that chateau remain where it was. No ruins of whitestone brick and lapis roof. All of the dreamers who lived there fell to darkness and suffered. Everything that once stood was lost to The Unending Nightmare, which grew for epochs long after it destroyed the house of dreams.
+
+Nature is the only thing elemental enough to survive such void, and it is strong where the garden had been. Its old walkways and bushels mark their place out of time. When the darkness retreats, it draws lost dreamers near with a few tart berries and it feeds them. They are confused and weary. They eat, grateful for the respite. Nature provides nexus and food. Each cycle beyond their nightmares, their relationships renew. In time they get their bearings, and dreamweavers repay kindness to Nature with care. Roots are lain and she is tended as they both recover strengths lost to misery.
 
 Zowell returns from the high yonders with knowledge. He has preserved what he can, but cannot rebuild what once was. Not by himself or with what they have. They compromise and strategize. Familiar faces reunite where the garden survives. They make a work camp that grows legs. Reverie House will collapse again, but he keeps track. This one lasted longer.
 
@@ -15,54 +16,61 @@ Joy is not seen again. Nor is Seeker, rightly.
 
 Someone new comes instead, on a day they are building dorms. He says he was, "Lost in nightmares. Lost together. Lost in dreams." The dreamweavers look him over, and they see their friend, though older. He is worn and badly needing shelter. They have plenty.
 
-His striking resemblance is uncanny, and he shares histories of someone they knew. Familiar and friendly, they reunite and reminisce—it's good to meet again. Together, they build home and advent. He gives them all of his time. In turn, his name changes as an old one loses its fit.
+His striking resemblance is uncanny, and he shares histories of someone they knew. Familiar and friendly, they reunite and reminisce—it's good to meet again. Together, they build home and advent. He gives them every second of his time and his name changes as an old one loses its fit.
 
-Unintroduced among the new, he is seen as just himself. "Keeper, was it?" is asked—then left, uncorrected.
+Unintroduced among the new, he is seen as just himself. "Keeper, was it?" is asked, then left uncorrected.
 
-Those who hear the mistake repeat it in jest, but over time the name is earned more than any. Keeper fits well in a redefined station, doing whatever he can for others who need him. Some old friends still recall Seeker, but beyond the monad they don't find him so easily. Dreamers come and go at Reverie House, but *he* is always there. After a while, calling him Keeper at Reverie House becomes the simplest means to describe him—the most certain kind of name.
+Those who hear the mistake repeat it in jest, but over time the name is well earned. Keeper fits his redefined station, doing whatever he can for others who need him. Some old friends still recall Seeker, but beyond the monad they don't find him so easily. Dreamers come and go at Reverie House, but *he* is always there. After a while, calling him Keeper at Reverie House becomes the simplest means to describe him—the most certain kind of name.
 
-There is congeniality within all who return, but none who claim victory. Those who had been part, played part, or come apart during the saga of The Unending Nightmare feel no triumph whatsoever. None can claim to understand the reasons *why* Callie's nightmare eventually relented. All they can claim is to have survived their return, which earns nothing except one another's company.
+All who return are congenial, but none who claim victory. Those who had been part, played part, or come apart during The Unending Nightmare feel no triumph. None really understand the reasons *why* Callie's nightmare eventually relented. All they can know is that they survived their return, which earns nothing more than one another's most desirable company.
 
-Keeper is still seeking Joy. Though, he ventures less far to find her. Joy can come home when she's ready. If she's ready. If she wants. The house will be here, as will he. The path leads exactly where to go. There he waits and watches, he welcomes newcomers in hopes of seeing his friend.
+Keeper is still seeking Joy. Though, he ventures less far to find her. She can come home when she is ready. The house will be here, as will he. The path still leads the same way, and at its end he waits, welcoming newcomers in hopes of seeing his friend once more. "Thank you for being here," is what he will say when they finally reunite.
 
-One night a girl comes to the edge of the path, barely visible through the darkness of night. Her hair hangs heavy, as if she's been lost in the woods for some time. Keeper sees her, while watching for familiar faces and brings to mugs of water he's made. It's his effort to greet her.
+—
+
+One day a girl comes to the edge of the path, barely visible through the trees. Her hair hangs heavy, as if she's been lost in the woods for some time. Keeper sees her while watching for familiar faces, and brings clay mugs of water he's recently made. It's his effort to greet her.
 
 "Welcome to Reverie House," he speaks gently.
 
-"Who are you?" She has a vague familiarity in his presence. Like they've met somewhere before.
+"Who are you?" She feels a vague familiarity in his presence, like they've met somewhere before.
 
-"They call me Keeper," he answers. "This is the realm between dreams. You've gotten lost. We're here to help."
+"They call me Keeper," he answers. "This is a place between dreams. You've found your way to Reverie House. We're here to help."
 
 "Help?" She does not see how.
 
-"Yes. Whatever you need. There's food inside." Keeper gestures toward the house, "You must have come from an awful dream." He can conjure her better ones, or let her alone if she please. "Happy to help. Anything, at all." Should she ask, he can teach her the art of dreamweaving. Should she aks, he can show her wild dreams. The honest Keeper does none of this, and lets the girl decide her way.
+"Yes\! Whatever you need. There's food inside." Keeper gestures toward the house, "You must have come from a very awful dream." He can conjure some better ones, or leave her alone if she'd prefer. "Happy to help with anything, at all."  
+If she asks, he can teach her the secret art of dreamweaving or how to come back whenever she wants. Though, Keeper does none of this and lets the girl find her own way.
 
-"Help me with what?" She can't understand. Nobody has ever offered this hand. "Help me with what?" She repeats undignified. "I don't need any help." The dark girl doesn't. Now she can manage her own dreams just fine.
+"Help me with what?" She can't understand. Nobody has ever offered this hand. "Help me with what?" She repeats undignified. "I don't need any help\!" The dark girl doesn't. She can manage her own dreams just fine.
 
-"Me neither," says Keeper content she's contented. He makes friends. "Do you need a name?" he offers instead.
+"Me neither," says Keeper, content she's contented. He makes friends. "Do you need a name?" he offers.
 
 "I have one," she says. The question is absurd.
 
-He invokes, "May I have it?"
+"May I have it?"
 
 The girl pauses, "Callie." She returns.
 
-Keeper sees the abyss once more. In her blameless eyes is the void. The Unending Nightmare cannot finish. Their story is of cycles. Its destruction is only contained.
+Keeper sees the abyss once more. In her blameless eyes sleeps the void. The Unending Nightmare cannot finish, only reduce into a girl with the courage to contain it. She has grown in a story of cycles, and now sits on a curve of lesser destruction. Tired is all she is, but too afraid to dream.
 
-*To exist is to suffer.* He forgives her cataclysm, gladly.
+*To exist is to suffer and be glad for it.*
 
-*Suffering is existence.* She does not yet share his view.
+He forgives her cataclysm, gladly.
 
-"Glad you're here." He tells her truly.
+*All we lose is time and all we suffer is pain.*
 
-It disarms, "Thanks, you too."
+She does not yet share his view.
 
-Keeper invites Callie and makes her the offer that all dreamers receive, "You've found yourself at Reverie House. Help yourself to whatever you need. There are no locks on the doors, meager food on the stove, and everything's free to use as you please." Gladly, he fills Joy's role.
+"I am happy you're here\!" He tells her truly.
 
-"I don't need anything." Says the girl. Though, did he say food? That would be nice. "I'm just passing through." She didn't know there were places to stay. She doesn't want to go back to dreaming. She has nowhere good to wake.
+It disarms, "Thanks? You too." She is confused.
+
+Keeper invites Callie and delivers the offer that all dreamers receive, "You've found yourself at Reverie House. Help yourself to whatever you need. There are no locks on the doors, meager food on the stove, and everything's free to use as you please." Gladly, he fills Joy's role.
+
+"I don't need anything." Says the girl. Though, did he say food? That would be nice. "I'm just passing through," but she didn't know there were places to stay. She doesn't want to go back to dreaming. She has nowhere good to wake to.
 
 "As you wish. As you please." Keeper bows, "Don't let me get in your way." He lets the dreamer keep dreaming, and she goes unconstrained. "I'll only be here if you need me." The man leaves her be, and returns to conjure dreams.
 
 Callie finds Reverie House.
 
-She finds home.
+She finds herself home.

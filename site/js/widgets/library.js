@@ -312,7 +312,7 @@ class LibraryWidget {
                 <button class="list-action-btn" onclick="event.stopPropagation(); ${book.epubUrl ? `window.location.href='${book.epubUrl}'` : ''};"${epubDisabled}>
                     Download ePub
                 </button>
-                <button class="list-action-btn" onclick="event.stopPropagation(); window.location.href='${book.readOnlineUrl}';">
+                <button class="list-action-btn" onclick="event.stopPropagation(); libraryWidget.navigateToBook('${book.id}');">
                     Read Online Now
                 </button>
                 <button class="list-action-btn" onclick="event.stopPropagation(); libraryWidget.handleKindleClick('${book.kindleAsin || ''}');"${kindleDisabled}>
@@ -358,6 +358,17 @@ class LibraryWidget {
         }
     }
 
+    // Navigate to book's reading page (respects session progress)
+    navigateToBook(bookId) {
+        const book = this.books[bookId];
+        if (!book) return;
+        
+        const resumeUrl = typeof ReaderWidget !== 'undefined' ? ReaderWidget.getResumeUrl(book) : book.readOnlineUrl;
+        if (resumeUrl) {
+            window.location.href = resumeUrl;
+        }
+    }
+
     showBookDetails(book) {
         this.selectedBook = book;
         const panel = document.getElementById('book-details-panel');
@@ -370,7 +381,16 @@ class LibraryWidget {
         panel.setAttribute('data-book', book.id);
 
         // Populate details
-        document.getElementById('details-cover').src = book.cover;
+        const coverImg = document.getElementById('details-cover');
+        coverImg.src = book.cover;
+        coverImg.style.cursor = 'pointer';
+        coverImg.onclick = () => {
+            // Navigate to last read chapter or preface
+            const resumeUrl = typeof ReaderWidget !== 'undefined' ? ReaderWidget.getResumeUrl(book) : book.readOnlineUrl;
+            if (resumeUrl) {
+                window.location.href = resumeUrl;
+            }
+        };
         document.getElementById('details-title').textContent = book.title;
         document.getElementById('details-author').textContent = `by ${book.author}`;
         document.getElementById('details-synopsis').textContent = book.synopsis;
@@ -496,9 +516,18 @@ class LibraryWidget {
             }
 
             beginBtn.disabled = !canBegin;
+            
+            // Check for saved reading progress
+            const lastChapter = typeof ReaderWidget !== 'undefined' ? ReaderWidget.getLastChapter(book.id) : null;
+            if (lastChapter) {
+                beginBtn.textContent = 'Continue Reading';
+            }
+            
             beginBtn.onclick = () => {
-                if (book.readOnlineUrl) {
-                    window.location.href = book.readOnlineUrl;
+                // Use resume URL (respects saved progress)
+                const resumeUrl = typeof ReaderWidget !== 'undefined' ? ReaderWidget.getResumeUrl(book) : null;
+                if (resumeUrl) {
+                    window.location.href = resumeUrl;
                     return;
                 }
 

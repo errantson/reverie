@@ -11,6 +11,55 @@ class ReaderWidget {
         this.currentBookId = null;
     }
 
+    // Session storage key for reading progress
+    static getProgressKey(bookId) {
+        return `reading_progress_${bookId}`;
+    }
+
+    // Save reading progress to session storage
+    saveReadingProgress(bookId, chapterId) {
+        try {
+            sessionStorage.setItem(ReaderWidget.getProgressKey(bookId), chapterId);
+        } catch (e) {
+            console.warn('Could not save reading progress:', e);
+        }
+    }
+
+    // Get last read chapter for a book
+    static getLastChapter(bookId) {
+        try {
+            return sessionStorage.getItem(ReaderWidget.getProgressKey(bookId));
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Get URL for resuming reading (last chapter or preface/first chapter)
+    static getResumeUrl(book) {
+        const lastChapter = ReaderWidget.getLastChapter(book.id);
+        if (lastChapter) {
+            return `/books/${book.folderName}/${lastChapter}`;
+        }
+        // Default to readOnlineUrl or first available chapter
+        if (book.readOnlineUrl) {
+            return book.readOnlineUrl;
+        }
+        // Find first available chapter
+        if (book.parts) {
+            for (const part of book.parts) {
+                for (const chapter of part.chapters) {
+                    if (chapter.available) {
+                        return `/books/${book.folderName}/${chapter.id}`;
+                    }
+                }
+            }
+        } else if (book.chapters) {
+            const ch = book.chapters.find(c => c.available);
+            if (ch) return `/books/${book.folderName}/${ch.id}`;
+        }
+        return null;
+    }
+
     async loadChapter(bookId, chapterIndex) {
         const book = this.libraryWidget.books[bookId];
         if (!book) {
@@ -45,6 +94,9 @@ class ReaderWidget {
             bookId: bookId,
             chapterIndex: chapterIndex
         }, '', chapterPath);
+
+        // Save reading progress
+        this.saveReadingProgress(bookId, chapter.id);
 
         await this.renderChapter(chapter);
     }
