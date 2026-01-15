@@ -81,7 +81,10 @@ class Designation:
         'greeter': 'Greeter of Reveries',
         'mapper': 'Spectrum Mapper',
         'cogitarian': 'Cogitarian',
-        'provisioner': 'Provisioner'
+        'provisioner': 'Provisioner',
+        'dreamstyler': 'Dreamstyler',
+        'bursar': 'Bursar',
+        'cheerful': 'The Cheerful'
     }
     
     # Base identities
@@ -597,9 +600,9 @@ class Designation:
         Check if user has an active work role.
         
         Returns: 'greeter', 'mapper', 'cogitarian', 'provisioner', or None
-        Priority order if multiple: greeter > mapper > cogitarian > provisioner
+        Priority order if multiple: greeter > mapper > cogitarian > provisioner > dreamstyler > bursar > cheerful
         """
-        roles = ['greeter', 'mapper', 'cogitarian', 'provisioner']
+        roles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful']
         
         for role in roles:
             try:

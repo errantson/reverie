@@ -119,7 +119,10 @@ class DesignationExplainer {
                     ['GREETER OF REVERIES', 'a welcoming guide'],
                     ['SPECTRUM MAPPER', 'a cartographic expert'],
                     ['COGITARIAN', 'a humanizing intelligence'],
-                    ['PROVISIONER', 'a caring helper']
+                    ['PROVISIONER', 'a caring helper'],
+                    ['DREAMSTYLER', 'a visual artisan'],
+                    ['BURSAR', 'a keeper of coin'],
+                    ['CHEERFUL', 'an agent of positivity']
                 ]
             },
             {

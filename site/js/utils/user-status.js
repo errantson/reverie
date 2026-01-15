@@ -26,6 +26,10 @@ class UserStatus {
             isGreeter: false,
             isMapper: false,
             isCogitarian: false,
+            isProvisioner: false,
+            isDreamstyler: false,
+            isBursar: false,
+            isCheerful: false,
             isCharacter: false,
             characterLevel: null, // 'known', 'well-known', or 'revered'
             canAutoLore: false,
@@ -58,6 +62,10 @@ class UserStatus {
             status.isGreeter = workerResult.value.isGreeter || false;
             status.isMapper = workerResult.value.isMapper || false;
             status.isCogitarian = workerResult.value.isCogitarian || false;
+            status.isProvisioner = workerResult.value.isProvisioner || false;
+            status.isDreamstyler = workerResult.value.isDreamstyler || false;
+            status.isBursar = workerResult.value.isBursar || false;
+            status.isCheerful = workerResult.value.isCheerful || false;
         }
         
         return status;
@@ -184,13 +192,16 @@ class UserStatus {
             isGreeter: false,
             isMapper: false,
             isCogitarian: false,
-            isProvisioner: false
+            isProvisioner: false,
+            isDreamstyler: false,
+            isBursar: false,
+            isCheerful: false
         };
         
         if (authToken) {
             // Authenticated check - use status endpoints
             try {
-                const [greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse] = await Promise.allSettled([
+                const [greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse, dreamstylerResponse, bursarResponse, cheerfulResponse] = await Promise.allSettled([
                     fetch('/api/work/greeter/status', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     }),
@@ -201,6 +212,15 @@ class UserStatus {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     }),
                     fetch('/api/work/provisioner/status', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
+                    fetch('/api/work/dreamstyler/status', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
+                    fetch('/api/work/bursar/status', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
+                    fetch('/api/work/cheerful/status', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     })
                 ]);
@@ -228,17 +248,38 @@ class UserStatus {
                     const data = await provisionerResponse.value.json();
                     result.isProvisioner = data.is_worker || false;
                 }
+                
+                // Process dreamstyler status
+                if (dreamstylerResponse.status === 'fulfilled' && dreamstylerResponse.value.ok) {
+                    const data = await dreamstylerResponse.value.json();
+                    result.isDreamstyler = data.is_worker || false;
+                }
+                
+                // Process bursar status
+                if (bursarResponse.status === 'fulfilled' && bursarResponse.value.ok) {
+                    const data = await bursarResponse.value.json();
+                    result.isBursar = data.is_worker || false;
+                }
+                
+                // Process cheerful status
+                if (cheerfulResponse.status === 'fulfilled' && cheerfulResponse.value.ok) {
+                    const data = await cheerfulResponse.value.json();
+                    result.isCheerful = data.is_worker || false;
+                }
             } catch (error) {
                 console.warn('Failed to check worker status (authenticated):', error);
             }
         } else {
             // Public check - use info endpoints and check if DID is in workers list
             try {
-                const [greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse] = await Promise.allSettled([
+                const [greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse, dreamstylerResponse, bursarResponse, cheerfulResponse] = await Promise.allSettled([
                     fetch('/api/work/greeter/info'),
                     fetch('/api/work/mapper/info'),
                     fetch('/api/work/cogitarian/info'),
-                    fetch('/api/work/provisioner/info')
+                    fetch('/api/work/provisioner/info'),
+                    fetch('/api/work/dreamstyler/info'),
+                    fetch('/api/work/bursar/info'),
+                    fetch('/api/work/cheerful/info')
                 ]);
                 
                 // Check greeter
@@ -268,6 +309,27 @@ class UserStatus {
                     const workers = data.workers || [];
                     result.isProvisioner = workers.some(w => w.did === did);
                 }
+                
+                // Check dreamstyler
+                if (dreamstylerResponse.status === 'fulfilled' && dreamstylerResponse.value.ok) {
+                    const data = await dreamstylerResponse.value.json();
+                    const workers = data.workers || [];
+                    result.isDreamstyler = workers.some(w => w.did === did);
+                }
+                
+                // Check bursar
+                if (bursarResponse.status === 'fulfilled' && bursarResponse.value.ok) {
+                    const data = await bursarResponse.value.json();
+                    const workers = data.workers || [];
+                    result.isBursar = workers.some(w => w.did === did);
+                }
+                
+                // Check cheerful
+                if (cheerfulResponse.status === 'fulfilled' && cheerfulResponse.value.ok) {
+                    const data = await cheerfulResponse.value.json();
+                    const workers = data.workers || [];
+                    result.isCheerful = workers.some(w => w.did === did);
+                }
             } catch (error) {
                 console.warn('Failed to check worker status (public):', error);
             }
@@ -287,6 +349,9 @@ class UserStatus {
             isMapper: false,
             isCogitarian: false,
             isProvisioner: false,
+            isDreamstyler: false,
+            isBursar: false,
+            isCheerful: false,
             isCharacter: false,
             characterLevel: null,
             canAutoLore: false,
@@ -307,7 +372,7 @@ class UserStatus {
             return 'Keeper of Reverie House';
         }
         
-        // Check for worker roles (prioritize in order: greeter, mapper, cogitarian, provisioner)
+        // Check for worker roles (prioritize in order: greeter, mapper, cogitarian, provisioner, dreamstyler, bursar, cheerful)
         if (user.isGreeter) {
             return 'Greeter of Reveries';
         }
@@ -319,6 +384,15 @@ class UserStatus {
         }
         if (user.isProvisioner) {
             return 'Head of Pantry';
+        }
+        if (user.isDreamstyler) {
+            return 'Dreamstyler';
+        }
+        if (user.isBursar) {
+            return 'Bursar';
+        }
+        if (user.isCheerful) {
+            return 'Cheerful';
         }
         
         // Base status
@@ -379,6 +453,26 @@ class UserStatus {
                 label: 'Cogitarian (Prime)',
                 tier: 'worker',
                 description: 'Active worker fostering thoughtful discourse in Reverie House'
+            },
+            'Head of Pantry': {
+                label: 'Head of Pantry',
+                tier: 'worker',
+                description: 'Active worker providing for those in need at Reverie House'
+            },
+            'Dreamstyler': {
+                label: 'Dreamstyler',
+                tier: 'worker',
+                description: 'Active worker crafting visual aesthetics for dreamweavers'
+            },
+            'Bursar': {
+                label: 'Bursar',
+                tier: 'worker',
+                description: 'Active worker managing the treasury of Reverie House'
+            },
+            'Cheerful': {
+                label: 'Cheerful',
+                tier: 'worker',
+                description: 'Active worker spreading positivity throughout Reverie House'
             },
             'Revered Resident': {
                 label: 'Revered Resident',
@@ -489,7 +583,7 @@ class UserStatus {
         let label = this.getStatusLabel(user);
         
         // Don't modify worker role titles - they're already properly capitalized
-        const workerRoles = ['Greeter of Reveries', 'Spectrum Mapper', 'Cogitarian (Prime)', 'Head of Pantry', 'Keeper of Reverie House'];
+        const workerRoles = ['Greeter of Reveries', 'Spectrum Mapper', 'Cogitarian (Prime)', 'Head of Pantry', 'Dreamstyler', 'Bursar', 'Cheerful', 'Keeper of Reverie House'];
         
         if (options.capitalize && !workerRoles.includes(label)) {
             label = label.charAt(0).toUpperCase() + label.slice(1);
