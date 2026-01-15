@@ -115,6 +115,18 @@ class Sidebar {
             });
         });
         
+        // Handle browser back/forward navigation
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.did && this.dreamersLoaded) {
+                const dreamer = this.dreamers.find(d => d.did === event.state.did);
+                if (dreamer) {
+                    this.displayDreamer(dreamer, { skipPushState: true });
+                }
+            } else if (this.dreamersLoaded) {
+                this.handleUrlParams();
+            }
+        });
+        
         fetch('/api/dreamers')
             .then(response => response.json())
             .then(data => {
@@ -852,7 +864,11 @@ class Sidebar {
                 window.spectrumDrawer.updateAvatarButton();
             }
             
-
+            // Update URL to reflect current dreamer (for sharing/bookmarking)
+            if (!skipPushState && window.location.pathname.includes('dreamer')) {
+                const newUrl = `/dreamer?did=${encodeURIComponent(dreamer.did)}`;
+                window.history.pushState({ did: dreamer.did }, '', newUrl);
+            }
         }
         const profileContainer = document.getElementById('profile-container');
         if (profileContainer) {
