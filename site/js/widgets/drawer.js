@@ -293,6 +293,7 @@ class Drawer {
         this.setupAvatarButton();
         this.setupFirehoseIndicator();
         this.setupDashboard();
+        this.setupMusicPlayer();
 
         document.body.classList.add('has-spectrum-drawer');
 
@@ -792,6 +793,18 @@ class Drawer {
         }
     }
 
+    setupMusicPlayer() {
+        // Load music player widget
+        if (!window.musicPlayer) {
+            const script = document.createElement('script');
+            script.src = '/js/widgets/musicplayer.js';
+            script.onload = () => {
+                console.log('🎵 [Drawer] Music player loaded');
+            };
+            document.head.appendChild(script);
+        }
+    }
+
     setupAvatarButton() {
         const avatarBtn = document.getElementById('drawerAvatarBtn');
         const loginBtn = document.getElementById('drawerLoginBtn');
@@ -814,6 +827,13 @@ class Drawer {
             // Close shadowbox if it's showing
             if (window.Shadowbox && typeof window.Shadowbox.cleanup === 'function') {
                 window.Shadowbox.cleanup();
+            }
+
+            // If user is logged in, navigate to their dreamer profile
+            const session = window.oauthManager?.getSession();
+            if (session && session.did) {
+                window.location.href = `/dreamer?did=${encodeURIComponent(session.did)}`;
+                return;
             }
 
             const tryShowLogin = (attempts = 0) => {

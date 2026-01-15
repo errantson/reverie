@@ -236,6 +236,8 @@ class Profile {
                             targetContent = souvenirsFace;
                             // Initialize souvenirs canvas when shown
                             setTimeout(() => this.initSouvenirsPhysics(this.dreamer), 50);
+                            // Pre-check stickers to set toggle button visibility
+                            setTimeout(() => this.preCheckStickers(this.dreamer), 100);
                         }
                         else if (face === 'spectrum') {
                             targetContent = spectrumFace;
@@ -1129,15 +1131,2465 @@ class Profile {
         
         console.log('[Souvenirs] Container found, setting innerHTML');
         const userColor = dreamer.color_hex || '#734ba1';
+        
+        // Preserve current view mode if already set, otherwise default to souvenirs
+        const previousViewMode = this.souvenirsViewMode;
+        if (!this.souvenirsViewMode) {
+            this.souvenirsViewMode = 'souvenirs';
+        }
+        
         souvenirsFace.innerHTML = `
             <div class="souvenirs-physics-container" style="border-color: ${userColor};">
                 <canvas id="souvenirs-physics-canvas"></canvas>
                 <div class="souvenirs-mini-widget"></div>
+                <!-- Stickers grid view (hidden by default) -->
+                <div class="stickers-grid-container" style="display: none;">
+                    <div class="stickers-grid-scroll">
+                        <div class="stickers-grid"></div>
+                    </div>
+                    <div class="stickers-empty-state" style="display: none;">
+                        <p class="empty-state-title">No stickers collected yet</p>
+                        <p class="stickers-hint empty-state-visitor">Visit <a href="https://atsumeat.suibari.com" target="_blank">AtsumeAt</a> to start collecting!</p>
+                        <div class="empty-state-owner" style="display: none;">
+                            <p class="stickers-hint">Create your first sticker to start trading!</p>
+                            <button class="sticker-trade-btn confirm create-first-sticker">Create My Sticker</button>
+                        </div>
+                    </div>
+                    <div class="stickers-footer">
+                        <span class="stickers-footer-text">Explore and collect more stickers on <a href="https://atsumeat.suibari.com" target="_blank" class="stickers-footer-link">AtsumeAT</a></span>
+                    </div>
+                </div>
+                <!-- Toggle button: star for stickers, artistic bubbles for souvenirs (hidden until sticker check) -->
+                <button class="souvenirs-stickers-toggle" title="Toggle Stickers View" style="display: none; border-color: ${userColor}; color: ${userColor};">
+                    <svg class="toggle-icon sticker-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <svg class="toggle-icon souvenir-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display: none;">
+                        <circle cx="8" cy="10" r="5" opacity="0.9"></circle>
+                        <circle cx="16" cy="7" r="3.5" opacity="0.7"></circle>
+                        <circle cx="17" cy="15" r="2.5" opacity="0.5"></circle>
+                        <ellipse cx="8" cy="8" rx="1.5" ry="1" fill="currentColor" opacity="0.3"></ellipse>
+                    </svg>
+                </button>
+            </div>
+            <!-- Trade confirmation popup -->
+            <div class="sticker-trade-popup" style="display: none;">
+                <div class="sticker-trade-popup-box">
+                    <div class="sticker-trade-popup-header">
+                        <span>Propose Sticker Trade</span>
+                        <button class="sticker-trade-popup-close">&times;</button>
+                    </div>
+                    <div class="sticker-trade-popup-content">
+                        <p>Send a trade request to <strong class="trade-target-name"></strong>?</p>
+                        <div class="sticker-trade-preview">
+                            <div class="trade-sticker-yours">
+                                <img src="" alt="Your sticker" class="trade-sticker-img yours">
+                                <span>You</span>
+                            </div>
+                            <span class="trade-arrow">⇄</span>
+                            <div class="trade-sticker-theirs">
+                                <img src="" alt="Their sticker" class="trade-sticker-img theirs">
+                                <span class="trade-target-name-short"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sticker-trade-popup-buttons">
+                        <button class="sticker-trade-btn cancel">Cancel</button>
+                        <button class="sticker-trade-btn confirm">Send Request</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Trade success popup -->
+            <div class="sticker-success-popup" style="display: none;">
+                <div class="sticker-trade-popup-box">
+                    <div class="sticker-trade-popup-header">
+                        <span>🎁 Trade Request Sent!</span>
+                        <button class="sticker-success-popup-close">&times;</button>
+                    </div>
+                    <div class="sticker-trade-popup-content">
+                        <p>Opening <a href="https://atsumeat.suibari.com" target="_blank">AtsumeAt</a> to trade stickers with <strong class="success-target-name"></strong>.</p>
+                        <p class="sticker-trade-hint">They can accept it on AtsumeAt to complete the exchange.</p>
+                    </div>
+                    <div class="sticker-trade-popup-buttons">
+                        <button class="sticker-trade-btn confirm success-close">Got it!</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Create self sticker popup -->
+            <div class="sticker-create-popup" style="display: none;">
+                <div class="sticker-trade-popup-box">
+                    <div class="sticker-trade-popup-header">
+                        <span>Create Your Sticker</span>
+                        <button class="sticker-create-popup-close">&times;</button>
+                    </div>
+                    <div class="sticker-trade-popup-content">
+                        <p>Create a sticker of yourself to trade with other dreamweavers.</p>
+                        <div class="sticker-create-preview">
+                            <img src="" alt="Your avatar" class="create-sticker-preview-img">
+                        </div>
+                        <p class="sticker-trade-hint" style="font-size: 12px;">Trade more stickers via <a href="https://atsumeat.suibari.com" target="_blank">AtsumeAt</a></p>
+                    </div>
+                    <div class="sticker-trade-popup-buttons">
+                        <button class="sticker-trade-btn cancel create-cancel">Cancel</button>
+                        <button class="sticker-trade-btn confirm create-confirm">Create Sticker</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Delete sticker confirmation popup -->
+            <div class="sticker-delete-popup" style="display: none;">
+                <div class="sticker-trade-popup-box">
+                    <div class="sticker-trade-popup-header">
+                        <span>Delete Sticker</span>
+                        <button class="sticker-delete-popup-close">&times;</button>
+                    </div>
+                    <div class="sticker-trade-popup-content">
+                        <p>Are you sure you want to delete this sticker?</p>
+                        <div class="sticker-delete-preview">
+                            <img src="" alt="Sticker" class="delete-sticker-preview-img">
+                        </div>
+                        <p class="sticker-trade-hint" style="color: #e53935;">This action cannot be undone.</p>
+                    </div>
+                    <div class="sticker-trade-popup-buttons">
+                        <button class="sticker-trade-btn cancel delete-cancel">Cancel</button>
+                        <button class="sticker-trade-btn confirm delete-confirm" style="background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);">Delete</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Cancel trade confirmation popup -->
+            <div class="sticker-cancel-popup" style="display: none;">
+                <div class="sticker-trade-popup-box">
+                    <div class="sticker-trade-popup-header">
+                        <span>Cancel Trade</span>
+                        <button class="sticker-cancel-popup-close">&times;</button>
+                    </div>
+                    <div class="sticker-trade-popup-content">
+                        <p>Cancel this trade request?</p>
+                        <div class="cancel-trade-exchange">
+                            <div class="cancel-trade-side">
+                                <p class="cancel-trade-label">YOU<br>OFFER</p>
+                                <div class="cancel-trade-sticker">
+                                    <img src="" alt="Your sticker" class="cancel-trade-offer-img">
+                                </div>
+                                <p class="cancel-trade-offer-name"></p>
+                            </div>
+                            <div class="cancel-trade-arrow">→</div>
+                            <div class="cancel-trade-side">
+                                <p class="cancel-trade-label">YOU<br>REQUEST</p>
+                                <div class="cancel-trade-sticker">
+                                    <img src="" alt="Requested sticker" class="cancel-trade-request-img">
+                                </div>
+                                <p class="cancel-trade-request-name"></p>
+                            </div>
+                        </div>
+                        <p class="cancel-trade-partner"></p>
+                    </div>
+                    <div class="sticker-trade-popup-buttons">
+                        <button class="sticker-trade-btn cancel cancel-back">Back</button>
+                        <button class="sticker-trade-btn confirm cancel-confirm">Cancel Trade</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Sticker detail popup -->
+            <div class="sticker-detail-popup" style="display: none;">
+                <div class="sticker-detail-popup-box">
+                    <button class="sticker-detail-popup-close">&times;</button>
+                    <div class="sticker-detail-image">
+                        <img src="" alt="Sticker">
+                    </div>
+                    <div class="sticker-detail-info">
+                        <div class="sticker-detail-name"></div>
+                        <div class="sticker-detail-stats">
+                            <div class="sticker-stat"><span class="stat-label">Type:</span> <span class="stat-value sticker-type"></span></div>
+                            <div class="sticker-stat"><span class="stat-label">Subject:</span> <span class="stat-value sticker-subject"></span></div>
+                            <div class="sticker-stat"><span class="stat-label">Source:</span> <span class="stat-value sticker-obtained-from"></span></div>
+                        </div>
+                        <div class="sticker-detail-trade-section">
+                            <p class="sticker-trade-explanation">Trade a sticker of yourself for <strong class="sticker-subject-name"></strong>'s sticker.</p>
+                            <p class="sticker-trade-hint">They'll need to accept the trade to complete the exchange.</p>
+                            <button class="sticker-detail-trade-btn">PROPOSE TRADE</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
         
+        // Attach toggle handler
+        const toggleBtn = souvenirsFace.querySelector('.souvenirs-stickers-toggle');
+        if (toggleBtn) {
+            toggleBtn.onclick = () => this.toggleStickersView(dreamer);
+        }
+        
+        // Attach popup close handlers
+        const popup = souvenirsFace.querySelector('.sticker-trade-popup');
+        const closeBtn = popup?.querySelector('.sticker-trade-popup-close');
+        const cancelBtn = popup?.querySelector('.sticker-trade-btn.cancel');
+        
+        if (closeBtn) closeBtn.onclick = () => this.hideTradePopup();
+        if (cancelBtn) cancelBtn.onclick = () => this.hideTradePopup();
+        
+        // Attach success popup close handlers
+        const successPopup = souvenirsFace.querySelector('.sticker-success-popup');
+        const successCloseBtn = successPopup?.querySelector('.sticker-success-popup-close');
+        const successGotItBtn = successPopup?.querySelector('.success-close');
+        
+        if (successCloseBtn) successCloseBtn.onclick = () => this.hideSuccessPopup();
+        if (successGotItBtn) successGotItBtn.onclick = () => this.hideSuccessPopup();
+        
+        // Attach detail popup handlers
+        const detailPopup = souvenirsFace.querySelector('.sticker-detail-popup');
+        const detailCloseBtn = detailPopup?.querySelector('.sticker-detail-popup-close');
+        const detailTradeBtn = detailPopup?.querySelector('.sticker-detail-trade-btn');
+        
+        if (detailCloseBtn) detailCloseBtn.onclick = () => this.hideDetailPopup();
+        if (detailTradeBtn) {
+            detailTradeBtn.onclick = () => {
+                // Capture sticker/owner BEFORE hiding popup (hideDetailPopup clears currentDetailSticker)
+                const sticker = this.currentDetailSticker;
+                const owner = this.currentStickerOwner;
+                if (sticker && owner) {
+                    this.proposeTrade(sticker, owner);
+                }
+            };
+        }
+        
+        // Attach create sticker popup handlers
+        const createPopup = souvenirsFace.querySelector('.sticker-create-popup');
+        const createCloseBtn = createPopup?.querySelector('.sticker-create-popup-close');
+        const createCancelBtn = createPopup?.querySelector('.create-cancel');
+        const createConfirmBtn = createPopup?.querySelector('.create-confirm');
+        
+        if (createCloseBtn) createCloseBtn.onclick = () => this.hideCreatePopup();
+        if (createCancelBtn) createCancelBtn.onclick = () => this.hideCreatePopup();
+        if (createConfirmBtn) createConfirmBtn.onclick = () => this.confirmCreateSticker();
+        
+        // Attach delete sticker popup handlers
+        const deletePopup = souvenirsFace.querySelector('.sticker-delete-popup');
+        const deleteCloseBtn = deletePopup?.querySelector('.sticker-delete-popup-close');
+        const deleteCancelBtn = deletePopup?.querySelector('.delete-cancel');
+        const deleteConfirmBtn = deletePopup?.querySelector('.delete-confirm');
+        
+        if (deleteCloseBtn) deleteCloseBtn.onclick = () => this.hideDeletePopup();
+        if (deleteCancelBtn) deleteCancelBtn.onclick = () => this.hideDeletePopup();
+        if (deleteConfirmBtn) deleteConfirmBtn.onclick = () => this.confirmDeleteSticker();
+        
+        // Attach cancel trade popup handlers
+        const cancelPopup = souvenirsFace.querySelector('.sticker-cancel-popup');
+        const cancelCloseBtn = cancelPopup?.querySelector('.sticker-cancel-popup-close');
+        const cancelBackBtn = cancelPopup?.querySelector('.cancel-back');
+        const cancelConfirmBtn = cancelPopup?.querySelector('.cancel-confirm');
+        
+        if (cancelCloseBtn) cancelCloseBtn.onclick = () => this.hideCancelPopup();
+        if (cancelBackBtn) cancelBackBtn.onclick = () => this.hideCancelPopup();
+        if (cancelConfirmBtn) cancelConfirmBtn.onclick = () => this.confirmCancelTrade();
+        
+        // Attach "Create My Sticker" button in empty state
+        const createFirstBtn = souvenirsFace.querySelector('.create-first-sticker');
+        if (createFirstBtn) {
+            createFirstBtn.onclick = () => this.showCreatePopup();
+        }
+        
+        // Restore stickers view if that was the previous mode
+        if (previousViewMode === 'stickers') {
+            console.log('[Souvenirs] Restoring stickers view mode');
+            // Set UI to stickers mode without triggering toggle
+            const canvas = souvenirsFace.querySelector('#souvenirs-physics-canvas');
+            const miniWidget = souvenirsFace.querySelector('.souvenirs-mini-widget');
+            const stickersContainer = souvenirsFace.querySelector('.stickers-grid-container');
+            const toggleBtn = souvenirsFace.querySelector('.souvenirs-stickers-toggle');
+            const stickerIcon = toggleBtn?.querySelector('.sticker-icon');
+            const souvenirIcon = toggleBtn?.querySelector('.souvenir-icon');
+            const souvenirsBtn = this.container.querySelector('.activity-face-btn[data-face="souvenirs"]');
+            
+            if (canvas) canvas.style.display = 'none';
+            if (miniWidget) miniWidget.style.display = 'none';
+            if (stickersContainer) stickersContainer.style.display = 'flex';
+            if (stickerIcon) stickerIcon.style.display = 'none';
+            if (souvenirIcon) souvenirIcon.style.display = 'block';
+            if (souvenirsBtn) souvenirsBtn.textContent = 'Stickers';
+            if (toggleBtn) toggleBtn.style.display = 'flex';
+            
+            // Load stickers
+            this.loadStickersGrid(dreamer);
+        }
+        
         // Don't initialize yet - it will happen when face becomes visible
         console.log('[Souvenirs] HTML set, waiting for face to be shown');
+    }
+    
+    async toggleStickersView(dreamer) {
+        const container = this.container.querySelector('.souvenirs-physics-container');
+        if (!container) return;
+        
+        const canvas = container.querySelector('#souvenirs-physics-canvas');
+        const miniWidget = container.querySelector('.souvenirs-mini-widget');
+        const stickersContainer = container.querySelector('.stickers-grid-container');
+        const toggleBtn = container.querySelector('.souvenirs-stickers-toggle');
+        const stickerIcon = toggleBtn?.querySelector('.sticker-icon');
+        const souvenirIcon = toggleBtn?.querySelector('.souvenir-icon');
+        
+        if (this.souvenirsViewMode === 'souvenirs') {
+            // Switch to stickers view
+            this.souvenirsViewMode = 'stickers';
+            
+            // Stop souvenirs animation
+            if (this.souvenirsAnimationFrame) {
+                cancelAnimationFrame(this.souvenirsAnimationFrame);
+            }
+            
+            // Hide souvenirs, show stickers
+            if (canvas) canvas.style.display = 'none';
+            if (miniWidget) miniWidget.style.display = 'none';
+            if (stickersContainer) stickersContainer.style.display = 'flex';
+            
+            // Toggle icons
+            if (stickerIcon) stickerIcon.style.display = 'none';
+            if (souvenirIcon) souvenirIcon.style.display = 'block';
+            
+            // Update the tab button text
+            const souvenirsBtn = this.container.querySelector('.activity-face-btn[data-face="souvenirs"]');
+            if (souvenirsBtn) souvenirsBtn.textContent = 'Stickers';
+            
+            // Load stickers if not already loaded
+            await this.loadStickersGrid(dreamer);
+        } else {
+            // Switch back to souvenirs view
+            this.souvenirsViewMode = 'souvenirs';
+            
+            // Show souvenirs, hide stickers
+            if (canvas) canvas.style.display = 'block';
+            if (miniWidget) miniWidget.style.display = 'block';
+            if (stickersContainer) stickersContainer.style.display = 'none';
+            
+            // Toggle icons
+            if (stickerIcon) stickerIcon.style.display = 'block';
+            if (souvenirIcon) souvenirIcon.style.display = 'none';
+            
+            // Restore the tab button text
+            const souvenirsBtn = this.container.querySelector('.activity-face-btn[data-face="souvenirs"]');
+            if (souvenirsBtn) souvenirsBtn.textContent = 'Souvenirs';
+            
+            // Restart souvenirs animation
+            this.startSouvenirsAnimation(canvas, dreamer);
+        }
+    }
+    
+    async loadStickersGrid(dreamer) {
+        const grid = this.container.querySelector('.stickers-grid');
+        const emptyState = this.container.querySelector('.stickers-empty-state');
+        const toggleBtn = this.container.querySelector('.souvenirs-stickers-toggle');
+        
+        // Check if viewing own profile
+        const session = window.oauthManager?.getSession?.();
+        const isOwnProfile = session?.did === dreamer.did;
+        
+        if (!grid) return;
+        
+        // Hide other elements during loading
+        if (emptyState) emptyState.style.display = 'none';
+        if (toggleBtn) toggleBtn.style.display = 'none';
+        
+        // Show loading state with rotating hourglass
+        grid.innerHTML = '<div class="stickers-loading"><span>Loading stickers...</span><svg class="hourglass-spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></div>';
+        
+        try {
+            // Fetch stickers from user's PDS
+            let stickers = await this.fetchUserStickers(dreamer.did);
+            
+            // Always run cleanup/claim for logged-in users (on any sticker page)
+            // Also stores pendingOutgoing for later use (avoids duplicate call)
+            let pendingOutgoing = [];
+            let justClaimedSubjects = []; // Track what we just claimed this session
+            if (session?.did) {
+                // Claim any stickers from completed trades and clean up old offers
+                try {
+                    justClaimedSubjects = await this.claimCompletedTrades() || [];
+                    if (justClaimedSubjects.length > 0) {
+                        // Re-fetch stickers if we claimed new ones
+                        if (isOwnProfile) {
+                            stickers = await this.fetchUserStickers(dreamer.did);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] Error claiming completed trades:', e);
+                }
+                
+                // Check pending outgoing (also cleans up completed ones)
+                try {
+                    pendingOutgoing = await this.checkPendingOutgoing();
+                } catch (e) {
+                    console.warn('[Stickers] Error checking/cleaning pending:', e);
+                }
+            }
+            
+            // For NEW badge: get list of stickers user has already acknowledged
+            let acknowledgedSubjects = [];
+            if (isOwnProfile && session?.did) {
+                try {
+                    const token = localStorage.getItem('oauth_token');
+                    if (token) {
+                        const res = await fetch('/api/sticker/acknowledged', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            acknowledgedSubjects = data.acknowledged || [];
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] Error fetching acknowledged list:', e);
+                }
+            }
+            
+            // Check for incoming trade offers if viewing own profile
+            let incomingOffers = [];
+            if (isOwnProfile && session?.did) {
+                try {
+                    incomingOffers = await this.checkIncomingOffers();
+                } catch (e) {
+                    console.warn('[Stickers] Error checking offers:', e);
+                }
+            }
+            
+            // If viewing someone else's profile, check if logged user has pending offers TO this person
+            let pendingToThisProfile = [];
+            if (!isOwnProfile && session?.did) {
+                try {
+                    pendingToThisProfile = await this.checkPendingToProfile(dreamer.did);
+                } catch (e) {
+                    console.warn('[Stickers] Error checking pending to profile:', e);
+                }
+            }
+            
+            if ((!stickers || stickers.length === 0) && incomingOffers.length === 0 && pendingOutgoing.length === 0 && pendingToThisProfile.length === 0) {
+                grid.innerHTML = '';
+                this.showEmptyState(emptyState, isOwnProfile, toggleBtn);
+                return;
+            }
+            
+            // Filter to only show stickers with origins from known Reverie House users
+            // AND that have valid signatures (required by AtsumeAt)
+            try {
+                const dreamersResponse = await fetch('/api/dreamers');
+                if (dreamersResponse.ok) {
+                    const allDreamers = await dreamersResponse.json();
+                    const knownDids = new Set(allDreamers.map(d => d.did));
+                    
+                    // Store dreamers map for resolving handles later
+                    this.knownDreamersMap = new Map(allDreamers.map(d => [d.did, d]));
+                    
+                    // Filter: only show stickers where:
+                    // 1. subjectDid is a known Reverie House user
+                    // 2. sticker has valid signature (required by AtsumeAt)
+                    if (stickers && stickers.length > 0) {
+                        stickers = stickers.filter(sticker => {
+                            const subjectDid = sticker.subjectDid;
+                            const hasSignature = sticker.signature && sticker.signedPayload;
+                            return subjectDid && knownDids.has(subjectDid) && hasSignature;
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('[Stickers] Could not filter by known users:', e);
+            }
+            
+            if ((!stickers || stickers.length === 0) && incomingOffers.length === 0) {
+                grid.innerHTML = '';
+                this.showEmptyState(emptyState, isOwnProfile, toggleBtn);
+                return;
+            }
+            
+            if (emptyState) emptyState.style.display = 'none';
+            
+            // Show toggle button since there are stickers
+            if (toggleBtn) toggleBtn.style.display = 'flex';
+            
+            // Sort stickers: profile owner's self-sticker (original copy) first
+            if (stickers && stickers.length > 1) {
+                stickers.sort((a, b) => {
+                    const aIsSelfSticker = (a.subjectDid === dreamer.did || a.originalOwner === dreamer.did) && !a.obtainedFrom;
+                    const bIsSelfSticker = (b.subjectDid === dreamer.did || b.originalOwner === dreamer.did) && !b.obtainedFrom;
+                    if (aIsSelfSticker && !bIsSelfSticker) return -1;
+                    if (!aIsSelfSticker && bIsSelfSticker) return 1;
+                    return 0;
+                });
+            }
+            
+            // Store stickers for trade functionality
+            this.loadedStickers = stickers || [];
+            this.currentStickerOwner = dreamer;
+            this.incomingOffers = incomingOffers;
+            this.pendingOutgoing = pendingOutgoing;
+            
+            // Build grid content
+            let gridHtml = '';
+            
+            // Render incoming offers first (if own profile) as "AVAILABLE" cards
+            // Show the sticker being OFFERED to us (stickerOut), not partner avatar
+            if (isOwnProfile && incomingOffers.length > 0) {
+                for (const offer of incomingOffers) {
+                    // Use offered sticker if available, otherwise fall back to partner info
+                    let displayImage = offer.profile?.avatar || '/assets/icon_face.png';
+                    let displayName = offer.profile?.displayName || offer.profile?.handle?.split('.')[0] || 'Someone';
+                    
+                    if (offer.offeredSticker) {
+                        displayImage = offer.offeredSticker.image || displayImage;
+                        const subjectDreamer = this.knownDreamersMap?.get(offer.offeredSticker.subjectDid);
+                        if (subjectDreamer) {
+                            displayName = subjectDreamer.name || subjectDreamer.handle?.split('.')[0] || displayName;
+                        }
+                    }
+                    
+                    gridHtml += `
+                        <div class="sticker-card sticker-offer-card" data-offer-uri="${offer.uri}">
+                            <div class="sticker-offer-badge">AVAILABLE</div>
+                            <div class="sticker-card-image">
+                                <img src="${displayImage}" alt="${displayName}" onerror="this.src='/assets/icon_face.png'">
+                            </div>
+                            <div class="sticker-card-name">${displayName}</div>
+                            <button class="sticker-accept-btn-card" data-offer-uri="${offer.uri}">ACCEPT</button>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Render pending outgoing trades (if own profile) as "PENDING" cards
+            // Show the REQUESTED sticker (from stickerIn), not the partner's avatar
+            if (isOwnProfile && pendingOutgoing.length > 0) {
+                for (const pending of pendingOutgoing) {
+                    // Use requested sticker image if available, otherwise fall back to partner avatar
+                    let displayImage = pending.profile?.avatar || '/assets/icon_face.png';
+                    let displayName = pending.profile?.displayName || pending.profile?.handle?.split('.')[0] || 'Someone';
+                    
+                    if (pending.requestedSticker) {
+                        displayImage = pending.requestedSticker.image || displayImage;
+                        // Get the sticker subject's name from knownDreamersMap
+                        const subjectDreamer = this.knownDreamersMap?.get(pending.requestedSticker.subjectDid);
+                        if (subjectDreamer) {
+                            displayName = subjectDreamer.name || subjectDreamer.handle?.split('.')[0] || displayName;
+                        }
+                    }
+                    
+                    gridHtml += `
+                        <div class="sticker-card sticker-pending-card" data-pending-uri="${pending.uri}">
+                            <div class="sticker-pending-badge">PENDING</div>
+                            <div class="sticker-card-image">
+                                <img src="${displayImage}" alt="${displayName}" onerror="this.src='/assets/icon_face.png'">
+                            </div>
+                            <div class="sticker-card-name">${displayName}</div>
+                            <button class="sticker-cancel-btn-card" data-pending-uri="${pending.uri}">CANCEL</button>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Build a set of sticker URIs we have pending trades for (on other users' profiles)
+            // This is used to change the button from TRADE to PENDING
+            const pendingStickerUris = new Set();
+            if (!isOwnProfile && pendingToThisProfile.length > 0) {
+                for (const pending of pendingToThisProfile) {
+                    const stickerIn = pending.transaction?.stickerIn || [];
+                    for (const uri of stickerIn) {
+                        pendingStickerUris.add(uri);
+                    }
+                }
+            }
+            
+            // Store pending to this profile for cancel handler
+            this.pendingToThisProfile = pendingToThisProfile;
+            
+            // Render existing stickers
+            if (stickers && stickers.length > 0) {
+                gridHtml += stickers.map((sticker, index) => {
+                    const imageUrl = typeof sticker.image === 'string' ? sticker.image : '';
+                    // For avatar stickers, use the SUBJECT's name and color (from knownDreamersMap)
+                    let displayName = sticker.name || 'Sticker';
+                    const subjectDreamer = sticker.subjectDid ? this.knownDreamersMap?.get(sticker.subjectDid) : null;
+                    if (subjectDreamer) {
+                        displayName = subjectDreamer.name || subjectDreamer.handle?.split('.')[0] || 'Sticker';
+                    } else if (sticker.subjectDid && (displayName === 'Avatar Sticker' || displayName === 'Sticker')) {
+                        displayName = sticker.subjectDid.replace('did:plc:', '').slice(0, 8);
+                    }
+                    
+                    // Get the SUBJECT's color for sticker frame styling
+                    const subjectColor = subjectDreamer?.color_hex || '#734ba1';
+                    
+                    // Determine styling based on sticker providence:
+                    // - Self-sticker (your own sticker of yourself): bold colors
+                    // - Original copy (obtained directly from the person depicted): medium colors
+                    // - Traded copy (passed through someone else): default/no special color
+                    const isSelfSticker = (sticker.subjectDid === dreamer.did || sticker.originalOwner === dreamer.did) && !sticker.obtainedFrom;
+                    const isOriginalCopy = sticker.obtainedFrom && sticker.originalOwner === sticker.obtainedFrom;
+                    let cardStyle = '';
+                    let imageStyle = '';
+                    let nameStyle = '';
+                    if (isSelfSticker) {
+                        cardStyle = `border-color: ${subjectColor}; background: linear-gradient(135deg, ${subjectColor}40 0%, ${subjectColor}25 100%);`;
+                        imageStyle = `border-color: ${subjectColor};`;
+                        nameStyle = `color: ${subjectColor};`;
+                    } else if (isOriginalCopy) {
+                        cardStyle = `border-color: ${subjectColor}90; background: linear-gradient(135deg, ${subjectColor}20 0%, ${subjectColor}10 100%);`;
+                        imageStyle = `border-color: ${subjectColor}80;`;
+                        nameStyle = `color: ${subjectColor};`;
+                    }
+                    // Traded copies get no special styling (default gray/white from CSS)
+                    
+                    // Determine button: DISCARD (own), PENDING (has active trade), or TRADE
+                    let buttonHtml;
+                    const hasPendingTrade = sticker.uri && pendingStickerUris.has(sticker.uri);
+                    const pendingForThis = hasPendingTrade ? pendingToThisProfile.find(p => 
+                        (p.transaction?.stickerIn || []).includes(sticker.uri)
+                    ) : null;
+                    
+                    if (isOwnProfile) {
+                        buttonHtml = `<button class="sticker-delete-btn-card" data-sticker-index="${index}" data-sticker-uri="${sticker.uri || ''}">DISCARD</button>`;
+                    } else if (hasPendingTrade && pendingForThis) {
+                        buttonHtml = `<button class="sticker-cancel-btn-card sticker-pending-btn" data-pending-uri="${pendingForThis.uri}">PENDING</button>`;
+                    } else {
+                        buttonHtml = `<button class="sticker-trade-btn-card" data-sticker-index="${index}">TRADE</button>`;
+                    }
+                    
+                    // NEW badge: show if sticker was just claimed OR not in acknowledged list
+                    const wasJustClaimed = justClaimedSubjects.includes(sticker.subjectDid);
+                    const isNew = isOwnProfile && sticker.subjectDid && (wasJustClaimed || !acknowledgedSubjects.includes(sticker.subjectDid));
+                    const newBadgeHtml = isNew ? '<div class="sticker-new-badge">NEW</div>' : '';
+                    const newCardClass = isNew ? ' sticker-new-card' : '';
+                    
+                    return `
+                        <div class="sticker-card${newCardClass}" title="${displayName}" data-sticker-index="${index}" style="${cardStyle}">
+                            ${newBadgeHtml}
+                            <div class="sticker-card-image" style="${imageStyle}">
+                                <img src="${imageUrl}" alt="${displayName}" onerror="this.src='/assets/icon_face.png'">
+                            </div>
+                            <div class="sticker-card-name" style="${nameStyle}">${displayName}</div>
+                            ${buttonHtml}
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            grid.innerHTML = gridHtml;
+            
+            // Attach offer accept handlers
+            grid.querySelectorAll('.sticker-accept-btn-card').forEach(btn => {
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
+                    const offerUri = btn.dataset.offerUri;
+                    const offer = incomingOffers.find(o => o.uri === offerUri);
+                    if (offer) {
+                        btn.disabled = true;
+                        btn.textContent = 'Accepting...';
+                        await this.acceptTrade(offer);
+                        btn.textContent = 'Accepted!';
+                    }
+                };
+            });
+            
+            // Attach delete button handlers (for own stickers)
+            grid.querySelectorAll('.sticker-delete-btn-card').forEach(btn => {
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
+                    const index = parseInt(btn.dataset.stickerIndex);
+                    const sticker = stickers[index];
+                    if (sticker) {
+                        this.showDeletePopup(sticker, btn, dreamer);
+                    }
+                };
+            });
+            
+            // Use event delegation for buttons that may be dynamically replaced
+            // This ensures handlers work after TRADE ↔ PENDING button swaps
+            grid.onclick = async (e) => {
+                const target = e.target;
+                
+                // Handle cancel button clicks (for pending trades)
+                if (target.classList.contains('sticker-cancel-btn-card')) {
+                    e.stopPropagation();
+                    const pendingUri = target.dataset.pendingUri;
+                    let pending = this.pendingOutgoing?.find(p => p.uri === pendingUri);
+                    if (!pending) {
+                        pending = this.pendingToThisProfile?.find(p => p.uri === pendingUri);
+                    }
+                    if (pending) {
+                        this.showCancelPopup(pending, target);
+                    }
+                    return;
+                }
+                
+                // Handle trade button clicks
+                if (target.classList.contains('sticker-trade-btn-card') && !target.disabled) {
+                    e.stopPropagation();
+                    const index = parseInt(target.dataset.stickerIndex);
+                    const sticker = this.loadedStickers?.[index];
+                    if (sticker) {
+                        this.showDetailPopup(sticker, this.currentStickerOwner);
+                    }
+                    return;
+                }
+                
+                // Handle sticker card clicks (opens detail popup)
+                const card = target.closest('.sticker-card');
+                if (card && !card.classList.contains('sticker-offer-card') && !card.classList.contains('sticker-pending-card')) {
+                    // Don't trigger if clicking a button
+                    if (target.tagName === 'BUTTON') return;
+                    const index = parseInt(card.dataset.stickerIndex);
+                    const sticker = this.loadedStickers?.[index];
+                    if (sticker) {
+                        this.showDetailPopup(sticker, this.currentStickerOwner);
+                    }
+                }
+            };
+            
+            // After rendering own profile, acknowledge only NEW stickers (not already acknowledged)
+            if (isOwnProfile && stickers && stickers.length > 0) {
+                // Find which ones are new (not yet acknowledged)
+                const newStickers = stickers
+                    .map(s => s.subjectDid)
+                    .filter(did => did && !acknowledgedSubjects.includes(did));
+                
+                if (newStickers.length > 0) {
+                    try {
+                        const token = localStorage.getItem('oauth_token');
+                        if (token) {
+                            fetch('/api/sticker/acknowledge', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}` 
+                                },
+                                body: JSON.stringify({ sticker_subject_dids: newStickers })
+                            }).catch(() => {}); // Fire and forget
+                        }
+                    } catch (e) {
+                        // Silent fail - not critical
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error('[Stickers] Error loading stickers:', error);
+            grid.innerHTML = '<div class="stickers-error">Failed to load stickers</div>';
+        }
+    }
+    
+    showDetailPopup(sticker, owner) {
+        const popup = this.container.querySelector('.sticker-detail-popup');
+        if (!popup) return;
+        
+        this.currentDetailSticker = sticker;
+        
+        // Populate detail content
+        const img = popup.querySelector('.sticker-detail-image img');
+        const nameEl = popup.querySelector('.sticker-detail-name');
+        const typeEl = popup.querySelector('.sticker-type');
+        const subjectEl = popup.querySelector('.sticker-subject');
+        const fromEl = popup.querySelector('.sticker-obtained-from');
+        const tradeSection = popup.querySelector('.sticker-detail-trade-section');
+        
+        // Get display name - use SUBJECT's name for avatar stickers, not the profile owner
+        let displayName = sticker.name || 'Sticker';
+        if (displayName === 'Avatar Sticker' && sticker.imageType === 'avatar' && sticker.subjectDid) {
+            const subjectDreamer = this.knownDreamersMap?.get(sticker.subjectDid);
+            if (subjectDreamer) {
+                displayName = subjectDreamer.name || subjectDreamer.display_name || subjectDreamer.handle?.split('.')[0] || 'Avatar';
+            } else {
+                displayName = sticker.subjectDid.replace('did:plc:', '').slice(0, 8);
+            }
+        }
+        
+        if (img) img.src = sticker.image || '/assets/icon_face.png';
+        if (nameEl) nameEl.textContent = displayName;
+        if (typeEl) typeEl.textContent = sticker.imageType === 'avatar' ? 'Avatar' : (sticker.imageType || 'Custom');
+        
+        // For subject: resolve handle from known dreamers
+        if (subjectEl) {
+            if (sticker.subjectDid) {
+                const subjectDreamer = this.knownDreamersMap?.get(sticker.subjectDid);
+                if (subjectDreamer) {
+                    subjectEl.textContent = subjectDreamer.handle || subjectDreamer.name || sticker.subjectDid.replace('did:plc:', '').slice(0, 12) + '...';
+                } else {
+                    subjectEl.textContent = sticker.subjectDid.replace('did:plc:', '').slice(0, 12) + '...';
+                }
+            } else {
+                subjectEl.textContent = 'Unknown';
+            }
+        }
+        
+        // For source: resolve handle from known dreamers if available
+        // Show "Original Copy" if obtainedFrom matches subjectDid (or is missing)
+        if (fromEl) {
+            if (!sticker.obtainedFrom || sticker.obtainedFrom === sticker.subjectDid) {
+                fromEl.textContent = 'Original Copy';
+            } else {
+                const sourceDreamer = this.knownDreamersMap?.get(sticker.obtainedFrom);
+                if (sourceDreamer) {
+                    fromEl.textContent = sourceDreamer.handle || sourceDreamer.name || sticker.obtainedFrom.replace('did:plc:', '').slice(0, 12) + '...';
+                } else {
+                    fromEl.textContent = sticker.obtainedFrom.replace('did:plc:', '').slice(0, 12) + '...';
+                }
+            }
+        }
+        
+        // Populate subject name in trade explanation (use subject's name, not profile owner)
+        const subjectNameEl = popup.querySelector('.sticker-subject-name');
+        if (subjectNameEl) {
+            const subjectDreamer = this.knownDreamersMap?.get(sticker.subjectDid);
+            const subjectDisplayName = subjectDreamer?.name || subjectDreamer?.display_name || subjectDreamer?.handle?.split('.')[0] || 'this dreamer';
+            subjectNameEl.textContent = subjectDisplayName;
+        }
+        
+        // Hide trade section if viewing own profile
+        const session = window.oauthManager?.getSession?.();
+        const isOwnProfile = session?.did === owner.did;
+        if (tradeSection) tradeSection.style.display = isOwnProfile ? 'none' : 'block';
+        
+        // Reset trade button state
+        const tradeBtn = popup.querySelector('.sticker-detail-trade-btn');
+        if (tradeBtn) {
+            tradeBtn.disabled = false;
+            tradeBtn.textContent = 'PROPOSE TRADE';
+        }
+        
+        popup.style.display = 'flex';
+    }
+    
+    hideDetailPopup() {
+        const popup = this.container.querySelector('.sticker-detail-popup');
+        if (popup) popup.style.display = 'none';
+        this.currentDetailSticker = null;
+    }
+    
+    showTradePopup(sticker, owner) {
+        const popup = this.container.querySelector('.sticker-trade-popup');
+        if (!popup) return;
+        
+        // Check if user is logged in using oauthManager
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) {
+            // User not logged in - show login popup
+            if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                window.loginWidget.showLoginPopup();
+            } else {
+                alert('Please log in to propose a trade');
+            }
+            return;
+        }
+        
+        const currentUser = session;
+        
+        // Populate popup content
+        const targetNameEls = popup.querySelectorAll('.trade-target-name');
+        const targetNameShortEls = popup.querySelectorAll('.trade-target-name-short');
+        const yourImg = popup.querySelector('.trade-sticker-img.yours');
+        const theirImg = popup.querySelector('.trade-sticker-img.theirs');
+        
+        targetNameEls.forEach(el => el.textContent = owner.name || owner.handle);
+        targetNameShortEls.forEach(el => el.textContent = (owner.name || owner.handle).split(' ')[0]);
+        
+        // Set sticker images
+        if (yourImg && currentUser.avatar) {
+            yourImg.src = currentUser.avatar;
+        }
+        if (theirImg && sticker.image) {
+            theirImg.src = sticker.image;
+        }
+        
+        // Store current trade data
+        this.pendingTrade = { sticker, owner };
+        
+        // Attach confirm handler
+        const confirmBtn = popup.querySelector('.sticker-trade-btn.confirm');
+        if (confirmBtn) {
+            confirmBtn.onclick = () => this.confirmTrade();
+        }
+        
+        // Show popup
+        popup.style.display = 'flex';
+    }
+    
+    hideTradePopup() {
+        const popup = this.container.querySelector('.sticker-trade-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+        this.pendingTrade = null;
+    }
+    
+    showSuccessPopup(targetName) {
+        const popup = this.container.querySelector('.sticker-success-popup');
+        if (!popup) return;
+        
+        // Populate target name
+        const targetNameEl = popup.querySelector('.success-target-name');
+        if (targetNameEl) targetNameEl.textContent = targetName;
+        
+        popup.style.display = 'flex';
+    }
+    
+    hideSuccessPopup() {
+        const popup = this.container.querySelector('.sticker-success-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+    }
+    
+    showEmptyState(emptyState, isOwnProfile, toggleBtn) {
+        if (!emptyState) return;
+        
+        emptyState.style.display = 'flex';
+        
+        const visitorContent = emptyState.querySelector('.empty-state-visitor');
+        const ownerContent = emptyState.querySelector('.empty-state-owner');
+        
+        if (isOwnProfile) {
+            // Show create button for own profile
+            if (visitorContent) visitorContent.style.display = 'none';
+            if (ownerContent) ownerContent.style.display = 'block';
+            // Show toggle button for own profile so they can still switch views
+            if (toggleBtn) toggleBtn.style.display = 'flex';
+        } else {
+            // Show visitor message and hide toggle button
+            if (visitorContent) visitorContent.style.display = 'block';
+            if (ownerContent) ownerContent.style.display = 'none';
+            if (toggleBtn) toggleBtn.style.display = 'none';
+        }
+    }
+    
+    showCreatePopup() {
+        const popup = this.container.querySelector('.sticker-create-popup');
+        if (!popup) return;
+        
+        // Get current user's avatar
+        const session = window.oauthManager?.getSession?.();
+        if (!session) {
+            alert('Please log in to create a sticker');
+            return;
+        }
+        
+        // Reset button state
+        const confirmBtn = popup.querySelector('.create-confirm');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Create Sticker';
+        }
+        this.creatingSticker = false;
+        
+        const previewImg = popup.querySelector('.create-sticker-preview-img');
+        if (previewImg && session.avatar) {
+            previewImg.src = session.avatar;
+        }
+        
+        popup.style.display = 'flex';
+    }
+    
+    hideCreatePopup() {
+        const popup = this.container.querySelector('.sticker-create-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+    }
+    
+    showDeletePopup(sticker, btn, dreamer) {
+        const popup = this.container.querySelector('.sticker-delete-popup');
+        if (!popup) return;
+        
+        // Reset button state
+        const confirmBtn = popup.querySelector('.delete-confirm');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Delete';
+        }
+        
+        // Store reference to the sticker, button, and dreamer for confirmation
+        this.pendingDeleteSticker = sticker;
+        this.pendingDeleteBtn = btn;
+        this.pendingDeleteDreamer = dreamer;
+        
+        // Set preview image
+        const previewImg = popup.querySelector('.delete-sticker-preview-img');
+        if (previewImg) {
+            const imageUrl = typeof sticker.image === 'string' ? sticker.image : '';
+            previewImg.src = imageUrl || '/assets/icon_face.png';
+        }
+        
+        popup.style.display = 'flex';
+    }
+    
+    hideDeletePopup() {
+        const popup = this.container.querySelector('.sticker-delete-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+        this.pendingDeleteSticker = null;
+        this.pendingDeleteBtn = null;
+        this.pendingDeleteDreamer = null;
+    }
+    
+    async confirmDeleteSticker() {
+        const sticker = this.pendingDeleteSticker;
+        const btn = this.pendingDeleteBtn;
+        const dreamer = this.pendingDeleteDreamer;
+        
+        if (!sticker) return;
+        
+        const popup = this.container.querySelector('.sticker-delete-popup');
+        const confirmBtn = popup?.querySelector('.delete-confirm');
+        
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+        }
+        
+        try {
+            const success = await this.deleteSticker(sticker);
+            if (success) {
+                this.hideDeletePopup();
+                if (btn) btn.closest('.sticker-card').remove();
+                
+                // Refresh grid if no stickers left (to show create button)
+                const grid = this.container.querySelector('.stickers-grid');
+                const remainingCards = grid?.querySelectorAll('.sticker-card:not(.sticker-offer-card):not(.sticker-pending-card)');
+                if (remainingCards && remainingCards.length === 0) {
+                    await this.loadStickersGrid(dreamer);
+                }
+            } else {
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Delete';
+                }
+            }
+        } catch (e) {
+            console.error('[Stickers] Delete failed:', e);
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Delete';
+            }
+        }
+    }
+    
+    showCancelPopup(pending, btn) {
+        const popup = this.container.querySelector('.sticker-cancel-popup');
+        if (!popup) return;
+        
+        // Store reference to pending trade and button
+        this.pendingCancelTrade = pending;
+        this.pendingCancelBtn = btn;
+        
+        const session = window.oauthManager?.getSession?.();
+        
+        // Get partner info
+        let partnerName = pending.profile?.displayName || pending.profile?.handle?.split('.')[0];
+        if (!partnerName && pending.partnerDid && this.knownDreamersMap) {
+            const dreamerInfo = this.knownDreamersMap.get(pending.partnerDid);
+            if (dreamerInfo) {
+                partnerName = dreamerInfo.name || dreamerInfo.display_name || dreamerInfo.handle?.split('.')[0];
+            }
+        }
+        partnerName = partnerName || 'Someone';
+        
+        // Get what we're offering (stickerOut - our self-sticker)
+        let offerImg = session?.avatar || '/assets/icon_face.png';
+        let offerName = session?.displayName || session?.handle?.split('.')[0] || 'You';
+        
+        // Get what we're requesting (stickerIn)
+        let requestImg = '/assets/icon_face.png';
+        let requestName = 'Unknown';
+        if (pending.requestedSticker) {
+            requestImg = pending.requestedSticker.image || requestImg;
+            const subjectDreamer = this.knownDreamersMap?.get(pending.requestedSticker.subjectDid);
+            if (subjectDreamer) {
+                requestName = subjectDreamer.name || subjectDreamer.display_name || subjectDreamer.handle?.split('.')[0] || requestName;
+            }
+        }
+        
+        // Populate popup elements
+        const offerImgEl = popup.querySelector('.cancel-trade-offer-img');
+        const offerNameEl = popup.querySelector('.cancel-trade-offer-name');
+        const requestImgEl = popup.querySelector('.cancel-trade-request-img');
+        const requestNameEl = popup.querySelector('.cancel-trade-request-name');
+        const partnerEl = popup.querySelector('.cancel-trade-partner');
+        
+        if (offerImgEl) offerImgEl.src = offerImg;
+        if (offerNameEl) offerNameEl.textContent = offerName;
+        if (requestImgEl) requestImgEl.src = requestImg;
+        if (requestNameEl) requestNameEl.textContent = requestName;
+        if (partnerEl) partnerEl.textContent = `Trading with ${partnerName}`;
+        
+        // Reset button state
+        const confirmBtn = popup.querySelector('.cancel-confirm');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Cancel Trade';
+        }
+        
+        popup.style.display = 'flex';
+    }
+    
+    hideCancelPopup() {
+        const popup = this.container.querySelector('.sticker-cancel-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+        this.pendingCancelTrade = null;
+        this.pendingCancelBtn = null;
+    }
+    
+    async confirmCancelTrade() {
+        const pending = this.pendingCancelTrade;
+        const btn = this.pendingCancelBtn;
+        
+        if (!pending) return;
+        
+        const popup = this.container.querySelector('.sticker-cancel-popup');
+        const confirmBtn = popup?.querySelector('.cancel-confirm');
+        
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Canceling...';
+        }
+        
+        try {
+            const success = await this.cancelPendingTrade(pending);
+            if (success) {
+                this.hideCancelPopup();
+                
+                // Check if we're on own profile or someone else's
+                const session = window.oauthManager?.getSession?.();
+                const isOwnProfile = this.currentStickerOwner && session?.did === this.currentStickerOwner.did;
+                
+                if (isOwnProfile) {
+                    // On own profile, remove the pending card entirely
+                    if (btn) btn.closest('.sticker-card').remove();
+                } else {
+                    // On other user's profile, change button back to TRADE
+                    // Event delegation handles the click - no need to re-attach handlers
+                    if (btn) {
+                        const card = btn.closest('.sticker-card');
+                        const stickerIndex = card?.dataset.stickerIndex;
+                        btn.outerHTML = `<button class="sticker-trade-btn-card" data-sticker-index="${stickerIndex}">TRADE</button>`;
+                        
+                        // Remove from pendingToThisProfile
+                        if (this.pendingToThisProfile) {
+                            this.pendingToThisProfile = this.pendingToThisProfile.filter(p => p.uri !== pending.uri);
+                        }
+                    }
+                }
+            } else {
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Cancel Trade';
+                }
+            }
+        } catch (e) {
+            console.error('[Stickers] Cancel trade failed:', e);
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Cancel Trade';
+            }
+        }
+    }
+    
+    /**
+     * Create the user's own avatar sticker (used for trading)
+     * Returns the created sticker record with URI, or null on failure
+     */
+    async createSelfSticker() {
+        const STICKER_COLLECTION = 'com.suibari.atsumeat.sticker';
+        
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) return null;
+        
+        const avatarUrl = session.avatar;
+        if (!avatarUrl) return null;
+        
+        try {
+            // Request signature from AtsumeAt
+            const sigResponse = await fetch('/api/sticker/sign-seal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userDid: session.did,
+                    payload: { model: 'default', image: avatarUrl }
+                })
+            });
+            
+            if (!sigResponse.ok) return null;
+            const sigData = await sigResponse.json();
+            
+            // Create the sticker record
+            const stickerRecord = {
+                $type: STICKER_COLLECTION,
+                image: avatarUrl,
+                imageType: 'avatar',
+                subjectDid: session.did,
+                originalOwner: session.did,
+                model: 'default',
+                obtainedAt: new Date().toISOString(),
+                signature: sigData.signature,
+                signedPayload: sigData.signedPayload
+            };
+            
+            const pdsUrl = await this.resolvePdsUrl(session.did);
+            const result = await this.createRecord(session.did, STICKER_COLLECTION, stickerRecord, pdsUrl);
+            
+            if (result?.uri) {
+                // Return sticker with URI for use in trade
+                return { ...stickerRecord, uri: result.uri };
+            }
+            return null;
+        } catch (e) {
+            console.error('[Stickers] Auto-create sticker failed:', e);
+            return null;
+        }
+    }
+    
+    async confirmCreateSticker() {
+        // Prevent double-click
+        if (this.creatingSticker) return;
+        this.creatingSticker = true;
+        
+        const popup = this.container.querySelector('.sticker-create-popup');
+        const confirmBtn = popup?.querySelector('.create-confirm');
+        
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Creating...';
+        }
+        
+        try {
+            const session = window.oauthManager?.getSession?.();
+            if (!session || !session.did) {
+                throw new Error('Not logged in');
+            }
+            
+            // Get current avatar URL
+            const avatarUrl = session.avatar;
+            if (!avatarUrl) {
+                throw new Error('No avatar found on your profile');
+            }
+            
+            // Request signature from AtsumeAt via our backend proxy (avoids CORS)
+            const stickerPayload = {
+                model: 'default',
+                image: avatarUrl
+            };
+            
+            const sigResponse = await fetch('/api/sticker/sign-seal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userDid: session.did,
+                    payload: stickerPayload
+                })
+            });
+            
+            if (!sigResponse.ok) {
+                const errData = await sigResponse.json().catch(() => ({}));
+                throw new Error(errData.error || `Signature request failed (${sigResponse.status})`);
+            }
+            
+            const sigData = await sigResponse.json();
+            
+            // Create the sticker record
+            const stickerRecord = {
+                $type: 'com.suibari.atsumeat.sticker',
+                image: avatarUrl,
+                imageType: 'avatar',
+                subjectDid: session.did,
+                originalOwner: session.did,
+                model: 'default',
+                obtainedAt: new Date().toISOString(),
+                signature: sigData.signature,
+                signedPayload: sigData.signedPayload
+            };
+            
+            // Try to create record using available authentication method
+            let createSuccess = false;
+            
+            // Resolve PDS URL using helper method
+            const pdsUrl = await this.resolvePdsUrl(session.did);
+            
+            // Method 1: Try pds_session (app password credentials)
+            const pdsSessionStr = localStorage.getItem('pds_session');
+            if (pdsSessionStr) {
+                try {
+                    const pdsSession = JSON.parse(pdsSessionStr);
+                    const createResponse = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.createRecord`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${pdsSession.accessJwt}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            repo: session.did,
+                            collection: 'com.suibari.atsumeat.sticker',
+                            record: stickerRecord
+                        })
+                    });
+                    
+                    if (createResponse.ok) {
+                        createSuccess = true;
+                    } else {
+                        console.warn('[Stickers] pds_session method failed');
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] pds_session method error:', e);
+                }
+            }
+            
+            // Method 2: Try OAuth fetchHandler (for OAuth-authenticated users)
+            if (!createSuccess && window.oauthManager) {
+                try {
+                    if (window.oauthManager.ensureInitialized) {
+                        await window.oauthManager.ensureInitialized();
+                    }
+                    
+                    if (window.oauthManager.client) {
+                        const agent = await window.oauthManager.client.restore(session.did);
+                        
+                        if (agent?.fetchHandler) {
+                            const createResponse = await agent.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    repo: session.did,
+                                    collection: 'com.suibari.atsumeat.sticker',
+                                    record: stickerRecord
+                                })
+                            });
+                            
+                            if (createResponse.ok) {
+                                createSuccess = true;
+                            } else {
+                                console.warn('[Stickers] OAuth method failed');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] OAuth method error:', e);
+                }
+            }
+            
+            if (!createSuccess) {
+                throw new Error('Could not create sticker - please connect your app password in the dashboard settings');
+            }
+            
+            this.hideCreatePopup();
+            
+            // Refresh the stickers grid to show the new sticker
+            await this.loadStickersGrid({ did: session.did });
+            
+        } catch (error) {
+            console.error('[Stickers] Create sticker error:', error);
+            alert(`Failed to create sticker: ${error.message}`);
+        } finally {
+            this.creatingSticker = false;
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Create Sticker';
+            }
+        }
+    }
+    
+    async proposeTrade(sticker, owner) {
+        const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
+        const STICKER_COLLECTION = 'com.suibari.atsumeat.sticker';
+        
+        // Check login
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) {
+            if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                window.loginWidget.showLoginPopup();
+            } else {
+                alert('Please log in to propose a trade');
+            }
+            return;
+        }
+        
+        // Update button state
+        const tradeBtn = this.container.querySelector('.sticker-detail-trade-btn');
+        if (tradeBtn) {
+            tradeBtn.disabled = true;
+            tradeBtn.textContent = 'Sending...';
+        }
+        
+        try {
+            // First, ensure we have our own sticker to offer
+            let myStickers = await this.fetchUserStickers(session.did);
+            let mySelfSticker = myStickers.find(s => 
+                (s.subjectDid === session.did || s.originalOwner === session.did) && 
+                s.signature && s.signedPayload
+            );
+            
+            // Auto-create the user's sticker if they don't have one
+            if (!mySelfSticker) {
+                if (tradeBtn) tradeBtn.textContent = 'Creating your sticker...';
+                mySelfSticker = await this.createSelfSticker();
+                if (!mySelfSticker) {
+                    throw new Error('Could not create your sticker - please try again');
+                }
+            }
+            
+            // Get PDS URL
+            let pdsUrl = await this.resolvePdsUrl(session.did);
+            
+            // Create the transaction record
+            // stickerIn = what we want (the sticker we clicked on)
+            // stickerOut = what we offer (our self-sticker)
+            const transactionRecord = {
+                $type: TRANSACTION_COLLECTION,
+                partner: owner.did,
+                refPartner: `at://${owner.did}/app.bsky.actor.profile/self`,
+                stickerIn: sticker.uri ? [sticker.uri] : [],  // Request this specific sticker
+                stickerOut: [mySelfSticker.uri],  // We offer our self-sticker
+                status: 'offered',
+                createdAt: new Date().toISOString()
+            };
+            
+            // Try to create the transaction
+            let createSuccess = false;
+            
+            // Method 1: pds_session (app password)
+            const pdsSessionStr = localStorage.getItem('pds_session');
+            if (pdsSessionStr) {
+                try {
+                    const pdsSession = JSON.parse(pdsSessionStr);
+                    const createResponse = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.createRecord`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${pdsSession.accessJwt}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            repo: session.did,
+                            collection: TRANSACTION_COLLECTION,
+                            record: transactionRecord
+                        })
+                    });
+                    
+                    if (createResponse.ok) {
+                        createSuccess = true;
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] pds_session method failed:', e);
+                }
+            }
+            
+            // Method 2: OAuth fetchHandler
+            if (!createSuccess && window.oauthManager?.client) {
+                try {
+                    const agent = await window.oauthManager.client.restore(session.did);
+                    if (agent?.fetchHandler) {
+                        const createResponse = await agent.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                repo: session.did,
+                                collection: TRANSACTION_COLLECTION,
+                                record: transactionRecord
+                            })
+                        });
+                        
+                        if (createResponse.ok) {
+                            createSuccess = true;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] OAuth method failed:', e);
+                }
+            }
+            
+            if (!createSuccess) {
+                throw new Error('Could not create trade offer - please connect your app password');
+            }
+            
+            // Success - hide popup and show confirmation in button
+            this.hideDetailPopup();
+            if (tradeBtn) {
+                tradeBtn.textContent = 'Sent!';
+                tradeBtn.disabled = true;
+            }
+            
+            // Refresh the viewed profile's sticker grid (stay on current profile)
+            setTimeout(() => {
+                this.loadStickersGrid(owner);
+            }, 1000);
+            
+        } catch (error) {
+            console.error('[Stickers] Trade proposal error:', error);
+            alert(`Trade failed: ${error.message}`);
+            if (tradeBtn) {
+                tradeBtn.disabled = false;
+                tradeBtn.textContent = 'PROPOSE TRADE';
+            }
+        }
+    }
+    
+    async resolvePdsUrl(did) {
+        let pdsUrl = 'https://bsky.social';
+        try {
+            const didDocUrl = did.startsWith('did:plc:') 
+                ? `https://plc.directory/${did}`
+                : `https://${did.replace('did:web:', '')}/.well-known/did.json`;
+            const didDocRes = await fetch(didDocUrl);
+            if (didDocRes.ok) {
+                const didDoc = await didDocRes.json();
+                const pdsService = didDoc.service?.find(s => s.id === '#atproto_pds' || s.type === 'AtprotoPersonalDataServer');
+                if (pdsService?.serviceEndpoint) {
+                    pdsUrl = pdsService.serviceEndpoint;
+                }
+            }
+        } catch (e) {
+            console.warn('[Stickers] Could not resolve PDS:', e);
+        }
+        return pdsUrl;
+    }
+    
+    async checkIncomingOffers() {
+        const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
+        
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) return [];
+        
+        try {
+            // Get list of all Reverie House users
+            const dreamersRes = await fetch('/api/dreamers');
+            if (!dreamersRes.ok) return [];
+            
+            const allDreamers = await dreamersRes.json();
+            const otherUsers = allDreamers.filter(d => d.did && d.did !== session.did);
+            
+            // Get my existing transactions to filter out already-responded offers
+            const myTransactions = await this.fetchMyTransactions(session.did);
+            const respondedUris = new Set(myTransactions.filter(t => t.refTransaction).map(t => t.refTransaction));
+            
+            const offers = [];
+            
+            // Query each user's PDS for transactions targeting me
+            // Do this in parallel for speed
+            const checkPromises = otherUsers.map(async (dreamer) => {
+                try {
+                    const pdsUrl = await this.resolvePdsUrl(dreamer.did);
+                    const res = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${dreamer.did}&collection=${TRANSACTION_COLLECTION}&limit=50`);
+                    
+                    if (!res.ok) return [];
+                    
+                    const data = await res.json();
+                    const userOffers = [];
+                    
+                    for (const record of data.records) {
+                        const transaction = record.value;
+                        
+                        // Only interested in offers TO me that are still active
+                        if (transaction.status === 'offered' && 
+                            transaction.partner === session.did && 
+                            !respondedUris.has(record.uri)) {
+                            
+                            // Fetch the offered sticker info (from stickerOut)
+                            let offeredSticker = null;
+                            const stickerOut = transaction.stickerOut || [];
+                            if (stickerOut.length > 0) {
+                                try {
+                                    const stickerUri = stickerOut[0];
+                                    const uriParts = stickerUri.replace('at://', '').split('/');
+                                    const stickerDid = uriParts[0];
+                                    const stickerRkey = uriParts[2];
+                                    
+                                    const stickerRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${stickerDid}&collection=com.suibari.atsumeat.sticker&rkey=${stickerRkey}`);
+                                    if (stickerRes.ok) {
+                                        const stickerData = await stickerRes.json();
+                                        let imageUrl = stickerData.value.image;
+                                        if (typeof imageUrl === 'object' && imageUrl?.ref) {
+                                            const link = imageUrl.ref['$link'] || imageUrl.ref.toString();
+                                            const blobDid = stickerData.value.originalOwner || stickerDid;
+                                            imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
+                                        }
+                                        offeredSticker = {
+                                            uri: stickerUri,
+                                            image: imageUrl,
+                                            subjectDid: stickerData.value.subjectDid,
+                                            originalOwner: stickerData.value.originalOwner
+                                        };
+                                    }
+                                } catch (e) { }
+                            }
+                            
+                            userOffers.push({
+                                uri: record.uri,
+                                partnerDid: dreamer.did,
+                                transaction,
+                                profile: {
+                                    did: dreamer.did,
+                                    handle: dreamer.handle,
+                                    displayName: dreamer.name || dreamer.display_name,
+                                    avatar: dreamer.avatar
+                                },
+                                offeredSticker
+                            });
+                        }
+                    }
+                    
+                    return userOffers;
+                } catch (e) {
+                    return [];
+                }
+            });
+            
+            const results = await Promise.all(checkPromises);
+            
+            // Flatten results
+            for (const userOffers of results) {
+                offers.push(...userOffers);
+            }
+            
+            return offers;
+            
+        } catch (e) {
+            console.error('[Stickers] Error checking incoming offers:', e);
+            return [];
+        }
+    }
+    
+    async checkPendingOutgoing() {
+        
+        const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
+        
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) return [];
+        
+        try {
+            const pdsUrl = await this.resolvePdsUrl(session.did);
+            const res = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=${TRANSACTION_COLLECTION}&limit=50`);
+            
+            if (!res.ok) return [];
+            
+            const data = await res.json();
+            const offeredTransactions = [];
+            
+            // Collect all offered transactions first
+            for (const record of data.records) {
+                const transaction = record.value;
+                if (transaction.status === 'offered') {
+                    offeredTransactions.push({
+                        uri: record.uri,
+                        cid: record.cid,
+                        transaction
+                    });
+                }
+            }
+            
+            // Check which ones have been accepted using Constellation backlinks
+            // (someone created a completed transaction with refTransaction pointing to ours)
+            const completedUris = new Set();
+            
+            for (const offer of offeredTransactions) {
+                try {
+                    const subject = encodeURIComponent(offer.uri);
+                    const source = encodeURIComponent(`${TRANSACTION_COLLECTION}:refTransaction`);
+                    const url = `https://constellation.microcosm.blue/xrpc/blue.microcosm.links.getBacklinks?subject=${subject}&source=${source}`;
+                    
+                    const backlinkRes = await fetch(url);
+                    if (backlinkRes.ok) {
+                        const backlinkData = await backlinkRes.json();
+                        const links = backlinkData.records || backlinkData.frames || backlinkData.links || [];
+                        if (links.length > 0) {
+                            // Someone has responded to this offer - it's completed
+                            completedUris.add(offer.uri);
+                            
+                            // Clean up: delete the completed offer from our repo
+                            try {
+                                const rkey = offer.uri.split('/').pop();
+                                await this.deleteRecord(session.did, TRANSACTION_COLLECTION, rkey);
+                            } catch (delErr) {
+                                console.warn('[Stickers] Failed to clean up completed offer:', delErr);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] Failed to check backlinks for offer:', e);
+                }
+            }
+            
+            // Filter to only truly pending offers
+            const pendingOffers = [];
+            
+            for (const offer of offeredTransactions) {
+                if (completedUris.has(offer.uri)) continue; // Skip completed ones
+                
+                // Extract partner DID from refPartner
+                let partnerDid = null;
+                if (offer.transaction.refPartner && offer.transaction.refPartner.startsWith('at://')) {
+                    partnerDid = offer.transaction.refPartner.split('/')[2];
+                }
+                
+                // Fetch partner profile
+                let profile = null;
+                if (partnerDid) {
+                    try {
+                        const profileRes = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${partnerDid}`);
+                        if (profileRes.ok) {
+                            profile = await profileRes.json();
+                        }
+                    } catch (e) { }
+                }
+                
+                // Fetch the requested sticker info (from stickerIn)
+                let requestedSticker = null;
+                const stickerIn = offer.transaction.stickerIn || [];
+                if (stickerIn.length > 0) {
+                    try {
+                        const stickerUri = stickerIn[0];
+                        // Parse URI: at://did/collection/rkey
+                        const uriParts = stickerUri.replace('at://', '').split('/');
+                        const stickerDid = uriParts[0];
+                        const stickerRkey = uriParts[2];
+                        
+                        const stickerPdsUrl = await this.resolvePdsUrl(stickerDid);
+                        const stickerRes = await fetch(`${stickerPdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${stickerDid}&collection=com.suibari.atsumeat.sticker&rkey=${stickerRkey}`);
+                        if (stickerRes.ok) {
+                            const stickerData = await stickerRes.json();
+                            let imageUrl = stickerData.value.image;
+                            // Resolve BlobRef if needed
+                            if (typeof imageUrl === 'object' && imageUrl?.ref) {
+                                const link = imageUrl.ref['$link'] || imageUrl.ref.toString();
+                                const blobDid = stickerData.value.originalOwner || stickerDid;
+                                imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
+                            }
+                            requestedSticker = {
+                                uri: stickerUri,
+                                image: imageUrl,
+                                subjectDid: stickerData.value.subjectDid,
+                                originalOwner: stickerData.value.originalOwner
+                            };
+                        }
+                    } catch (e) { }
+                }
+                
+                pendingOffers.push({
+                    uri: offer.uri,
+                    cid: offer.cid,
+                    partnerDid,
+                    transaction: offer.transaction,
+                    profile,
+                    requestedSticker
+                });
+            }
+            
+            return pendingOffers;
+            
+        } catch (e) {
+            console.error('[Stickers] Error checking pending outgoing:', e);
+            return [];
+        }
+    }
+    
+    async checkPendingToProfile(profileDid) {
+        // Check if logged user has pending offers TO this profile
+        
+        const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
+        
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) return [];
+        
+        try {
+            const pdsUrl = await this.resolvePdsUrl(session.did);
+            const res = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=${TRANSACTION_COLLECTION}&limit=50`);
+            
+            if (!res.ok) return [];
+            
+            const data = await res.json();
+            const pendingToProfile = [];
+            
+            for (const record of data.records) {
+                const transaction = record.value;
+                if (transaction.status !== 'offered') continue;
+                
+                // Check if this offer is TO the viewed profile
+                let partnerDid = null;
+                if (transaction.refPartner && transaction.refPartner.startsWith('at://')) {
+                    partnerDid = transaction.refPartner.split('/')[2];
+                }
+                
+                if (partnerDid === profileDid) {
+                    // Fetch partner profile for display
+                    let profile = null;
+                    try {
+                        const profileRes = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${partnerDid}`);
+                        if (profileRes.ok) {
+                            profile = await profileRes.json();
+                        }
+                    } catch (e) { }
+                    
+                    // Fetch the requested sticker info (from stickerIn)
+                    let requestedSticker = null;
+                    const stickerIn = transaction.stickerIn || [];
+                    if (stickerIn.length > 0) {
+                        try {
+                            const stickerUri = stickerIn[0];
+                            const uriParts = stickerUri.replace('at://', '').split('/');
+                            const stickerDid = uriParts[0];
+                            const stickerRkey = uriParts[2];
+                            
+                            const stickerPdsUrl = await this.resolvePdsUrl(stickerDid);
+                            const stickerRes = await fetch(`${stickerPdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${stickerDid}&collection=com.suibari.atsumeat.sticker&rkey=${stickerRkey}`);
+                            if (stickerRes.ok) {
+                                const stickerData = await stickerRes.json();
+                                let imageUrl = stickerData.value.image;
+                                if (typeof imageUrl === 'object' && imageUrl?.ref) {
+                                    const link = imageUrl.ref['$link'] || imageUrl.ref.toString();
+                                    const blobDid = stickerData.value.originalOwner || stickerDid;
+                                    imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
+                                }
+                                requestedSticker = {
+                                    uri: stickerUri,
+                                    image: imageUrl,
+                                    subjectDid: stickerData.value.subjectDid,
+                                    originalOwner: stickerData.value.originalOwner
+                                };
+                            }
+                        } catch (e) { }
+                    }
+                    
+                    pendingToProfile.push({
+                        uri: record.uri,
+                        cid: record.cid,
+                        partnerDid,
+                        transaction,
+                        profile,
+                        requestedSticker
+                    });
+                }
+            }
+            
+            return pendingToProfile;
+            
+        } catch (e) {
+            console.error('[Stickers] Error checking pending to profile:', e);
+            return [];
+        }
+    }
+    
+    async claimCompletedTrades() {
+        const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
+        const STICKER_COLLECTION = 'com.suibari.atsumeat.sticker';
+        
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) return [];
+        
+        const claimedSubjects = []; // Track what we just claimed
+        
+        try {
+            // Get my offered transactions
+            const pdsUrl = await this.resolvePdsUrl(session.did);
+            const myTransRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${session.did}&collection=${TRANSACTION_COLLECTION}&limit=50`);
+            
+            if (!myTransRes.ok) return [];
+            
+            const myTransData = await myTransRes.json();
+            const myOffers = myTransData.records.filter(r => r.value.status === 'offered');
+            
+            // Get my existing stickers to avoid duplicates
+            const myStickers = await this.fetchUserStickers(session.did);
+            
+            for (const offer of myOffers) {
+                try {
+                    // Get partner DID directly from my offer record
+                    const partnerDid = offer.value.partner;
+                    if (!partnerDid) continue;
+                    
+                    // Query partner's PDS directly for their transactions
+                    const partnerPdsUrl = await this.resolvePdsUrl(partnerDid);
+                    const partnerTransRes = await fetch(`${partnerPdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${partnerDid}&collection=${TRANSACTION_COLLECTION}&limit=50`);
+                    
+                    if (!partnerTransRes.ok) continue;
+                    
+                    const partnerTransData = await partnerTransRes.json();
+                    
+                    // Find a completed transaction that references my offer
+                    const completedTrans = partnerTransData.records.find(r => 
+                        r.value.status === 'completed' && r.value.refTransaction === offer.uri
+                    );
+                    
+                    if (!completedTrans) continue;
+                    
+                    // Found a completed transaction! Claim stickers from stickerOut
+                    const stickerUris = completedTrans.value.stickerOut || [];
+                    
+                    for (const stickerUri of stickerUris) {
+                        const stickerRkey = stickerUri.split('/').pop();
+                        if (!stickerRkey) continue;
+                        
+                        // Fetch the sticker from partner's PDS
+                        const stickerRes = await fetch(`${partnerPdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${partnerDid}&collection=${STICKER_COLLECTION}&rkey=${stickerRkey}`);
+                        if (!stickerRes.ok) continue;
+                        
+                        const stickerData = await stickerRes.json();
+                        const sticker = stickerData.value;
+                        
+                        const subjectDid = sticker.subjectDid || sticker.originalOwner;
+                        
+                        // Check if we already have this sticker
+                        const alreadyHas = myStickers.some(s => 
+                            (s.subjectDid || s.originalOwner) === subjectDid && s.model === sticker.model
+                        );
+                        if (alreadyHas) {
+                            continue;
+                        }
+                        
+                        // Resolve image URL if needed
+                        let imageUrl = sticker.image;
+                        if (typeof imageUrl === 'object' && imageUrl.ref) {
+                            const link = imageUrl.ref.$link || imageUrl.ref.toString();
+                            const blobDid = sticker.originalOwner || partnerDid;
+                            imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
+                        }
+                        
+                        // Request signature for the new sticker
+                        const sigResponse = await fetch('/api/sticker/sign-seal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userDid: session.did,
+                                payload: {
+                                    model: sticker.model,
+                                    image: imageUrl,
+                                    obtainedFrom: partnerDid,
+                                    originalCreator: sticker.originalOwner
+                                }
+                            })
+                        });
+                        
+                        let sigData = {};
+                        if (sigResponse.ok) {
+                            sigData = await sigResponse.json();
+                        }
+                        
+                        // Create the new sticker record
+                        const newSticker = {
+                            $type: STICKER_COLLECTION,
+                            image: imageUrl,
+                            imageType: sticker.imageType || 'avatar',
+                            subjectDid: subjectDid,
+                            originalOwner: sticker.originalOwner,
+                            model: sticker.model,
+                            obtainedFrom: partnerDid,
+                            obtainedAt: new Date().toISOString(),
+                            signature: sigData.signature,
+                            signedPayload: sigData.signedPayload
+                        };
+                        
+                        // Write to our repo
+                        await this.createRecord(session.did, STICKER_COLLECTION, newSticker, pdsUrl);
+                        
+                        // Track this as newly claimed
+                        claimedSubjects.push(subjectDid);
+                        
+                        // Add to local list to prevent duplicates
+                        myStickers.push(newSticker);
+                    }
+                    
+                    // Delete my original offer transaction now that trade is complete
+                    const offerRkey = offer.uri.split('/').pop();
+                    if (offerRkey) {
+                        await this.deleteRecord(session.did, TRANSACTION_COLLECTION, offerRkey, pdsUrl);
+                        console.log('[Stickers] Deleted completed offer transaction:', offerRkey);
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] Error checking offer for completion:', e);
+                }
+            }
+            
+            // If we claimed any stickers, unacknowledge them so they show as NEW
+            // (handles case where user had the sticker before, deleted it, and got it again)
+            if (claimedSubjects.length > 0) {
+                try {
+                    const token = localStorage.getItem('oauth_token');
+                    if (token) {
+                        await fetch('/api/sticker/unacknowledge', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ sticker_subject_dids: claimedSubjects })
+                        });
+                    }
+                } catch (e) {
+                    // Silent fail - not critical
+                }
+            }
+            
+            return claimedSubjects;
+            
+        } catch (e) {
+            console.error('[Stickers] Error claiming completed trades:', e);
+            return [];
+        }
+    }
+    
+    async cancelPendingTrade(pending) {
+        
+        const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
+        
+        const session = window.oauthManager?.getSession?.();
+        if (!session) return false;
+        
+        try {
+            const rkey = pending.uri.split('/').pop();
+            await this.deleteRecord(session.did, TRANSACTION_COLLECTION, rkey);
+            return true;
+        } catch (e) {
+            console.error('[Stickers] Failed to cancel trade:', e);
+            return false;
+        }
+    }
+    
+    async fetchMyTransactions(did) {
+        const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
+        
+        try {
+            const pdsUrl = await this.resolvePdsUrl(did);
+            const res = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${did}&collection=${TRANSACTION_COLLECTION}&limit=50`);
+            if (res.ok) {
+                const data = await res.json();
+                return data.records.map(r => r.value);
+            }
+        } catch (e) {
+            console.warn('[Stickers] Failed to fetch transactions:', e);
+        }
+        return [];
+    }
+    
+    async acceptTrade(offer) {
+        const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
+        const STICKER_COLLECTION = 'com.suibari.atsumeat.sticker';
+        
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) {
+            alert('Please log in to accept trades');
+            return;
+        }
+        
+        try {
+            const pdsUrl = await this.resolvePdsUrl(session.did);
+            const partnerPdsUrl = await this.resolvePdsUrl(offer.partnerDid);
+            
+            // 1. Fetch the offered stickers from partner's repo
+            const offeredStickerUris = offer.transaction.stickerOut || [];
+            const receivedStickers = [];
+            
+            for (const stickerUri of offeredStickerUris) {
+                const rkey = stickerUri.split('/').pop();
+                if (!rkey) continue;
+                
+                try {
+                    const stickerRes = await fetch(`${partnerPdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${offer.partnerDid}&collection=${STICKER_COLLECTION}&rkey=${rkey}`);
+                    if (stickerRes.ok) {
+                        const stickerData = await stickerRes.json();
+                        receivedStickers.push(stickerData.value);
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] Failed to fetch offered sticker:', e);
+                }
+            }
+            
+            // 2. Clone received stickers to our repo with new signatures
+            const myStickers = await this.fetchUserStickers(session.did);
+            
+            for (const sticker of receivedStickers) {
+                const subjectDid = sticker.subjectDid || sticker.originalOwner;
+                
+                // Skip if we already have this sticker
+                const alreadyHas = myStickers.some(s => 
+                    (s.subjectDid || s.originalOwner) === subjectDid && s.model === sticker.model
+                );
+                if (alreadyHas) continue;
+                
+                // Resolve image URL if needed
+                let imageUrl = sticker.image;
+                if (typeof imageUrl === 'object' && imageUrl.ref) {
+                    const link = imageUrl.ref.$link || imageUrl.ref.toString();
+                    const blobDid = sticker.originalOwner || offer.partnerDid;
+                    imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
+                }
+                
+                // Request signature for the new sticker
+                const sigResponse = await fetch('/api/sticker/sign-seal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userDid: session.did,
+                        payload: {
+                            model: sticker.model,
+                            image: imageUrl,
+                            obtainedFrom: offer.partnerDid,
+                            originalCreator: sticker.originalOwner
+                        }
+                    })
+                });
+                
+                let sigData = {};
+                if (sigResponse.ok) {
+                    sigData = await sigResponse.json();
+                }
+                
+                // Create the new sticker record
+                const newSticker = {
+                    $type: STICKER_COLLECTION,
+                    image: imageUrl,
+                    imageType: sticker.imageType || 'avatar',
+                    subjectDid: subjectDid,
+                    originalOwner: sticker.originalOwner,
+                    model: sticker.model,
+                    obtainedFrom: offer.partnerDid,
+                    obtainedAt: new Date().toISOString(),
+                    signature: sigData.signature,
+                    signedPayload: sigData.signedPayload
+                };
+                
+                // Write to our repo
+                await this.createRecord(session.did, STICKER_COLLECTION, newSticker, pdsUrl);
+            }
+            
+            // 3. Find the sticker they actually requested (from their stickerIn)
+            // The partner's stickerIn contains URIs of stickers they want FROM us
+            const requestedUris = offer.transaction.stickerIn || [];
+            let stickerToSend = null;
+            
+            for (const requestedUri of requestedUris) {
+                // Find matching sticker in our collection
+                stickerToSend = myStickers.find(s => s.uri === requestedUri && s.signature && s.signedPayload);
+                if (stickerToSend) break;
+            }
+            
+            // Fallback: if the requested sticker wasn't found by URI, find by subjectDid
+            if (!stickerToSend && requestedUris.length > 0) {
+                // Try to fetch the requested sticker to get its subjectDid
+                for (const requestedUri of requestedUris) {
+                    try {
+                        const requestedRkey = requestedUri.split('/').pop();
+                        const requestedDid = requestedUri.split('/')[2]; // at://DID/collection/rkey
+                        const requestedPdsUrl = await this.resolvePdsUrl(requestedDid);
+                        const reqRes = await fetch(`${requestedPdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${requestedDid}&collection=${STICKER_COLLECTION}&rkey=${requestedRkey}`);
+                        if (reqRes.ok) {
+                            const reqData = await reqRes.json();
+                            const wantedSubject = reqData.value.subjectDid || reqData.value.originalOwner;
+                            // Find our copy of that subject's sticker
+                            stickerToSend = myStickers.find(s => 
+                                (s.subjectDid === wantedSubject || s.originalOwner === wantedSubject) && 
+                                s.signature && s.signedPayload
+                            );
+                            if (stickerToSend) break;
+                        }
+                    } catch (e) {
+                        console.warn('[Stickers] Error looking up requested sticker:', e);
+                    }
+                }
+            }
+            
+            // Final fallback: send our self-sticker if no specific sticker was requested
+            if (!stickerToSend) {
+                stickerToSend = myStickers.find(s => 
+                    (s.subjectDid === session.did || s.originalOwner === session.did) && 
+                    s.signature && s.signedPayload
+                );
+            }
+            
+            // 4. Create completed transaction referencing the original offer
+            const completedTransaction = {
+                $type: TRANSACTION_COLLECTION,
+                partner: offer.partnerDid,
+                stickerIn: offeredStickerUris,
+                stickerOut: stickerToSend ? [stickerToSend.uri] : [],
+                status: 'completed',
+                refTransaction: offer.uri,
+                createdAt: new Date().toISOString()
+            };
+            
+            await this.createRecord(session.did, TRANSACTION_COLLECTION, completedTransaction, pdsUrl);
+            
+            // Refresh stickers grid
+            await this.loadStickersGrid({ did: session.did });
+            
+            return true;
+            
+        } catch (error) {
+            console.error('[Stickers] Accept trade error:', error);
+            alert(`Failed to accept trade: ${error.message}`);
+            return false;
+        }
+    }
+    
+    async createRecord(did, collection, record, pdsUrl) {
+        let lastError = null;
+        
+        // Try pds_session first
+        const pdsSessionStr = localStorage.getItem('pds_session');
+        if (pdsSessionStr) {
+            try {
+                const pdsSession = JSON.parse(pdsSessionStr);
+                const response = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.createRecord`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${pdsSession.accessJwt}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ repo: did, collection, record })
+                });
+                if (response.ok) return await response.json();
+                // If not ok, capture the error
+                const errData = await response.json().catch(() => ({}));
+                lastError = new Error(errData.message || `PDS session failed: ${response.status}`);
+            } catch (e) {
+                lastError = e;
+            }
+        }
+        
+        // Try OAuth
+        if (window.oauthManager?.client) {
+            try {
+                const agent = await window.oauthManager.client.restore(did);
+                if (agent?.fetchHandler) {
+                    const response = await agent.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ repo: did, collection, record })
+                    });
+                    if (response.ok) return await response.json();
+                    const errData = await response.json().catch(() => ({}));
+                    lastError = new Error(errData.message || `OAuth failed: ${response.status}`);
+                }
+            } catch (e) {
+                lastError = e;
+            }
+        }
+        
+        throw lastError || new Error('No authentication method available');
+    }
+    
+    async deleteRecord(did, collection, rkey) {
+        const session = window.oauthManager?.getSession?.();
+        if (!session) throw new Error('No session');
+        
+        const pdsUrl = await this.resolvePdsUrl(did);
+        
+        // Try pds_session first
+        let lastError = null;
+        const pdsSessionStr = localStorage.getItem('pds_session');
+        if (pdsSessionStr) {
+            try {
+                const pdsSession = JSON.parse(pdsSessionStr);
+                const response = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.deleteRecord`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${pdsSession.accessJwt}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ repo: did, collection, rkey })
+                });
+                if (response.ok) return true;
+                const errData = await response.json().catch(() => ({}));
+                lastError = new Error(errData.message || `PDS session failed: ${response.status}`);
+            } catch (e) {
+                lastError = e;
+            }
+        }
+        
+        // Try OAuth
+        if (window.oauthManager?.client) {
+            try {
+                const agent = await window.oauthManager.client.restore(did);
+                if (agent?.fetchHandler) {
+                    const response = await agent.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ repo: did, collection, rkey })
+                    });
+                    if (response.ok) return true;
+                    const errData = await response.json().catch(() => ({}));
+                    lastError = new Error(errData.message || `OAuth failed: ${response.status}`);
+                }
+            } catch (e) {
+                lastError = e;
+            }
+        }
+        
+        throw lastError || new Error('No authentication method available');
+    }
+    
+    async deleteSticker(sticker) {
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) {
+            alert('Please log in to delete stickers');
+            return false;
+        }
+        
+        if (!sticker.uri) {
+            alert('Cannot delete: sticker has no URI');
+            return false;
+        }
+        
+        // Extract rkey from URI (at://did/collection/rkey)
+        const uriParts = sticker.uri.split('/');
+        const rkey = uriParts[uriParts.length - 1];
+        const collection = 'com.suibari.atsumeat.sticker';
+        
+        try {
+            const pdsUrl = await this.resolvePdsUrl(session.did);
+            
+            // Try pds_session first
+            const pdsSessionStr = localStorage.getItem('pds_session');
+            if (pdsSessionStr) {
+                try {
+                    const pdsSession = JSON.parse(pdsSessionStr);
+                    const response = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.deleteRecord`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${pdsSession.accessJwt}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ repo: session.did, collection, rkey })
+                    });
+                    if (response.ok) return true;
+                } catch (e) {
+                    console.warn('[Stickers] pds_session delete failed:', e);
+                }
+            }
+            
+            // Try OAuth
+            if (window.oauthManager?.client) {
+                try {
+                    const agent = await window.oauthManager.client.restore(session.did);
+                    if (agent?.fetchHandler) {
+                        const response = await agent.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ repo: session.did, collection, rkey })
+                        });
+                        if (response.ok) return true;
+                    }
+                } catch (e) {
+                    console.warn('[Stickers] OAuth delete failed:', e);
+                }
+            }
+            
+            alert('Could not delete sticker - please connect your app password');
+            return false;
+            
+        } catch (error) {
+            console.error('[Stickers] Delete error:', error);
+            alert(`Failed to delete sticker: ${error.message}`);
+            return false;
+        }
+    }
+    
+    async confirmTrade() {
+        // Legacy method - now handled by proposeTrade
+        if (!this.pendingTrade) return;
+        const { sticker, owner } = this.pendingTrade;
+        await this.proposeTrade(sticker, owner);
+        this.hideTradePopup();
+    }
+    
+    async fetchUserStickers(did) {
+        const STICKER_COLLECTION = 'com.suibari.atsumeat.sticker';
+        
+        try {
+            // Resolve the user's PDS endpoint
+            const pdsUrl = await this.resolvePdsUrl(did);
+            
+            // Fetch sticker records from PDS
+            const listUrl = `${pdsUrl}/xrpc/com.atproto.repo.listRecords?repo=${did}&collection=${STICKER_COLLECTION}&limit=100`;
+            const response = await fetch(listUrl);
+            
+            if (!response.ok) return [];
+            
+            const data = await response.json();
+            const records = data.records || [];
+            
+            // Transform records to sticker objects with resolved image URLs
+            const stickers = records.map(record => {
+                const sticker = record.value;
+                let imageUrl = sticker.image;
+                
+                // Resolve BlobRef to CDN URL
+                if (typeof sticker.image === 'object' && sticker.image?.ref) {
+                    const ref = sticker.image.ref;
+                    const link = ref['$link'] || ref.toString();
+                    if (link && link !== '[object Object]') {
+                        // Use original owner's DID for blob resolution
+                        const blobDid = sticker.originalOwner || did;
+                        imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
+                    }
+                }
+                
+                return {
+                    uri: record.uri,
+                    cid: record.cid,
+                    name: sticker.name || (sticker.imageType === 'avatar' ? 'Avatar Sticker' : 'Custom Sticker'),
+                    image: imageUrl,
+                    imageType: sticker.imageType,
+                    subjectDid: sticker.subjectDid,
+                    originalOwner: sticker.originalOwner,
+                    obtainedFrom: sticker.obtainedFrom,
+                    obtainedAt: sticker.obtainedAt,
+                    // Include signature fields for validation
+                    signature: sticker.signature,
+                    signedPayload: sticker.signedPayload
+                };
+            });
+            
+            return stickers;
+            
+        } catch (error) {
+            console.error('[Stickers] Error fetching stickers:', error);
+            return [];
+        }
+    }
+    
+    async preCheckStickers(dreamer) {
+        // Quick check to determine if toggle button should be shown
+        // Called when souvenirs tab is activated
+        const toggleBtn = this.container.querySelector('.souvenirs-stickers-toggle');
+        if (!toggleBtn) return;
+        
+        // Check if viewing own profile
+        const session = window.oauthManager?.getSession?.();
+        const isOwnProfile = session?.did === dreamer.did;
+        
+        // If own profile, always show the toggle button
+        if (isOwnProfile) {
+            toggleBtn.style.display = 'flex';
+            return;
+        }
+        
+        // For others' profiles, check if they have any stickers
+        try {
+            const stickers = await this.fetchUserStickers(dreamer.did);
+            
+            if (!stickers || stickers.length === 0) {
+                toggleBtn.style.display = 'none';
+                return;
+            }
+            
+            // Filter to valid stickers (known DIDs + signatures)
+            const dreamersResponse = await fetch('/api/dreamers');
+            if (dreamersResponse.ok) {
+                const allDreamers = await dreamersResponse.json();
+                const knownDids = new Set(allDreamers.map(d => d.did));
+                
+                const validStickers = stickers.filter(sticker => {
+                    const subjectDid = sticker.subjectDid;
+                    const hasSignature = sticker.signature && sticker.signedPayload;
+                    return subjectDid && knownDids.has(subjectDid) && hasSignature;
+                });
+                
+                toggleBtn.style.display = validStickers.length > 0 ? 'flex' : 'none';
+            }
+        } catch (error) {
+            console.warn('[Stickers] Pre-check failed:', error);
+            // Default to hiding on error for non-own profiles
+            toggleBtn.style.display = 'none';
+        }
     }
 
     async updateSpectrumFace(dreamer) {
@@ -1234,6 +3686,9 @@ class Profile {
         };
         
         const handleClick = async (e) => {
+            // Guard: check if bubbles are initialized
+            if (!this.souvenirsBubbles || this.souvenirsBubbles.length === 0) return;
+            
             const rect = canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
