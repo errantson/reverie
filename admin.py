@@ -7778,41 +7778,56 @@ def step_down_mapper():
 @app.route('/api/cogitarian/history')
 @rate_limit()
 def get_cogitarian_history():
-    """Get historical list of all cogitarians with their ranks from canon events (key=cogitarian)"""
+    """Get historical list of all cogitarians with their ranks from work table"""
     try:
         from core.database import DatabaseManager
         from core.cogitarian_ranks import COGITARIAN_RANKS, get_next_rank
+        import json
         
         db_manager = DatabaseManager()
         
-        # Get cogitarian events from canon (key='cogitarian'), not reactions
-        # Order by epoch ascending to get chronological order
-        rows = db_manager.fetch_all("""
-            SELECT c.did, c.handle, c.epoch, c.uri,
-                   d.display_name, d.color_hex, d.avatar
-            FROM canon c
-            LEFT JOIN dreamers d ON c.did = d.did
-            WHERE c.key = 'cogitarian' AND c.reaction_to IS NULL
-            ORDER BY c.epoch ASC
+        # Get cogitarian workers from work table
+        work_row = db_manager.fetch_one("""
+            SELECT workers FROM work WHERE role = 'cogitarian'
         """)
         
         history = []
-        for i, row in enumerate(rows):
-            rank = COGITARIAN_RANKS[i] if i < len(COGITARIAN_RANKS) else 'Omega'
-            history.append({
-                'did': row['did'],
-                'handle': row['handle'] or 'unknown',
-                'display_name': row['display_name'],
-                'color_hex': row['color_hex'],
-                'avatar': row['avatar'],
-                'rank': rank,
-                'epoch': row['epoch']
-            })
         
-        # Determine current rank (based on count - first is Prime at index 0)
-        # If there's 1 cogitarian event, they are Prime
-        current_rank = COGITARIAN_RANKS[len(history) - 1] if history else 'Prime'
-        next_rank = get_next_rank(current_rank) if history else 'Alpha'
+        if work_row and work_row['workers']:
+            workers = work_row['workers']
+            if isinstance(workers, str):
+                workers = json.loads(workers)
+            
+            # Get profile info for all cogitarians
+            for i, worker in enumerate(workers):
+                did = worker.get('did')
+                if not did:
+                    continue
+                
+                # Look up profile from dreamers
+                dreamer = db_manager.fetch_one("""
+                    SELECT handle, display_name, color_hex, avatar
+                    FROM dreamers WHERE did = %s
+                """, (did,))
+                
+                rank = worker.get('rank') or (COGITARIAN_RANKS[i] if i < len(COGITARIAN_RANKS) else 'Omega')
+                
+                history.append({
+                    'did': did,
+                    'handle': dreamer['handle'] if dreamer else worker.get('handle', 'unknown'),
+                    'display_name': dreamer['display_name'] if dreamer else None,
+                    'color_hex': dreamer['color_hex'] if dreamer else None,
+                    'avatar': dreamer['avatar'] if dreamer else None,
+                    'rank': rank,
+                    'status': worker.get('status', 'unknown'),
+                    'started_at': worker.get('started_at'),
+                    'retired_at': worker.get('retired_at')
+                })
+        
+        # Current rank is the first working cogitarian's rank
+        current_cogitarian = next((h for h in history if h['status'] == 'working'), None)
+        current_rank = current_cogitarian['rank'] if current_cogitarian else 'Prime'
+        next_rank = get_next_rank(current_rank) if current_cogitarian else 'Alpha'
         
         return jsonify({
             'success': True,
@@ -7886,14 +7901,40 @@ def submit_cogitarian_challenge():
         if not workers or workers[0].get('did') != challenged_did:
             return jsonify({'error': 'Target is not the current cogitarian'}), 400
         
-        # Check for existing active challenge from this user
-        existing = db_manager.fetch_one("""
+        # Check if there's already ANY active challenge (only one at a time)
+        any_active = db_manager.fetch_one("""
             SELECT challenge_id FROM cogitarian_challenges
-            WHERE challenger_did = %s AND status = 'active'
+            WHERE status = 'active'
+        """)
+        
+        if any_active:
+            return jsonify({'error': f"A challenge is already in progress: {any_active['challenge_id']}"}), 409
+        
+        # Check for recent failed challenges (30 day cooldown)
+        recent_failed = db_manager.fetch_one("""
+            SELECT challenge_id, resolved_at FROM cogitarian_challenges
+            WHERE challenger_did = %s
+            AND status IN ('resolved', 'disqualified')
+            AND outcome != 'challenger_wins'
+            AND resolved_at > NOW() - INTERVAL '30 days'
+            ORDER BY resolved_at DESC
+            LIMIT 1
         """, (challenger_did,))
         
-        if existing:
-            return jsonify({'error': 'You already have an active challenge pending'}), 409
+        if recent_failed:
+            return jsonify({'error': 'You must wait 30 days after a failed challenge before challenging again'}), 429
+        
+        # Verify challenger has a valid app password stored
+        cred_row = db_manager.fetch_one("""
+            SELECT is_valid, app_password_hash FROM user_credentials
+            WHERE did = %s
+        """, (challenger_did,))
+        
+        if not cred_row or not cred_row.get('app_password_hash'):
+            return jsonify({'error': 'You must store an app password before challenging. Go to Settings to add one.'}), 403
+        
+        if not cred_row.get('is_valid'):
+            return jsonify({'error': 'Your stored app password is invalid. Please update it in Settings before challenging.'}), 403
         
         # Generate challenge ID
         count_result = db_manager.fetch_one("""
@@ -7905,13 +7946,14 @@ def submit_cogitarian_challenge():
         # Calculate expiration (14 days from now)
         expires_at = datetime.now() + timedelta(days=14)
         
-        # Insert the challenge
+        # Insert the challenge with initial vote counts and favor
         db_manager.execute("""
             INSERT INTO cogitarian_challenges (
                 challenge_id, challenger_did, challenger_handle, challenger_rank,
                 challenged_did, challenged_handle, challenged_rank,
-                challenge_type, evidence, expires_at, status
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active')
+                challenge_type, evidence, expires_at, status,
+                votes_challenger, votes_challenged, favor, favor_set_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active', 0, 0, 'challenger', 'system')
         """, (
             challenge_id, challenger_did, challenger_handle, challenger_rank,
             challenged_did, challenged_handle, challenged_rank,
@@ -9301,27 +9343,14 @@ def activate_dreamstyler():
         
         db_manager = DatabaseManager()
         
-        data = request.get_json() or {}
-        use_existing = data.get('use_existing_credentials', True)
-        
         print(f"\n{'='*80}")
         print(f"✨ DREAMSTYLER ACTIVATION REQUEST")
         print(f"{'='*80}")
         print(f"Session DID: {user_did}")
         print(f"Session handle: {handle}")
-        print(f"Use existing credentials: {use_existing}")
         print(f"{'='*80}\n")
         
-        # Get existing credentials
-        existing_cred = db_manager.fetch_one("""
-            SELECT app_password_hash FROM user_credentials
-            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
-        """, (user_did,))
-        
-        if not existing_cred:
-            return jsonify({'error': 'No stored credentials found. Please connect your app password first.'}), 400
-        
-        password_hash = existing_cred['app_password_hash']
+        # Dreamstyler doesn't require app password - it's a listing/discovery role
         
         # ===== UNIFIED SYSTEM (PRIMARY) =====
         print(f"💾 Updating unified user_roles table...")
@@ -9371,11 +9400,10 @@ def activate_dreamstyler():
                     break
             print(f"  ✓ Updated existing worker to 'working'")
         else:
-            # Add new worker
+            # Add new worker (no passhash needed for dreamstyler)
             new_worker = {
                 'did': user_did,
-                'status': 'working',
-                'passhash': password_hash
+                'status': 'working'
             }
             workers.append(new_worker)
             print(f"  ✓ Added new dreamstyler (total: {len(workers)})")
@@ -9462,6 +9490,234 @@ def step_down_dreamstyler():
         return jsonify({
             'success': True,
             'is_worker': False
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/dreamstyler/entreat', methods=['POST'])
+@rate_limit()
+def entreat_dreamstyler():
+    """
+    Entreat a dreamstyler - posts a public request mentioning the dreamstyler.
+    Creates an event record, has reverie.house like it, and triggers cheerful likes (30%).
+    """
+    try:
+        from core.database import DatabaseManager
+        from core.network import NetworkClient
+        from core.workers import WorkerNetworkClient
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, user_handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        dreamstyler_handle = data.get('dreamstyler_handle', '').strip()
+        domain = data.get('domain', '').strip()
+        tangled_repo = data.get('tangled_repo', '').strip()
+        request_text = data.get('request', '').strip()
+        
+        if not dreamstyler_handle:
+            return jsonify({'error': 'Dreamstyler handle required'}), 400
+        if not domain:
+            return jsonify({'error': 'Domain required'}), 400
+        if not tangled_repo:
+            return jsonify({'error': 'Repository required'}), 400
+        if not request_text:
+            return jsonify({'error': 'Request description required'}), 400
+        
+        # Limit request length
+        if len(request_text) > 200:
+            request_text = request_text[:197] + '...'
+        
+        db_manager = DatabaseManager()
+        
+        print(f"\n{'='*80}")
+        print(f"DREAMSTYLER ENTREAT REQUEST")
+        print(f"{'='*80}")
+        print(f"From: {user_handle} ({user_did})")
+        print(f"To: @{dreamstyler_handle}")
+        print(f"Domain: {domain}")
+        print(f"Repo: {tangled_repo}")
+        print(f"Request: {request_text[:50]}...")
+        print(f"{'='*80}\n")
+        
+        # Resolve dreamstyler DID
+        network = NetworkClient()
+        dreamstyler_did = network.resolve_handle(dreamstyler_handle)
+        if not dreamstyler_did:
+            return jsonify({'error': f'Could not resolve @{dreamstyler_handle}'}), 400
+        
+        # Verify the dreamstyler is actually a registered dreamstyler
+        dreamstyler_check = db_manager.fetch_one("""
+            SELECT 1 FROM user_roles WHERE did = %s AND role = 'dreamstyler' AND status = 'active'
+        """, (dreamstyler_did,))
+        
+        if not dreamstyler_check:
+            return jsonify({'error': f'@{dreamstyler_handle} is not an active dreamstyler'}), 400
+        
+        # Build the entreat message - clean, no emojis
+        message_parts = [
+            f"@{dreamstyler_handle}, I request your styling guidance.",
+            "",
+            f"Domain: {domain}",
+            f"Repository: {tangled_repo}",
+            "",
+            request_text,
+            "",
+            "I remain in your debt."
+        ]
+        
+        message = "\n".join(message_parts)
+        
+        # Create mention facet for the dreamstyler
+        mention_str = f"@{dreamstyler_handle}"
+        try:
+            start_idx = message.index(mention_str)
+            byte_start = len(message[:start_idx].encode('utf-8'))
+            byte_end = len(message[:start_idx + len(mention_str)].encode('utf-8'))
+            
+            facets = [{
+                "index": {
+                    "byteStart": byte_start,
+                    "byteEnd": byte_end
+                },
+                "features": [{
+                    "$type": "app.bsky.richtext.facet#mention",
+                    "did": dreamstyler_did
+                }]
+            }]
+        except ValueError:
+            facets = []
+        
+        # Add link facet for domain if it looks like a URL
+        if domain.startswith('http://') or domain.startswith('https://'):
+            try:
+                domain_start = message.index(domain)
+                domain_byte_start = len(message[:domain_start].encode('utf-8'))
+                domain_byte_end = len(message[:domain_start + len(domain)].encode('utf-8'))
+                
+                facets.append({
+                    "index": {
+                        "byteStart": domain_byte_start,
+                        "byteEnd": domain_byte_end
+                    },
+                    "features": [{
+                        "$type": "app.bsky.richtext.facet#link",
+                        "uri": domain
+                    }]
+                })
+            except ValueError:
+                pass
+        
+        # Get user's credentials to post on their behalf
+        user_cred = db_manager.fetch_one("""
+            SELECT app_password_hash, pds_url FROM user_credentials
+            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
+        """, (user_did,))
+        
+        if not user_cred:
+            return jsonify({'error': 'App password required to post entreat. Please connect your credentials first.'}), 400
+        
+        # Create worker client for the user (no role check - any user with credentials can entreat)
+        user_client = WorkerNetworkClient.from_credentials(db_manager, user_did, None)
+        if not user_client:
+            return jsonify({'error': 'Could not initialize posting client'}), 500
+        
+        if not user_client.authenticate():
+            return jsonify({'error': 'Failed to authenticate with your credentials'}), 401
+        
+        # Post the entreat
+        post_result = user_client.create_post(
+            text=message,
+            reply_to=None,
+            facets=facets if facets else None
+        )
+        
+        if not post_result:
+            return jsonify({'error': 'Failed to post entreat'}), 500
+        
+        post_uri = post_result.get('uri')
+        post_cid = post_result.get('cid')
+        
+        print(f"Entreat posted: {post_uri}")
+        
+        # Get dreamstyler display name for event
+        dreamstyler_row = db_manager.fetch_one("""
+            SELECT name, display_name FROM dreamers WHERE did = %s
+        """, (dreamstyler_did,))
+        dreamstyler_name = dreamstyler_row['display_name'] if dreamstyler_row and dreamstyler_row['display_name'] else dreamstyler_handle
+        
+        # Create event record
+        try:
+            post_url = post_uri.replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/')
+            event_epoch = int(time.time())
+            event_text = f"entreated Dreamstyler {dreamstyler_name}"
+            
+            db_manager.execute("""
+                INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                user_did,
+                event_text,
+                'entreat',
+                'dreamstyler',
+                post_uri,
+                post_url,
+                event_epoch,
+                event_epoch,
+                'dreamstyler',
+                'highlight'
+            ))
+            print(f"Created entreat event")
+        except Exception as e:
+            print(f"Failed to create event: {e}")
+        
+        # Like from reverie.house
+        try:
+            house_network = NetworkClient()
+            if house_network.create_like(post_uri):
+                print(f"Reverie.house liked the entreat")
+            else:
+                print(f"Failed to like from house account")
+        except Exception as e:
+            print(f"House like error: {e}")
+        
+        # Trigger cheerful likes (30% chance per cheerful member)
+        try:
+            cheerful_workers = db_manager.fetch_all("""
+                SELECT did FROM user_roles WHERE role = 'cheerful' AND status = 'active'
+            """)
+            
+            import random
+            for worker in (cheerful_workers or []):
+                if random.random() < 0.30:  # 30% chance
+                    try:
+                        cheerful_client = WorkerNetworkClient.from_credentials(db_manager, worker['did'], 'cheerful')
+                        if cheerful_client and cheerful_client.authenticate():
+                            if cheerful_client.create_like(post_uri):
+                                print(f"Cheerful {worker['did'][:20]}... liked the entreat")
+                    except Exception as e:
+                        print(f"Cheerful like error: {e}")
+        except Exception as e:
+            print(f"Cheerful processing error: {e}")
+        
+        return jsonify({
+            'success': True,
+            'post_uri': post_uri,
+            'post_url': post_url,
+            'message': f'Entreat sent to @{dreamstyler_handle}'
         })
         
     except Exception as e:
@@ -9585,6 +9841,16 @@ def activate_bursar():
         
         if not top_patron or top_patron['did'] != user_did:
             return jsonify({'error': 'Only the top patron may become Bursar'}), 403
+        
+        # Verify user has app password stored
+        cred_check = db_manager.fetch_one("""
+            SELECT app_password_hash FROM user_credentials WHERE did = %s
+        """, (user_did,))
+        
+        if not cred_check or not cred_check.get('app_password_hash'):
+            return jsonify({'error': 'App password required to maintain Bursar role'}), 400
+        
+        print(f"  ✓ App password verified for bursar")
         
         # Check if there's already an active bursar
         work_row = db_manager.fetch_one("""
@@ -10129,117 +10395,148 @@ def send_provisioner_request():
                 pds_url = 'https://bsky.social'
                 print(f"⚠️ Using fallback PDS: {pds_url}")
             else:
-                print(f"🔐 Using PDS: {pds_url}")
+                print(f"🔐 User PDS: {pds_url}")
             
             # Decrypt the app password
             app_password = decrypt_password(encrypted_password)
             
-            # Create AT Protocol client with the correct PDS base URL
-            print(f"🔐 Logging in as {user_handle} to send DM via {pds_url}...")
-            client = Client(base_url=pds_url)
-            client.login(user_handle, app_password)
+            # For chat operations, we need to use bsky.social's API since chat.bsky is centralized
+            # Self-hosted PDS instances may not properly proxy chat requests
+            # Strategy: Try bsky.social first for chat, then fallback to user's PDS
+            chat_endpoints = ['https://bsky.social']
+            if pds_url != 'https://bsky.social':
+                chat_endpoints.append(pds_url)
             
-            # Create chat proxy client
-            dm_client = client.with_bsky_chat_proxy()
-            dm = dm_client.chat.bsky.convo
+            last_error = None
+            for chat_endpoint in chat_endpoints:
+                try:
+                    print(f"🔐 Attempting chat login via {chat_endpoint}...")
+                    client = Client(base_url=chat_endpoint)
+                    client.login(user_handle, app_password)
+                    print(f"✅ Login successful via {chat_endpoint}")
             
-            # Step 1: Check if DM can be sent to the provisioner
-            # The provisioner may have chat settings that only allow messages from people they follow
-            print(f"🔍 Checking chat availability with provisioner...")
-            try:
-                # Try to get conversation availability first
-                availability = dm.get_convo_availability(
-                    models.ChatBskyConvoGetConvoAvailability.Params(members=[provisioner_did])
-                )
-                can_chat = availability.can_chat if hasattr(availability, 'can_chat') else True
-                print(f"   Chat availability: can_chat={can_chat}")
-            except Exception as avail_error:
-                # If we can't check availability, try to proceed anyway
-                print(f"⚠️ Could not check chat availability: {avail_error}")
-                can_chat = True  # Optimistic - try anyway
+                    # Create chat proxy client
+                    dm_client = client.with_bsky_chat_proxy()
+                    dm = dm_client.chat.bsky.convo
             
-            # Step 2: If chat is blocked, have the provisioner follow the requester first
-            if not can_chat:
-                print(f"🔗 Provisioner has restricted DM settings. Attempting to establish follow relationship...")
-                
-                # Get provisioner's credentials so they can follow the requester
-                cursor = db_manager.execute("""
-                    SELECT app_password_hash, pds_url FROM user_credentials
-                    WHERE did = %s
-                """, (provisioner_did,))
-                
-                prov_cred_row = cursor.fetchone()
-                
-                if prov_cred_row and prov_cred_row['app_password_hash']:
+                    # Step 1: Check if DM can be sent to the provisioner
+                    # The provisioner may have chat settings that only allow messages from people they follow
+                    print(f"🔍 Checking chat availability with provisioner...")
                     try:
-                        # Resolve provisioner's PDS
-                        prov_pds_url = prov_cred_row.get('pds_url')
-                        if not prov_pds_url:
+                        # Try to get conversation availability first
+                        availability = dm.get_convo_availability(
+                            models.ChatBskyConvoGetConvoAvailability.Params(members=[provisioner_did])
+                        )
+                        can_chat = availability.can_chat if hasattr(availability, 'can_chat') else True
+                        print(f"   Chat availability: can_chat={can_chat}")
+                    except Exception as avail_error:
+                        # If we can't check availability, try to proceed anyway
+                        print(f"⚠️ Could not check chat availability: {avail_error}")
+                        can_chat = True  # Optimistic - try anyway
+            
+                    # Step 2: If chat is blocked, have the provisioner follow the requester first
+                    if not can_chat:
+                        print(f"🔗 Provisioner has restricted DM settings. Attempting to establish follow relationship...")
+                
+                        # Get provisioner's credentials so they can follow the requester
+                        cursor = db_manager.execute("""
+                            SELECT app_password_hash, pds_url FROM user_credentials
+                            WHERE did = %s
+                        """, (provisioner_did,))
+                
+                        prov_cred_row = cursor.fetchone()
+                
+                        if prov_cred_row and prov_cred_row['app_password_hash']:
                             try:
-                                prov_did_response = requests.get(
-                                    f"https://plc.directory/{provisioner_did}",
-                                    timeout=5
-                                )
-                                if prov_did_response.status_code == 200:
-                                    prov_did_doc = prov_did_response.json()
-                                    prov_services = prov_did_doc.get('service', [])
-                                    for service in prov_services:
-                                        if service.get('id') == '#atproto_pds':
-                                            prov_pds_url = service.get('serviceEndpoint')
-                                            break
-                            except Exception:
-                                pass
+                                # Resolve provisioner's PDS
+                                prov_pds_url = prov_cred_row.get('pds_url')
+                                if not prov_pds_url:
+                                    try:
+                                        prov_did_response = requests.get(
+                                            f"https://plc.directory/{provisioner_did}",
+                                            timeout=5
+                                        )
+                                        if prov_did_response.status_code == 200:
+                                            prov_did_doc = prov_did_response.json()
+                                            prov_services = prov_did_doc.get('service', [])
+                                            for service in prov_services:
+                                                if service.get('id') == '#atproto_pds':
+                                                    prov_pds_url = service.get('serviceEndpoint')
+                                                    break
+                                    except Exception:
+                                        pass
                         
-                        if not prov_pds_url:
-                            prov_pds_url = 'https://bsky.social'
+                                if not prov_pds_url:
+                                    prov_pds_url = 'https://bsky.social'
                         
-                        # Login as provisioner and follow the requester
-                        prov_password = decrypt_password(prov_cred_row['app_password_hash'])
-                        prov_client = Client(base_url=prov_pds_url)
-                        prov_client.login(provisioner_handle, prov_password)
+                                # Login as provisioner and follow the requester
+                                prov_password = decrypt_password(prov_cred_row['app_password_hash'])
+                                prov_client = Client(base_url=prov_pds_url)
+                                prov_client.login(provisioner_handle, prov_password)
                         
-                        # Have provisioner follow the requester
-                        print(f"🤝 Provisioner following requester {user_did}...")
-                        prov_client.follow(user_did)
-                        print(f"✅ Provisioner now follows requester")
+                                # Have provisioner follow the requester
+                                print(f"🤝 Provisioner following requester {user_did}...")
+                                prov_client.follow(user_did)
+                                print(f"✅ Provisioner now follows requester")
                         
-                        # Wait a moment for the follow to propagate
-                        import time
-                        time.sleep(0.5)
+                                # Wait a moment for the follow to propagate
+                                import time
+                                time.sleep(0.5)
                         
-                    except Exception as follow_error:
-                        print(f"⚠️ Could not establish follow relationship: {follow_error}")
-                        # Continue anyway - the DM might still fail, but we'll get a better error
-                else:
-                    print(f"⚠️ Provisioner has no stored credentials to establish follow relationship")
+                            except Exception as follow_error:
+                                print(f"⚠️ Could not establish follow relationship: {follow_error}")
+                                # Continue anyway - the DM might still fail, but we'll get a better error
+                        else:
+                            print(f"⚠️ Provisioner has no stored credentials to establish follow relationship")
             
-            # Step 3: Get or create conversation with the provisioner
-            print(f"💬 Getting conversation with provisioner {provisioner_did}...")
-            convo = dm.get_convo_for_members(
-                models.ChatBskyConvoGetConvoForMembers.Params(members=[provisioner_did])
-            ).convo
+                    # Step 3: Get or create conversation with the provisioner
+                    print(f"💬 Getting conversation with provisioner {provisioner_did}...")
+                    convo = dm.get_convo_for_members(
+                        models.ChatBskyConvoGetConvoForMembers.Params(members=[provisioner_did])
+                    ).convo
+                    print(f"✅ Got conversation: {convo.id}")
             
-            # Compose the message
-            message_text = f"Hey, {provisioner_name}! If you're around to help, I'm in {city} and could use some free food whenever it's available. Thanks in advance."
+                    # Compose the message
+                    message_text = f"Hey, {provisioner_name}! If you're around to help, I'm in {city} and could use some free food whenever it's available. Thanks in advance."
             
-            # Send the message
-            print(f"📤 Sending message to {provisioner_handle}...")
-            message = dm.send_message(
-                models.ChatBskyConvoSendMessage.Data(
-                    convo_id=convo.id,
-                    message=models.ChatBskyConvoDefs.MessageInput(
-                        text=message_text
+                    # Send the message
+                    print(f"📤 Sending message to {provisioner_handle}...")
+                    message = dm.send_message(
+                        models.ChatBskyConvoSendMessage.Data(
+                            convo_id=convo.id,
+                            message=models.ChatBskyConvoDefs.MessageInput(
+                                text=message_text
+                            )
+                        )
                     )
-                )
-            )
             
-            print(f"✅ Message sent successfully! Message ID: {message.id}")
+                    print(f"✅ Message sent successfully! Message ID: {message.id}")
             
-            return jsonify({
-                'success': True,
-                'message': 'Request sent successfully',
-                'convo_id': convo.id
-            })
+                    return jsonify({
+                        'success': True,
+                        'message': 'Request sent successfully',
+                        'convo_id': convo.id
+                    })
+                    
+                except Exception as endpoint_error:
+                    error_str = str(endpoint_error)
+                    print(f"⚠️ Chat attempt via {chat_endpoint} failed: {error_str}")
+                    last_error = endpoint_error
+                    
+                    # If it's a token/auth error, try the next endpoint
+                    if 'InvalidToken' in error_str or 'Bad token' in error_str:
+                        print(f"🔄 Token error detected, trying next endpoint...")
+                        continue
+                    
+                    # If it's a DM restriction error, don't retry
+                    if 'recipient requires' in error_str.lower() or 'cannot chat' in error_str.lower():
+                        raise endpoint_error
+                    
+                    # For other errors, try the next endpoint
+                    continue
+            
+            # If we get here, all endpoints failed
+            raise last_error if last_error else Exception("All chat endpoints failed")
             
         except Exception as auth_error:
             error_str = str(auth_error)
@@ -10258,6 +10555,593 @@ def send_provisioner_request():
                 }), 400
             
             return jsonify({'error': f'Failed to send message: {error_str}'}), 500
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/bursar/send-scheme', methods=['POST'])
+@rate_limit()
+def send_bursar_scheme():
+    """Submit scheme to bursar - saves to database, then attempts DM notification (best-effort)"""
+    try:
+        from core.database import DatabaseManager
+        from atproto import Client, models
+        
+        # Validate authentication
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, user_handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        # Get request data
+        data = request.json or {}
+        domain = (data.get('domain') or '').strip()
+        bursar_did = (data.get('bursar_did') or '').strip()
+        request_amount = (data.get('request_amount') or '').strip()
+        
+        if not domain:
+            return jsonify({'error': 'Domain is required'}), 400
+        
+        if not bursar_did:
+            return jsonify({'error': 'Bursar DID is required'}), 400
+        
+        if not request_amount:
+            return jsonify({'error': 'Request amount is required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        print(f"💰 [Scheme Submit] {user_did} → {bursar_did} (domain: {domain}, request: ${request_amount})")
+        
+        # Verify bursar is active
+        cursor = db_manager.execute("""
+            SELECT status FROM user_roles
+            WHERE did = %s AND role = 'bursar' AND status = 'active'
+        """, (bursar_did,))
+        
+        if not cursor.fetchone():
+            return jsonify({'error': 'Bursar is no longer active'}), 400
+        
+        # Get bursar's handle and name
+        cursor = db_manager.execute("""
+            SELECT handle, name, display_name FROM dreamers WHERE did = %s
+        """, (bursar_did,))
+        
+        bursar_row = cursor.fetchone()
+        bursar_handle = bursar_row['handle'] if bursar_row else 'bursar'
+        bursar_name = bursar_row['display_name'] or (bursar_row['name'].capitalize() if bursar_row and bursar_row['name'] else 'Treasurer')
+        
+        # Get requester info
+        if not user_handle:
+            cursor = db_manager.execute("""
+                SELECT handle FROM dreamers WHERE did = %s
+            """, (user_did,))
+            req_row = cursor.fetchone()
+            user_handle = req_row['handle'] if req_row else 'dreamer'
+        
+        # ================================================================
+        # STEP 1: Save scheme to database FIRST (ensures persistence)
+        # ================================================================
+        # Ensure scheme_submissions table exists
+        try:
+            db_manager.execute("""
+                CREATE TABLE IF NOT EXISTS scheme_submissions (
+                    id SERIAL PRIMARY KEY,
+                    requester_did TEXT NOT NULL,
+                    requester_handle TEXT,
+                    bursar_did TEXT NOT NULL,
+                    domain TEXT NOT NULL,
+                    request_amount TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    dm_sent BOOLEAN DEFAULT FALSE,
+                    dm_error TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    reviewed_at TIMESTAMP,
+                    reviewed_by TEXT,
+                    notes TEXT
+                )
+            """)
+        except Exception as table_err:
+            print(f"⚠️ Table creation (may already exist): {table_err}")
+        
+        # Insert the scheme submission
+        try:
+            db_manager.execute("""
+                INSERT INTO scheme_submissions 
+                (requester_did, requester_handle, bursar_did, domain, request_amount, status, dm_sent)
+                VALUES (%s, %s, %s, %s, %s, 'pending', FALSE)
+            """, (user_did, user_handle, bursar_did, domain, request_amount))
+            print(f"✅ Scheme saved to database for bursar review")
+        except Exception as save_err:
+            print(f"❌ Failed to save scheme: {save_err}")
+            return jsonify({'error': f'Failed to save scheme: {save_err}'}), 500
+        
+        # ================================================================
+        # STEP 2: Try to send DM notification (best-effort)
+        # ================================================================
+        dm_sent = False
+        dm_error = None
+        
+        try:
+            print(f"🔐 Preparing to send scheme DM notification for {user_handle}...")
+            
+            cursor = db_manager.execute("""
+                SELECT app_password_hash, pds_url FROM user_credentials
+                WHERE did = %s
+            """, (user_did,))
+            
+            cred_row = cursor.fetchone()
+            
+            if not cred_row or not cred_row['app_password_hash']:
+                dm_error = "No app password configured - DM skipped"
+                print(f"⚠️ {dm_error}")
+            else:
+                encrypted_password = cred_row['app_password_hash']
+                pds_url = cred_row.get('pds_url')
+                
+                # Resolve PDS if not stored
+                if not pds_url:
+                    try:
+                        did_response = requests.get(
+                            f"https://plc.directory/{user_did}",
+                            timeout=5
+                        )
+                        if did_response.status_code == 200:
+                            did_doc = did_response.json()
+                            services = did_doc.get('service', [])
+                            for service in services:
+                                if service.get('id') == '#atproto_pds':
+                                    pds_url = service.get('serviceEndpoint')
+                                    break
+                    except Exception as e:
+                        print(f"⚠️ Failed to resolve PDS: {e}")
+                
+                if not pds_url:
+                    pds_url = 'https://bsky.social'
+                
+                # Decrypt app password
+                app_password = decrypt_password(encrypted_password)
+                
+                # Try to send DM via user's PDS (self-hosted PDS chat proxy)
+                try:
+                    print(f"🔐 Attempting chat login via {pds_url}...")
+                    client = Client(base_url=pds_url)
+                    client.login(user_handle, app_password)
+                    print(f"✅ Login successful via {pds_url}")
+                    
+                    # Create chat proxy client
+                    dm_client = client.with_bsky_chat_proxy()
+                    dm = dm_client.chat.bsky.convo
+                    
+                    # Get or create conversation with the bursar
+                    print(f"💬 Getting conversation with bursar {bursar_did}...")
+                    convo = dm.get_convo_for_members(
+                        models.ChatBskyConvoGetConvoForMembers.Params(members=[bursar_did])
+                    ).convo
+                    print(f"✅ Got conversation: {convo.id}")
+                    
+                    # Compose the message - just 3 lines
+                    message_text = f"Domain: {domain}\nCreated By: @{user_handle}\nRequest: ${request_amount}"
+                    
+                    # Send the message
+                    print(f"📤 Sending scheme DM to {bursar_handle}...")
+                    message = dm.send_message(
+                        models.ChatBskyConvoSendMessage.Data(
+                            convo_id=convo.id,
+                            message=models.ChatBskyConvoDefs.MessageInput(
+                                text=message_text
+                            )
+                        )
+                    )
+                    
+                    print(f"✅ Scheme DM sent successfully! Message ID: {message.id}")
+                    dm_sent = True
+                    
+                except Exception as dm_err:
+                    dm_error = str(dm_err)
+                    print(f"⚠️ DM notification failed: {dm_error}")
+                    
+                    # Check for specific DM restriction errors
+                    if 'recipient requires' in dm_error.lower() or 'cannot chat' in dm_error.lower():
+                        dm_error = f"Bursar DM settings restrict messages. Scheme saved for dashboard review."
+                    elif 'InvalidToken' in dm_error or 'Bad token' in dm_error:
+                        dm_error = f"Chat auth failed (self-hosted PDS limitation). Scheme saved for dashboard review."
+                    
+        except Exception as notify_err:
+            dm_error = str(notify_err)
+            print(f"⚠️ DM notification error: {dm_error}")
+        
+        # Update the scheme record with DM status
+        try:
+            db_manager.execute("""
+                UPDATE scheme_submissions 
+                SET dm_sent = %s, dm_error = %s
+                WHERE id = (
+                    SELECT id FROM scheme_submissions 
+                    WHERE requester_did = %s AND domain = %s AND status = 'pending'
+                    ORDER BY created_at DESC LIMIT 1
+                )
+            """, (dm_sent, dm_error, user_did, domain))
+        except Exception as update_err:
+            print(f"⚠️ Failed to update DM status: {update_err}")
+        
+        # ================================================================
+        # STEP 3: Return success (scheme was saved regardless of DM)
+        # ================================================================
+        response = {
+            'success': True,
+            'message': 'Scheme submitted successfully',
+            'dm_sent': dm_sent,
+            'bursar_handle': bursar_handle
+        }
+        
+        if not dm_sent and dm_error:
+            response['dm_note'] = f"DM notification skipped: {dm_error}. The bursar will see your scheme in their dashboard."
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/bursar/schemes')
+@rate_limit()
+def get_bursar_schemes():
+    """Get pending scheme submissions for the bursar to review"""
+    try:
+        from core.database import DatabaseManager
+        
+        # Validate authentication
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, user_handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        # Check if user is an active bursar
+        cursor = db_manager.execute("""
+            SELECT status FROM user_roles
+            WHERE did = %s AND role = 'bursar' AND status = 'active'
+        """, (user_did,))
+        
+        if not cursor.fetchone():
+            return jsonify({'error': 'Not authorized - bursar role required'}), 403
+        
+        # Get status filter (default: pending)
+        status_filter = request.args.get('status', 'pending')
+        
+        # Get schemes for this bursar
+        try:
+            cursor = db_manager.execute("""
+                SELECT id, requester_did, requester_handle, domain, request_amount, 
+                       status, dm_sent, dm_error, created_at, reviewed_at, notes
+                FROM scheme_submissions
+                WHERE bursar_did = %s AND status = %s
+                ORDER BY created_at DESC
+                LIMIT 50
+            """, (user_did, status_filter))
+            
+            schemes = []
+            for row in cursor.fetchall():
+                schemes.append({
+                    'id': row['id'],
+                    'requester_did': row['requester_did'],
+                    'requester_handle': row['requester_handle'],
+                    'domain': row['domain'],
+                    'request_amount': row['request_amount'],
+                    'status': row['status'],
+                    'dm_sent': row['dm_sent'],
+                    'dm_error': row['dm_error'],
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'reviewed_at': row['reviewed_at'].isoformat() if row['reviewed_at'] else None,
+                    'notes': row['notes']
+                })
+            
+            return jsonify({
+                'success': True,
+                'schemes': schemes,
+                'count': len(schemes)
+            })
+            
+        except Exception as query_err:
+            # Table might not exist yet
+            if 'does not exist' in str(query_err).lower():
+                return jsonify({
+                    'success': True,
+                    'schemes': [],
+                    'count': 0
+                })
+            raise
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/bursar/schemes/<int:scheme_id>/review', methods=['POST'])
+@rate_limit()
+def review_bursar_scheme(scheme_id):
+    """Review (approve/reject) a scheme submission"""
+    try:
+        from core.database import DatabaseManager
+        
+        # Validate authentication
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, user_handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        # Check if user is an active bursar
+        cursor = db_manager.execute("""
+            SELECT status FROM user_roles
+            WHERE did = %s AND role = 'bursar' AND status = 'active'
+        """, (user_did,))
+        
+        if not cursor.fetchone():
+            return jsonify({'error': 'Not authorized - bursar role required'}), 403
+        
+        # Get request data
+        data = request.json or {}
+        new_status = data.get('status', '').strip()
+        notes = data.get('notes', '').strip()
+        
+        if new_status not in ['approved', 'rejected', 'completed']:
+            return jsonify({'error': 'Invalid status. Must be: approved, rejected, or completed'}), 400
+        
+        # Update the scheme
+        try:
+            db_manager.execute("""
+                UPDATE scheme_submissions
+                SET status = %s, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = %s, notes = %s
+                WHERE id = %s AND bursar_did = %s
+            """, (new_status, user_did, notes, scheme_id, user_did))
+            
+            return jsonify({
+                'success': True,
+                'message': f'Scheme {new_status}',
+                'scheme_id': scheme_id
+            })
+            
+        except Exception as update_err:
+            return jsonify({'error': f'Failed to update scheme: {update_err}'}), 500
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/treasury')
+@rate_limit()
+def get_treasury_data():
+    """Get treasury data from internal database, synced with OpenCollective and print sales"""
+    try:
+        from core.database import DatabaseManager
+        
+        db_manager = DatabaseManager()
+        
+        # Ensure treasury table exists and has data
+        try:
+            row = db_manager.fetch_one("SELECT * FROM treasury WHERE id = 1")
+        except Exception:
+            # Table doesn't exist yet, return defaults
+            return jsonify({
+                'success': True,
+                'balance': 0,
+                'raised': 0,
+                'disbursed': 0,
+                'print_revenue': 0,
+                'print_books': 0,
+                'oc_last_sync': None,
+                'source': 'default'
+            })
+        
+        if not row:
+            return jsonify({
+                'success': True,
+                'balance': 0,
+                'raised': 0,
+                'disbursed': 0,
+                'print_revenue': 0,
+                'print_books': 0,
+                'oc_last_sync': None,
+                'source': 'empty'
+            })
+        
+        # Convert cents to dollars
+        balance = (row.get('total_balance_cents') or 0) / 100
+        raised = (row.get('total_raised_cents') or 0) / 100
+        disbursed = (row.get('oc_disbursed_cents') or 0) / 100
+        print_revenue = (row.get('print_revenue_cents') or 0) / 100
+        print_books = row.get('print_books_counted') or 0
+        
+        return jsonify({
+            'success': True,
+            'balance': round(balance, 2),
+            'raised': round(raised, 2),
+            'disbursed': round(disbursed, 2),
+            'print_revenue': round(print_revenue, 2),
+            'print_books': print_books,
+            'oc_last_sync': row.get('oc_last_sync').isoformat() if row.get('oc_last_sync') else None,
+            'updated_at': row.get('updated_at').isoformat() if row.get('updated_at') else None,
+            'source': 'database'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/treasury/sync', methods=['POST'])
+@rate_limit()
+def sync_treasury():
+    """Sync treasury with OpenCollective and count print sales from events"""
+    try:
+        from core.database import DatabaseManager
+        
+        # Only allow authenticated users to trigger sync (optional - could be admin only)
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if token:
+            valid, user_did, _ = validate_work_token(token)
+            if not valid:
+                return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        # 1. Fetch OpenCollective data
+        oc_balance_cents = 0
+        oc_raised_cents = 0
+        oc_disbursed_cents = 0
+        
+        try:
+            oc_response = requests.post(
+                'https://api.opencollective.com/graphql/v2',
+                headers={'Content-Type': 'application/json'},
+                json={
+                    'query': '''query {
+                        account(slug: "reverie-house") {
+                            stats {
+                                balance { value currency }
+                                totalAmountReceived { value currency }
+                                totalAmountSpent { value currency }
+                            }
+                        }
+                    }'''
+                },
+                timeout=10
+            )
+            
+            if oc_response.status_code == 200:
+                oc_data = oc_response.json()
+                if oc_data.get('data', {}).get('account', {}).get('stats'):
+                    stats = oc_data['data']['account']['stats']
+                    oc_balance_cents = int(float(stats['balance']['value']) * 100)
+                    oc_raised_cents = int(float(stats['totalAmountReceived']['value']) * 100)
+                    oc_disbursed_cents = int(float(stats.get('totalAmountSpent', {}).get('value', 0)) * 100)
+                    print(f"💰 [Treasury] OC sync: balance=${oc_balance_cents/100}, raised=${oc_raised_cents/100}, disbursed=${oc_disbursed_cents/100}")
+        except Exception as oc_error:
+            print(f"⚠️ [Treasury] OpenCollective sync failed: {oc_error}")
+        
+        # 2. Count book sales from events table (key='seeker')
+        print_books = 0
+        try:
+            cursor = db_manager.execute("""
+                SELECT COALESCE(SUM((quantities->>'books')::integer), 0) as total_books
+                FROM events
+                WHERE key = 'seeker' AND quantities IS NOT NULL
+            """)
+            result = cursor.fetchone()
+            print_books = result['total_books'] if result else 0
+            print(f"📚 [Treasury] Print sales: {print_books} books")
+        except Exception as book_error:
+            print(f"⚠️ [Treasury] Book count failed: {book_error}")
+        
+        # Calculate print revenue: $3.50 per book = 350 cents
+        print_revenue_cents = print_books * 350
+        
+        # 3. Calculate totals
+        total_raised_cents = oc_raised_cents + print_revenue_cents
+        total_balance_cents = oc_balance_cents + print_revenue_cents  # Print revenue adds to balance
+        
+        # 4. Update treasury table
+        try:
+            db_manager.execute("""
+                INSERT INTO treasury (id, oc_balance_cents, oc_raised_cents, oc_disbursed_cents,
+                                      print_revenue_cents, print_books_counted,
+                                      total_balance_cents, total_raised_cents,
+                                      oc_last_sync, print_last_sync, updated_at)
+                VALUES (1, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW(), NOW())
+                ON CONFLICT (id) DO UPDATE SET
+                    oc_balance_cents = EXCLUDED.oc_balance_cents,
+                    oc_raised_cents = EXCLUDED.oc_raised_cents,
+                    oc_disbursed_cents = EXCLUDED.oc_disbursed_cents,
+                    print_revenue_cents = EXCLUDED.print_revenue_cents,
+                    print_books_counted = EXCLUDED.print_books_counted,
+                    total_balance_cents = EXCLUDED.total_balance_cents,
+                    total_raised_cents = EXCLUDED.total_raised_cents,
+                    oc_last_sync = NOW(),
+                    print_last_sync = NOW(),
+                    updated_at = NOW()
+            """, (oc_balance_cents, oc_raised_cents, oc_disbursed_cents,
+                  print_revenue_cents, print_books,
+                  total_balance_cents, total_raised_cents))
+            
+            print(f"✅ [Treasury] Synced: total_raised=${total_raised_cents/100}, total_balance=${total_balance_cents/100}")
+            
+        except Exception as db_error:
+            print(f"⚠️ [Treasury] Database update failed: {db_error}")
+            # Table might not exist - try to create it
+            try:
+                db_manager.execute("""
+                    CREATE TABLE IF NOT EXISTS treasury (
+                        id SERIAL PRIMARY KEY,
+                        oc_balance_cents INTEGER DEFAULT 0,
+                        oc_raised_cents INTEGER DEFAULT 0,
+                        oc_disbursed_cents INTEGER DEFAULT 0,
+                        print_revenue_cents INTEGER DEFAULT 0,
+                        print_books_counted INTEGER DEFAULT 0,
+                        total_balance_cents INTEGER DEFAULT 0,
+                        total_raised_cents INTEGER DEFAULT 0,
+                        oc_last_sync TIMESTAMP,
+                        print_last_sync TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                # Retry insert
+                db_manager.execute("""
+                    INSERT INTO treasury (id, oc_balance_cents, oc_raised_cents, oc_disbursed_cents,
+                                          print_revenue_cents, print_books_counted,
+                                          total_balance_cents, total_raised_cents,
+                                          oc_last_sync, print_last_sync, updated_at)
+                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW(), NOW())
+                    ON CONFLICT (id) DO UPDATE SET
+                        oc_balance_cents = EXCLUDED.oc_balance_cents,
+                        oc_raised_cents = EXCLUDED.oc_raised_cents,
+                        oc_disbursed_cents = EXCLUDED.oc_disbursed_cents,
+                        print_revenue_cents = EXCLUDED.print_revenue_cents,
+                        print_books_counted = EXCLUDED.print_books_counted,
+                        total_balance_cents = EXCLUDED.total_balance_cents,
+                        total_raised_cents = EXCLUDED.total_raised_cents,
+                        oc_last_sync = NOW(),
+                        print_last_sync = NOW(),
+                        updated_at = NOW()
+                """, (oc_balance_cents, oc_raised_cents, oc_disbursed_cents,
+                      print_revenue_cents, print_books,
+                      total_balance_cents, total_raised_cents))
+                print(f"✅ [Treasury] Table created and synced")
+            except Exception as create_error:
+                print(f"❌ [Treasury] Failed to create table: {create_error}")
+                import traceback
+                traceback.print_exc()
+        
+        return jsonify({
+            'success': True,
+            'oc_balance': round(oc_balance_cents / 100, 2),
+            'oc_raised': round(oc_raised_cents / 100, 2),
+            'oc_disbursed': round(oc_disbursed_cents / 100, 2),
+            'print_revenue': round(print_revenue_cents / 100, 2),
+            'print_books': print_books,
+            'total_raised': round(total_raised_cents / 100, 2),
+            'total_balance': round(total_balance_cents / 100, 2)
+        })
         
     except Exception as e:
         import traceback

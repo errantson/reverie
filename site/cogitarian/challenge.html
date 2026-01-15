@@ -460,8 +460,8 @@
             // Outcome banner
             let outcomeBanner = '';
             if (c.outcome) {
-                const outcomeClass = c.outcome === 'challenger_won' ? 'outcome-challenger-won' : 'outcome-challenged-won';
-                const outcomeText = c.outcome === 'challenger_won' 
+                const outcomeClass = c.outcome === 'challenger_wins' ? 'outcome-challenger-won' : 'outcome-challenged-won';
+                const outcomeText = c.outcome === 'challenger_wins' 
                     ? `${c.challenger_handle} (${c.challenger_rank}) is now the Cogitarian`
                     : `${c.challenged_handle} (${c.challenged_rank}) remains the Cogitarian`;
                 outcomeBanner = `<div class="outcome-banner ${outcomeClass}">${outcomeText}</div>`;

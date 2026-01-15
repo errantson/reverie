@@ -254,6 +254,7 @@ class CelebrationProcessor:
         Formula: max(1, ceil(total * percent / 100))
         
         If a worker is rate-limited for this target, skip them and try another.
+        Also skips the target user themselves (no self-liking).
         """
         total = len(self.workers)
         if total == 0:
@@ -270,11 +271,11 @@ class CelebrationProcessor:
         db = DatabaseManager()
         rate_limited = self._get_rate_limited_workers(db, target_did)
         
-        # Filter out rate-limited workers
-        available = [w for w in self.workers if w['did'] not in rate_limited]
+        # Filter out rate-limited workers AND the target themselves (no self-liking)
+        available = [w for w in self.workers if w['did'] not in rate_limited and w['did'] != target_did]
         
         if not available:
-            log.debug(f"All workers rate-limited for {target_did[:20]}")
+            log.debug(f"All workers rate-limited or target is self for {target_did[:20]}")
             return []
         
         # Select from available workers
@@ -363,6 +364,11 @@ class CelebrationProcessor:
         db = DatabaseManager()
         
         try:
+            # For any_post reason, 30% chance we skip entirely (adds natural variability)
+            if item['reason_key'] == 'any_post' and random.random() < 0.30:
+                log.debug(f"Skipping any_post for {item.get('target_handle', item['target_did'][:15])} (30% skip)")
+                return True  # Return True so it's marked as processed, not retried
+            
             # Get reason config
             cursor = db.execute("""
                 SELECT cheerful_percent FROM cheer_reasons WHERE reason_key = %s
@@ -372,11 +378,11 @@ class CelebrationProcessor:
             if not reason:
                 return False
             
-            # Select workers (passes target_did for rate limit filtering)
+            # Select workers (passes target_did for rate limit filtering, excludes self-liking)
             workers = self._select_workers(reason['cheerful_percent'], item['target_did'])
             if not workers:
-                log.debug("No available workers")
-                return False
+                log.debug(f"No available workers for {item.get('target_handle', item['target_did'][:15])}")
+                return True  # No workers available (all rate-limited or self) - mark as done, don't retry
             
             # Perform likes
             success_count = 0

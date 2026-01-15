@@ -165,8 +165,8 @@ class ChangeHandleWidget {
             : `<p class="change-handle-instruction">${instructionText} so that <strong style="color: ${roleColor};">@${recipientName}</strong> can receive your private message.</p>`;
         
         this.modal.innerHTML = `
-            <div class="change-handle-content" style="border-color: ${roleColor}; background: linear-gradient(135deg, #f8f5e6, ${roleColorLight});">
-                <div class="change-handle-header" style="border-bottom-color: ${roleColor}; background: ${roleColorAccent};">
+                <div class="change-handle-content" style="border-color: ${roleColor}; background: #ffffff;">
+                    <div class="change-handle-header" style="border-bottom-color: ${roleColor}; background: #f5f5f5;">
                     <h3 class="change-handle-title" style="color: ${roleColor};">${titleText}</h3>
                     <button class="change-handle-close" onclick="window.changeHandleWidget.close()">×</button>
                 </div>
@@ -182,7 +182,7 @@ class ChangeHandleWidget {
                     </select>
                 </div>
                 
-                <div class="change-handle-footer" style="background: ${roleColorAccent};">
+                <div class="change-handle-footer" style="background: #f5f5f5;">
                     <p class="change-handle-current">Your current handle is: <strong style="color: ${roleColor};">@${this.currentHandle || 'unknown'}</strong></p>
                     <p class="change-handle-preview">Adopting <strong id="preview-handle" style="color: ${roleColor};">@${this.selectedHandle}</strong> will be recognized across our wild mindscape.</p>
                 </div>
@@ -361,7 +361,7 @@ class ChangeHandleWidget {
             }
             
             .change-handle-content {
-                background: #f8f5e6;
+                background: #ffffff;
                 border: 3px solid var(--role-provisioner, #6b8e23);
                 padding: 1.5rem;
                 max-width: 400px;
@@ -371,6 +371,7 @@ class ChangeHandleWidget {
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
                 position: relative;
                 animation: slideIn 0.3s ease;
+                border-radius: 0;
             }
             
             @keyframes slideIn {
@@ -450,7 +451,7 @@ class ChangeHandleWidget {
                 font-size: 1rem;
                 font-family: monospace;
                 border: 2px solid #ddd;
-                border-radius: 4px;
+                border-radius: 0;
                 background: #fff;
                 color: #333;
                 cursor: pointer;
@@ -468,8 +469,8 @@ class ChangeHandleWidget {
             }
             
             .change-handle-footer {
-                background: #f0ede0;
-                border-radius: 4px;
+                background: #f5f5f5;
+                border-radius: 0;
                 padding: 1rem;
                 margin-bottom: 1.25rem;
             }
@@ -506,7 +507,7 @@ class ChangeHandleWidget {
                 font-size: 0.9rem;
                 font-weight: 700;
                 cursor: pointer;
-                border-radius: 4px;
+                border-radius: 0;
                 text-transform: uppercase;
                 transition: all 0.2s ease;
             }
@@ -529,7 +530,7 @@ class ChangeHandleWidget {
                 font-size: 0.9rem;
                 font-weight: 700;
                 cursor: pointer;
-                border-radius: 4px;
+                border-radius: 0;
                 text-transform: uppercase;
                 transition: all 0.2s ease;
             }

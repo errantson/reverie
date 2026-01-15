@@ -193,9 +193,9 @@ footer p {
 .chapter-list p {
     margin: 10px 0;
 }
-a:visited {
-    color: #551a8b;
-}
+
+/* Visited links keep their original color - no purple override */
+
 .purchase-buttons {
     margin-top: 20px;
 }

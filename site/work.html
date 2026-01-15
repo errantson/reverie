@@ -57,12 +57,12 @@
     /* Note: .role-worker-card and .worker-card-header excluded to allow 
        user's personal color (set via JavaScript) to show through */
 
-    /* Scoped bursar link colors - only within work content, not header */
-    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link) {
+    /* Scoped bursar link colors - only within work content, not header or buttons */
+    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):not(.bursar-box-button) {
         color: var(--role-bursar);
     }
-    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):hover,
-    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):focus {
+    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):not(.bursar-box-button):hover,
+    body[data-current-role="bursar"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):not(.bursar-box-button):focus {
         color: var(--role-bursar-dark);
     }
     
@@ -140,6 +140,101 @@
         color: var(--text-muted);
         font-style: italic;
         margin-top: 8px;
+    }
+    
+    /* Active Challenge Banner Styles */
+    .active-challenge-banner {
+        background: linear-gradient(135deg, #2a1a2a 0%, #1a0a1a 100%);
+        border: 2px solid var(--role-cogitarian-medium);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 12px rgba(112, 72, 145, 0.2);
+    }
+    .challenge-banner-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.9rem;
+        color: var(--role-cogitarian);
+    }
+    .challenge-banner-icon {
+        font-size: 1.2rem;
+    }
+    .challenge-banner-title {
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .challenge-banner-days {
+        margin-left: auto;
+        background: var(--role-cogitarian);
+        color: white;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .challenge-banner-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 0.5rem 0;
+    }
+    .challenge-party {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .challenge-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 2px solid #666;
+        object-fit: cover;
+    }
+    .challenge-party.challenger .challenge-avatar {
+        border-color: var(--role-cogitarian-light);
+    }
+    .challenge-party.cogitarian .challenge-avatar {
+        border-color: #d4af37;
+    }
+    .challenge-name {
+        font-weight: 500;
+        color: #e0e0e0;
+        font-size: 0.9rem;
+    }
+    .challenge-vs {
+        font-weight: bold;
+        color: #888;
+        font-size: 0.85rem;
+    }
+    .challenge-banner-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #333;
+    }
+    .favor-indicator {
+        font-size: 0.8rem;
+        color: #888;
+    }
+    .favor-indicator strong {
+        color: var(--role-cogitarian);
+    }
+    .challenge-view-btn {
+        color: var(--role-cogitarian);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: color 0.2s;
+    }
+    .challenge-view-btn:hover {
+        color: var(--role-cogitarian-light);
     }
     </style>
     
@@ -292,7 +387,7 @@
                                 </svg>
                                 <span class="role-tab-name">Provisioner</span>
                             </button>
-                            <button id="role-tab-bursar" class="role-tab admin-only-role" data-role="bursar" onclick="selectRole('bursar')" style="display: none;">
+                            <button id="role-tab-bursar" class="role-tab" data-role="bursar" onclick="selectRole('bursar')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
                                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                                     <path d="M12 8v8"/>
@@ -312,7 +407,7 @@
                                 </svg>
                                 <span class="role-tab-name">Dreamstyler</span>
                             </button>
-                            <button id="role-tab-cheerful" class="role-tab admin-only-role" data-role="cheerful" onclick="selectRole('cheerful')" style="display: none;">
+                            <button id="role-tab-cheerful" class="role-tab" data-role="cheerful" onclick="selectRole('cheerful')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                                 </svg>
@@ -329,9 +424,9 @@
                         <option value="mapper">Mapper</option>
                         <option value="cogitarian">Cogitarian</option>
                         <option value="provisioner">Provisioner</option>
-                        <option id="mobile-option-bursar" value="bursar" class="admin-only-role" style="display: none;">Bursar</option>
+                        <option id="mobile-option-bursar" value="bursar">Bursar</option>
                         <option id="mobile-option-dreamstyler" value="dreamstyler">Dreamstyler</option>
-                        <option id="mobile-option-cheerful" value="cheerful" class="admin-only-role" style="display: none;">Cheerful</option>
+                        <option id="mobile-option-cheerful" value="cheerful">Cheerful</option>
                     </select>
                 </div>
 
@@ -486,6 +581,30 @@
                 
                 <!-- Cogitarian Content Section -->
                 <div id="cogitarian-content-section" class="cogitarian-content-container" style="display: none;">
+                    <!-- Active Challenge Banner (shown when there's an active challenge) -->
+                    <div id="active-challenge-banner" class="active-challenge-banner" style="display: none;">
+                        <div class="challenge-banner-header">
+                            <span class="challenge-banner-icon">⚔️</span>
+                            <span class="challenge-banner-title">Active Challenge</span>
+                            <span id="challenge-banner-days" class="challenge-banner-days"></span>
+                        </div>
+                        <div class="challenge-banner-content">
+                            <div class="challenge-party challenger">
+                                <img id="challenger-avatar" src="/assets/default-avatar.png" alt="Challenger" class="challenge-avatar">
+                                <span id="challenger-name" class="challenge-name">Challenger</span>
+                            </div>
+                            <div class="challenge-vs">VS</div>
+                            <div class="challenge-party cogitarian">
+                                <img id="challenged-avatar" src="/assets/default-avatar.png" alt="Cogitarian" class="challenge-avatar">
+                                <span id="challenged-name" class="challenge-name">Cogitarian</span>
+                            </div>
+                        </div>
+                        <div class="challenge-banner-footer">
+                            <span class="favor-indicator" id="favor-indicator">Keeper's Favor: <strong id="favor-who">Challenger</strong></span>
+                            <a id="challenge-view-link" href="#" class="challenge-view-btn">View Challenge →</a>
+                        </div>
+                    </div>
+                    
                     <div class="cogitarian-content-grid">
                         <!-- Left: Repo Card -->
                         <div class="repo-card">
@@ -580,7 +699,7 @@
                         <div class="provisioner-box">
                             <h3 class="provisioner-box-title">Feeding Dreamweavers</h3>
                             <p class="provisioner-box-text">
-                                If you are a hungry dreamweaver and having some free food would help you dream better, then let our <b>Head of Pantry</b> know and they will try to arrange you a free food pickup through <a href="http://toogoodtogo.com">TooGoodToGo</a></b>
+                                If you are a hungry dreamweaver and having some free food would help you dream better, then let our <b>Head of Pantry</b> know and they will try to arrange you a free food pickup through <a href="https://toogoodtogo.com">TooGoodToGo</a>.
                             </p>
                             <p class="provisioner-box-text">
                                 <i>Most pickups will be for next-day.</i>
@@ -678,11 +797,11 @@
                 <!-- Bursar Content Section -->
                 <div id="bursar-content-section" class="bursar-content-container" style="display: none;">
                     <div class="bursar-content-grid">
-                        <!-- Left Box: Reverie House Collective -->
+                        <!-- Left Box: Reverie Treasury -->
                         <div class="bursar-box">
-                            <h3 class="bursar-box-title">Reverie House</h3>
+                            <h3 class="bursar-box-title">Treasury of Reveries</h3>
                             <p class="bursar-box-text">
-                                Our collective treasury on <a href="https://opencollective.com/reverie-house" target="_blank">OpenCollective</a> for infrastructure and development.
+                                Our collective treasury pools <a href="https://opencollective.com/reverie-house" target="_blank">OpenCollective</a> funds and some print revenues for discretionary community developments.
                             </p>
                             <div class="bursar-stats">
                                 <div class="bursar-stat-row">
@@ -693,15 +812,18 @@
                                     <span class="bursar-stat-label">Raised:</span>
                                     <span class="bursar-stat-value" id="oc-total-raised">$0.00</span>
                                 </div>
+                                <div class="bursar-stat-row">
+                                    <span class="bursar-stat-label">Disbursed:</span>
+                                    <span class="bursar-stat-value" id="oc-disbursed">$0.00</span>
+                                </div>
                             </div>
                             <div class="bursar-box-actions">
-                                <a href="https://opencollective.com/reverie-house" target="_blank" class="bursar-box-button bursar-btn-secondary">
+                                <a href="/order" class="bursar-box-button bursar-btn-secondary">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                        <polyline points="15 3 21 3 21 9"></polyline>
-                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                        <path d="M4 19.5C2.9 19.5 2 18.6 2 17.5V3C2 1.9 2.9 1 4 1h14c1.1 0 2 0.9 2 2v14.5c0 1.1-0.9 2-2 2H4z"></path>
+                                        <path d="M12 3v14"></path>
                                     </svg>
-                                    View
+                                    Support
                                 </a>
                                 <a href="https://opencollective.com/reverie-house/donate" target="_blank" class="bursar-box-button">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -713,19 +835,19 @@
                         </div>
                         
                         <!-- Right Box: Submit a Scheme -->
-                        <div class="bursar-box bursar-box-disabled">
+                        <div class="bursar-box bursar-box-disabled" id="scheme-box">
                             <h3 class="bursar-box-title">Submit a Scheme</h3>
                             <p class="bursar-box-text">
-                                Have a domain that dreams? Submit it for treasury integration.
+                                Share your dreams with the bursar to begin.
                             </p>
                             <div class="bursar-submit-form">
-                                <input type="text" class="bursar-domain-input" id="scheme-domain-input" placeholder="yourdream.domain" disabled />
-                                <button class="bursar-box-button" disabled title="Coming soon">
+                                <input type="text" class="bursar-domain-input" id="scheme-domain-input" placeholder="yourdream.domain" />
+                                <button class="bursar-box-button" id="scheme-submit-btn" onclick="submitScheme()">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="22" y1="2" x2="11" y2="13"></line>
                                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                                     </svg>
-                                    Coming Soon
+                                    Submit
                                 </button>
                             </div>
                             <p class="bursar-box-subtext">Scheme submissions opening soon</p>
@@ -873,7 +995,7 @@
             updateAdminRoleVisibility();
         }
         
-        // Show or hide admin-only roles (bursar and cheerful - dreamstyler is now public)
+        // All roles are now public
         function updateAdminRoleVisibility() {
             const bursarTab = document.getElementById('role-tab-bursar');
             const dreamstylerTab = document.getElementById('role-tab-dreamstyler');
@@ -882,14 +1004,6 @@
             const dreamstylerMobile = document.getElementById('mobile-option-dreamstyler');
             const cheerfulMobile = document.getElementById('mobile-option-cheerful');
             
-            // Check if current user is a bursar-allowed DID
-            const currentUserDid = currentSession?.sub || currentSession?.did;
-            const bursarAllowedDids = [
-                'did:plc:ujsxisg5ogc2qikdioxw6y4u',  // Original admin
-                'did:plc:zdxbourfcbv66iq2xfpb233q'   // dreamer.reverie.house
-            ];
-            const isBursarAllowedUser = currentUserDid && bursarAllowedDids.includes(currentUserDid);
-            
             console.log('🎨 [Visibility] Checking tabs:', {
                 bursarTab: !!bursarTab,
                 dreamstylerTab: !!dreamstylerTab,
@@ -897,10 +1011,15 @@
                 bursarMobile: !!bursarMobile,
                 dreamstylerMobile: !!dreamstylerMobile,
                 cheerfulMobile: !!cheerfulMobile,
-                isAdminUser: isAdminUser,
-                isBursarAllowedUser: isBursarAllowedUser,
-                currentUserDid: currentUserDid
+                isAdminUser: isAdminUser
             });
+            
+            // Bursar is always visible (public)
+            if (bursarTab) {
+                bursarTab.style.display = 'flex';
+                console.log('💰 [Visibility] Bursar tab shown (public)');
+            }
+            if (bursarMobile) bursarMobile.style.display = '';
             
             // Dreamstyler is always visible (public)
             if (dreamstylerTab) {
@@ -911,26 +1030,12 @@
             }
             if (dreamstylerMobile) dreamstylerMobile.style.display = '';
             
-            if (isAdminUser || isBursarAllowedUser) {
-                // Show admin-only roles (bursar, cheerful)
-                if (bursarTab) bursarTab.style.display = 'flex';
-                if (bursarMobile) bursarMobile.style.display = '';
-                if (cheerfulTab) cheerfulTab.style.display = 'flex';
-                if (cheerfulMobile) cheerfulMobile.style.display = '';
-                console.log('🔓 [Admin] Showing admin-only roles: bursar, cheerful');
-            } else {
-                // Hide admin-only roles (bursar, cheerful)
-                if (bursarTab) bursarTab.style.display = 'none';
-                if (bursarMobile) bursarMobile.style.display = 'none';
-                if (cheerfulTab) cheerfulTab.style.display = 'none';
-                if (cheerfulMobile) cheerfulMobile.style.display = 'none';
-                
-                // If user was viewing admin-only role, redirect to greeter
-                if (currentRole === 'bursar' || currentRole === 'cheerful') {
-                    console.log('🔒 [Admin] User viewing admin-only role without access, redirecting to greeter');
-                    selectRole('greeter');
-                }
+            // Cheerful is always visible (public)
+            if (cheerfulTab) {
+                cheerfulTab.style.display = 'flex';
+                console.log('💖 [Visibility] Cheerful tab shown (public)');
             }
+            if (cheerfulMobile) cheerfulMobile.style.display = '';
             
             // DEBUG: Check tabs after visibility update
             setTimeout(() => {
@@ -1245,9 +1350,52 @@
                 container.style.display = 'block';
                 // Load repo data when showing
                 loadRepoData();
+                // Load active challenge when showing
+                loadActiveChallenge();
             }
         }
         
+        // Load and display active cogitarian challenge
+        async function loadActiveChallenge() {
+            const banner = document.getElementById('active-challenge-banner');
+            if (!banner) return;
+            
+            try {
+                const response = await fetch('/api/cogitarian/challenge/active');
+                if (!response.ok) {
+                    banner.style.display = 'none';
+                    return;
+                }
+                
+                const data = await response.json();
+                if (!data.challenge) {
+                    banner.style.display = 'none';
+                    return;
+                }
+                
+                const c = data.challenge;
+                
+                // Calculate days remaining
+                const now = new Date();
+                const expires = new Date(c.expires_at);
+                const daysRemaining = Math.max(0, Math.ceil((expires - now) / (1000 * 60 * 60 * 24)));
+                
+                // Update banner elements
+                document.getElementById('challenge-banner-days').textContent = `${daysRemaining} days left`;
+                document.getElementById('challenger-avatar').src = c.challenger_avatar || '/assets/default-avatar.png';
+                document.getElementById('challenger-name').textContent = c.challenger_name || c.challenger_handle || 'Challenger';
+                document.getElementById('challenged-avatar').src = c.cogitarian_avatar || '/assets/default-avatar.png';
+                document.getElementById('challenged-name').textContent = c.cogitarian_name || c.cogitarian_handle || 'Cogitarian';
+                document.getElementById('favor-who').textContent = c.favor === 'challenger' ? 'Challenger' : 'Cogitarian';
+                document.getElementById('challenge-view-link').href = `/cogitarian/${c.challenge_id}`;
+                
+                banner.style.display = 'block';
+            } catch (error) {
+                console.warn('Could not load active challenge:', error);
+                banner.style.display = 'none';
+            }
+        }
+
         function hideCogitarianContent() {
             const container = document.getElementById('cogitarian-content-section');
             if (container) {
@@ -1664,22 +1812,267 @@
             
             // Must be a dreamweaver: .reverie.house handle OR using reverie.house PDS
             const handle = currentSession.profile?.handle || currentSession.handle || '';
-            const pds = currentSession.pds || '';
-            const isDreamweaver = handle.endsWith('.reverie.house') || pds.includes('reverie.house');
+            const userDid = currentSession.sub || currentSession.did;
+            
+            // Check handle first (fast path)
+            let isDreamweaver = handle.endsWith('.reverie.house');
+            
+            // If not a .reverie.house handle, check if they're on the reverie.house PDS
+            if (!isDreamweaver && userDid) {
+                try {
+                    const didResponse = await fetch(`https://plc.directory/${userDid}`);
+                    if (didResponse.ok) {
+                        const didDoc = await didResponse.json();
+                        const pdsService = didDoc.service?.find(s => s.id === '#atproto_pds');
+                        if (pdsService && pdsService.serviceEndpoint) {
+                            isDreamweaver = pdsService.serviceEndpoint.includes('reverie.house');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to resolve PDS for dreamweaver check:', e);
+                }
+            }
             
             if (!isDreamweaver) {
                 return { allowed: false, reason: 'not_dreamweaver', handle };
             }
             
-            // Must have at least one phanera (house.reverie.dream record)
-            // tangledRepo is optional - dreamstylers just need something to consider
-            const phanera = await fetchUserDreams();
+            return { allowed: true };
+        }
+        
+        // Helper to resolve a handle to DID
+        async function resolveDreamstylerDid(handle) {
+            try {
+                // First try via our API (faster, cached)
+                const response = await fetch(`/api/resolve-handle/${encodeURIComponent(handle)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.did;
+                }
+                // Fallback to public API
+                const publicResponse = await fetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+                if (publicResponse.ok) {
+                    const data = await publicResponse.json();
+                    return data.did;
+                }
+            } catch (e) {
+                console.warn('Failed to resolve handle:', e);
+            }
+            return null;
+        }
+        
+        // Show the entreat form popup
+        async function showEntreatPopup(dreamstylerHandle) {
+            // Remove existing popup if any
+            const existingPopup = document.querySelector('.entreat-popup-overlay');
+            if (existingPopup) existingPopup.remove();
             
-            if (phanera.length === 0) {
-                return { allowed: false, reason: 'no_phanera' };
+            // Fetch dreamstyler's color from API
+            let dreamstylerColor = '#9e75e5'; // default purple
+            try {
+                const dreamstylerDid = await resolveDreamstylerDid(dreamstylerHandle);
+                if (dreamstylerDid) {
+                    const dreamerResponse = await fetch(`/api/dreamers/${dreamstylerDid}`);
+                    if (dreamerResponse.ok) {
+                        const dreamer = await dreamerResponse.json();
+                        dreamstylerColor = dreamer.color_hex || '#9e75e5';
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not fetch dreamstyler color:', e);
             }
             
-            return { allowed: true, phanera };
+            const overlay = document.createElement('div');
+            overlay.className = 'entreat-popup-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(26, 21, 32, 0.4);
+                backdrop-filter: blur(3px);
+                z-index: 10003;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            
+            const popup = document.createElement('div');
+            popup.className = 'entreat-popup';
+            popup.style.cssText = `
+                background: rgba(255, 255, 255, 0.97);
+                padding: 1.5rem 2rem 2rem;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                border-top: 3px solid ${dreamstylerColor};
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+                max-width: 440px;
+                width: 90%;
+                max-height: 85vh;
+                overflow-y: auto;
+            `;
+            
+            popup.innerHTML = `
+                <div style="margin-bottom: 1.25rem;">
+                    <h2 style="color: ${dreamstylerColor}; margin: 0 0 0.25rem; font-size: 1.1rem; font-weight: 500;">Entreat ${dreamstylerHandle}</h2>
+                    <p style="color: rgba(26, 21, 32, 0.5); font-size: 0.8rem; margin: 0;">
+                        Your request will be made public
+                    </p>
+                </div>
+                
+                <form id="entreat-form" style="display: flex; flex-direction: column; gap: 0.9rem;">
+                    <div>
+                        <label style="display: block; color: rgba(26, 21, 32, 0.7); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: 500;">
+                            Domain
+                        </label>
+                        <input type="text" id="entreat-domain" placeholder="domain.world" 
+                            style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.12); color: rgba(26, 21, 32, 0.9); font-size: 0.9rem; box-sizing: border-box;"
+                            required>
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; color: rgba(26, 21, 32, 0.7); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: 500;">
+                            Tangled Repository
+                        </label>
+                        <input type="text" id="entreat-repo" placeholder="https://tangled.example.com/repo"
+                            style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.12); color: rgba(26, 21, 32, 0.9); font-size: 0.9rem; box-sizing: border-box;"
+                            required>
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; color: rgba(26, 21, 32, 0.7); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: 500;">
+                            Request
+                        </label>
+                        <textarea id="entreat-request" placeholder="What does your dream need help with?"
+                            maxlength="200" rows="3"
+                            style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.12); color: rgba(26, 21, 32, 0.9); font-size: 0.9rem; resize: vertical; font-family: inherit; box-sizing: border-box;"
+                            required></textarea>
+                        <div style="text-align: right; font-size: 0.7rem; color: rgba(26, 21, 32, 0.35); margin-top: 0.15rem;">
+                            <span id="entreat-char-count">0</span>/200
+                        </div>
+                    </div>
+                    
+                    <div style="background: ${dreamstylerColor}12; padding: 0.75rem 1rem; border-left: 3px solid ${dreamstylerColor}; margin-top: 0.5rem;">
+                        <p style="color: rgba(26, 21, 32, 0.65); font-size: 0.75rem; margin: 0; line-height: 1.4; font-weight: 500;">
+                            By sending this request, you acknowledge a debt of gratitude to the dreamstyler for any assistance provided.
+                        </p>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                        <button type="button" id="entreat-cancel" 
+                            style="flex: 1; padding: 0.7rem; background: transparent; border: 1px solid rgba(0, 0, 0, 0.15); color: rgba(26, 21, 32, 0.6); cursor: pointer; font-size: 0.85rem;">
+                            Cancel
+                        </button>
+                        <button type="submit" id="entreat-submit"
+                            style="flex: 2; padding: 0.7rem; background: ${dreamstylerColor}; border: none; color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
+                            Entreat
+                        </button>
+                    </div>
+                </form>
+            `;
+            
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                overlay.style.opacity = '1';
+            });
+            
+            // Character counter
+            const requestField = document.getElementById('entreat-request');
+            const charCount = document.getElementById('entreat-char-count');
+            requestField.addEventListener('input', () => {
+                charCount.textContent = requestField.value.length;
+            });
+            
+            // Close handlers
+            const closePopup = () => {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 300);
+            };
+            
+            document.getElementById('entreat-cancel').addEventListener('click', closePopup);
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closePopup();
+            });
+            
+            // Form submission
+            document.getElementById('entreat-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const domain = document.getElementById('entreat-domain').value.trim();
+                const repo = document.getElementById('entreat-repo').value.trim();
+                const request = document.getElementById('entreat-request').value.trim();
+                
+                if (!domain || !repo || !request) {
+                    showCelebration('Please fill in all fields.', 'error');
+                    return;
+                }
+                
+                const submitBtn = document.getElementById('entreat-submit');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+                
+                try {
+                    // Ensure we have oauthManager
+                    if (!window.oauthManager) {
+                        throw new Error('Not logged in');
+                    }
+                    
+                    // Resolve dreamstyler handle to DID for the mention
+                    const dreamstylerDid = await resolveDreamstylerDid(dreamstylerHandle);
+                    if (!dreamstylerDid) {
+                        throw new Error('Could not resolve dreamstyler handle');
+                    }
+                    
+                    // Build the post text
+                    const mentionText = `@${dreamstylerHandle}`;
+                    const postText = `${mentionText}, are you interested?
+
+Domain: ${domain}
+Repository: ${repo}
+
+${request}
+
+We'd be endebted to your help.`;
+
+                    // Create facets for the mention
+                    const mentionByteStart = 0;
+                    const mentionByteEnd = new TextEncoder().encode(mentionText).length;
+                    
+                    const record = {
+                        facets: [{
+                            index: {
+                                byteStart: mentionByteStart,
+                                byteEnd: mentionByteEnd
+                            },
+                            features: [{
+                                $type: 'app.bsky.richtext.facet#mention',
+                                did: dreamstylerDid
+                            }]
+                        }]
+                    };
+                    
+                    // Create the post using oauthManager
+                    await window.oauthManager.createPost(postText, record);
+                    
+                    console.log('Entreat posted successfully');
+                    closePopup();
+                    showCelebration(`Request sent to @${dreamstylerHandle}`, 'success');
+                    
+                } catch (error) {
+                    console.error('Entreat error:', error);
+                    showCelebration(`Failed: ${error.message}`, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Entreat';
+                }
+            });
+            
+            // Focus the first field
+            document.getElementById('entreat-domain').focus();
         }
         
         // Entreat a dreamstyler with a randomized plea
@@ -1710,13 +2103,10 @@
                                 }
                             });
                         } else {
-                            message = 'Entreating dreamstylers is only available to dreamweavers using their .reverie.house handle.\n\nPlease switch to your Reverie House handle and try again.';
+                            message = 'Entreating dreamstylers is only available to dreamweavers on the Reverie House PDS or using a .reverie.house handle.\n\nPlease switch to your Reverie House handle and try again.';
                             showCelebration(message, 'error');
                         }
                         return;
-                    case 'no_phanera':
-                        message = 'You must declare a phanera before entreating a dreamstyler.\n\nA phanera is a domain you\'re building that you want styled. Create a house.reverie.dream record to declare one.';
-                        break;
                     default:
                         message = 'Unable to entreat at this time.';
                 }
@@ -1724,40 +2114,8 @@
                 return;
             }
             
-            // If user has multiple phanera, pick the first one (could add a picker later)
-            const phanera = entreatStatus.phanera[0];
-            
-            const openers = [
-                "O magnificent @" + handle + ",",
-                "Dearest @" + handle + ", keeper of pixels,",
-                "🙏 @" + handle + ", legendary stylist of dreams,",
-                "Humble plea to @" + handle + ":",
-                "@" + handle + "! Aesthetic oracle!",
-                "To the illustrious @" + handle + ",",
-                "⚡ @" + handle + ", CSS wizard extraordinaire,",
-                "Most gracious @" + handle + ","
-            ];
-            
-            const pleas = [
-                `I beseech thee to grace "${phanera.title}" with thy miraculous touch.`,
-                `might you bestow upon ${phanera.domain} the gift of your aesthetic mastery?`,
-                `my phanera "${phanera.title}" yearns for the divine intervention of your design sensibilities.`,
-                `would you honor me by casting your visionary gaze upon ${phanera.domain}?`,
-                `I throw myself at your mercy, hoping for but a crumb of styling genius for ${phanera.domain}.`,
-                `please, if it pleases you, consider blessing "${phanera.title}" with your talent.`,
-                `I am but a dreamer lost in ${phanera.domain}. Only you can save my gradients.`,
-                `my hover states at ${phanera.domain} are a disaster. You are my only hope.`,
-                `the shadows at "${phanera.title}"... they are all wrong. I need your wisdom.`,
-                `might your legendary skills bring harmony to ${phanera.domain}?`
-            ];
-            
-            const opener = openers[Math.floor(Math.random() * openers.length)];
-            const plea = pleas[Math.floor(Math.random() * pleas.length)];
-            const message = opener + " " + plea;
-            
-            // Open Bluesky compose with the message
-            const bskyUrl = "https://bsky.app/intent/compose?text=" + encodeURIComponent(message);
-            window.open(bskyUrl, '_blank');
+            // Show the entreat form popup
+            showEntreatPopup(handle);
         }
         
         function hideDreamstylerContent() {
@@ -2017,70 +2375,113 @@
             requestAnimationFrame(update);
         }
         
-        // Load treasury data from OpenCollective API
+        // Load treasury data from internal database API
         async function loadTreasuryData() {
             const balanceEl = document.getElementById('oc-balance');
             const totalRaisedEl = document.getElementById('oc-total-raised');
+            const disbursedEl = document.getElementById('oc-disbursed');
             
             try {
-                const response = await fetch('https://api.opencollective.com/graphql/v2', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        query: `query {
-                            account(slug: "reverie-house") {
-                                name
-                                stats {
-                                    balance { value currency }
-                                    totalAmountReceived { value currency }
-                                }
-                            }
-                        }`
-                    })
-                });
+                // First try to get cached data from internal API
+                const response = await fetch('/api/treasury');
                 
-                const data = await response.json();
-                
-                if (data.data && data.data.account) {
-                    const stats = data.data.account.stats;
-                    const currency = stats.balance.currency || 'CAD';
+                if (response.ok) {
+                    const data = await response.json();
                     
-                    if (balanceEl) {
-                        const balance = parseFloat(stats.balance.value) || 0;
-                        balanceEl.textContent = `$${balance.toFixed(2)} ${currency}`;
-                        balanceEl.title = 'Current OpenCollective balance';
+                    if (data.success) {
+                        if (balanceEl) {
+                            balanceEl.textContent = `$${data.balance.toFixed(2)}`;
+                            balanceEl.title = 'Current treasury balance (OpenCollective + print revenue)';
+                        }
+                        
+                        if (totalRaisedEl) {
+                            totalRaisedEl.textContent = `$${data.raised.toFixed(2)}`;
+                            totalRaisedEl.title = `Total raised: $${(data.raised - data.print_revenue).toFixed(2)} OC + $${data.print_revenue.toFixed(2)} print (${data.print_books} books)`;
+                        }
+                        
+                        if (disbursedEl) {
+                            disbursedEl.textContent = `$${data.disbursed.toFixed(2)}`;
+                            disbursedEl.title = 'Total amount disbursed from treasury';
+                        }
+                        
+                        // If data is stale (no sync time or old), trigger background sync
+                        if (!data.oc_last_sync || data.source === 'default' || data.source === 'empty') {
+                            console.log('💰 [Treasury] Data stale, triggering sync...');
+                            syncTreasuryData();
+                        }
+                        return;
                     }
-                    
-                    if (totalRaisedEl) {
-                        const totalRaised = parseFloat(stats.totalAmountReceived.value) || 0;
-                        totalRaisedEl.textContent = `$${totalRaised.toFixed(2)} ${currency}`;
-                        totalRaisedEl.title = 'Total amount received on OpenCollective';
-                    }
-                } else {
-                    throw new Error('No data returned from OpenCollective');
                 }
+                
+                // Fallback: trigger sync and show loading
+                console.log('💰 [Treasury] No cached data, syncing...');
+                await syncTreasuryData();
+                
             } catch (error) {
-                console.error('Failed to load OpenCollective data:', error);
+                console.error('Failed to load treasury data:', error);
                 if (balanceEl) {
                     balanceEl.textContent = 'Unable to load';
-                    balanceEl.title = 'Error loading OpenCollective data';
+                    balanceEl.title = 'Error loading treasury data';
                 }
                 if (totalRaisedEl) {
                     totalRaisedEl.textContent = 'Unable to load';
-                    totalRaisedEl.title = 'Error loading OpenCollective data';
+                    totalRaisedEl.title = 'Error loading treasury data';
+                }
+                if (disbursedEl) {
+                    disbursedEl.textContent = 'Unable to load';
+                    disbursedEl.title = 'Error loading treasury data';
                 }
             }
+        }
+        
+        async function syncTreasuryData() {
+            const balanceEl = document.getElementById('oc-balance');
+            const totalRaisedEl = document.getElementById('oc-total-raised');
+            const disbursedEl = document.getElementById('oc-disbursed');
             
-            // Project cards already have static placeholder content
-            // When API is connected, we'll dynamically populate #oc-projects
+            try {
+                const response = await fetch('/api/treasury/sync', { method: 'POST' });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        if (balanceEl) {
+                            balanceEl.textContent = `$${data.total_balance.toFixed(2)}`;
+                            balanceEl.title = 'Current treasury balance (OpenCollective + print revenue)';
+                        }
+                        
+                        if (totalRaisedEl) {
+                            totalRaisedEl.textContent = `$${data.total_raised.toFixed(2)}`;
+                            totalRaisedEl.title = `Total raised: $${data.oc_raised.toFixed(2)} OC + $${data.print_revenue.toFixed(2)} print (${data.print_books} books)`;
+                        }
+                        
+                        if (disbursedEl) {
+                            disbursedEl.textContent = `$${data.oc_disbursed.toFixed(2)}`;
+                            disbursedEl.title = 'Total amount disbursed from treasury';
+                        }
+                        
+                        console.log('✅ [Treasury] Synced successfully');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to sync treasury data:', error);
+            }
         }
         
         function refreshTreasuryData() {
-            loadTreasuryData();
-            showCelebration('Treasury data refreshed', 'info');
+            syncTreasuryData();
+            showCelebration('Treasury data syncing...', 'info');
         }
         
-        function submitScheme() {
+        // Store bursar DID for scheme submission
+        let pendingSchemeBursarDid = null;
+        let pendingSchemeDomain = null;
+        let pendingSchemeRequest = null;
+        
+        async function submitScheme() {
+            console.log('💰 [Bursar] Submit scheme clicked');
+            
             const input = document.getElementById('scheme-domain-input');
             const domain = input ? input.value.trim() : '';
             
@@ -2089,9 +2490,374 @@
                 return;
             }
             
-            // For now, just acknowledge - actual submission logic TBD
-            showCelebration('Scheme submitted for consideration', 'success');
-            if (input) input.value = '';
+            // Check if user is logged in
+            if (!currentSession || !currentSession.profile) {
+                triggerLogin();
+                return;
+            }
+            
+            // Gate: Check if user has a .reverie.house handle
+            const userHandle = currentSession.profile?.handle || currentSession.handle || '';
+            if (!userHandle.endsWith('.reverie.house')) {
+                console.log('🚫 [Scheme Submit] User does not have a .reverie.house handle:', userHandle);
+                
+                // Get bursar handle for the message
+                let bursarHandle = 'the Treasurer';
+                const bursarStatus = roleStatuses.bursar;
+                if (bursarStatus && bursarStatus.current_worker) {
+                    try {
+                        const bursarResponse = await fetch(`/api/dreamers/${bursarStatus.current_worker.did}`);
+                        if (bursarResponse.ok) {
+                            const bursarData = await bursarResponse.json();
+                            bursarHandle = bursarData.handle || 'the Treasurer';
+                        }
+                    } catch (e) {
+                        console.warn('Could not fetch bursar handle:', e);
+                    }
+                }
+                
+                // Show the changehandle widget
+                if (window.changeHandleWidget) {
+                    window.changeHandleWidget.show({
+                        reason: 'scheme_submit',
+                        provisionerHandle: bursarHandle,
+                        roleColor: 'var(--role-bursar)',
+                        roleColorLight: 'var(--role-bursar-light)',
+                        roleClass: 'bursar',
+                        onSuccess: () => {
+                            submitScheme();
+                        }
+                    });
+                } else {
+                    showCelebration('Scheme submissions are only available to dreamweavers using their .reverie.house handle.\n\nPlease switch to your Reverie House handle and try again.', 'error');
+                }
+                return;
+            }
+            
+            // Check if there's an active bursar
+            const bursarStatus = roleStatuses.bursar;
+            if (!bursarStatus || !bursarStatus.current_worker) {
+                showCelebration('There is no current Bursar.\n\nPerhaps another day.', 'info');
+                return;
+            }
+            
+            // Get current bursar DID
+            const bursarDid = bursarStatus.current_worker.did;
+            const userDid = currentSession.sub || currentSession.did;
+            
+            // Don't allow bursar to submit to themselves
+            if (bursarDid === userDid) {
+                showCelebration('You cannot submit a scheme to yourself!\n\nStep down as bursar first if you need to submit.', 'error');
+                return;
+            }
+            
+            // Show the scheme confirmation modal
+            pendingSchemeBursarDid = bursarDid;
+            pendingSchemeDomain = domain;
+            showSchemeConfirmModal(bursarDid, domain);
+        }
+        
+        async function showSchemeConfirmModal(bursarDid, domain) {
+            console.log('💰 [Scheme] Showing confirmation modal');
+            
+            // Get bursar info for display
+            let bursarName = 'the Treasurer';
+            let bursarHandle = '';
+            try {
+                const response = await fetch(`/api/dreamers/${bursarDid}`);
+                if (response.ok) {
+                    const dreamer = await response.json();
+                    bursarName = dreamer.display_name || dreamer.name || 'the Treasurer';
+                    bursarHandle = dreamer.handle || '';
+                }
+            } catch (error) {
+                console.warn('Could not fetch bursar info:', error);
+            }
+            
+            const userHandle = currentSession.profile?.handle || currentSession.handle || 'a dreamweaver';
+            
+            // Create and show confirmation modal
+            const existingModal = document.getElementById('scheme-confirm-modal');
+            if (existingModal) existingModal.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'scheme-confirm-modal';
+            modal.className = 'scheme-confirm-overlay';
+            modal.innerHTML = `
+                <div class="scheme-confirm-content">
+                    <div class="scheme-confirm-header">
+                        <h3 class="scheme-confirm-title">Submit Scheme</h3>
+                        <button class="scheme-confirm-close" onclick="closeSchemeConfirmModal()">×</button>
+                    </div>
+                    <div class="scheme-confirm-body">
+                        <p class="scheme-confirm-intro">Sending to <strong>${bursarName}</strong>${bursarHandle ? ` (@${bursarHandle})` : ''}</p>
+                        <div class="scheme-confirm-fields">
+                            <div class="scheme-field-row">
+                                <span class="scheme-field-label">Domain</span>
+                                <span class="scheme-field-value">${domain}</span>
+                            </div>
+                            <div class="scheme-field-row">
+                                <span class="scheme-field-label">Created By</span>
+                                <span class="scheme-field-value">@${userHandle}</span>
+                            </div>
+                            <div class="scheme-field-row">
+                                <span class="scheme-field-label">Request</span>
+                                <div class="scheme-request-input">
+                                    <span class="scheme-currency">$</span>
+                                    <input type="number" id="scheme-request-amount" placeholder="0" min="0" step="1" />
+                                </div>
+                            </div>
+                        </div>
+                        <p class="scheme-confirm-subtext">Conditions and requirements for support are human, inexact, and likely to change over time.</p>
+                    </div>
+                    <div class="scheme-confirm-actions">
+                        <button class="scheme-confirm-btn scheme-confirm-send" onclick="confirmSendScheme()">SUBMIT</button>
+                        <button class="scheme-confirm-btn scheme-confirm-cancel" onclick="closeSchemeConfirmModal()">CANCEL</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Inject styles if not already present
+            if (!document.getElementById('scheme-confirm-styles')) {
+                const style = document.createElement('style');
+                style.id = 'scheme-confirm-styles';
+                style.textContent = `
+                    .scheme-confirm-overlay {
+                        display: flex;
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.8);
+                        z-index: 999999;
+                        align-items: center;
+                        justify-content: center;
+                        animation: fadeIn 0.2s ease;
+                    }
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    .scheme-confirm-content {
+                        background: #ffffff;
+                        border: 3px solid var(--role-bursar, #8b6914);
+                        padding: 0;
+                        max-width: 340px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                    }
+                    .scheme-confirm-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 1rem 1.5rem;
+                        border-bottom: 2px solid var(--role-bursar, #8b6914);
+                        background: #f5f5f5;
+                    }
+                    .scheme-confirm-title {
+                        margin: 0;
+                        font-size: 1.2rem;
+                        color: var(--role-bursar, #8b6914);
+                        font-weight: 700;
+                    }
+                    .scheme-confirm-close {
+                        background: none;
+                        border: none;
+                        font-size: 1.8rem;
+                        cursor: pointer;
+                        color: #888;
+                        line-height: 1;
+                        padding: 0;
+                    }
+                    .scheme-confirm-close:hover {
+                        color: #333;
+                    }
+                    .scheme-confirm-body {
+                        padding: 1.25rem;
+                    }
+                    .scheme-confirm-intro {
+                        margin: 0 0 1rem 0;
+                        color: #555;
+                        font-size: 0.9rem;
+                    }
+                    .scheme-confirm-fields {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.75rem;
+                    }
+                    .scheme-field-row {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.25rem;
+                    }
+                    .scheme-field-label {
+                        font-weight: 600;
+                        color: #555;
+                        font-size: 0.8rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .scheme-field-value {
+                        color: #333;
+                        font-size: 0.95rem;
+                        padding: 0.5rem 0.75rem;
+                        background: #f5f5f5;
+                        border: 1px solid #e0e0e0;
+                    }
+                    .scheme-request-input {
+                        display: flex;
+                        align-items: center;
+                        background: #fff;
+                        border: 2px solid var(--role-bursar, #8b6914);
+                        width: 50%;
+                        margin: 0 auto;
+                    }
+                    .scheme-currency {
+                        padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+                        color: #666;
+                        font-weight: 600;
+                    }
+                    .scheme-request-input input {
+                        flex: 1;
+                        padding: 0.5rem 0.75rem 0.5rem 0;
+                        border: none;
+                        font-size: 1rem;
+                        background: transparent;
+                        -moz-appearance: textfield;
+                    }
+                    .scheme-request-input input::-webkit-outer-spin-button,
+                    .scheme-request-input input::-webkit-inner-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                    }
+                    .scheme-request-input input:focus {
+                        outline: none;
+                    }
+                    .scheme-confirm-subtext {
+                        margin: 1rem 0 0 0;
+                        font-style: italic;
+                        font-size: 0.75rem;
+                        color: #999;
+                        line-height: 1.4;
+                    }
+                    .scheme-confirm-actions {
+                        display: flex;
+                        gap: 0.5rem;
+                        justify-content: center;
+                        padding: 0 1.25rem 1.25rem;
+                    }
+                    .scheme-confirm-btn {
+                        padding: 0.6rem 1.25rem;
+                        font-size: 0.85rem;
+                        font-weight: 700;
+                        cursor: pointer;
+                        border: none;
+                        text-transform: uppercase;
+                    }
+                    .scheme-confirm-send {
+                        background: var(--role-bursar, #8b6914);
+                        color: white;
+                    }
+                    .scheme-confirm-send:hover {
+                        opacity: 0.9;
+                    }
+                    .scheme-confirm-cancel {
+                        background: transparent;
+                        color: #888;
+                        border: 2px solid #ccc;
+                    }
+                    .scheme-confirm-cancel:hover {
+                        border-color: #999;
+                        color: #666;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Click outside to close
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeSchemeConfirmModal();
+            });
+        }
+        
+        function closeSchemeConfirmModal() {
+            const modal = document.getElementById('scheme-confirm-modal');
+            if (modal) modal.remove();
+            pendingSchemeBursarDid = null;
+            pendingSchemeDomain = null;
+        }
+        
+        async function confirmSendScheme() {
+            if (!pendingSchemeBursarDid || !pendingSchemeDomain) {
+                showCelebration('Session expired. Please try again.', 'error');
+                closeSchemeConfirmModal();
+                return;
+            }
+            
+            // Get the request amount from the input
+            const requestInput = document.getElementById('scheme-request-amount');
+            const requestAmount = requestInput ? requestInput.value.trim() : '';
+            
+            if (!requestAmount) {
+                showCelebration('Please enter a request amount.', 'error');
+                return;
+            }
+            
+            const bursarDid = pendingSchemeBursarDid;
+            const domain = pendingSchemeDomain;
+            
+            closeSchemeConfirmModal();
+            
+            console.log('📨 [Scheme] Sending to backend...');
+            
+            try {
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                if (!token && currentSession && currentSession.accessJwt) {
+                    token = currentSession.accessJwt;
+                }
+                
+                const userHandle = currentSession.profile?.handle || currentSession.handle || 'a dreamweaver';
+                
+                const response = await fetch('/api/work/bursar/send-scheme', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        domain: domain,
+                        bursar_did: bursarDid,
+                        request_amount: requestAmount
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('✅ [Scheme] Sent successfully');
+                    showCelebration('Scheme submitted! The Treasurer has been notified.', 'success');
+                    
+                    // Clear the input
+                    const input = document.getElementById('scheme-domain-input');
+                    if (input) input.value = '';
+                    
+                    // Update status text
+                    const statusText = document.getElementById('scheme-status-text');
+                    if (statusText) {
+                        statusText.textContent = 'Scheme submitted!';
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('❌ [Scheme] Failed:', errorData);
+                    showCelebration(errorData.error || 'Failed to send scheme', 'error');
+                }
+            } catch (error) {
+                console.error('❌ [Scheme] Exception:', error);
+                showCelebration('Failed to send scheme. Please try again.', 'error');
+            }
         }
         
         function populateFoodRequestForm() {
@@ -3943,7 +4709,7 @@
                 getExamples: () => []
             },
             dreamstyler: {
-                title: 'Dreamstyler',
+                title: 'Dreamstylers',
                 description: 'There is a wide difference between the aesthetics of dreams, and a highly visioned Dreamstyler is versatile enough to help shape or translate the dreams of others.<br><br>Because there are so many tastes, there are many types of Dreamstyler and Reverie House makes no distinction. Let yourself be known to others, and maintain your own designs.',
                 exampleLabel: 'Style Examples',
                 appPasswordName: 'Dreamstyler',
@@ -3962,16 +4728,16 @@
                 title: 'Bursar of Schemes',
                 description: 'Coordinating the use of scarce resources is a vital and indispensible role (according to the Bursar of Schemes)<br><br>This guardian of transparency works as the connective tissue between various patrons and the amazing dreams that need their support.',
                 exampleLabel: 'Treasury Updates',
-                appPasswordName: null, // Bursar holds no app password
-                passwordPurpose: null,
+                appPasswordName: 'Bursar of Schemes',
+                passwordPurpose: 'for treasury management',
                 roleName: 'Bursar of Schemes',
                 roleNameLower: 'bursar',
                 buttonText: 'BECOME BURSAR',
                 confirmTitle: 'Become Bursar of Schemes?',
-                confirmMessage: 'As Bursar, you will maintain financial transparency and serve as the community\'s point of contact for OpenCollective matters. This role requires no app password.',
-                activationMessage: 'You are now Bursar of Schemes\nMay your stewardship be transparent and true.\nScheme openly.',
+                confirmMessage: 'As Bursar, you will maintain financial transparency and serve as the community\'s point of contact for treasury matters.',
+                activationMessage: 'You are now Bursar of Schemes\nMay your stewardship be transparent and true.\nScheme openly!',
                 showExamples: false,
-                requiresAppPassword: false,
+                requiresAppPassword: true,
                 getExamples: () => []
             },
             cheerful: {

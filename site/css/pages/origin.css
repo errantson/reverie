@@ -57,10 +57,11 @@ body.origin-page {
     --page-background-color: #1a1a2e !important;
 }
 
-/* Centered origin card container */
+/* Centered origin card container - centers in available space below header */
 #origin-display-container {
     position: absolute !important;
-    top: 50% !important;
+    /* Account for header: center in the space from header bottom to viewport bottom */
+    top: calc(var(--header-height, 60px) + (100vh - var(--header-height, 60px)) / 2) !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
     z-index: 1000 !important;
@@ -76,8 +77,8 @@ body.origin-page {
         max-height: calc(100vh - 120px) !important;
         overflow-y: auto !important;
         gap: 15px !important;
-        top: 60px !important;
-        transform: translateX(-50%) !important;
+        top: calc(var(--header-height, 60px) + (100vh - var(--header-height, 60px)) / 2) !important;
+        transform: translate(-50%, -50%) !important;
         position: absolute !important;
     }
 }
