@@ -1,0 +1,370 @@
+/* Reverie House Music Player Styles */
+
+.music-player {
+    position: absolute;
+    right: 80px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 4px 8px 4px 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.music-player:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.music-player.playing {
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+}
+
+/* Resume indicator - shown when autoplay is blocked */
+.music-player.has-pending-resume {
+    border-color: rgba(255, 200, 100, 0.5);
+    animation: resume-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes resume-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255, 200, 100, 0.2); }
+    50% { box-shadow: 0 0 16px rgba(255, 200, 100, 0.4); }
+}
+
+.music-resume-indicator {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 200, 100, 0.9);
+    color: #1a1a2e;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    cursor: pointer;
+    animation: resume-bounce 0.6s ease-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.music-resume-indicator:hover {
+    background: rgba(255, 220, 150, 1);
+}
+
+@keyframes resume-bounce {
+    0% { transform: translateX(-50%) translateY(-10px); opacity: 0; }
+    50% { transform: translateX(-50%) translateY(2px); }
+    100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* Album Artwork */
+.music-player-artwork {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.music-player-artwork:hover {
+    transform: scale(1.05);
+}
+
+.music-player-artwork img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Play overlay on artwork */
+.music-player-play-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+}
+
+.music-player-artwork:hover .music-player-play-overlay {
+    opacity: 1;
+}
+
+.music-player.playing .music-player-play-overlay {
+    opacity: 0.8;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.music-player-play-overlay svg {
+    width: 20px;
+    height: 20px;
+    color: white;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Controls container */
+.music-player-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Play/Pause button */
+.music-player-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    padding: 0;
+}
+
+.music-player-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.1);
+}
+
+.music-player-btn:active {
+    transform: scale(0.95);
+}
+
+.music-player-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Volume slider */
+.music-player-volume {
+    width: 60px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    cursor: pointer;
+    outline: none;
+}
+
+.music-player-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease;
+}
+
+.music-player-volume::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.music-player-volume::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.music-player-volume::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+}
+
+.music-player-volume::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+    .music-player {
+        right: auto;
+        left: 75px;
+        padding: 3px 6px 3px 3px;
+    }
+
+    .music-player-artwork {
+        width: 34px;
+        height: 34px;
+    }
+
+    .music-player-controls {
+        gap: 4px;
+    }
+
+    .music-player-btn {
+        width: 24px;
+        height: 24px;
+    }
+
+    .music-player-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .music-player-volume {
+        width: 40px;
+    }
+
+    .music-player-play-overlay svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* Portrait mobile - more compact */
+@media (max-width: 480px) {
+    .music-player {
+        left: 70px;
+        gap: 4px;
+        padding: 2px 4px 2px 2px;
+    }
+
+    .music-player-artwork {
+        width: 30px;
+        height: 30px;
+    }
+
+    .music-player-volume {
+        width: 30px;
+    }
+
+    .music-player-btn {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+/* Hide on very small screens if needed */
+@media (max-width: 360px) {
+    .music-player-volume {
+        display: none;
+    }
+}
+
+/* Landscape tablet/desktop - give more room */
+@media (min-width: 768px) {
+    .music-player {
+        right: 100px;
+        gap: 10px;
+        padding: 5px 10px 5px 5px;
+    }
+
+    .music-player-artwork {
+        width: 44px;
+        height: 44px;
+    }
+
+    .music-player-volume {
+        width: 70px;
+    }
+}
+
+/* ============================================
+   BANDCAMP POPUP PLAYER
+   ============================================ */
+.bandcamp-player-popup {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 350px;
+    max-width: calc(100vw - 32px);
+    background: #1a1a1a;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    padding: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease, transform 0.25s ease;
+}
+
+.bandcamp-player-popup.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.bandcamp-popup-close {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    background: #333;
+    border: 2px solid #555;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.bandcamp-popup-close:hover {
+    background: #555;
+    border-color: #777;
+    transform: scale(1.1);
+}
+
+/* Mobile popup adjustments */
+@media (max-width: 767px) {
+    .bandcamp-player-popup {
+        bottom: 70px;
+        width: calc(100vw - 24px);
+        left: 12px;
+        transform: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .bandcamp-player-popup {
+        bottom: 65px;
+        padding: 6px;
+    }
+}
+
+/* Hidden SoundCloud iframe */
+.soundcloud-player-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    border: none;
+    z-index: -1;
+}

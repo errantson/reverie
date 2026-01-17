@@ -1136,6 +1136,137 @@ a:hover {
     text-align: center;
     margin: 20px 0;
 }
+
+/* ============================================================================
+   MEDIUM LAPTOPS (769px - 1199px) - Common laptop sizes like 1366px
+   ============================================================================ */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .hero-overlay {
+        max-width: 400px;
+        padding: 18px 26px;
+    }
+    
+    .hero-logo {
+        max-width: 130px;
+        min-width: 100px;
+    }
+    
+    .hero-tagline {
+        font-size: 14px;
+    }
+    
+    .dreamweaver-login-btn {
+        padding: 12px 18px;
+        font-size: 0.95rem;
+    }
+    
+    .login-subtext {
+        max-width: 80%;
+    }
+    
+    .login-subtext p {
+        font-size: 0.7rem;
+    }
+    
+    /* Stats overlay - more compact */
+    .stats-overlay {
+        top: 15px;
+        right: 15px;
+        padding: 10px 14px;
+        font-size: 11px;
+        min-width: 110px;
+    }
+    
+    /* Widget carousel - smaller */
+    .widget-carousel {
+        bottom: 15px;
+        left: 15px;
+        width: 230px;
+        padding: 14px;
+        max-height: 160px;
+    }
+    
+    .carousel-content {
+        height: 120px;
+    }
+    
+    /* About container narrower */
+    .about-container {
+        max-width: 720px;
+        padding: 22px;
+    }
+    
+    /* Two-column grids - single column on smaller medium screens */
+    .intro-combined {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .community-combined {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+    
+    /* Section headers slightly smaller */
+    .section-header h2 {
+        font-size: 20px;
+    }
+    
+    .section-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    /* Step items more compact */
+    .step-item {
+        width: 260px;
+        padding: 14px;
+    }
+    
+    .step-number {
+        width: 45px;
+        height: 45px;
+        font-size: 16px;
+    }
+    
+    .step-content h3 {
+        font-size: 16px;
+    }
+    
+    /* Footer adjustments */
+    .integrated-footer {
+        padding: 18px 22px;
+    }
+    
+    .errantson-widget {
+        padding: 35px 22px;
+    }
+    
+    .errantson-content {
+        max-width: 360px;
+        padding: 25px;
+    }
+}
+
+/* Specific adjustments for 1200-1399px (larger laptops) */
+@media (min-width: 1200px) and (max-width: 1399px) {
+    .hero-overlay {
+        max-width: 450px;
+    }
+    
+    .hero-logo {
+        max-width: 145px;
+    }
+    
+    .stats-overlay {
+        min-width: 130px;
+    }
+    
+    .widget-carousel {
+        width: 260px;
+    }
+}
+
 @media (max-width: 768px) {
     .hero-main {
         position: relative;

@@ -1179,6 +1179,69 @@ body.dreamer-page {
 .invitation-text a:hover {
     text-decoration: underline;
 }
+
+/* ============================================================================
+   MEDIUM LAPTOPS (1001px - 1300px) - Common laptop sizes like 1366px, 1280px
+   ============================================================================ */
+@media (min-width: 1001px) and (max-width: 1300px) {
+    .profile-sidebar-row {
+        max-width: 900px;
+        padding: 16px;
+        gap: 16px;
+    }
+    
+    #search-container {
+        flex: 0 0 260px;
+        min-width: 260px;
+        max-width: 260px;
+    }
+    
+    .profile-meta-boxes {
+        flex: 0 0 320px;
+    }
+    
+    .profile-picture img {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .profile-name h1 {
+        font-size: 1.6rem;
+    }
+    
+    .bio-box {
+        min-height: 130px;
+        font-size: 0.9rem;
+    }
+    
+    .stats-box {
+        flex: 0 0 150px;
+    }
+    
+    .spectrum-graph-box {
+        max-width: 380px;
+        padding: 14px;
+    }
+    
+    #profileSpectrumCanvas {
+        max-width: 350px;
+    }
+    
+    .spectrum-controls-box {
+        width: 180px;
+        padding: 14px;
+    }
+    
+    .adventure-box {
+        padding: 14px;
+    }
+    
+    .log-entry {
+        font-size: 0.8rem;
+        padding: 8px 10px;
+    }
+}
+
 @media (max-width: 1000px) {
     .profile-sidebar-row {
         flex-direction: column;

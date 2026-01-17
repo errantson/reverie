@@ -206,19 +206,19 @@ def get_newcomers_today():
 
 @bp.route('/dreamers/recent')
 def get_recent_dreamers():
-    """Get the 3 most recently added dreamers (by database insertion order)"""
+    """Get the 3 most recently added dreamers (by sequential id)"""
     try:
         from core.database import DatabaseManager
         
         db = DatabaseManager()
         
-        # Get 3 most recent database additions using created_at (insertion order)
+        # Get 3 most recent dreamers by sequential id (highest = newest)
         cursor = db.execute("""
             SELECT 
                 d.did, d.handle, d.name, d.display_name,
-                d.server, d.avatar, d.created_at, d.color_hex
+                d.server, d.avatar, d.created_at, d.color_hex, d.id
             FROM dreamers d
-            ORDER BY d.created_at DESC NULLS LAST
+            ORDER BY d.id DESC
             LIMIT 3
         """)
         dreamers = cursor.fetchall()

@@ -164,11 +164,11 @@ class Profile {
             await this.waitForDependencies();
             
             this.dreamer = dreamer;
-            document.title = `Reverie Spectrum — ${dreamer.name || dreamer.handle}`;
+            document.title = `Reverie Spectrum — ${dreamer.display_name || dreamer.name || dreamer.handle}`;
             
             // Set profile color from dreamer's color_hex (this will override user color temporarily)
             if (dreamer.color_hex && window.colorManager) {
-                window.colorManager.setProfileColor(dreamer.color_hex, dreamer.name || dreamer.handle);
+                window.colorManager.setProfileColor(dreamer.color_hex, dreamer.display_name || dreamer.name || dreamer.handle);
                 // Also set --reverie-core-color for inline styles in profile
                 document.documentElement.style.setProperty('--reverie-core-color', dreamer.color_hex);
             } else if (dreamer.color_hex) {
@@ -386,10 +386,10 @@ class Profile {
         // Display designation in uppercase
         let designation = (dreamer.designation || 'Dreamer').toUpperCase();
 
-        // Name without icon
+        // Name without icon - prefer display_name (from AT Protocol) over name (db)
         nameEl.innerHTML = `
             <h1>
-                ${dreamer.name || dreamer.handle}
+                ${dreamer.display_name || dreamer.name || dreamer.handle}
             </h1>
         `;
 

@@ -1,0 +1,437 @@
+/* ============================================================================
+   RESPONSIVE DESIGN ENHANCEMENTS
+   ============================================================================
+   Enhanced breakpoints for better support of:
+   - Widescreens and large monitors
+   - Medium-sized laptops (1366px, 1280px)
+   - Small laptops and tablets in landscape
+   - Various aspect ratios including ultrawide
+   ============================================================================ */
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES - Responsive Values
+   ============================================================================ */
+:root {
+    /* Fluid spacing based on viewport */
+    --fluid-padding: clamp(12px, 3vw, 32px);
+    --fluid-gap: clamp(12px, 2vw, 24px);
+    
+    /* Fluid font sizing */
+    --fluid-body-size: clamp(14px, 1.5vw, 16px);
+    --fluid-heading-size: clamp(18px, 2.5vw, 24px);
+    
+    /* Content width constraints */
+    --content-max-width: min(1000px, 90vw);
+    --hero-max-width: min(500px, 85vw);
+}
+
+/* ============================================================================
+   LARGE SCREENS (1400px+) - Widescreen enhancements
+   ============================================================================ */
+@media (min-width: 1400px) {
+    /* Increase max content width for large screens */
+    :root {
+        --max-content-width: 900px;
+    }
+    
+    /* Hero overlay scales up slightly on large screens */
+    .hero-overlay {
+        max-width: 520px;
+        padding: 28px 40px;
+    }
+    
+    /* Ensure readable line lengths */
+    .about-container {
+        max-width: 900px;
+    }
+    
+    /* Better sidebar proportions */
+    #search-container {
+        flex: 0 0 360px;
+        min-width: 360px;
+        max-width: 360px;
+    }
+    
+    .profile-sidebar-row {
+        max-width: 1100px;
+    }
+    
+    /* Header message has more space */
+    .header-message-display {
+        width: 340px;
+    }
+}
+
+/* ============================================================================
+   MEDIUM-LARGE SCREENS (1024px - 1399px) - Common laptop sizes
+   ============================================================================ */
+@media (min-width: 1024px) and (max-width: 1399px) {
+    /* Optimize sidebar for medium screens */
+    #search-container {
+        flex: 0 0 280px;
+        min-width: 280px;
+        max-width: 280px;
+    }
+    
+    .profile-sidebar-row {
+        max-width: 900px;
+        padding: 16px;
+        gap: 16px;
+    }
+    
+    /* Adjust profile header columns */
+    .dashboard-header {
+        grid-template-columns: 90px minmax(180px, 350px) auto;
+        gap: 12px;
+        padding: 14px;
+    }
+    
+    /* Scale down header message */
+    .header-message-display {
+        width: 240px;
+        font-size: 0.8rem;
+    }
+    
+    /* Adjust hero for medium screens */
+    .hero-overlay {
+        max-width: 420px;
+        padding: 20px 28px;
+    }
+    
+    .hero-logo {
+        max-width: 140px;
+    }
+    
+    /* Stats overlay - less intrusive */
+    .stats-overlay {
+        padding: 10px 14px;
+        font-size: 11px;
+        top: 15px;
+        right: 15px;
+    }
+    
+    /* Widget carousel - compact */
+    .widget-carousel {
+        width: 240px;
+        padding: 14px;
+        font-size: 10px;
+    }
+}
+
+/* ============================================================================
+   SMALL LAPTOPS (769px - 1023px) - Critical intermediate breakpoint
+   ============================================================================ */
+@media (min-width: 769px) and (max-width: 1023px) {
+    /* Sidebar stacks below on small laptops */
+    .profile-sidebar-row {
+        flex-direction: column;
+        max-width: 700px;
+        padding: 16px;
+        gap: 16px;
+    }
+    
+    #search-container {
+        flex: none;
+        min-width: 100%;
+        max-width: 100%;
+        order: -1; /* Search first on small screens */
+    }
+    
+    #profile-container {
+        max-width: 100%;
+    }
+    
+    /* Dashboard header - 2 column layout */
+    .dashboard-header {
+        grid-template-columns: 80px 1fr;
+        grid-template-rows: auto auto;
+        gap: 10px;
+        padding: 12px;
+    }
+    
+    .dashboard-avatar-section {
+        grid-row: 1;
+        grid-column: 1;
+    }
+    
+    .profile-meta-boxes {
+        flex: none;
+        grid-column: 1 / -1;
+    }
+    
+    /* Hero adjustments */
+    .hero-overlay {
+        max-width: 380px;
+        padding: 18px 24px;
+    }
+    
+    .hero-logo {
+        max-width: 130px;
+    }
+    
+    /* Header center group adjustments */
+    .header-message-display {
+        width: 200px;
+        font-size: 0.75rem;
+        height: 32px;
+    }
+    
+    .header-center-group {
+        gap: 12px;
+    }
+    
+    /* Nav dropdown trigger - compact */
+    .nav-dropdown-trigger {
+        padding: 6px 12px;
+        font-size: 13px;
+        height: 36px;
+    }
+    
+    /* Two-column grids collapse to single */
+    .intro-combined,
+    .community-combined {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    /* Download grid stays 2-col but tighter */
+    .download-grid {
+        gap: 12px;
+    }
+    
+    /* Stats and widgets adjust position */
+    .stats-overlay {
+        top: 12px;
+        right: 12px;
+        padding: 8px 12px;
+        font-size: 10px;
+        min-width: 100px;
+    }
+    
+    .widget-carousel {
+        bottom: 12px;
+        left: 12px;
+        width: 220px;
+        padding: 12px;
+        max-height: 160px;
+    }
+    
+    /* Login modal smaller */
+    .login-box, .logout-box {
+        max-width: 420px;
+        padding: 24px 28px;
+    }
+}
+
+/* ============================================================================
+   SHORT HEIGHT SCREENS (landscape tablets, small laptops)
+   ============================================================================ */
+@media (max-height: 700px) and (min-width: 769px) {
+    /* Reduce header height */
+    .reader-header {
+        min-height: 48px;
+        padding: 8px 20px;
+    }
+    
+    .header-unified .header-logo {
+        height: 44px;
+    }
+    
+    /* Compact hero for short screens */
+    .hero-overlay {
+        padding: 16px 24px;
+    }
+    
+    .hero-logo {
+        max-width: 120px;
+        margin-bottom: 8px;
+    }
+    
+    .dreamweaver-login-container {
+        margin-top: 12px;
+    }
+    
+    .dreamweaver-login-btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+    
+    /* Compact stats */
+    .stats-overlay {
+        padding: 8px 10px;
+        font-size: 10px;
+    }
+    
+    /* Hide non-essential widgets */
+    .widget-carousel {
+        display: none;
+    }
+    
+    /* Content sections start higher */
+    .content-sections {
+        margin-top: 40vh;
+    }
+    
+    /* Fixed header offset */
+    .has-fixed-header {
+        padding-top: 48px;
+    }
+}
+
+/* ============================================================================
+   ULTRAWIDE SCREENS (21:9 and wider)
+   ============================================================================ */
+@media (min-aspect-ratio: 21/9) and (min-width: 1400px) {
+    /* Center content more aggressively */
+    .profile-sidebar-row {
+        max-width: 1200px;
+    }
+    
+    /* Hero overlay doesn't get too small on ultrawides */
+    .hero-overlay {
+        max-width: 540px;
+    }
+    
+    /* Prevent background from looking too cropped */
+    .background-layer {
+        object-position: center 40%;
+    }
+    
+    /* Stats and widgets can be larger */
+    .stats-overlay {
+        min-width: 150px;
+        padding: 14px 18px;
+    }
+    
+    .widget-carousel {
+        width: 300px;
+    }
+}
+
+/* ============================================================================
+   NARROW WIDESCREEN (16:10 monitors at 1366px, 1280px)
+   ============================================================================ */
+@media (min-width: 1280px) and (max-width: 1399px) and (min-aspect-ratio: 16/10) {
+    /* Slightly more compact than regular desktop */
+    .header-unified {
+        padding: 0 24px;
+        gap: 30px;
+    }
+    
+    .profile-sidebar-row {
+        max-width: 960px;
+    }
+    
+    /* Ensure proper content width at 1366px */
+    .about-container {
+        max-width: 760px;
+    }
+}
+
+/* ============================================================================
+   FLUID TYPOGRAPHY AND SPACING
+   ============================================================================ */
+
+/* Apply fluid sizing to key elements */
+.hero-tagline {
+    font-size: clamp(13px, 1.2vw, 16px);
+    line-height: 1.45;
+}
+
+.step-content h3 {
+    font-size: clamp(15px, 1.5vw, 18px);
+}
+
+.section-header h2 {
+    font-size: clamp(18px, 2vw, 22px);
+}
+
+/* Fluid padding for containers */
+.about-container {
+    padding: var(--fluid-padding);
+}
+
+.how-to-play,
+.what-is-reverie,
+.who-are-you {
+    padding: var(--fluid-padding);
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+@media print {
+    .fullscreen-background,
+    .floating-elements,
+    .magic-dust-container,
+    .wind-particles-container,
+    .stats-overlay,
+    .widget-carousel,
+    .reader-header,
+    #header-container {
+        display: none !important;
+    }
+    
+    .main-content {
+        padding-top: 0 !important;
+    }
+    
+    .profile-sidebar-row {
+        flex-direction: column;
+    }
+    
+    #search-container {
+        display: none;
+    }
+}
+
+/* ============================================================================
+   PREFERS REDUCED MOTION
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+    .background-layer {
+        animation: none;
+    }
+    
+    .gentle-drift {
+        animation: none;
+    }
+    
+    .helper-pulse {
+        animation: none;
+    }
+    
+    .magic-particle,
+    .wind-particle {
+        animation: none;
+    }
+    
+    /* Disable all transforms and transitions for motion sensitivity */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE SUPPORT
+   ============================================================================ */
+@media (prefers-contrast: high) {
+    .hero-overlay {
+        background: rgba(255, 255, 255, 1);
+        border-width: 3px;
+    }
+    
+    .nav-dropdown-trigger {
+        border-width: 2px;
+    }
+    
+    .stats-overlay,
+    .widget-carousel {
+        background: rgba(255, 255, 255, 1);
+        border-width: 2px;
+    }
+}

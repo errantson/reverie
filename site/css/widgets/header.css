@@ -521,6 +521,95 @@
 .has-fixed-header {
     padding-top: 56px;
 }
+
+/* ============================================================================
+   MEDIUM LAPTOPS (769px - 1200px) - Common laptop sizes like 1366px
+   ============================================================================ */
+@media (min-width: 769px) and (max-width: 1200px) {
+    .header-unified {
+        padding: 0 20px;
+        gap: 24px;
+    }
+    
+    .header-unified .header-logo {
+        height: 48px;
+    }
+    
+    .header-center-group {
+        gap: 12px;
+    }
+    
+    .header-message-display {
+        width: 200px;
+        font-size: 0.75rem;
+        height: 32px;
+        line-height: 1.25;
+    }
+    
+    .errantson-helper {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+    }
+    
+    .errantson-helper img {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .nav-dropdown-trigger {
+        padding: 6px 12px;
+        font-size: 13px;
+        height: 36px;
+        gap: 6px;
+    }
+    
+    .nav-current-icon {
+        font-size: 14px;
+    }
+    
+    .nav-current-label {
+        font-size: 13px;
+    }
+    
+    .reader-header {
+        min-height: 52px;
+        padding: 10px 16px;
+    }
+}
+
+/* Specific adjustments for small laptops (769-1000px) */
+@media (min-width: 769px) and (max-width: 1000px) {
+    .header-unified {
+        padding: 0 16px;
+        gap: 16px;
+    }
+    
+    .header-unified .header-logo {
+        height: 44px;
+    }
+    
+    .header-message-display {
+        width: 160px;
+        font-size: 0.7rem;
+    }
+    
+    .nav-dropdown-trigger {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    
+    .nav-current-label {
+        font-size: 12px;
+    }
+    
+    /* Hide non-essential elements on small laptops */
+    .beta-notice {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .header-unified .logo-link,
     .beta-notice,
