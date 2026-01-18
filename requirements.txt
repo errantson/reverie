@@ -21,3 +21,7 @@ python-dotenv==1.0.0
 # Utilities
 pytz==2024.1
 PyJWT==2.8.0
+cryptography\nbase58
+cryptography
+base58
+cbor2

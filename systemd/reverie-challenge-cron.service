@@ -1,0 +1,14 @@
+[Unit]
+Description=Reverie House Challenge Cron (Hourly)
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/reverie.house
+ExecStart=/usr/bin/python3 /srv/reverie.house/scripts/challenge_cron.py
+User=root
+StandardOutput=append:/srv/reverie.house/logs/challenge_cron.log
+StandardError=append:/srv/reverie.house/logs/challenge_cron.log
+
+[Install]
+WantedBy=multi-user.target

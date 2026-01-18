@@ -1,0 +1,13 @@
+[Unit]
+Description=Reverie House Guardian Label Sync
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker exec reverie_api python3 /srv/scripts/guardian_label_sync.py
+User=root
+StandardOutput=append:/srv/reverie.house/logs/guardian_label_sync.log
+StandardError=append:/srv/reverie.house/logs/guardian_label_sync.log
+
+[Install]
+WantedBy=multi-user.target

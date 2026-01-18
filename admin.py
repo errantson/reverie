@@ -10160,6 +10160,264 @@ def get_guardian_lists(guardian_did):
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================================================
+# Personal Block Endpoints (for any user, separate from guardian system)
+# ============================================================================
+
+@app.route('/api/user/block', methods=['POST'])
+@rate_limit()
+def user_block_user():
+    """Block a user (personal block - any user can do this)
+    
+    Personal blocks:
+    - Always apply to the blocker's own view
+    - Contribute to aggregate filtering for guests
+    - If blocker is a ward/charge, their block adds weight to guardian's position
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        blocked_did = data.get('did', '').strip()
+        reason = data.get('reason', '')
+        
+        if not blocked_did:
+            return jsonify({'error': 'User DID required'}), 400
+        
+        if blocked_did == user_did:
+            return jsonify({'error': 'Cannot block yourself'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        # Check if already blocked
+        existing = db_manager.fetch_one("""
+            SELECT id FROM personal_blocks 
+            WHERE blocker_did = %s AND blocked_did = %s
+        """, (user_did, blocked_did))
+        
+        if existing:
+            return jsonify({'success': True, 'message': 'User already blocked', 'already_blocked': True})
+        
+        # Add personal block
+        db_manager.execute("""
+            INSERT INTO personal_blocks (blocker_did, blocked_did, reason)
+            VALUES (%s, %s, %s)
+        """, (user_did, blocked_did, reason))
+        
+        # Get blocked user info for response
+        blocked_user = db_manager.fetch_one("""
+            SELECT handle, display_name FROM dreamers WHERE did = %s
+        """, (blocked_did,))
+        
+        print(f"🚫 PERSONAL BLOCK: {handle} blocked {blocked_user['handle'] if blocked_user else blocked_did[:20]}")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'User blocked',
+            'blocked': {
+                'did': blocked_did,
+                'handle': blocked_user['handle'] if blocked_user else 'unknown',
+                'displayName': blocked_user['display_name'] if blocked_user else 'Unknown'
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/unblock', methods=['POST'])
+@rate_limit()
+def user_unblock_user():
+    """Unblock a user (remove personal block)"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        blocked_did = data.get('did', '').strip()
+        
+        if not blocked_did:
+            return jsonify({'error': 'User DID required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        db_manager.execute("""
+            DELETE FROM personal_blocks 
+            WHERE blocker_did = %s AND blocked_did = %s
+        """, (user_did, blocked_did))
+        
+        print(f"✅ PERSONAL UNBLOCK: {handle} unblocked {blocked_did[:20]}")
+        
+        return jsonify({'success': True, 'message': 'User unblocked'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/blocks')
+@rate_limit()
+def user_get_blocks():
+    """Get user's personal block list"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        # Get personal blocks
+        blocks = db_manager.fetch_all("""
+            SELECT pb.blocked_did, pb.reason, pb.created_at,
+                   d.handle, d.display_name, d.avatar
+            FROM personal_blocks pb
+            LEFT JOIN dreamers d ON d.did = pb.blocked_did
+            WHERE pb.blocker_did = %s
+            ORDER BY pb.created_at DESC
+        """, (user_did,))
+        
+        # Get personal content blocks
+        content_blocks = db_manager.fetch_all("""
+            SELECT content_uri, reason, created_at
+            FROM personal_content_blocks
+            WHERE blocker_did = %s
+            ORDER BY created_at DESC
+        """, (user_did,))
+        
+        return jsonify({
+            'success': True,
+            'blocked_users': [{
+                'did': row['blocked_did'],
+                'handle': row['handle'] or 'unknown',
+                'displayName': row['display_name'] or 'Unknown',
+                'avatar': row['avatar'] or '/assets/default-avatar.png',
+                'reason': row['reason'],
+                'created_at': row['created_at'].isoformat() if row['created_at'] else None
+            } for row in (blocks or [])],
+            'blocked_content': [{
+                'uri': row['content_uri'],
+                'reason': row['reason'],
+                'created_at': row['created_at'].isoformat() if row['created_at'] else None
+            } for row in (content_blocks or [])]
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/content/block', methods=['POST'])
+@rate_limit()
+def user_block_content():
+    """Block content (personal block - any user can do this)"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        content_uri = data.get('uri', '').strip()
+        reason = data.get('reason', '')
+        
+        if not content_uri:
+            return jsonify({'error': 'Content URI required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        # Check if already blocked
+        existing = db_manager.fetch_one("""
+            SELECT id FROM personal_content_blocks 
+            WHERE blocker_did = %s AND content_uri = %s
+        """, (user_did, content_uri))
+        
+        if existing:
+            return jsonify({'success': True, 'message': 'Content already blocked', 'already_blocked': True})
+        
+        # Add personal content block
+        db_manager.execute("""
+            INSERT INTO personal_content_blocks (blocker_did, content_uri, reason)
+            VALUES (%s, %s, %s)
+        """, (user_did, content_uri, reason))
+        
+        print(f"🚫 CONTENT BLOCK: {handle} blocked content: {content_uri[:60]}...")
+        
+        return jsonify({'success': True, 'message': 'Content blocked'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/content/unblock', methods=['POST'])
+@rate_limit()
+def user_unblock_content():
+    """Unblock content (remove personal content block)"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        content_uri = data.get('uri', '').strip()
+        
+        if not content_uri:
+            return jsonify({'error': 'Content URI required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        db_manager.execute("""
+            DELETE FROM personal_content_blocks 
+            WHERE blocker_did = %s AND content_uri = %s
+        """, (user_did, content_uri))
+        
+        print(f"✅ CONTENT UNBLOCK: {handle} unblocked content: {content_uri[:60]}...")
+        
+        return jsonify({'success': True, 'message': 'Content unblocked'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/content/hide', methods=['POST'])
 @rate_limit()
 def hide_content_for_self():
@@ -10262,7 +10520,12 @@ def unhide_content_for_self():
 @app.route('/api/guardian/add', methods=['POST'])
 @rate_limit()
 def guardian_add_item():
-    """Add an item to a guardian's list"""
+    """Add an item to a guardian's list
+    
+    Syncs labels to lore.farm for network-wide protection:
+    - barred_users/barred_content -> hide:{guardian} label
+    - allowed_users/allowed_content -> safe:{guardian} label
+    """
     try:
         from core.database import DatabaseManager
         
@@ -10302,6 +10565,9 @@ def guardian_add_item():
             else:
                 return jsonify({'error': 'You are not a guardian'}), 403
         
+        # Get guardian's handle for label
+        guardian = db_manager.fetch_one("SELECT handle FROM dreamers WHERE did = %s", (user_did,))
+        guardian_handle = guardian['handle'] if guardian else 'unknown'
         
         # Determine column name based on list
         if list_name in ('barred_users', 'allowed_users'):
@@ -10314,7 +10580,54 @@ def guardian_add_item():
             VALUES (%s, %s, %s)
         """, (user_did, value, reason))
         
-        return jsonify({'success': True, 'message': f'Added to {list_name}'})
+        # Sync label to lore.farm
+        label_result = None
+        try:
+            from core.guardian_labels import get_label_manager
+            label_manager = get_label_manager()
+            
+            # Determine URI and label type
+            # For users, we label their DID (account-level); for content, we label the post URI
+            if list_name in ('barred_users', 'barred_content'):
+                # Barred -> hide-{guardian} label
+                if list_name == 'barred_content':
+                    label_result = label_manager.apply_hide_label(
+                        uri=value,
+                        guardian_did=user_did,
+                        guardian_handle=guardian_handle,
+                        reason=reason
+                    )
+                else:
+                    # For barred users, apply account-level label
+                    label_result = label_manager.apply_hide_account_label(
+                        user_did=value,  # The barred user's DID
+                        guardian_did=user_did,  # The guardian's DID
+                        guardian_handle=guardian_handle,
+                        reason=reason
+                    )
+                    
+            else:
+                # Allowed lists - no labels (whitelist mode not supported in ATProto)
+                # Just record in database for reference
+                if list_name == 'allowed_content':
+                    print(f"  📝 Recorded allowed content: {value[:50]}... (whitelist labels not supported)")
+                else:
+                    print(f"  📝 Recorded allowed user: {value} (whitelist labels not supported)")
+            
+            if label_result and label_result.get('success'):
+                print(f"  🏷️ Applied label for {list_name}: {value[:50]}...")
+            elif label_result:
+                print(f"  ⚠️ Label sync failed: {label_result.get('error')}")
+                
+        except Exception as label_error:
+            print(f"  ⚠️ Label sync error: {label_error}")
+            label_result = {'success': False, 'error': str(label_error)}
+        
+        response = {'success': True, 'message': f'Added to {list_name}'}
+        if label_result:
+            response['label_sync'] = label_result
+        
+        return jsonify(response)
         
     except Exception as e:
         import traceback
@@ -10325,7 +10638,10 @@ def guardian_add_item():
 @app.route('/api/guardian/remove', methods=['POST'])
 @rate_limit()
 def guardian_remove_item():
-    """Remove an item from a guardian's list"""
+    """Remove an item from a guardian's list
+    
+    Negates labels on lore.farm when content is un-barred/un-allowed.
+    """
     try:
         from core.database import DatabaseManager
         
@@ -10349,6 +10665,9 @@ def guardian_remove_item():
         
         db_manager = DatabaseManager()
         
+        # Get guardian's handle for label negation
+        guardian = db_manager.fetch_one("SELECT handle FROM dreamers WHERE did = %s", (user_did,))
+        guardian_handle = guardian['handle'] if guardian else 'unknown'
         
         # Determine column name based on list
         if list_name in ('barred_users', 'allowed_users'):
@@ -10360,7 +10679,48 @@ def guardian_remove_item():
             DELETE FROM {list_name} WHERE guardian_did = %s AND {col} = %s
         """, (user_did, value))
         
-        return jsonify({'success': True, 'message': f'Removed from {list_name}'})
+        # Negate label on lore.farm
+        label_result = None
+        try:
+            from core.guardian_labels import get_label_manager
+            label_manager = get_label_manager()
+            
+            if list_name in ('barred_users', 'barred_content'):
+                # Remove hide:{guardian} label
+                if list_name == 'barred_content':
+                    label_result = label_manager.remove_hide_label(
+                        uri=value,
+                        guardian_did=user_did,
+                        guardian_handle=guardian_handle
+                    )
+                else:
+                    print(f"  📝 Removed barred user record: {value}")
+                    
+            else:
+                # Remove safe:{guardian} label
+                if list_name == 'allowed_content':
+                    label_result = label_manager.remove_safe_label(
+                        uri=value,
+                        guardian_did=user_did,
+                        guardian_handle=guardian_handle
+                    )
+                else:
+                    print(f"  📝 Removed allowed user record: {value}")
+            
+            if label_result and label_result.get('success'):
+                print(f"  🏷️ Negated label for {list_name}: {value[:50]}...")
+            elif label_result:
+                print(f"  ⚠️ Label negation failed: {label_result.get('error')}")
+                
+        except Exception as label_error:
+            print(f"  ⚠️ Label negation error: {label_error}")
+            label_result = {'success': False, 'error': str(label_error)}
+        
+        response = {'success': True, 'message': f'Removed from {list_name}'}
+        if label_result:
+            response['label_sync'] = label_result
+        
+        return jsonify(response)
         
     except Exception as e:
         import traceback
@@ -10371,7 +10731,11 @@ def guardian_remove_item():
 @app.route('/api/guardian/become', methods=['POST'])
 @rate_limit()
 def guardian_become_ward_or_charge():
-    """Become a ward or charge of a guardian"""
+    """Become a ward or charge of a guardian
+    
+    Optionally configures labeler subscription if access_jwt and pds_endpoint provided.
+    This enables automatic content filtering based on guardian's curation.
+    """
     try:
         from core.database import DatabaseManager
         
@@ -10386,6 +10750,10 @@ def guardian_become_ward_or_charge():
         data = request.get_json() or {}
         guardian_did = data.get('guardian_did', '').strip()
         role_type = data.get('type', '').strip()  # 'ward' or 'charge'
+        
+        # Optional: for labeler subscription configuration
+        access_jwt = data.get('access_jwt')
+        pds_endpoint = data.get('pds_endpoint')
         
         if not guardian_did:
             return jsonify({'error': 'Guardian DID required'}), 400
@@ -10429,11 +10797,45 @@ def guardian_become_ward_or_charge():
         
         print(f"  ✓ {user_did} is now a {role_type} of {guardian_did}")
         
-        # Get guardian's name for the event text
+        # Get guardian's info for event text and labeler subscription
         guardian = db_manager.fetch_one("""
             SELECT d.name, d.handle FROM dreamers d WHERE d.did = %s
         """, (guardian_did,))
         guardian_name = guardian['name'] if guardian and guardian.get('name') else guardian['handle'] if guardian else 'Unknown'
+        guardian_handle = guardian['handle'] if guardian else 'unknown'
+        
+        # Configure labeler subscription if JWT provided
+        subscription_result = None
+        if access_jwt and pds_endpoint:
+            try:
+                from core.labeler_subscription import get_subscription_manager
+                sub_manager = get_subscription_manager()
+                
+                if role_type == 'ward':
+                    subscription_result = sub_manager.configure_ward_subscription(
+                        user_did=user_did,
+                        guardian_did=guardian_did,
+                        guardian_handle=guardian_handle,
+                        pds_endpoint=pds_endpoint,
+                        access_jwt=access_jwt
+                    )
+                else:
+                    subscription_result = sub_manager.configure_charge_subscription(
+                        user_did=user_did,
+                        guardian_did=guardian_did,
+                        guardian_handle=guardian_handle,
+                        pds_endpoint=pds_endpoint,
+                        access_jwt=access_jwt
+                    )
+                
+                if subscription_result.get('success'):
+                    print(f"  🛡️ Configured labeler subscription for {role_type}")
+                else:
+                    print(f"  ⚠️ Labeler subscription failed: {subscription_result.get('error')}")
+                    
+            except Exception as sub_error:
+                print(f"  ⚠️ Labeler subscription error: {sub_error}")
+                subscription_result = {'success': False, 'error': str(sub_error)}
         
         # Create event record for becoming a ward/charge
         import time
@@ -10449,12 +10851,17 @@ def guardian_become_ward_or_charge():
         
         print(f"  ✨ Created guardian event: {event_text}")
         
-        return jsonify({
+        response = {
             'success': True,
             'message': f'You are now a {role_type} of this guardian',
             'type': role_type,
             'guardian_did': guardian_did
-        })
+        }
+        
+        if subscription_result:
+            response['labeler_subscription'] = subscription_result
+        
+        return jsonify(response)
         
     except Exception as e:
         import traceback
@@ -10465,7 +10872,10 @@ def guardian_become_ward_or_charge():
 @app.route('/api/guardian/leave', methods=['POST'])
 @rate_limit()
 def guardian_leave_ward_or_charge():
-    """Leave a guardian's wards or charges"""
+    """Leave a guardian's wards or charges
+    
+    Optionally removes labeler subscription if access_jwt and pds_endpoint provided.
+    """
     try:
         from core.database import DatabaseManager
         
@@ -10476,6 +10886,12 @@ def guardian_leave_ward_or_charge():
         valid, user_did, handle = validate_work_token(token)
         if not valid or not user_did:
             return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        
+        # Optional: for labeler subscription removal
+        access_jwt = data.get('access_jwt')
+        pds_endpoint = data.get('pds_endpoint')
         
         db_manager = DatabaseManager()
         
@@ -10490,10 +10906,36 @@ def guardian_leave_ward_or_charge():
         
         print(f"  ✓ {user_did} has left all guardian relationships")
         
-        return jsonify({
+        # Remove labeler subscription if JWT provided
+        subscription_result = None
+        if access_jwt and pds_endpoint:
+            try:
+                from core.labeler_subscription import get_subscription_manager
+                sub_manager = get_subscription_manager()
+                subscription_result = sub_manager.remove_subscription(
+                    user_did=user_did,
+                    pds_endpoint=pds_endpoint,
+                    access_jwt=access_jwt
+                )
+                
+                if subscription_result.get('success'):
+                    print(f"  🛡️ Removed labeler subscription")
+                else:
+                    print(f"  ⚠️ Labeler subscription removal failed: {subscription_result.get('error')}")
+                    
+            except Exception as sub_error:
+                print(f"  ⚠️ Labeler subscription error: {sub_error}")
+                subscription_result = {'success': False, 'error': str(sub_error)}
+        
+        response = {
             'success': True,
             'message': 'You have left your guardian'
-        })
+        }
+        
+        if subscription_result:
+            response['labeler_subscription'] = subscription_result
+        
+        return jsonify(response)
         
     except Exception as e:
         import traceback
@@ -10614,66 +11056,152 @@ def guardian_community_stats():
 @app.route('/api/guardian/aggregate-barred')
 @rate_limit()
 def guardian_aggregate_barred():
-    """Get users and content barred by a majority of guardians (for guest filtering)
+    """Get users and content barred by community consensus (for guest filtering)
     
-    Returns lists of user DIDs and content URIs that have been barred by more than half of all guardians.
-    This is used to filter content for non-logged-in users.
+    Bar-weighted voting: score = guardian_allows - all_bars
+    - Only GUARDIANS can allow (their allows count)
+    - ANYONE can bar (guardians via barred_users, users via personal_blocks)
+    - Ward/charge bars add endorsement weight to their guardian
+    - Tie or negative (score <= 0) = BARRED (err on the side of caution)
+    - Positive score = allowed
+    - No votes = not evaluated, passes through
     """
     try:
         from core.database import DatabaseManager
         
         db_manager = DatabaseManager()
         
-        # Get total number of guardians (workers in guardian role)
-        # We need to count from the work table, not stewardship
-        work_row = db_manager.fetch_one("""
-            SELECT workers FROM work WHERE role = 'guardian' LIMIT 1
+        # Step 1: Get all stewardship relationships (guardian -> wards/charges)
+        stewardship_rows = db_manager.fetch_all("""
+            SELECT guardian_did, wards, charges FROM stewardship
         """)
         
-        if work_row and work_row['workers']:
-            workers = json.loads(work_row['workers']) if isinstance(work_row['workers'], str) else work_row['workers']
-            total_guardians = len(workers)
-        else:
-            total_guardians = 0
+        # Build ward/charge -> guardian mapping
+        ward_to_guardian = {}
+        charge_to_guardian = {}
+        for row in (stewardship_rows or []):
+            guardian_did = row['guardian_did']
+            for ward_did in (row['wards'] or []):
+                ward_to_guardian[ward_did] = guardian_did
+            for charge_did in (row['charges'] or []):
+                charge_to_guardian[charge_did] = guardian_did
         
-        if total_guardians == 0:
-            return jsonify({
-                'success': True,
-                'barred_dids': [],
-                'barred_uris': [],
-                'total_guardians': 0,
-                'threshold': 0
-            })
+        # Step 2: Gather BAR votes (from guardians AND personal blocks from anyone)
+        guardian_bars = db_manager.fetch_all("""
+            SELECT guardian_did as voter_did, user_did as target_did FROM barred_users
+        """)
+        personal_bars = db_manager.fetch_all("""
+            SELECT blocker_did as voter_did, blocked_did as target_did FROM personal_blocks
+        """)
         
-        # Threshold is majority (more than half)
-        threshold = total_guardians // 2 + 1
+        # Step 3: Gather ALLOW votes (ONLY from guardians - non-guardians can't allow)
+        guardian_allows = db_manager.fetch_all("""
+            SELECT guardian_did as voter_did, user_did as target_did FROM allowed_users
+        """)
         
-        # Count how many guardians have barred each user
-        barred_user_counts = db_manager.fetch_all("""
-            SELECT user_did, COUNT(DISTINCT guardian_did) as bar_count
-            FROM barred_users
-            GROUP BY user_did
-            HAVING COUNT(DISTINCT guardian_did) >= %s
-        """, (threshold,))
+        # Step 4: Calculate scores for each target_did
+        user_bar_votes = {}   # target_did -> set of voter identifiers
+        user_allow_votes = {} # target_did -> set of voter identifiers
         
-        barred_dids = [row['user_did'] for row in (barred_user_counts or [])]
+        def add_bar_vote(target_did, voter_id):
+            if target_did not in user_bar_votes:
+                user_bar_votes[target_did] = set()
+            user_bar_votes[target_did].add(voter_id)
         
-        # Count how many guardians have barred each content URI
-        barred_content_counts = db_manager.fetch_all("""
-            SELECT content_uri, COUNT(DISTINCT guardian_did) as bar_count
-            FROM barred_content
-            GROUP BY content_uri
-            HAVING COUNT(DISTINCT guardian_did) >= %s
-        """, (threshold,))
+        def add_allow_vote(target_did, voter_id):
+            if target_did not in user_allow_votes:
+                user_allow_votes[target_did] = set()
+            user_allow_votes[target_did].add(voter_id)
         
-        barred_uris = [row['content_uri'] for row in (barred_content_counts or [])]
+        # Process guardian bar votes
+        for row in (guardian_bars or []):
+            add_bar_vote(row['target_did'], row['voter_did'])
+        
+        # Process personal bar votes (with ward/charge endorsement)
+        for row in (personal_bars or []):
+            voter_did = row['voter_did']
+            target_did = row['target_did']
+            add_bar_vote(target_did, voter_did)
+            
+            # Ward/charge endorsement adds weight to guardian's bar
+            if voter_did in ward_to_guardian:
+                guardian_did = ward_to_guardian[voter_did]
+                add_bar_vote(target_did, f"{guardian_did}:ward_endorsement:{voter_did}")
+            if voter_did in charge_to_guardian:
+                guardian_did = charge_to_guardian[voter_did]
+                add_bar_vote(target_did, f"{guardian_did}:charge_endorsement:{voter_did}")
+        
+        # Process guardian allow votes (ONLY guardians can allow)
+        for row in (guardian_allows or []):
+            add_allow_vote(row['target_did'], row['voter_did'])
+        
+        # Step 5: Calculate who is barred (score <= 0 means barred)
+        all_targets = set(user_bar_votes.keys()) | set(user_allow_votes.keys())
+        barred_dids = []
+        
+        for target_did in all_targets:
+            bar_count = len(user_bar_votes.get(target_did, set()))
+            allow_count = len(user_allow_votes.get(target_did, set()))
+            score = allow_count - bar_count
+            
+            if score <= 0:  # Tie or negative = barred
+                barred_dids.append(target_did)
+        
+        # Step 6: Same logic for content (only guardian allows count)
+        guardian_content_bars = db_manager.fetch_all("""
+            SELECT guardian_did as voter_did, content_uri FROM barred_content
+        """)
+        personal_content_bars = db_manager.fetch_all("""
+            SELECT blocker_did as voter_did, content_uri FROM personal_content_blocks
+        """)
+        guardian_content_allows = db_manager.fetch_all("""
+            SELECT guardian_did as voter_did, content_uri FROM allowed_content
+        """)
+        
+        content_bar_votes = {}
+        content_allow_votes = {}
+        
+        def add_content_bar(uri, voter_id):
+            if uri not in content_bar_votes:
+                content_bar_votes[uri] = set()
+            content_bar_votes[uri].add(voter_id)
+        
+        def add_content_allow(uri, voter_id):
+            if uri not in content_allow_votes:
+                content_allow_votes[uri] = set()
+            content_allow_votes[uri].add(voter_id)
+        
+        for row in (guardian_content_bars or []):
+            add_content_bar(row['content_uri'], row['voter_did'])
+        
+        for row in (personal_content_bars or []):
+            voter_did = row['voter_did']
+            uri = row['content_uri']
+            add_content_bar(uri, voter_did)
+            if voter_did in ward_to_guardian:
+                add_content_bar(uri, f"{ward_to_guardian[voter_did]}:ward_endorsement:{voter_did}")
+            if voter_did in charge_to_guardian:
+                add_content_bar(uri, f"{charge_to_guardian[voter_did]}:charge_endorsement:{voter_did}")
+        
+        # Only guardian content allows count
+        for row in (guardian_content_allows or []):
+            add_content_allow(row['content_uri'], row['voter_did'])
+        
+        all_content = set(content_bar_votes.keys()) | set(content_allow_votes.keys())
+        barred_uris = []
+        
+        for uri in all_content:
+            bar_count = len(content_bar_votes.get(uri, set()))
+            allow_count = len(content_allow_votes.get(uri, set()))
+            if allow_count - bar_count <= 0:
+                barred_uris.append(uri)
         
         return jsonify({
             'success': True,
             'barred_dids': barred_dids,
             'barred_uris': barred_uris,
-            'total_guardians': total_guardians,
-            'threshold': threshold
+            'evaluated_users': len(all_targets),
+            'evaluated_content': len(all_content)
         })
         
     except Exception as e:
@@ -10723,7 +11251,15 @@ def guardian_my_rules():
         
         db_manager = DatabaseManager()
         
-        # Always fetch user's own barred lists (user as their own guardian)
+        # Fetch user's personal blocks (from personal_blocks table)
+        personal_blocks = db_manager.fetch_all("""
+            SELECT blocked_did FROM personal_blocks WHERE blocker_did = %s
+        """, (user_did,))
+        personal_content_blocks = db_manager.fetch_all("""
+            SELECT content_uri FROM personal_content_blocks WHERE blocker_did = %s
+        """, (user_did,))
+        
+        # Also fetch legacy self-guardian barred lists (for backward compatibility)
         own_barred_users = db_manager.fetch_all("""
             SELECT user_did FROM barred_users WHERE guardian_did = %s
         """, (user_did,))
@@ -10731,8 +11267,15 @@ def guardian_my_rules():
             SELECT content_uri FROM barred_content WHERE guardian_did = %s
         """, (user_did,))
         
-        own_barred_dids = [r['user_did'] for r in (own_barred_users or [])]
-        own_barred_uris = [r['content_uri'] for r in (own_barred_content or [])]
+        # Combine personal blocks with legacy barred lists
+        own_barred_dids = list(set(
+            [r['blocked_did'] for r in (personal_blocks or [])] +
+            [r['user_did'] for r in (own_barred_users or [])]
+        ))
+        own_barred_uris = list(set(
+            [r['content_uri'] for r in (personal_content_blocks or [])] +
+            [r['content_uri'] for r in (own_barred_content or [])]
+        ))
         
         # Check if user is a ward of any guardian
         ward_of = db_manager.fetch_one("""

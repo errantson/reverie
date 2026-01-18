@@ -38,23 +38,66 @@ def get_client_ip():
 def did_document():
     """
     Serve DID document for did:web:reverie.house
-    This identifies our feed generator service.
+    
+    This identifies Reverie House services:
+    - Feed Generator (BskyFeedGenerator)
+    - Labeler (AtprotoLabeler)
     """
-    return jsonify({
+    did_doc = {
         "@context": [
             "https://www.w3.org/ns/did/v1",
             "https://w3id.org/security/multikey/v1",
             "https://w3id.org/security/suites/secp256k1-2019/v1"
         ],
         "id": "did:web:reverie.house",
+        "alsoKnownAs": ["at://reverie.house"],
+        "verificationMethod": [],
         "service": [
             {
                 "id": "#bsky_fg",
                 "type": "BskyFeedGenerator",
                 "serviceEndpoint": "https://reverie.house"
+            },
+            {
+                "id": "#atproto_labeler",
+                "type": "AtprotoLabeler",
+                "serviceEndpoint": "https://reverie.house"
             }
         ]
-    })
+    }
+    
+    # Try to load labeler signing key for verification method
+    try:
+        import os
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        import base58
+        
+        key_file = os.getenv('LABELER_SIGNING_KEY_FILE', '/srv/secrets/labeler_signing_key.pem')
+        if os.path.exists(key_file):
+            with open(key_file, 'rb') as f:
+                private_key = serialization.load_pem_private_key(f.read(), password=None)
+            
+            if isinstance(private_key, Ed25519PrivateKey):
+                public_key = private_key.public_key()
+                public_bytes = public_key.public_bytes(
+                    encoding=serialization.Encoding.Raw,
+                    format=serialization.PublicFormat.Raw
+                )
+                # Multicodec prefix for ed25519-pub is 0xed01
+                multicodec_key = bytes([0xed, 0x01]) + public_bytes
+                multibase_key = 'z' + base58.b58encode(multicodec_key).decode('utf-8')
+                
+                did_doc['verificationMethod'].append({
+                    'id': '#atproto_label',
+                    'type': 'Multikey',
+                    'controller': 'did:web:reverie.house',
+                    'publicKeyMultibase': multibase_key
+                })
+    except Exception as e:
+        print(f"[FeedGen] Could not load labeler signing key: {e}")
+    
+    return jsonify(did_doc)
 
 
 @app.route('/xrpc/app.bsky.feed.describeFeedGenerator')

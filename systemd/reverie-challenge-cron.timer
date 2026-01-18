@@ -1,0 +1,11 @@
+[Unit]
+Description=Reverie House Challenge Cron Timer (Hourly)
+Requires=reverie-challenge-cron.service
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -20,7 +20,6 @@ import requests
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
-from collections import defaultdict
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -224,7 +223,7 @@ class FeedGenerator:
         self.auth = AuthManager()
         self.network = NetworkClient()
         
-        # Feed definitions
+        # Static feed definitions
         self.feeds = {
             'lore': {
                 'name': 'Expanded Lore',
@@ -242,7 +241,7 @@ class FeedGenerator:
         self._community_dids = None
         self._lore_labels = None
         self._last_label_sync = None
-    
+        
     def get_community_dids(self) -> set:
         """Get all DIDs from reverie.db"""
         if self._community_dids is None:
@@ -508,18 +507,15 @@ class FeedGenerator:
         Main endpoint for feed generation.
         Called by Bluesky AppView with feed URI.
         
-        Note: Label sync is now done asynchronously by feedgen_updater or jetstream_hub.
-        We just serve from the database without blocking on external API calls.
+        Supported feeds:
+        - lore: Posts with lore/canon labels from lore.farm
+        - dreaming: All posts from community members
         """
         # Extract feed name from URI: at://did:plc:.../app.bsky.feed.generator/{feed_name}
         feed_name = feed.split('/')[-1]
         
         if feed_name not in self.feeds:
             return {'error': 'UnknownFeed'}
-        
-        # Note: Removed synchronous sync_lore_labels() call here
-        # Labels are now synced by feedgen_updater every 2 minutes
-        # This prevents blocking requests when lore.farm is slow
         
         if feed_name == 'lore':
             posts, next_cursor = self.feed_db.get_lore_feed(limit, cursor)
@@ -540,18 +536,20 @@ class FeedGenerator:
         Describe what feeds this generator provides.
         Called by Bluesky to discover available feeds.
         """
+        feeds = [
+            {
+                'uri': f'at://did:web:reverie.house/app.bsky.feed.generator/lore',
+                **self.feeds['lore']
+            },
+            {
+                'uri': f'at://did:web:reverie.house/app.bsky.feed.generator/dreaming',
+                **self.feeds['dreaming']
+            }
+        ]
+        
         return {
             'did': 'did:web:reverie.house',
-            'feeds': [
-                {
-                    'uri': f'at://did:web:reverie.house/app.bsky.feed.generator/lore',
-                    **self.feeds['lore']
-                },
-                {
-                    'uri': f'at://did:web:reverie.house/app.bsky.feed.generator/dreaming',
-                    **self.feeds['dreaming']
-                }
-            ]
+            'feeds': feeds
         }
 
 

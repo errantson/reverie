@@ -1137,16 +1137,12 @@ class Sidebar {
         let baseDreamers = this.filterDreamersByGuardian(this.dreamers);
         
         let results = query ?
-            baseDreamers.filter(d => d.name.toLowerCase().includes(query.toLowerCase())) :
-            this.shuffleArray(baseDreamers.slice());
-        
-        // When not searching, always show exactly 4 slots
-        if (!query) {
-            results = results.slice(0, 4);
-        } else {
-            // When searching, limit to 4 but don't pad
-            results = results.slice(0, 4);
-        }
+            baseDreamers.filter(d => 
+                d.name.toLowerCase().includes(query.toLowerCase()) ||
+                d.handle.toLowerCase().includes(query.toLowerCase()) ||
+                (d.display_name && d.display_name.toLowerCase().includes(query.toLowerCase()))
+            ).slice(0, 4) :
+            this.shuffleArray(baseDreamers.slice()).slice(0, 4);
         
         results.forEach((match, index) => {
             const item = document.createElement('div');       

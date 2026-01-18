@@ -1,0 +1,11 @@
+[Unit]
+Description=Reverie House Guardian Label Sync Timer (Every 5 minutes)
+Requires=reverie-guardian-sync.service
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

@@ -987,7 +987,7 @@
                                                 <span class="guardian-stat-value"><span id="community-barred-dreams">0</span> : <span id="community-barred-dreamers">0</span></span>
                                             </div>
                                             <div class="guardian-stat-row">
-                                                <span class="guardian-stat-label">Aggregate Allowed:</span>
+                                                <span class="guardian-stat-label">Aggregate Safe:</span>
                                                 <span class="guardian-stat-value"><span id="community-allowed-dreams">0</span> : <span id="community-allowed-dreamers">0</span></span>
                                             </div>
                                         </div>
@@ -1060,7 +1060,7 @@
                                                 </span>
                                             </div>
                                             <div class="guardian-stats-row">
-                                                <span class="guardian-stats-label">APPROVED</span>
+                                                <span class="guardian-stats-label">SAFE</span>
                                                 <span class="guardian-stat-item">
                                                     <span class="guardian-stat-label-small">DREAMERS:</span>
                                                     <span class="guardian-stat-value" id="guardian-approved-dreamers">0</span>
@@ -2920,12 +2920,26 @@ We'd be endebted to your help.`;
             }
             
             try {
+                // Build request body with optional labeler subscription removal info
+                const requestBody = {};
+                
+                // If we have a PDS session with accessJwt, include it to remove labeler subscription
+                if (currentSession && currentSession.accessJwt) {
+                    requestBody.access_jwt = currentSession.accessJwt;
+                    const pdsEndpoint = currentSession.pdsEndpoint || 
+                                       currentSession.serviceEndpoint || 
+                                       'https://bsky.social';
+                    requestBody.pds_endpoint = pdsEndpoint;
+                    console.log('🛡️ Including info to remove labeler subscription');
+                }
+                
                 const response = await fetch('/api/guardian/leave', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
-                    }
+                    },
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const data = await response.json();
@@ -2933,7 +2947,11 @@ We'd be endebted to your help.`;
                 closeGuardianConfirm();
                 
                 if (data.success) {
-                    showCelebration('You have left your guardian.', 'info');
+                    let message = 'You have left your guardian.';
+                    if (data.labeler_subscription?.success) {
+                        message += '\n🛡️ Content filtering has been removed.';
+                    }
+                    showCelebration(message, 'info');
                     // Refresh the guardian details
                     if (selectedGuardian) {
                         await selectGuardian(selectedGuardian);
@@ -3053,16 +3071,31 @@ We'd be endebted to your help.`;
             }
             
             try {
+                // Build request body with optional labeler subscription info
+                const requestBody = {
+                    guardian_did: selectedGuardian,
+                    type: type
+                };
+                
+                // If we have a PDS session with accessJwt, include it for labeler subscription
+                // This enables automatic network-wide content filtering
+                if (currentSession && currentSession.accessJwt) {
+                    requestBody.access_jwt = currentSession.accessJwt;
+                    // Determine PDS endpoint from session or use default
+                    const pdsEndpoint = currentSession.pdsEndpoint || 
+                                       currentSession.serviceEndpoint || 
+                                       'https://bsky.social';
+                    requestBody.pds_endpoint = pdsEndpoint;
+                    console.log('🛡️ Including labeler subscription info for', type);
+                }
+                
                 const response = await fetch('/api/guardian/become', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        guardian_did: selectedGuardian,
-                        type: type
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const data = await response.json();
@@ -3071,9 +3104,16 @@ We'd be endebted to your help.`;
                     closeGuardianConfirm();
                     // Refresh the guardian details to update counts
                     await selectGuardian(selectedGuardian);
-                    // Show celebration with bubbles
+                    
+                    // Show celebration with info about labeler subscription
                     const roleName = type.charAt(0).toUpperCase() + type.slice(1);
-                    showCelebration(`You are now a ${roleName} of ${window.selectedGuardianName || 'this guardian'}!`, 'success');
+                    let message = `You are now a ${roleName} of ${window.selectedGuardianName || 'this guardian'}!`;
+                    
+                    if (data.labeler_subscription?.success) {
+                        message += '\n🛡️ Content filtering is now active across the network.';
+                    }
+                    
+                    showCelebration(message, 'success');
                 } else {
                     showCelebration(data.error || 'Failed to become ' + type, 'error');
                 }

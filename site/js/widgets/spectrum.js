@@ -164,15 +164,6 @@ class SpectrumVisualizer {
                 // Fallback to canvas center if viewport center is outside canvas
                 this.centerY = this.canvas.height / 2;
             }
-            
-            // Debug logging (can be removed later)
-                viewportHeight,
-                viewportCenter,
-                canvasTop: rect.top,
-                canvasHeight: height,
-                calculatedCenterY: this.centerY,
-                offsetFromCanvasTop
-            });
         } else {
             console.warn('⚠️ [SpectrumVisualizer] Canvas has 0 dimensions, using fallback');
             this.canvas.width = 600;
