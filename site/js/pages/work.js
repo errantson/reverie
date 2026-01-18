@@ -172,6 +172,9 @@
         } else if (roleStatuses.cheerful && roleStatuses.cheerful.is_worker) {
             userRole = 'cheerful';
             roleStatus = roleStatuses.cheerful;
+        } else if (roleStatuses.guardian && roleStatuses.guardian.is_worker) {
+            userRole = 'guardian';
+            roleStatus = roleStatuses.guardian;
         }
         
         console.log('🎨 [Work] Detected userRole:', userRole, 'roleStatus:', roleStatus);
@@ -193,7 +196,8 @@
             provisioner: { title: 'PROVISIONER' },
             dreamstyler: { title: 'DREAMSTYLER' },
             bursar: { title: 'BURSAR' },
-            cheerful: { title: 'THE CHEERFUL' }
+            cheerful: { title: 'THE CHEERFUL' },
+            guardian: { title: 'GUARDIAN' }
         };
 
         const roleTitle = roleConfigs[userRole]?.title || userRole.toUpperCase();
@@ -210,9 +214,9 @@
         `;
         
         // Add action buttons based on current status
-        // Dreamstylers and Cheerful don't retire - they just step down
+        // Dreamstylers, Cheerful, and Guardians don't retire - they just step down
         if (status === 'working') {
-            if (userRole === 'dreamstyler' || userRole === 'cheerful') {
+            if (userRole === 'dreamstyler' || userRole === 'cheerful' || userRole === 'guardian') {
                 // Multi-worker roles only get a "Step Down" button, no retiring
                 statusHtml += `
                     <div class="sidebar-work-actions">

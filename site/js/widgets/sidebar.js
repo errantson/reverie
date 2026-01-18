@@ -7,8 +7,124 @@ class Sidebar {
         this.hoverWidget = null;
         this.carouselIndex = 0; // Track current carousel view
         this.carouselInterval = null; // Auto-rotation timer
+        this.guardianRules = null; // Guardian filtering rules
+        this.aggregateBarred = null; // Aggregate barred list for guests
+        this.guardianRulesLoaded = false; // Track if guardian rules have been loaded
         this.render();
         this.initialize();
+    }
+    
+    async loadGuardianRules() {
+        try {
+            const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            
+            if (token) {
+                // Logged-in user: check if they're a ward/charge
+                const response = await fetch('/api/guardian/my-rules', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    this.guardianRules = await response.json();
+                }
+                this.aggregateBarred = null; // Clear aggregate for logged-in users
+            } else {
+                // Guest user: load aggregate barred list
+                this.guardianRules = null;
+                
+                const response = await fetch('/api/guardian/aggregate-barred');
+                if (response.ok) {
+                    this.aggregateBarred = await response.json();
+                }
+            }
+            this.guardianRulesLoaded = true;
+        } catch (error) {
+            console.warn('[Sidebar] Failed to load guardian rules:', error);
+            this.guardianRules = null;
+            this.aggregateBarred = null;
+            this.guardianRulesLoaded = true;
+        }
+    }
+    
+    // Wait for guardian rules to be loaded (with timeout)
+    async ensureGuardianRulesLoaded() {
+        if (this.guardianRulesLoaded) return;
+        
+        // Wait up to 2 seconds for rules to load
+        for (let i = 0; i < 20; i++) {
+            if (this.guardianRulesLoaded) return;
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
+    
+    // Apply guardian filtering to a list of dreamers
+    filterDreamersByGuardian(dreamers) {
+        if (!dreamers) {
+            return dreamers;
+        }
+        
+        let filtered = dreamers;
+        let beforeCount = filtered.length;
+        
+        // Apply user's own barred users first
+        if (this.guardianRules?.own_barred_dids?.length > 0) {
+            const ownBarredDids = new Set(this.guardianRules.own_barred_dids);
+            filtered = filtered.filter(d => !ownBarredDids.has(d.did));
+            beforeCount = filtered.length;
+        }
+        
+        // Ward/charge filtering
+        if (this.guardianRules?.has_guardian) {
+            if (this.guardianRules.filter_mode === 'whitelist') {
+                const allowedDids = new Set(this.guardianRules.filter_dids);
+                filtered = filtered.filter(d => allowedDids.has(d.did));
+            } else if (this.guardianRules.filter_mode === 'blacklist') {
+                const barredDids = new Set(this.guardianRules.filter_dids);
+                filtered = filtered.filter(d => !barredDids.has(d.did));
+            }
+            return filtered;
+        }
+        
+        // Guest filtering
+        if (this.aggregateBarred?.barred_dids?.length > 0) {
+            const barredDids = new Set(this.aggregateBarred.barred_dids);
+            filtered = filtered.filter(d => !barredDids.has(d.did));
+            return filtered;
+        }
+        
+        return filtered;
+    }
+    
+    // Check if a specific dreamer is allowed to be viewed
+    isDreamerAllowed(dreamer) {
+        if (this.guardianRules?.own_barred_dids?.length > 0) {
+            const ownBarredDids = new Set(this.guardianRules.own_barred_dids);
+            if (ownBarredDids.has(dreamer?.did)) {
+                return false;
+            }
+        }
+        
+        if (!this.guardianRules?.has_guardian || !dreamer) {
+            return true; // No guardian rules = allow all
+        }
+        
+        if (this.guardianRules.filter_mode === 'whitelist') {
+            // Ward: only allowed to see dreamers in allowed list
+            const allowedDids = new Set(this.guardianRules.filter_dids);
+            return allowedDids.has(dreamer.did);
+        } else if (this.guardianRules.filter_mode === 'blacklist') {
+            // Charge: not allowed to see dreamers in barred list
+            const barredDids = new Set(this.guardianRules.filter_dids);
+            return !barredDids.has(dreamer.did);
+        }
+        
+        return true;
+    }
+    
+    // Get the guardian dreamer object (for redirects)
+    getGuardianDreamer() {
+        if (!this.guardianRules?.guardian_did) return null;
+        return this.dreamers.find(d => d.did === this.guardianRules.guardian_did);
     }
     
     getServerIcon(dreamer) {
@@ -103,6 +219,22 @@ class Sidebar {
         const autofillContainer = this.container.querySelector('.autofill-container');
         const refreshButton = this.container.querySelector('#refresh-button');
         
+        // Load guardian rules first
+        this.loadGuardianRules();
+        
+        // Listen for OAuth profile loaded to reload guardian rules
+        window.addEventListener('oauth:profile-loaded', () => {
+            this.loadGuardianRules().then(() => {
+                // Re-render carousel and search results if rules changed
+                if (this.guardianRules?.has_guardian && this.dreamersLoaded) {
+                    this.loadCarousel();
+                    if (searchInput && autofillContainer) {
+                        this.updateSearchResults(searchInput.value, autofillContainer);
+                    }
+                }
+            });
+        });
+        
         // Load dynamic carousel (views will load their own content when shown)
         this.loadCarousel(); // Initialize carousel
         
@@ -141,7 +273,10 @@ class Sidebar {
                     console.warn('DreamerHoverWidget not loaded');
                 }
                 
-                this.handleUrlParams();
+                // Wait for guardian rules before handling URL params (for redirect protection)
+                this.ensureGuardianRulesLoaded().then(() => {
+                    this.handleUrlParams();
+                });
                 if (searchInput.value === '') {
                     searchInput.dispatchEvent(new Event('input'));
                 }
@@ -170,9 +305,15 @@ class Sidebar {
     
     async loadTopContributors() {
         try {
+            // Ensure guardian rules are loaded before filtering
+            await this.ensureGuardianRulesLoaded();
+            
             // Fetch all dreamers with their scores
             const response = await fetch('/api/dreamers');
-            const allDreamers = await response.json();
+            let allDreamers = await response.json();
+            
+            // Apply guardian filtering
+            allDreamers = this.filterDreamersByGuardian(allDreamers);
             
             // Calculate non-patron contribution (subtract patron_score from contribution_score)
             // This shows canon+lore contributions only, excluding financial patronage
@@ -248,9 +389,15 @@ class Sidebar {
     
     async loadCurrentWorkers() {
         try {
+            // Ensure guardian rules are loaded before filtering
+            await this.ensureGuardianRulesLoaded();
+            
             // Fetch dreamers and their roles
             const response = await fetch('/api/dreamers');
-            const allDreamers = await response.json();
+            let allDreamers = await response.json();
+            
+            // Apply guardian filtering
+            allDreamers = this.filterDreamersByGuardian(allDreamers);
             
             // Fetch active roles from database
             const rolesResponse = await fetch('/api/work/active-roles');
@@ -339,8 +486,14 @@ class Sidebar {
     
     async loadRecentArrivals() {
         try {
+            // Ensure guardian rules are loaded before filtering
+            await this.ensureGuardianRulesLoaded();
+            
             const response = await fetch('/api/dreamers/recent');
-            const recentDreamers = await response.json();
+            let recentDreamers = await response.json();
+            
+            // Apply guardian filtering
+            recentDreamers = this.filterDreamersByGuardian(recentDreamers);
             
             const container = this.container.querySelector('.carousel-container') || this.container.querySelector('.recent-arrivals-container');
             if (!container) return;
@@ -428,6 +581,9 @@ class Sidebar {
 
     async loadActiveDreamweavers() {
         try {
+            // Ensure guardian rules are loaded before filtering
+            await this.ensureGuardianRulesLoaded();
+            
             // Fetch labels from lore.farm to find recent canon and lore posts
             const labelsResponse = await fetch('https://lore.farm/xrpc/com.atproto.label.queryLabels?uriPatterns=*&limit=100');
             if (!labelsResponse.ok) throw new Error('Failed to fetch labels');
@@ -437,7 +593,10 @@ class Sidebar {
             
             // Fetch all dreamers to match DIDs
             const dreamersResponse = await fetch('/api/dreamers');
-            const allDreamers = await dreamersResponse.json();
+            let allDreamers = await dreamersResponse.json();
+            
+            // Apply guardian filtering
+            allDreamers = this.filterDreamersByGuardian(allDreamers);
             
             // Filter out @reverie.house
             const reverieDreamer = allDreamers.find(d => d.handle === 'reverie.house');
@@ -587,9 +746,15 @@ class Sidebar {
 
     async loadHonouredGuests() {
         try {
+            // Ensure guardian rules are loaded before filtering
+            await this.ensureGuardianRulesLoaded();
+            
             // Fetch all dreamers
             const response = await fetch('/api/dreamers');
-            const allDreamers = await response.json();
+            let allDreamers = await response.json();
+            
+            // Apply guardian filtering
+            allDreamers = this.filterDreamersByGuardian(allDreamers);
             
             // Filter for users NOT on reverie.house or bsky.social servers
             const guests = allDreamers.filter(d => {
@@ -633,7 +798,7 @@ class Sidebar {
                 const serverIconSrc = this.getServerIcon(dreamer);
                 const serverIconStyle = '';
                 
-                console.log(`🛡️ [Honoured Guest] ${dreamer.name} (${dreamer.handle}) - Server: ${dreamer.server} - Icon: ${serverIconSrc}`);
+                console.log(`[Honoured Guest] ${dreamer.name} (${dreamer.handle}) - Server: ${dreamer.server} - Icon: ${serverIconSrc}`);
                 
                 return `
                     <div class="honoured-guest-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
@@ -669,9 +834,15 @@ class Sidebar {
 
     async loadGreatPatrons() {
         try {
+            // Ensure guardian rules are loaded before filtering
+            await this.ensureGuardianRulesLoaded();
+            
             // Fetch all dreamers
             const response = await fetch('/api/dreamers');
-            const allDreamers = await response.json();
+            let allDreamers = await response.json();
+            
+            // Apply guardian filtering
+            allDreamers = this.filterDreamersByGuardian(allDreamers);
             
             // Sort by patron_score (not patronage) and take top 3
             const topPatrons = allDreamers
@@ -742,8 +913,14 @@ class Sidebar {
     
     async loadActiveDreamers() {
         try {
+            // Ensure guardian rules are loaded before filtering
+            await this.ensureGuardianRulesLoaded();
+            
             const response = await fetch('/api/dreamers/active');
-            const activeDreamers = await response.json();
+            let activeDreamers = await response.json();
+            
+            // Apply guardian filtering
+            activeDreamers = this.filterDreamersByGuardian(activeDreamers || []);
             
             const container = this.container.querySelector('.active-dreamers-container');
             if (!container) return;
@@ -846,6 +1023,18 @@ class Sidebar {
         }
         
         if (foundDreamer) {
+            // Check if user is allowed to see this dreamer
+            if (!this.isDreamerAllowed(foundDreamer)) {
+                console.log(`[Sidebar] User not allowed to view ${foundDreamer.handle}, redirecting to guardian`);
+                const guardian = this.getGuardianDreamer();
+                if (guardian) {
+                    // Update URL to guardian's page
+                    const newUrl = `/dreamer?did=${encodeURIComponent(guardian.did)}`;
+                    window.history.replaceState({ did: guardian.did }, '', newUrl);
+                    this.displayDreamer(guardian, { skipPushState: true });
+                    return;
+                }
+            }
             this.displayDreamer(foundDreamer, { skipPushState: true });
         } else {
             this.displayRandomProfile();
@@ -853,6 +1042,22 @@ class Sidebar {
     }
     displayDreamer(dreamer, options = {}) {
         const skipPushState = options.skipPushState || false;
+        const skipGuardianCheck = options.skipGuardianCheck || false;
+        
+        // Check if user is allowed to view this dreamer (unless we're already redirecting)
+        if (!skipGuardianCheck && !this.isDreamerAllowed(dreamer)) {
+            console.log(`[Sidebar] User not allowed to view ${dreamer?.handle}, redirecting to guardian`);
+            const guardian = this.getGuardianDreamer();
+            if (guardian && guardian.did !== dreamer?.did) {
+                // Update URL to guardian's page
+                if (!skipPushState && window.location.pathname.includes('dreamer')) {
+                    const newUrl = `/dreamer?did=${encodeURIComponent(guardian.did)}`;
+                    window.history.replaceState({ did: guardian.did }, '', newUrl);
+                }
+                this.displayDreamer(guardian, { skipPushState: true, skipGuardianCheck: true });
+                return;
+            }
+        }
         
         if (dreamer && dreamer.did && dreamer.handle) {
             localStorage.setItem('lastViewedDreamer', JSON.stringify({
@@ -907,7 +1112,7 @@ class Sidebar {
         return array;
     }
 
-    updateSearchResults(query, container) {
+    async updateSearchResults(query, container) {
         container.innerHTML = '';
         
         // If dreamers haven't loaded yet and not searching, show loading placeholders
@@ -925,9 +1130,15 @@ class Sidebar {
             return;
         }
         
+        // Ensure guardian rules are loaded before filtering
+        await this.ensureGuardianRulesLoaded();
+        
+        // Get base list of dreamers, applying guardian filter
+        let baseDreamers = this.filterDreamersByGuardian(this.dreamers);
+        
         let results = query ?
-            this.dreamers.filter(d => d.name.toLowerCase().includes(query.toLowerCase())) :
-            this.shuffleArray(this.dreamers.slice());
+            baseDreamers.filter(d => d.name.toLowerCase().includes(query.toLowerCase())) :
+            this.shuffleArray(baseDreamers.slice());
         
         // When not searching, always show exactly 4 slots
         if (!query) {
@@ -1044,12 +1255,23 @@ class Sidebar {
     // Auto-rotation removed for snappier UX
     
     displayRandomProfile() {
-        const reverieDreamers = this.dreamers.filter(d => d.server === 'https://reverie.house');
+        // Filter dreamers by guardian rules first
+        let allowedDreamers = this.filterDreamersByGuardian(this.dreamers);
+        
+        // Prefer reverie.house dreamers
+        const reverieDreamers = allowedDreamers.filter(d => d.server === 'https://reverie.house');
         if (reverieDreamers.length > 0) {
             const randomDreamer = reverieDreamers[Math.floor(Math.random() * reverieDreamers.length)];
             this.displayDreamer(randomDreamer);
-        } else if (this.dreamers.length > 0) {
-            this.displayDreamer(this.dreamers[0]);
+        } else if (allowedDreamers.length > 0) {
+            const randomDreamer = allowedDreamers[Math.floor(Math.random() * allowedDreamers.length)];
+            this.displayDreamer(randomDreamer);
+        } else {
+            // No allowed dreamers - show guardian if available
+            const guardian = this.getGuardianDreamer();
+            if (guardian) {
+                this.displayDreamer(guardian);
+            }
         }
     }
 }

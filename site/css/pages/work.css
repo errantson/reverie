@@ -521,6 +521,12 @@ body {
     border: 1px solid var(--role-cheerful-medium);
 }
 
+.status-badge.role-guardian {
+    background: var(--role-guardian-light);
+    color: var(--role-guardian-dark);
+    border: 1px solid var(--role-guardian-medium);
+}
+
 .status-role {
     font-size: 0.75rem;
     color: #666;
@@ -833,6 +839,27 @@ body {
     stroke: var(--role-cheerful);
 }
 
+.role-tab[data-role="guardian"] {
+    background: var(--role-guardian);
+    border-color: var(--role-guardian);
+    display: none; /* Hidden by default, shown via JS for admins */
+}
+
+.role-tab[data-role="guardian"]:hover:not(.active) {
+    background: var(--role-guardian-dark);
+    border-color: var(--role-guardian-dark);
+    transform: translateY(-1px);
+}
+
+.role-tab[data-role="guardian"].active {
+    background: var(--role-guardian-medium);
+    color: var(--role-guardian);
+}
+
+.role-tab[data-role="guardian"].active svg {
+    stroke: var(--role-guardian);
+}
+
 .role-tab-name {
     font-family: 'Courier New', monospace;
 }
@@ -1010,6 +1037,10 @@ body[data-current-role="cheerful"] .role-worker-card {
     border-color: var(--role-cheerful-medium);
 }
 
+body[data-current-role="guardian"] .role-worker-card {
+    border-color: var(--role-guardian-medium);
+}
+
 .worker-card-header {
     border-bottom: 2px solid #e0e0e0;
     padding-bottom: 0.5rem;
@@ -1043,6 +1074,10 @@ body[data-current-role="dreamstyler"] .worker-card-header {
 
 body[data-current-role="cheerful"] .worker-card-header {
     border-color: var(--role-cheerful-medium);
+}
+
+body[data-current-role="guardian"] .worker-card-header {
+    border-color: var(--role-guardian-medium);
 }
 
 .worker-card-header .worker-label {
@@ -1104,6 +1139,22 @@ body[data-current-role="bursar"] .role-separator {
     border-color: var(--role-bursar-medium);
 }
 
+body[data-current-role="provisioner"] .role-separator {
+    border-color: var(--role-provisioner-medium);
+}
+
+body[data-current-role="dreamstyler"] .role-separator {
+    border-color: var(--role-dreamstyler-medium);
+}
+
+body[data-current-role="cheerful"] .role-separator {
+    border-color: var(--role-cheerful-medium);
+}
+
+body[data-current-role="guardian"] .role-separator {
+    border-color: var(--role-guardian-medium);
+}
+
 /* Role Content Separator (inside descriptions) */
 .role-content-separator {
     margin: 1.5rem 0 1rem 0;
@@ -1127,6 +1178,22 @@ body[data-current-role="cogitarian"] .role-content-separator {
 
 body[data-current-role="bursar"] .role-content-separator {
     border-color: var(--role-bursar-medium);
+}
+
+body[data-current-role="provisioner"] .role-content-separator {
+    border-color: var(--role-provisioner-medium);
+}
+
+body[data-current-role="dreamstyler"] .role-content-separator {
+    border-color: var(--role-dreamstyler-medium);
+}
+
+body[data-current-role="cheerful"] .role-content-separator {
+    border-color: var(--role-cheerful-medium);
+}
+
+body[data-current-role="guardian"] .role-content-separator {
+    border-color: var(--role-guardian-medium);
 }
 
 /* Greeter Event Stack */
@@ -1662,6 +1729,26 @@ body[data-current-role="provisioner"] .role-description b {
     color: var(--role-provisioner-dark);
 }
 
+.role-tab[data-role="dreamstyler"].active ~ .role-card .role-description b,
+body[data-current-role="dreamstyler"] .role-description b {
+    color: var(--role-dreamstyler-dark);
+}
+
+.role-tab[data-role="bursar"].active ~ .role-card .role-description b,
+body[data-current-role="bursar"] .role-description b {
+    color: var(--role-bursar-dark);
+}
+
+.role-tab[data-role="cheerful"].active ~ .role-card .role-description b,
+body[data-current-role="cheerful"] .role-description b {
+    color: var(--role-cheerful-dark);
+}
+
+.role-tab[data-role="guardian"].active ~ .role-card .role-description b,
+body[data-current-role="guardian"] .role-description b {
+    color: var(--role-guardian-dark);
+}
+
 .role-description u {
     text-decoration: none;
     border-bottom: 2px solid #e0e0e0;
@@ -1682,6 +1769,22 @@ body[data-current-role="cogitarian"] .role-description u {
 
 body[data-current-role="provisioner"] .role-description u {
     border-color: var(--role-provisioner-medium);
+}
+
+body[data-current-role="dreamstyler"] .role-description u {
+    border-color: var(--role-dreamstyler-medium);
+}
+
+body[data-current-role="bursar"] .role-description u {
+    border-color: var(--role-bursar-medium);
+}
+
+body[data-current-role="cheerful"] .role-description u {
+    border-color: var(--role-cheerful-medium);
+}
+
+body[data-current-role="guardian"] .role-description u {
+    border-color: var(--role-guardian-medium);
 }
 
 /* Example Preview Box */
@@ -4063,4 +4166,953 @@ body[data-current-role="cogitarian"] .action-button.primary {
     color: #666;
     margin: 0;
     line-height: 1.5;
+}
+
+/* ============================================
+   GUARDIAN STYLES
+   ============================================ */
+
+.guardian-content-container {
+    padding: 1.5rem;
+}
+
+.guardian-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .guardian-content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Guardian List Card - matches cheerful style */
+.guardian-list-card {
+    background: white;
+    border: 2px solid var(--role-guardian-medium);
+    height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+
+.guardian-list-card .repo-card-header {
+    background: var(--role-guardian-light);
+    border-bottom: 2px solid var(--role-guardian-medium);
+    padding: 0.5rem 1rem;
+}
+
+.guardian-list-card .repo-card-title {
+    color: var(--role-guardian-dark);
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+.guardian-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.guardian-loading {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.8rem;
+}
+
+.guardian-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.guardian-empty-text {
+    color: #888;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Guardian row - matches cheerful style */
+.guardian-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.3rem 0.5rem;
+    transition: all 0.2s;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+
+.guardian-row:hover {
+    filter: brightness(0.95);
+    background: var(--role-guardian-light);
+}
+
+.guardian-row.selected {
+    background: var(--role-guardian-medium);
+}
+
+.guardian-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+    flex: 1;
+    min-width: 0;
+}
+
+.guardian-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid var(--role-guardian-medium);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.guardian-name {
+    font-weight: 600;
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+    color: var(--role-guardian-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guardian-footer {
+    padding: 0.75rem 0.75rem;
+    margin: 0 3px;
+    border-top: 1px solid var(--role-guardian-light);
+    text-align: center;
+}
+
+.guardian-footer-text {
+    font-size: 0.72rem;
+    color: #888;
+    margin: 0;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+/* Guardian Right Column */
+.guardian-right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Stats box - compact, no rounded corners */
+.guardian-stats-box {
+    border: 2px solid var(--role-guardian-medium);
+    background: white;
+}
+
+.guardian-stats-box .repo-data-header {
+    background: var(--role-guardian-light);
+    color: var(--role-guardian-dark);
+    border-bottom: 2px solid var(--role-guardian-medium);
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+/* Compact stats layout */
+.guardian-stats-compact {
+    padding: 0.75rem 1rem;
+}
+
+.guardian-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.guardian-stat-row:last-child {
+    border-bottom: none;
+}
+
+/* Divider line between stat groups */
+.guardian-stat-divider-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--role-guardian-medium), transparent);
+    margin: 0.5rem 0;
+}
+
+.guardian-stat-row .guardian-stat-label {
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.guardian-stat-row .guardian-stat-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--role-guardian);
+    font-family: 'Courier New', monospace;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.guardian-stat-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+}
+
+/* Guardian summary section */
+.guardian-summary {
+    padding: 0.75rem 1rem;
+    border-top: 2px solid var(--role-guardian-medium);
+}
+
+.guardian-summary-text {
+    font-size: 0.75rem;
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Guardian row counts */
+.guardian-counts {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.guardian-count {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.7rem;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.guardian-count.charge-count {
+    color: #444;
+}
+
+.guardian-count.ward-count {
+    color: #444;
+}
+
+.guardian-count.ward-count .guardian-count-icon {
+    stroke: #444;
+    stroke-width: 1.5;
+    fill: none;
+}
+
+.guardian-count-icon {
+    width: 12px;
+    height: 12px;
+}
+
+.guardian-count-divider {
+    color: #bbb;
+    font-size: 0.65rem;
+}
+
+/* Guardian detail panel */
+.guardian-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--role-guardian-light);
+}
+
+.guardian-detail-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--role-guardian-medium);
+    object-fit: cover;
+}
+
+.guardian-detail-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    font-family: 'Courier New', monospace;
+    color: var(--role-guardian-dark);
+}
+
+/* Guardian lists container */
+.guardian-lists-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+}
+
+.guardian-list-section {
+    background: #fafafa;
+    border: 1px solid #eee;
+    padding: 0.5rem 0.75rem;
+}
+
+.guardian-list-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 0.4rem;
+}
+
+.guardian-list-header.charges-header {
+    color: #a85858;
+}
+
+.guardian-list-header.wards-header {
+    color: #58a858;
+}
+
+.guardian-list-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.guardian-list-count {
+    margin-left: auto;
+    background: #eee;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.65rem;
+}
+
+/* Stacked avatars */
+.guardian-stacked-avatars {
+    position: relative;
+    height: 26px;
+    min-width: 100px;
+}
+
+.stacked-avatar {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid white;
+    object-fit: cover;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.no-list-items {
+    font-size: 0.7rem;
+    color: #999;
+    font-style: italic;
+}
+
+.more-avatars {
+    position: absolute;
+    font-size: 0.65rem;
+    color: #666;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    background: #eee;
+    padding: 0.15rem 0.35rem;
+    border-radius: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Guardian detail footer */
+.guardian-detail-footer {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--role-guardian-light);
+}
+
+.guardian-detail-note {
+    font-size: 0.7rem;
+    color: #888;
+    margin: 0;
+    text-align: center;
+    font-style: italic;
+}
+
+/* ===== NEW COMMUNITY SHIELD PANEL ===== */
+
+/* Default and selected view containers */
+.guardian-default-view,
+.guardian-selected-view {
+    width: 100%;
+}
+
+/* Guardian profile header */
+.guardian-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 2px solid var(--role-guardian-light);
+    background: var(--role-guardian-light);
+}
+
+.guardian-profile-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: inherit;
+    flex: 1;
+    min-width: 0;
+}
+
+.guardian-profile-link:hover .guardian-profile-name {
+    text-decoration: underline;
+}
+
+.guardian-profile-link:hover .guardian-profile-avatar {
+    border-color: var(--role-guardian);
+}
+
+.guardian-profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--role-guardian-medium);
+    object-fit: cover;
+    flex-shrink: 0;
+    transition: border-color 0.15s ease;
+}
+
+.guardian-profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+}
+
+/* Header counts (right side of profile) */
+.guardian-header-counts {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.guardian-header-count {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+}
+
+.guardian-header-count-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.guardian-header-count.ward-header-count {
+    color: #444;
+}
+
+.guardian-header-count.ward-header-count .guardian-header-count-icon {
+    stroke: #444;
+    stroke-width: 2;
+    fill: none;
+}
+
+.guardian-header-count.charge-header-count {
+    color: #444;
+}
+
+.guardian-profile-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    font-family: 'Courier New', monospace;
+    color: var(--role-guardian-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guardian-profile-handle {
+    font-size: 0.75rem;
+    color: #888;
+    font-family: 'Courier New', monospace;
+}
+
+/* Action buttons */
+.guardian-action-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+
+.guardian-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border: 2px solid;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Courier New', monospace;
+}
+
+.guardian-action-btn:hover {
+    filter: brightness(0.95);
+}
+
+/* Ward button: off-white bg, grey border/icon/text */
+.guardian-action-btn.ward-btn {
+    border-color: #555;
+    background: #f5f5f5;
+    color: #444;
+}
+
+.guardian-action-btn.ward-btn:hover {
+    background: #eaeaea;
+}
+
+/* Charge button: dark grey bg, grey border, off-white text */
+.guardian-action-btn.charge-btn {
+    border-color: #444;
+    background: #444;
+    color: #f0f0f0;
+}
+
+.guardian-action-btn.charge-btn:hover {
+    background: #555;
+}
+
+/* Leave Guardian button: faint grey */
+.guardian-action-btn.leave-btn {
+    border-color: #bbb;
+    background: #e8e8e8;
+    color: #888;
+}
+
+.guardian-action-btn.leave-btn:hover {
+    background: #ddd;
+    color: #666;
+}
+
+/* Disabled buttons (viewing self) */
+.guardian-action-btn.disabled-btn {
+    border-color: #ddd;
+    background: #f5f5f5;
+    color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.guardian-action-btn.disabled-btn:hover {
+    background: #f5f5f5;
+    color: #ccc;
+}
+
+.guardian-action-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.guardian-action-label {
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+/* Guardian lists table */
+.guardian-lists-table {
+    padding: 0;
+}
+
+.guardian-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+}
+
+.guardian-table-header {
+    padding: 0.5rem 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.7rem;
+    text-align: left;
+    border-bottom: 2px solid;
+}
+
+.guardian-table-header.ward-column {
+    background: rgba(88, 168, 88, 0.15);
+    color: #3a7a3a;
+    border-color: #58a858;
+}
+
+.guardian-table-header.charge-column {
+    background: rgba(40, 40, 40, 0.1);
+    color: #333;
+    border-color: #444;
+}
+
+.guardian-table-row {
+    border-bottom: 1px solid #eee;
+}
+
+.guardian-table-row:last-child {
+    border-bottom: none;
+}
+
+.guardian-table-cell {
+    padding: 0.4rem 0.5rem;
+    height: 32px;
+    vertical-align: middle;
+}
+
+.guardian-table-cell.ward-cell {
+    background: rgba(88, 168, 88, 0.05);
+    border-right: 1px solid #e5e5e5;
+}
+
+.guardian-table-cell.charge-cell {
+    background: rgba(40, 40, 40, 0.03);
+}
+
+.guardian-table-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+}
+
+.guardian-table-link.ward-link {
+    color: #3a7a3a;
+}
+
+.guardian-table-link.ward-link:hover {
+    color: #2a5a2a;
+}
+
+.guardian-table-link.charge-link {
+    color: #333;
+}
+
+.guardian-table-link.charge-link:hover {
+    color: #111;
+}
+
+.guardian-table-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.guardian-table-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Guardian stats divider and grid */
+.guardian-stats-divider {
+    height: 1px;
+    background: #ccc;
+    margin: 0;
+}
+
+.guardian-stats-grid {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.guardian-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 1rem;
+    border-bottom: 1px solid #e5e5e5;
+    background: #f5f5f5;
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+}
+
+.guardian-stats-row:first-child {
+    border-top: 1px solid #ccc;
+}
+
+.guardian-stats-row:last-child {
+    border-bottom: none;
+}
+
+.guardian-stats-row > .guardian-stats-label {
+    font-weight: 700;
+    color: #333;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 60px;
+}
+
+.guardian-stats-row .guardian-stats-divider {
+    height: auto;
+    background: none;
+    margin: 0 0.25rem;
+    color: #999;
+    font-weight: 300;
+}
+
+.guardian-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.guardian-stat-label-small {
+    color: #666;
+    font-weight: 600;
+}
+
+.guardian-stat-value {
+    font-weight: 700;
+    color: #333;
+}
+
+/* Guardian review/manage button */
+.guardian-review-section {
+    padding: 0.5rem 1rem;
+    border-top: none;
+    margin-top: 0.25rem;
+}
+
+.guardian-review-btn {
+    width: 100%;
+    padding: 0.4rem 0.75rem;
+    background: #f0f0f0;
+    border: 2px solid #444;
+    color: #333;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guardian-review-btn:hover {
+    background: #e5e5e5;
+}
+
+.guardian-review-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Guardian Ward/Charge Confirmation Modal */
+.guardian-confirm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10500;
+}
+
+.guardian-confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.guardian-confirm-content {
+    position: relative;
+    z-index: 1;
+}
+
+.guardian-confirm-box {
+    background: #fff;
+    border: 3px solid #444;
+    width: 340px;
+    font-family: 'Courier New', monospace;
+}
+
+.guardian-confirm-box.ward-confirm {
+    border-color: #555;
+}
+
+.guardian-confirm-box.charge-confirm {
+    border-color: #444;
+}
+
+.guardian-confirm-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 2px solid;
+}
+
+.ward-confirm .guardian-confirm-header {
+    background: #f5f5f5;
+    border-bottom-color: #555;
+}
+
+.charge-confirm .guardian-confirm-header {
+    background: #444;
+    border-bottom-color: #333;
+}
+
+.guardian-confirm-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.guardian-confirm-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.guardian-confirm-icon.ward-icon {
+    color: #444;
+}
+
+.guardian-confirm-icon.charge-icon {
+    color: #f0f0f0;
+}
+
+.guardian-confirm-icon.leave-icon {
+    color: #888;
+}
+
+.guardian-confirm-title {
+    font-weight: 700;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ward-confirm .guardian-confirm-title {
+    color: #333;
+}
+
+.charge-confirm .guardian-confirm-title {
+    color: #f0f0f0;
+}
+
+.guardian-confirm-body {
+    padding: 16px;
+    background: #fafafa;
+}
+
+.guardian-confirm-description {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #333;
+    margin: 0;
+}
+
+.guardian-confirm-description strong {
+    color: #111;
+}
+
+.guardian-confirm-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f0f0f0;
+    border-top: 1px solid #ddd;
+}
+
+.guardian-confirm-btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border: 2px solid;
+    transition: all 0.15s;
+}
+
+.guardian-confirm-btn.accept-btn {
+    background: #333;
+    border-color: #222;
+    color: #fff;
+}
+
+.guardian-confirm-btn.accept-btn:hover {
+    background: #444;
+}
+
+.guardian-confirm-btn.accept-btn.ward-accept {
+    background: #f5f5f5;
+    border-color: #555;
+    color: #333;
+}
+
+.guardian-confirm-btn.accept-btn.ward-accept:hover {
+    background: #eaeaea;
+}
+
+.guardian-confirm-btn.accept-btn.charge-accept {
+    background: #444;
+    border-color: #333;
+    color: #f0f0f0;
+}
+
+.guardian-confirm-btn.accept-btn.charge-accept:hover {
+    background: #555;
+}
+
+.guardian-confirm-btn.accept-btn.leave-accept {
+    background: #888;
+    border-color: #777;
+    color: #fff;
+}
+
+.guardian-confirm-btn.accept-btn.leave-accept:hover {
+    background: #777;
+}
+
+.guardian-confirm-btn.cancel-btn {
+    background: #fff;
+    border-color: #999;
+    color: #666;
+}
+
+.guardian-confirm-btn.cancel-btn:hover {
+    background: #f5f5f5;
+    border-color: #777;
 }

@@ -1,6 +1,4 @@
-console.log('📥 [spectrum.js] Script executing...');
 if (typeof window.OCTANT_MODALITIES === 'undefined') {
-    console.log('📥 [spectrum.js] Defining OCTANT_MODALITIES');
     window.OCTANT_MODALITIES = {
         '+++': 'Flow',
         '++-': 'Experiment',
@@ -114,10 +112,12 @@ class SpectrumVisualizer {
         this.liveUpdateInterval = options.liveUpdateInterval || 120000;
         this.liveUpdateEnabled = options.liveUpdate !== false;
         this.lastUpdateTime = Date.now();
+        this.guardianRules = null;
+        this.aggregateBarred = null;
         if (this.options.showControls) {
             this.createControlPanel();
         }
-        this.loadDreamers();
+        this.loadGuardianRules().then(() => this.loadDreamers());
         this.loadZones();
         this.setupControls();
         if (this.options.showControls && typeof MiniProfile !== 'undefined') {
@@ -126,7 +126,6 @@ class SpectrumVisualizer {
         if (this.liveUpdateEnabled) {
             this.startLiveUpdates();
         }
-        console.log('[SpectrumVisualizer] Starting animation loop...');
         this.animate();
     }
     detectTouchDevice() {
@@ -167,7 +166,6 @@ class SpectrumVisualizer {
             }
             
             // Debug logging (can be removed later)
-            console.log('🎯 [Spectrum Center]', {
                 viewportHeight,
                 viewportCenter,
                 canvasTop: rect.top,
@@ -697,7 +695,6 @@ class SpectrumVisualizer {
         }
     }
     snapToView(view) {
-        console.log(`[SpectrumVisualizer] snapToView called with: ${view}`);
         this.camera.autoRotate = false;
         this.camera.velocityX = 0;
         this.camera.velocityY = 0;
@@ -735,7 +732,6 @@ class SpectrumVisualizer {
         } else {
             targetRotY = currentRotY + rotYDiff;
         }
-        console.log(`[SpectrumVisualizer] Activating camera tween: rotX ${this.camera.rotX} → ${targetRotX}, rotY ${this.camera.rotY} → ${targetRotY}`);
         this.cameraTween.active = true;
         this.cameraTween.startRotX = this.camera.rotX;
         this.cameraTween.startRotY = this.camera.rotY;
@@ -797,11 +793,81 @@ class SpectrumVisualizer {
         this.zoomTween.targetZoom = clampedZoom;
         this.zoomTween.progress = 0;
     }
+    async loadGuardianRules() {
+        try {
+            const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            
+            if (token) {
+                // Logged-in user: check if they're a ward/charge
+                const response = await fetch('/api/guardian/my-rules', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    this.guardianRules = await response.json();
+                    if (this.guardianRules?.has_guardian) {
+                    }
+                }
+                this.aggregateBarred = null;
+            } else {
+                // Guest user: load aggregate barred list
+                this.guardianRules = null;
+                const response = await fetch('/api/guardian/aggregate-barred');
+                
+                if (response.ok) {
+                    this.aggregateBarred = await response.json();
+                    if (this.aggregateBarred?.barred_dids?.length > 0) {
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('[Spectrum] Failed to load guardian rules:', error);
+            this.guardianRules = null;
+            this.aggregateBarred = null;
+        }
+    }
+    filterDreamersByGuardian(dreamers) {
+        if (!dreamers || dreamers.length === 0) return dreamers;
+        
+        let beforeCount = dreamers.length;
+        
+        // Always apply user's own barred users first (user as their own guardian)
+        if (this.guardianRules?.own_barred_dids?.length > 0) {
+            const ownBarredDids = new Set(this.guardianRules.own_barred_dids);
+            dreamers = dreamers.filter(d => !ownBarredDids.has(d.did));
+            beforeCount = dreamers.length;
+        }
+        
+        // Logged-in ward/charge filtering
+        if (this.guardianRules?.has_guardian) {
+            if (this.guardianRules.filter_mode === 'whitelist') {
+                const allowedDids = new Set(this.guardianRules.filter_dids);
+                dreamers = dreamers.filter(d => allowedDids.has(d.did));
+            } else if (this.guardianRules.filter_mode === 'blacklist') {
+                const barredDids = new Set(this.guardianRules.filter_dids);
+                dreamers = dreamers.filter(d => !barredDids.has(d.did));
+            }
+            return dreamers;
+        }
+        
+        // Guest aggregate barred filtering
+        if (this.aggregateBarred?.barred_dids?.length > 0) {
+            const barredDids = new Set(this.aggregateBarred.barred_dids);
+            dreamers = dreamers.filter(d => !barredDids.has(d.did));
+            return dreamers;
+        }
+        
+        return dreamers;
+    }
     async loadDreamers() {
         try {
             const response = await fetch('/api/dreamers');
             const dreamersData = await response.json();
             let filteredData = dreamersData.filter(d => d.spectrum);
+            
+            // Apply guardian filtering
+            filteredData = this.filterDreamersByGuardian(filteredData);
+            
             if (this.options.filterDreamers && Array.isArray(this.options.filterDreamers)) {
                 filteredData = filteredData.filter(d => 
                     this.options.filterDreamers.includes(d.name) || 
@@ -852,7 +918,6 @@ class SpectrumVisualizer {
                 };
             });
             this.categorizeDreamers();
-            console.log(`Loaded ${this.dreamers.length} dreamers with spectrum data`);
             if (!this.hasLoadedOnce) {
                 setTimeout(() => {
                     this.fitZoomToDreamers();
@@ -882,7 +947,6 @@ class SpectrumVisualizer {
                     color: color || {r: 120, g: 120, b: 120, a: 0.15}
                 };
             });
-            console.log(`Loaded ${this.zones.length} zones`);
         } catch (error) {
             console.error('Failed to load zones:', error);
         }
@@ -891,13 +955,11 @@ class SpectrumVisualizer {
         this.liveUpdateTimer = setInterval(() => {
             this.loadDreamers();
         }, this.liveUpdateInterval);
-        console.log(`Live updates enabled: polling every ${this.liveUpdateInterval}ms`);
     }
     stopLiveUpdates() {
         if (this.liveUpdateTimer) {
             clearInterval(this.liveUpdateTimer);
             this.liveUpdateTimer = null;
-            console.log('Live updates disabled');
         }
     }
     setLiveUpdateInterval(milliseconds) {
@@ -1335,7 +1397,6 @@ class SpectrumVisualizer {
         if (this.cameraTween.active) {
             this.cameraTween.progress += 0.016 / this.cameraTween.duration;
             if (this.cameraTween.progress >= 1) {
-                console.log(`[SpectrumVisualizer] Camera tween completed at rotX=${this.cameraTween.targetRotX}, rotY=${this.cameraTween.targetRotY}`);
                 this.camera.rotX = this.cameraTween.targetRotX;
                 this.camera.rotY = this.cameraTween.targetRotY;
                 this.cameraTween.active = false;
@@ -1345,7 +1406,6 @@ class SpectrumVisualizer {
                 this.camera.rotX = this.cameraTween.startRotX + (this.cameraTween.targetRotX - this.cameraTween.startRotX) * eased;
                 this.camera.rotY = this.cameraTween.startRotY + (this.cameraTween.targetRotY - this.cameraTween.startRotY) * eased;
                 if (this.cameraTween.progress < 0.1 || this.cameraTween.progress > 0.9) {
-                    console.log(`[SpectrumVisualizer] Tween progress: ${this.cameraTween.progress.toFixed(3)}, rotX: ${this.camera.rotX.toFixed(3)}, rotY: ${this.camera.rotY.toFixed(3)}`);
                 }
             }
         }
@@ -1379,7 +1439,6 @@ class SpectrumVisualizer {
                     this.stillnessTimer += 0.016;
                     if (this.stillnessTimer >= this.stillnessThreshold && !this.isStill) {
                         this.isStill = true;
-                        console.log('🌊 Gentle auto-rotation starting after stillness');
                     }
                     if (this.isStill) {
                         const rampDuration = 2;
@@ -1860,7 +1919,6 @@ class SpectrumVisualizer {
     }
 }
 window.SpectrumVisualizer = SpectrumVisualizer;
-console.log('✅ [spectrum.js] SpectrumVisualizer exported to window');
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('spectrumCanvas');
     // Only auto-initialize if SpectrumDeluxe hasn't been loaded

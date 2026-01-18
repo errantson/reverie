@@ -812,6 +812,100 @@
     color: inherit !important;
 }
 
+/* Guardian - Warm brown tones */
+.row-entry.color-role.role-guardian.intensity-none {
+    border-left: 2px solid var(--role-guardian);
+    color: color-mix(in srgb, var(--role-guardian) 80%, #333);
+}
+
+.row-entry.color-role.role-guardian.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        var(--role-guardian-medium) 0%,
+        var(--role-guardian-light) 50%,
+        transparent 100%
+    );
+    border-left: 3px solid var(--role-guardian);
+    border-right: none;
+    color: var(--role-guardian-dark);
+}
+
+.row-entry.color-role.role-guardian.intensity-special {
+    background: linear-gradient(
+        to right,
+        var(--role-guardian-medium) 0%,
+        var(--role-guardian-light) 100%
+    );
+    border-left: 4px solid var(--role-guardian);
+    border-right: none;
+    box-shadow: inset 0 0 0 1px var(--role-guardian-light);
+    color: var(--role-guardian-dark);
+    font-weight: 600;
+}
+
+/* Apply guardian color uniformly to all cells */
+.row-entry.color-role.role-guardian .cell,
+.row-entry.color-role.role-guardian .cell * {
+    color: inherit;
+}
+
+/* Force event text to inherit guardian color */
+.row-entry.color-role.role-guardian .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-role.role-guardian.intensity-highlight .cell span,
+.row-entry.color-role.role-guardian.intensity-special .cell span {
+    color: inherit !important;
+}
+
+/* Ward/Charge - Subtle guarded style (lighter guardian brown, understated) */
+.row-entry.color-role.role-ward.intensity-none,
+.row-entry.color-role.role-charge.intensity-none {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--role-guardian-light) 18%, #f8f5f0) 0%,
+        color-mix(in srgb, var(--role-guardian-light) 8%, #faf8f5) 40%,
+        transparent 80%
+    );
+    border-left: 2px solid color-mix(in srgb, var(--role-guardian) 45%, #d4c8b8);
+    color: color-mix(in srgb, var(--role-guardian) 55%, #5a4d40);
+}
+
+.row-entry.color-role.role-ward.intensity-highlight,
+.row-entry.color-role.role-charge.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--role-guardian-light) 28%, #f5f0e8) 0%,
+        color-mix(in srgb, var(--role-guardian-light) 14%, #f8f5f0) 40%,
+        transparent 85%
+    );
+    border-left: 2px solid color-mix(in srgb, var(--role-guardian) 50%, #d0c4b4);
+    color: color-mix(in srgb, var(--role-guardian-dark) 60%, #5a4d40);
+}
+
+.row-entry.color-role.role-ward.intensity-special,
+.row-entry.color-role.role-charge.intensity-special {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--role-guardian-light) 38%, #f0e8dd) 0%,
+        color-mix(in srgb, var(--role-guardian-light) 20%, #f5f0e8) 50%,
+        transparent 100%
+    );
+    border-left: 3px solid color-mix(in srgb, var(--role-guardian) 55%, #c8bca8);
+    color: color-mix(in srgb, var(--role-guardian-dark) 70%, #4a4035);
+}
+
+/* Apply guarded color uniformly to all cells */
+.row-entry.color-role.role-ward .cell,
+.row-entry.color-role.role-ward .cell *,
+.row-entry.color-role.role-charge .cell,
+.row-entry.color-role.role-charge .cell * {
+    color: inherit;
+}
+
+.row-entry.color-role.role-ward .cell span,
+.row-entry.color-role.role-charge .cell span {
+    color: inherit !important;
+}
+
 /* ============================================================================
    OCTANT COLOR SYSTEM (Spectrum-based coloring)
    ============================================================================ */

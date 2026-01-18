@@ -142,6 +142,12 @@ export function renderEventRow(event, options = {}) {
             keyValue = `<span style="color: var(--role-mapper); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
         } else if (event.key === 'cogitarian') {
             keyValue = `<span style="color: var(--role-cogitarian); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
+        } else if (event.key === 'guardian') {
+            keyValue = `<span style="color: var(--role-guardian); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
+        } else if (event.key === 'ward') {
+            keyValue = `<span style="color: color-mix(in srgb, var(--role-guardian) 60%, white); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
+        } else if (event.key === 'charge') {
+            keyValue = `<span style="color: color-mix(in srgb, var(--role-guardian) 70%, #5a3d2b); font-weight: 700; font-size: 0.95em;">${event.key}</span>`;
         } else if ((event.key === 'origin' || event.key === 'name') && event.origin_octant) {
             // Origin and name events use origin_octant color
             const octantColor = `var(--octant-${event.origin_octant}-dark)`;
@@ -257,6 +263,15 @@ function renderCanonColumn(event, allDreamers, currentDid) {
     } else if (event.key === 'cogitarian') {
         // Cogitarian events use cogitarian role color
         eventSpan = `<span class="event-text" style="color: var(--role-cogitarian); font-weight: 500;">${eventText}</span>`;
+    } else if (event.key === 'guardian') {
+        // Guardian events use guardian role color
+        eventSpan = `<span class="event-text" style="color: var(--role-guardian); font-weight: 500;">${eventText}</span>`;
+    } else if (event.key === 'ward') {
+        // Ward events use lightened guardian color
+        eventSpan = `<span class="event-text" style="color: color-mix(in srgb, var(--role-guardian) 60%, white); font-weight: 500;">${eventText}</span>`;
+    } else if (event.key === 'charge') {
+        // Charge events use slightly darker/warmer guardian color
+        eventSpan = `<span class="event-text" style="color: color-mix(in srgb, var(--role-guardian) 70%, #5a3d2b); font-weight: 500;">${eventText}</span>`;
     } else {
         eventSpan = `<span class="event-text">${eventText}</span>`;
     }

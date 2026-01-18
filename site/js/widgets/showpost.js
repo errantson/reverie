@@ -42,7 +42,7 @@ class ShowPost {
 
         // Create shadowbox
         this.shadowbox = new Shadowbox({
-            showCloseButton: true,
+            showCloseButton: false,
             onClose: () => {
                 this.cleanup();
             }

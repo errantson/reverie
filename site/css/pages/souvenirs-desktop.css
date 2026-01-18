@@ -419,136 +419,114 @@ body.souvenir-page {
 }
 
 .souvenir-keepers-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.souvenir-keepers-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 10px;
-    padding: 0 0 40px 0;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+    padding: 4px 0 40px 0;
 }
 
 .keeper-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
-    background: linear-gradient(to right, rgba(255, 255, 255, 0.85), #fdfcfe),
-                linear-gradient(to bottom, var(--user-color, #e8e6f5), var(--user-color, #e8e6f5));
-    background-blend-mode: normal, overlay;
-    border: 1.5px solid #e8e6f5;
-    border-left: 3px solid var(--user-color, #e8e6f5);
-    border-radius: 0;
+    gap: 6px;
+    padding: 10px 8px;
+    background: linear-gradient(145deg, 
+        color-mix(in srgb, var(--user-color, #734ba1) 8%, white),
+        color-mix(in srgb, var(--user-color, #734ba1) 4%, #fdfcfe));
+    border: 1.5px solid color-mix(in srgb, var(--user-color, #734ba1) 25%, #e8e6f5);
+    border-radius: 8px;
     transition: all 0.2s ease;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.keeper-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        var(--user-color, #734ba1),
+        color-mix(in srgb, var(--user-color, #734ba1) 60%, white));
+    opacity: 0.8;
 }
 
 .keeper-card:hover {
-    background: linear-gradient(to right, rgba(255, 255, 255, 0.95), white),
-                linear-gradient(to bottom, var(--user-color, #734ba1), var(--user-color, #734ba1));
-    background-blend-mode: normal, overlay;
-    border-color: var(--user-color, #734ba1);
+    background: linear-gradient(145deg,
+        color-mix(in srgb, var(--user-color, #734ba1) 12%, white),
+        color-mix(in srgb, var(--user-color, #734ba1) 6%, white));
+    border-color: color-mix(in srgb, var(--user-color, #734ba1) 50%, #e8e6f5);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--user-color, #734ba1) 20%, transparent);
 }
 
-/* Octant-based left border colors (fallback if user color not available) */
-.keeper-card.octant-adaptive:not([style*="--user-color"]) { border-left-color: var(--octant-adaptive-dark); }
-.keeper-card.octant-chaotic:not([style*="--user-color"]) { border-left-color: var(--octant-chaotic-dark); }
-.keeper-card.octant-intended:not([style*="--user-color"]) { border-left-color: var(--octant-intended-dark); }
-.keeper-card.octant-prepared:not([style*="--user-color"]) { border-left-color: var(--octant-prepared-dark); }
-.keeper-card.octant-contented:not([style*="--user-color"]) { border-left-color: var(--octant-contented-dark); }
-.keeper-card.octant-assertive:not([style*="--user-color"]) { border-left-color: var(--octant-assertive-dark); }
-.keeper-card.octant-ordered:not([style*="--user-color"]) { border-left-color: var(--octant-ordered-dark); }
-.keeper-card.octant-guarded:not([style*="--user-color"]) { border-left-color: var(--octant-guarded-dark); }
-.keeper-card.octant-equilibrium:not([style*="--user-color"]) { border-left-color: var(--octant-equilibrium-dark); }
+.keeper-card:hover::before {
+    opacity: 1;
+}
 
 .keeper-card-avatar {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
-    border: 2px solid var(--user-color, rgba(0, 0, 0, 0.1));
+    border: 2px solid var(--user-color, #734ba1);
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--user-color, #734ba1) 25%, transparent);
 }
 
 .keeper-card-info {
-    flex: 1;
-    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+    min-width: 0;
+    width: 100%;
 }
 
 .keeper-card-name {
     font-weight: 600;
-    font-size: 0.85rem;
-    color: #372e42;
+    font-size: 0.78rem;
+    color: color-mix(in srgb, var(--user-color, #734ba1) 70%, #2a2235);
     line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
 }
 
 .keeper-card-handle {
-    font-size: 0.65rem;
-    color: #888;
+    font-size: 0.6rem;
+    color: color-mix(in srgb, var(--user-color, #734ba1) 40%, #666);
     font-family: monospace;
     line-height: 1.2;
-    margin-bottom: 6px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
 }
 
-.keeper-badge-octant {
-    font-size: 0.6rem;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-weight: 600;
+.keeper-card-status {
+    font-size: 0.55rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
     white-space: nowrap;
-    align-self: center;
+    margin-top: 2px;
+    background: color-mix(in srgb, var(--user-color, #734ba1) 15%, white);
+    color: color-mix(in srgb, var(--user-color, #734ba1) 80%, #333);
+    border: 1px solid color-mix(in srgb, var(--user-color, #734ba1) 20%, transparent);
+    text-transform: lowercase;
+    letter-spacing: 0.3px;
 }
 
-/* Octant-specific badge colors with proper text contrast */
-.keeper-badge-octant.octant-bg-adaptive { 
-    background: var(--octant-adaptive); 
-    color: var(--octant-adaptive-darker);
-}
-.keeper-badge-octant.octant-bg-chaotic { 
-    background: var(--octant-chaotic); 
-    color: var(--octant-chaotic-darker);
-}
-.keeper-badge-octant.octant-bg-intended { 
-    background: var(--octant-intended); 
-    color: var(--octant-intended-darker);
-}
-.keeper-badge-octant.octant-bg-prepared { 
-    background: var(--octant-prepared); 
-    color: var(--octant-prepared-darker);
-}
-.keeper-badge-octant.octant-bg-contented { 
-    background: var(--octant-contented); 
-    color: var(--octant-contented-darker);
-}
-.keeper-badge-octant.octant-bg-assertive { 
-    background: var(--octant-assertive); 
-    color: var(--octant-assertive-darker);
-}
-.keeper-badge-octant.octant-bg-ordered { 
-    background: var(--octant-ordered); 
-    color: var(--octant-ordered-darker);
-}
-.keeper-badge-octant.octant-bg-guarded { 
-    background: var(--octant-guarded); 
-    color: var(--octant-guarded-darker);
-}
-.keeper-badge-octant.octant-bg-equilibrium { 
-    background: var(--octant-equilibrium); 
-    color: var(--octant-equilibrium-darker);
+/* Legacy badge - hidden but kept for compatibility */
+.keeper-badge-octant {
+    display: none;
 }
 
 /* Explore More Face - Souvenirs Physics Box */
@@ -1076,6 +1054,35 @@ body.souvenir-page {
         bottom: 16px;
         right: 16px;
     }
+    
+    /* Keeper cards responsive adjustments */
+    .souvenir-keepers-list {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 6px;
+    }
+    
+    .keeper-card {
+        padding: 8px 6px;
+        gap: 4px;
+    }
+    
+    .keeper-card-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .keeper-card-name {
+        font-size: 0.72rem;
+    }
+    
+    .keeper-card-handle {
+        font-size: 0.55rem;
+    }
+    
+    .keeper-card-status {
+        font-size: 0.5rem;
+        padding: 1px 6px;
+    }
 }
 
 /* Extra small screens */
@@ -1115,5 +1122,39 @@ body.souvenir-page {
     .souvenir-face-btn {
         padding: 5px 8px;
         height: 28px;
+    }
+    
+    /* Keeper cards on extra small screens */
+    .souvenir-keepers-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+    }
+    
+    .keeper-card {
+        padding: 6px 4px;
+        gap: 3px;
+    }
+    
+    .keeper-card::before {
+        height: 2px;
+    }
+    
+    .keeper-card-avatar {
+        width: 28px;
+        height: 28px;
+        border-width: 1.5px;
+    }
+    
+    .keeper-card-name {
+        font-size: 0.68rem;
+    }
+    
+    .keeper-card-handle {
+        font-size: 0.5rem;
+    }
+    
+    .keeper-card-status {
+        font-size: 0.48rem;
+        padding: 1px 5px;
     }
 }

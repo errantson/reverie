@@ -184,7 +184,7 @@ class SpectrumDeluxe extends SpectrumVisualizer {
                 const snapshotData = JSON.parse(result.data.snapshot_data);
                 
                 // Update dreamers data from snapshot
-                this.dreamers = snapshotData.dreamers.map(d => ({
+                let dreamers = snapshotData.dreamers.map(d => ({
                     did: d.did,
                     handle: d.handle,
                     name: d.name,
@@ -192,6 +192,9 @@ class SpectrumDeluxe extends SpectrumVisualizer {
                     spectrum: d.spectrum,
                     heading: d.heading
                 }));
+                
+                // Apply guardian filtering
+                this.dreamers = this.filterDreamersByGuardian(dreamers);
                 
                 this.updateTimelineLabel();
                 this.render();

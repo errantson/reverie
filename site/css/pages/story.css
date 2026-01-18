@@ -2094,3 +2094,120 @@ body.story-page {
         font-size: 12px;
     }
 }
+
+/* Hide button styling */
+.story-action-btn.hide-btn {
+    color: #888;
+}
+
+.story-action-btn.hide-btn:hover {
+    color: #666;
+}
+
+/* Hide confirmation popup */
+.hide-confirm-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.hide-confirm-popup.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.hide-confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.hide-confirm-dialog {
+    position: relative;
+    background: var(--internal-background-color, #fefefe);
+    border: 2px solid var(--user-color, var(--primary-color, #734ba1));
+    border-radius: 0;
+    padding: 16px 20px;
+    max-width: 320px;
+    width: 85%;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.hide-confirm-popup.show .hide-confirm-dialog {
+    transform: scale(1);
+}
+
+.hide-confirm-dialog h3 {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: var(--user-color, var(--primary-color, #734ba1));
+}
+
+.hide-confirm-dialog p {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    color: #444;
+    line-height: 1.3;
+}
+
+.hide-confirm-dialog .hide-note {
+    font-size: 0.8rem;
+    color: #888;
+    font-style: italic;
+}
+
+.hide-confirm-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    justify-content: flex-end;
+}
+
+.hide-cancel-btn,
+.hide-confirm-btn {
+    padding: 6px 12px;
+    border-radius: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.hide-cancel-btn {
+    background: #eee;
+    border: 1px solid #ccc;
+    color: #666;
+}
+
+.hide-cancel-btn:hover {
+    background: #ddd;
+}
+
+.hide-confirm-btn {
+    background: var(--user-color, var(--primary-color, #734ba1));
+    border: 1px solid var(--user-color, var(--primary-color, #734ba1));
+    color: white;
+}
+
+.hide-confirm-btn:hover {
+    opacity: 0.9;
+}
+
+.hide-confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

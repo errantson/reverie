@@ -164,6 +164,8 @@
         // Global state
         let allData = {};
         let filteredData = {};
+        let guardianRules = null;
+        let aggregateBarred = null;
         const searchFields = ['name', 'event', 'uri', 'type', 'key'];
 
         // Initialize on page load
@@ -174,18 +176,49 @@
             }
             
             setupSearch();
+            await loadGuardianRules();
             await loadAllData();
-            renderEvents();
+            applyFilters(); // Apply guardian filtering on initial render
             
             // Start epoch counter
             updateCurrentEpoch();
             setInterval(updateCurrentEpoch, 1000);
         });
+        
+        // Load guardian filtering rules
+        async function loadGuardianRules() {
+            try {
+                const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                
+                if (token) {
+                    // Logged-in user: get their specific guardian rules
+                    const response = await fetch('/api/guardian/my-rules', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.ok) {
+                        guardianRules = await response.json();
+                    }
+                    aggregateBarred = null;
+                } else {
+                    // Guest: load aggregate barred list
+                    guardianRules = null;
+                    const response = await fetch('/api/guardian/aggregate-barred');
+                    if (response.ok) {
+                        aggregateBarred = await response.json();
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to load guardian rules:', error);
+                guardianRules = null;
+                aggregateBarred = null;
+            }
+        }
 
         // Reload data when page becomes visible (tab switching)
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
-                loadAllData().then(() => renderEvents());
+                loadAllData().then(() => applyFilters());
             }
         });
 
@@ -378,6 +411,28 @@
                 });
             }
             
+            // Apply guardian filtering for logged-in wards/charges
+            if (guardianRules?.has_guardian) {
+                if (guardianRules.filter_mode === 'whitelist') {
+                    const allowedDids = new Set(guardianRules.filter_dids || []);
+                    const allowedUris = new Set(guardianRules.filter_uris || []);
+                    events = events.filter(row => allowedDids.has(row.did) || allowedUris.has(row.uri));
+                } else if (guardianRules.filter_mode === 'blacklist') {
+                    const barredDids = new Set(guardianRules.filter_dids || []);
+                    const barredUris = new Set(guardianRules.filter_uris || []);
+                    events = events.filter(row => !barredDids.has(row.did) && !barredUris.has(row.uri));
+                }
+            }
+            
+            // Apply aggregate barred filtering for guests
+            if (aggregateBarred) {
+                const barredDids = new Set(aggregateBarred.barred_dids || []);
+                const barredUris = new Set(aggregateBarred.barred_uris || []);
+                if (barredDids.size > 0 || barredUris.size > 0) {
+                    events = events.filter(row => !barredDids.has(row.did) && !barredUris.has(row.uri));
+                }
+            }
+            
             renderEvents(events);
         }
 
@@ -386,7 +441,7 @@
             document.getElementById('filter-type').value = 'all';
             document.getElementById('search').value = '';
             filteredData = {};
-            loadAllData().then(() => renderEvents());
+            loadAllData().then(() => applyFilters());
         }
 
         // Show error message

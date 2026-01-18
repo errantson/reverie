@@ -136,6 +136,24 @@
     body[data-current-role="cheerful"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):focus {
         color: var(--role-cheerful-dark);
     }
+    
+    /* Guardian-specific enforcement when guardian is the current role */
+    body[data-current-role="guardian"] .guardian-list-card,
+    body[data-current-role="guardian"] .guardian-stats-box,
+    body[data-current-role="guardian"] .role-separator,
+    body[data-current-role="guardian"] .role-content-separator {
+        border-color: var(--role-guardian-medium) !important;
+    }
+    
+    /* Scoped guardian link colors - only within work content, not header */
+    body[data-current-role="guardian"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link) {
+        color: var(--role-guardian);
+    }
+    body[data-current-role="guardian"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):hover,
+    body[data-current-role="guardian"] .work-main-content a:not(.header-link):not(.drawer-link):not(.nav-link):focus {
+        color: var(--role-guardian-dark);
+    }
+    
     .bursar-box-subtext {
         font-size: 0.85em;
         color: var(--text-muted);
@@ -277,6 +295,7 @@
     <script src="/js/widgets/upload_avatar.js" defer onerror="console.error('Failed to load upload_avatar.js')"></script>
     <script src="/js/widgets/apppassreq.js" defer></script>
     <script src="/js/widgets/changehandle.js" defer></script>
+    <script src="/js/widgets/guardianpanel.js?v=5" defer></script>
 </head>
 <body>
     <div id="header-container"></div>
@@ -414,6 +433,12 @@
                                 </svg>
                                 <span class="role-tab-name">Cheerful</span>
                             </button>
+                            <button id="role-tab-guardian" class="role-tab" data-role="guardian" onclick="selectRole('guardian')" style="display: none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="role-tab-icon">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                                <span class="role-tab-name">Guardian</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -428,6 +453,7 @@
                         <option id="mobile-option-bursar" value="bursar">Bursar</option>
                         <option id="mobile-option-dreamstyler" value="dreamstyler">Dreamstyler</option>
                         <option id="mobile-option-cheerful" value="cheerful">Cheerful</option>
+                        <option id="mobile-option-guardian" value="guardian" style="display: none;">Guardian</option>
                     </select>
                 </div>
 
@@ -504,6 +530,16 @@
                             </p>
                             <p class="role-description">
                                 Like buoyant sprites, <b class="role-text-cheerful">The Cheerful of Reverie House</b> are compelled beyond any will to give favor to their community, no matter how quiet their voice.</p>
+                        </div>
+                        
+                        <!-- Guardian Description -->
+                        <div id="guardian-description" class="role-desc-content" style="display: none;">
+                            <p class="role-description">
+                                <b class="role-text-guardian">Guardians</b> are trusted dreamweavers who steward the journeys of their <b class="role-text-guardian">Charges</b> and <b class="role-text-guardian">Wards</b> as they explore our wild mindscape together.
+                            </p>
+                            <p class="role-description">
+                                Each <b class="role-text-guardian">Guardian</b> maintains their own curation to permit and deny presence for certain dreams and dreamweavers. <b class="role-text-guardian">Charges</b> may see everything but the barred, while <b class="role-text-guardian">Wards</b> may only see what is allowed.
+                            </p>
                         </div>
                     </div>
 
@@ -899,6 +935,156 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Guardian Content Section -->
+                <div id="guardian-content-section" class="guardian-content-container" style="display: none;">
+                    <div class="guardian-content-grid">
+                        <!-- Left: Guardian List -->
+                        <div class="repo-card guardian-list-card">
+                            <div class="repo-card-header">
+                                <div class="repo-card-title">Our Guardians</div>
+                            </div>
+                            <div id="guardian-list" class="guardian-list">
+                                <div class="guardian-loading">Loading guardians...</div>
+                            </div>
+                            <div class="guardian-footer">
+                                <p class="guardian-footer-text">An aggregate of their collective judgment is also used to curate other parts of our community.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Right: Guardian Details / Community Shield -->
+                        <div class="guardian-right-column">
+                            <div class="repo-data-box guardian-stats-box">
+                                <h3 class="repo-data-header">Community Shield</h3>
+                                <div id="guardian-details-content" class="guardian-details-content">
+                                    <!-- Default state: No guardian selected -->
+                                    <div id="guardian-default-view" class="guardian-default-view">
+                                        <div class="guardian-stats-compact">
+                                            <div class="guardian-stat-row">
+                                                <span class="guardian-stat-label">Active Guardians:</span>
+                                                <span class="guardian-stat-value" id="guardian-total-count">0</span>
+                                            </div>
+                                            <div class="guardian-stat-row">
+                                                <span class="guardian-stat-label">Total Wards:</span>
+                                                <span class="guardian-stat-value">
+                                                    <span id="guardian-total-wards">0</span>
+                                                    <svg class="guardian-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                                                    </svg>
+                                                </span>
+                                            </div>
+                                            <div class="guardian-stat-row">
+                                                <span class="guardian-stat-label">Total Charges:</span>
+                                                <span class="guardian-stat-value">
+                                                    <span id="guardian-total-charges">0</span>
+                                                    <svg class="guardian-stat-icon" viewBox="0 0 20 20" fill="currentColor">
+                                                        <polygon points="17.17,15.76 20,18.59 18.59,20 15.76,17.17 14.35,18.59 12.93,17.17 14.35,15.76 10,10.98 5.65,15.76 7.07,17.17 5.65,18.59 4.24,17.17 1.41,20 0,18.59 2.83,15.76 1.41,14.35 2.83,12.93 4.24,14.35 9.06,9.96 0,0 10,9.1 20,0 10.94,9.96 15.76,14.35 17.17,12.93 18.59,14.35"/>
+                                                    </svg>
+                                                </span>
+                                            </div>
+                                            <div class="guardian-stat-row">
+                                                <span class="guardian-stat-label">Aggregate Barred:</span>
+                                                <span class="guardian-stat-value"><span id="community-barred-dreams">0</span> : <span id="community-barred-dreamers">0</span></span>
+                                            </div>
+                                            <div class="guardian-stat-row">
+                                                <span class="guardian-stat-label">Aggregate Allowed:</span>
+                                                <span class="guardian-stat-value"><span id="community-allowed-dreams">0</span> : <span id="community-allowed-dreamers">0</span></span>
+                                            </div>
+                                        </div>
+                                        <div class="guardian-summary">
+                                            <p class="guardian-summary-text">Select a <b>Guardian</b> from the list to view their wards, charges, and curation lists.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Selected guardian state -->
+                                    <div id="guardian-selected-view" class="guardian-selected-view" style="display: none;">
+                                        <!-- Guardian profile header -->
+                                        <div class="guardian-profile-header">
+                                            <a id="guardian-profile-link" href="#" class="guardian-profile-link">
+                                                <img id="guardian-profile-avatar" src="/assets/default-avatar.png" alt="Guardian" class="guardian-profile-avatar">
+                                                <div class="guardian-profile-info">
+                                                    <span id="guardian-profile-name" class="guardian-profile-name">Guardian Name</span>
+                                                    <span id="guardian-profile-handle" class="guardian-profile-handle">@handle</span>
+                                                </div>
+                                            </a>
+                                            <div class="guardian-header-counts">
+                                                <span class="guardian-header-count ward-header-count">
+                                                    <svg class="guardian-header-count-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                                                    </svg>
+                                                    <span id="ward-count-badge">0</span>
+                                                </span>
+                                                <span class="guardian-header-count charge-header-count">
+                                                    <svg class="guardian-header-count-icon" viewBox="0 0 20 20" fill="currentColor">
+                                                        <polygon points="17.17,15.76 20,18.59 18.59,20 15.76,17.17 14.35,18.59 12.93,17.17 14.35,15.76 10,10.98 5.65,15.76 7.07,17.17 5.65,18.59 4.24,17.17 1.41,20 0,18.59 2.83,15.76 1.41,14.35 2.83,12.93 4.24,14.35 9.06,9.96 0,0 10,9.1 20,0 10.94,9.96 15.76,14.35 17.17,12.93 18.59,14.35"/>
+                                                    </svg>
+                                                    <span id="charge-count-badge">0</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Ward/Charge action buttons (side by side) -->
+                                        <div class="guardian-action-buttons">
+                                            <!-- Become a Ward button -->
+                                            <button id="become-ward-btn" class="guardian-action-btn ward-btn" onclick="showWardConfirmation()">
+                                                <svg class="guardian-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                                                </svg>
+                                                <span class="guardian-action-label">Become a Ward</span>
+                                            </button>
+                                            
+                                            <!-- Become a Charge button -->
+                                            <button id="become-charge-btn" class="guardian-action-btn charge-btn" onclick="showChargeConfirmation()">
+                                                <svg class="guardian-action-icon" viewBox="0 0 20 20" fill="currentColor">
+                                                    <polygon points="17.17,15.76 20,18.59 18.59,20 15.76,17.17 14.35,18.59 12.93,17.17 14.35,15.76 10,10.98 5.65,15.76 7.07,17.17 5.65,18.59 4.24,17.17 1.41,20 0,18.59 2.83,15.76 1.41,14.35 2.83,12.93 4.24,14.35 9.06,9.96 0,0 10,9.1 20,0 10.94,9.96 15.76,14.35 17.17,12.93 18.59,14.35"/>
+                                                </svg>
+                                                <span class="guardian-action-label">Become a Charge</span>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Divider -->
+                                        <div class="guardian-stats-divider"></div>
+                                        
+                                        <!-- Stats grid -->
+                                        <div class="guardian-stats-grid">
+                                            <div class="guardian-stats-row">
+                                                <span class="guardian-stats-label">BARRED</span>
+                                                <span class="guardian-stat-item">
+                                                    <span class="guardian-stat-label-small">DREAMERS:</span>
+                                                    <span class="guardian-stat-value" id="guardian-barred-dreamers">0</span>
+                                                </span>
+                                                <span class="guardian-stats-divider">|</span>
+                                                <span class="guardian-stat-item">
+                                                    <span class="guardian-stat-label-small">DREAMS:</span>
+                                                    <span class="guardian-stat-value" id="guardian-barred-dreams">0</span>
+                                                </span>
+                                            </div>
+                                            <div class="guardian-stats-row">
+                                                <span class="guardian-stats-label">APPROVED</span>
+                                                <span class="guardian-stat-item">
+                                                    <span class="guardian-stat-label-small">DREAMERS:</span>
+                                                    <span class="guardian-stat-value" id="guardian-approved-dreamers">0</span>
+                                                </span>
+                                                <span class="guardian-stats-divider">|</span>
+                                                <span class="guardian-stat-item">
+                                                    <span class="guardian-stat-label-small">DREAMS:</span>
+                                                    <span class="guardian-stat-value" id="guardian-approved-dreams">0</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Review/Manage button -->
+                                        <div class="guardian-review-section">
+                                            <button id="guardian-review-btn" class="guardian-review-btn" onclick="openGuardianPanel()">
+                                                REVIEW
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -931,6 +1117,14 @@
         </div>
     </div>
 
+    <!-- Guardian Ward/Charge Confirmation Modal -->
+    <div id="guardianConfirmModal" class="guardian-confirm-modal" style="display: none;">
+        <div class="guardian-confirm-overlay" onclick="closeGuardianConfirm()"></div>
+        <div id="guardianConfirmContent" class="guardian-confirm-content">
+            <!-- Content injected by JS -->
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
         <div class="loading-content">
@@ -951,10 +1145,72 @@
             provisioner: null,
             dreamstyler: null,
             bursar: null,
-            cheerful: null
+            cheerful: null,
+            guardian: null
         };
         let currentTab = 'greeter';
         let spectrumPreviewWidget = null; // Global spectrum preview widget instance
+        
+        // Guardian filtering rules
+        let guardianRules = null;
+        let aggregateBarred = null;
+        
+        // Load guardian filtering rules
+        async function loadGuardianRules() {
+            try {
+                const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                
+                if (token) {
+                    // Logged-in user: check if they're a ward/charge
+                    const response = await fetch('/api/guardian/my-rules', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.ok) {
+                        guardianRules = await response.json();
+                    }
+                    aggregateBarred = null;
+                } else {
+                    // Guest user: load aggregate barred list
+                    guardianRules = null;
+                    const response = await fetch('/api/guardian/aggregate-barred');
+                    
+                    if (response.ok) {
+                        aggregateBarred = await response.json();
+                    }
+                }
+            } catch (error) {
+                console.warn('[Work] Failed to load guardian rules:', error);
+                guardianRules = null;
+                aggregateBarred = null;
+            }
+        }
+
+        // Apply guardian filtering to a list of workers
+        function filterWorkersByGuardian(workers) {
+            if (!workers || workers.length === 0) return workers;
+            
+            // Logged-in ward/charge filtering
+            if (guardianRules?.has_guardian) {
+                if (guardianRules.filter_mode === 'whitelist') {
+                    const allowedDids = new Set(guardianRules.filter_dids);
+                    workers = workers.filter(w => allowedDids.has(w.did));
+                } else if (guardianRules.filter_mode === 'blacklist') {
+                    const barredDids = new Set(guardianRules.filter_dids);
+                    workers = workers.filter(w => !barredDids.has(w.did));
+                }
+                return workers;
+            }
+            
+            // Guest aggregate barred filtering
+            if (aggregateBarred?.barred_dids?.length > 0) {
+                const barredDids = new Set(aggregateBarred.barred_dids);
+                workers = workers.filter(w => !barredDids.has(w.did));
+                return workers;
+            }
+            
+            return workers;
+        }
         
         // Restore tab from localStorage on page load
         const savedTab = localStorage.getItem('work_current_tab');
@@ -1034,18 +1290,18 @@
             // Cheerful is always visible (public)
             if (cheerfulTab) {
                 cheerfulTab.style.display = 'flex';
-                console.log('💖 [Visibility] Cheerful tab shown (public)');
             }
             if (cheerfulMobile) cheerfulMobile.style.display = '';
             
-            // DEBUG: Check tabs after visibility update
-            setTimeout(() => {
-                const allTabs = document.querySelectorAll('.role-tab');
-                console.log('🔍 [DEBUG] Tabs after visibility update:', allTabs.length);
-                allTabs.forEach((t, i) => {
-                    console.log(`🔍 [DEBUG] Tab ${i}: ${t.dataset.role}, display: ${t.style.display}, computed: ${getComputedStyle(t).display}`);
-                });
-            }, 100);
+            // Guardian is now public (multi-worker role like Cheerful)
+            const guardianTab = document.getElementById('role-tab-guardian');
+            const guardianMobile = document.getElementById('mobile-option-guardian');
+            if (guardianTab) {
+                guardianTab.style.display = 'flex';
+            }
+            if (guardianMobile) {
+                guardianMobile.style.display = '';
+            }
         }
         
         // Legacy function name for backward compatibility
@@ -1107,7 +1363,8 @@
                 'provisioner': 'CURRENT PROVISIONER:',
                 'dreamstyler': 'ACTIVE DREAMSTYLERS:',
                 'bursar': 'CURRENT BURSAR:',
-                'cheerful': 'THE CHEERFUL:'
+                'cheerful': 'THE CHEERFUL:',
+                'guardian': 'ACTIVE GUARDIANS:'
             };
             document.getElementById('worker-label').textContent = labels[role];
             
@@ -1129,6 +1386,8 @@
                 hideBursarContent();
                 // Hide cheerful content for cogitarian
                 hideCheerfulContent();
+                // Hide guardian content for cogitarian
+                hideGuardianContent();
                 // Show cogitarian content
                 showCogitarianContent();
             } else if (role === 'mapper') {
@@ -1143,6 +1402,16 @@
                 hideEventStack();
                 // Hide cogitarian content for mapper
                 hideCogitarianContent();
+                // Hide provisioner content for mapper
+                hideProvisionerContent();
+                // Hide dreamstyler content for mapper
+                hideDreamstylerContent();
+                // Hide bursar content for mapper
+                hideBursarContent();
+                // Hide cheerful content for mapper
+                hideCheerfulContent();
+                // Hide guardian content for mapper
+                hideGuardianContent();
                 // Hide provisioner content for mapper
                 hideProvisionerContent();
                 // Hide dreamstyler content for mapper
@@ -1174,6 +1443,8 @@
                 hideBursarContent();
                 // Hide cheerful content for greeter
                 hideCheerfulContent();
+                // Hide guardian content for greeter
+                hideGuardianContent();
             } else if (role === 'provisioner') {
                 // Load role status for provisioner
                 loadRoleStatus(role);
@@ -1185,6 +1456,7 @@
                 hideDreamstylerContent();
                 hideBursarContent();
                 hideCheerfulContent();
+                hideGuardianContent();
                 // Show provisioner content
                 showProvisionerContent();
                 // Populate food request form with user data
@@ -1200,6 +1472,7 @@
                 hideProvisionerContent();
                 hideBursarContent();
                 hideCheerfulContent();
+                hideGuardianContent();
                 // Show dreamstyler content
                 showDreamstylerContent();
             } else if (role === 'bursar') {
@@ -1213,6 +1486,7 @@
                 hideProvisionerContent();
                 hideDreamstylerContent();
                 hideCheerfulContent();
+                hideGuardianContent();
                 // Show bursar content
                 showBursarContent();
             } else if (role === 'cheerful') {
@@ -1226,8 +1500,25 @@
                 hideProvisionerContent();
                 hideDreamstylerContent();
                 hideBursarContent();
+                hideGuardianContent();
                 // Show cheerful content
                 showCheerfulContent();
+            } else if (role === 'guardian') {
+                // Load role status for guardian (admin only)
+                loadRoleStatus(role);
+                // Hide all other content
+                hideEventStack();
+                hideSpectrumPreview();
+                hideMapperContent();
+                hideCogitarianContent();
+                hideProvisionerContent();
+                hideDreamstylerContent();
+                hideBursarContent();
+                hideCheerfulContent();
+                // Show guardian content
+                showGuardianContent();
+                // Load guardian data
+                loadGuardianList();
             } else {
                 // Load role status for the selected role
                 loadRoleStatus(role);
@@ -1685,7 +1976,10 @@
                 }
                 
                 const data = await response.json();
-                const workers = data.all_workers || [];
+                let workers = data.all_workers || [];
+                
+                // Apply guardian filtering
+                workers = filterWorkersByGuardian(workers);
                 
                 if (workers.length === 0) {
                     listContainer.innerHTML = '<div class="dreamstyler-empty">No active dreamstylers</div>';
@@ -2165,6 +2459,630 @@ We'd be endebted to your help.`;
             }
         }
         
+        function showGuardianContent() {
+            const container = document.getElementById('guardian-content-section');
+            if (container) {
+                container.style.display = 'block';
+                loadGuardianList();
+            }
+        }
+        
+        function hideGuardianContent() {
+            const container = document.getElementById('guardian-content-section');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+        
+        // Selected guardian state
+        let selectedGuardian = null;
+        
+        // Load guardian list
+        async function loadGuardianList() {
+            const listContainer = document.getElementById('guardian-list');
+            if (!listContainer) return;
+            
+            try {
+                const response = await fetch('/api/work/guardian/status');
+                if (!response.ok) throw new Error('Failed to fetch guardian status');
+                
+                const data = await response.json();
+                let workers = data.role_info?.workers || [];
+                
+                // Apply guardian filtering
+                workers = filterWorkersByGuardian(workers);
+                
+                // Update stats
+                const totalCountEl = document.getElementById('guardian-total-count');
+                if (totalCountEl) totalCountEl.textContent = workers.length;
+                
+                if (workers.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="guardian-empty">
+                            <div class="guardian-empty-text">No Guardians yet</div>
+                            <p style="color: #888; font-size: 0.75rem; margin-top: 0.5rem;">Be the first to protect your community</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Fetch all worker details in parallel
+                const workerPromises = workers.map(async (worker) => {
+                    try {
+                        // Fetch dreamer info and guardian stats in parallel
+                        const [dreamerRes, statsRes] = await Promise.all([
+                            fetch(`/api/dreamers/${worker.did}`),
+                            fetch(`/api/work/guardian/${encodeURIComponent(worker.did)}/stats`)
+                        ]);
+                        
+                        const dreamer = dreamerRes.ok ? await dreamerRes.json() : null;
+                        const stats = statsRes.ok ? await statsRes.json() : null;
+                        
+                        return {
+                            did: worker.did,
+                            handle: dreamer?.handle || 'unknown',
+                            displayName: dreamer?.display_name || dreamer?.handle || 'Unknown',
+                            avatar: dreamer?.avatar || '/assets/default-avatar.png',
+                            color: dreamer?.color_hex || 'var(--role-guardian)',
+                            chargeCount: stats?.charge_count || 0,
+                            wardCount: stats?.ward_count || 0
+                        };
+                    } catch (e) {
+                        console.error('Failed to fetch dreamer:', e);
+                    }
+                    return {
+                        did: worker.did,
+                        handle: 'unknown',
+                        displayName: 'Unknown',
+                        avatar: '/assets/default-avatar.png',
+                        color: 'var(--role-guardian)',
+                        chargeCount: 0,
+                        wardCount: 0
+                    };
+                });
+                
+                const workerInfos = await Promise.all(workerPromises);
+                
+                // Calculate total wards and charges across all guardians
+                let totalWards = 0;
+                let totalCharges = 0;
+                for (const w of workerInfos) {
+                    totalWards += w.wardCount || 0;
+                    totalCharges += w.chargeCount || 0;
+                }
+                
+                // Update total stats in the detail panel
+                const totalWardsEl = document.getElementById('guardian-total-wards');
+                const totalChargesEl = document.getElementById('guardian-total-charges');
+                if (totalWardsEl) totalWardsEl.textContent = totalWards;
+                if (totalChargesEl) totalChargesEl.textContent = totalCharges;
+                
+                // Build guardian list HTML
+                let html = '';
+                for (const w of workerInfos) {
+                    // Use the guardian's database color for their row, fallback to guardian brown
+                    const userColor = w.color || '#8B5A2B';
+                    const bgColor = userColor + '22'; // Add ~13% opacity hex suffix
+                    const chargeCount = w.chargeCount || 0;
+                    const wardCount = w.wardCount || 0;
+                    html += `
+                        <div class="guardian-row" data-did="${w.did}" data-handle="${w.handle}" data-name="${w.displayName}" data-avatar="${w.avatar}" data-color="${userColor}" onclick="selectGuardian('${w.did}')" style="background: ${bgColor};">
+                            <div class="guardian-link">
+                                <img src="${w.avatar}" alt="${w.handle}" class="guardian-avatar">
+                                <span class="guardian-name">${w.displayName}</span>
+                            </div>
+                            <div class="guardian-counts">
+                                <span class="guardian-count ward-count" title="Wards (whitelisted)">
+                                    <!-- Hollow shield icon for wards -->
+                                    <svg class="guardian-count-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                                    </svg>
+                                    ${wardCount}
+                                </span>
+                                <span class="guardian-count-divider">|</span>
+                                <span class="guardian-count charge-count" title="Charges (blacklisted)">
+                                    <!-- Swords icon for charges -->
+                                    <svg class="guardian-count-icon" viewBox="0 0 20 20" fill="currentColor">
+                                        <polygon points="17.17,15.76 20,18.59 18.59,20 15.76,17.17 14.35,18.59 12.93,17.17 14.35,15.76 10,10.98 5.65,15.76 7.07,17.17 5.65,18.59 4.24,17.17 1.41,20 0,18.59 2.83,15.76 1.41,14.35 2.83,12.93 4.24,14.35 9.06,9.96 0,0 10,9.1 20,0 10.94,9.96 15.76,14.35 17.17,12.93 18.59,14.35"/>
+                                    </svg>
+                                    ${chargeCount}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                listContainer.innerHTML = html;
+                
+                // Load community-wide stats (barred/allowed counts)
+                loadCommunityShieldStats();
+                
+            } catch (error) {
+                console.error('Failed to load guardian list:', error);
+                listContainer.innerHTML = `
+                    <div class="guardian-empty">
+                        <div class="guardian-empty-text">Unable to load guardians</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Load community shield aggregate stats
+        async function loadCommunityShieldStats() {
+            try {
+                const response = await fetch('/api/guardian/community-stats');
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                
+                // Update barred counts
+                const barredDreamersEl = document.getElementById('community-barred-dreamers');
+                const barredDreamsEl = document.getElementById('community-barred-dreams');
+                if (barredDreamersEl) barredDreamersEl.textContent = data.barred_dreamers || 0;
+                if (barredDreamsEl) barredDreamsEl.textContent = data.barred_dreams || 0;
+                
+                // Update allowed counts
+                const allowedDreamersEl = document.getElementById('community-allowed-dreamers');
+                const allowedDreamsEl = document.getElementById('community-allowed-dreams');
+                if (allowedDreamersEl) allowedDreamersEl.textContent = data.allowed_dreamers || 0;
+                if (allowedDreamsEl) allowedDreamsEl.textContent = data.allowed_dreams || 0;
+                
+            } catch (error) {
+                console.error('Failed to load community stats:', error);
+            }
+        }
+        
+        // Select a guardian and show their details
+        async function selectGuardian(guardianDid) {
+            selectedGuardian = guardianDid;
+            
+            // Highlight selected row
+            document.querySelectorAll('.guardian-row').forEach(row => {
+                row.classList.remove('selected');
+            });
+            const selectedRow = document.querySelector(`.guardian-row[data-did="${guardianDid}"]`);
+            if (selectedRow) selectedRow.classList.add('selected');
+            
+            // Show selected view, hide default view
+            const defaultView = document.getElementById('guardian-default-view');
+            const selectedView = document.getElementById('guardian-selected-view');
+            if (defaultView) defaultView.style.display = 'none';
+            if (selectedView) selectedView.style.display = 'block';
+            
+            try {
+                // Get guardian's info from the row data attributes
+                const guardianRow = document.querySelector(`.guardian-row[data-did="${guardianDid}"]`);
+                const guardianName = guardianRow?.dataset.name || 'Guardian';
+                const guardianHandle = guardianRow?.dataset.handle || 'unknown';
+                const guardianAvatar = guardianRow?.dataset.avatar || '/assets/default-avatar.png';
+                const guardianColor = guardianRow?.dataset.color || '#8B5A2B';
+                
+                // Store guardian name for panel
+                window.selectedGuardianName = guardianName;
+                window.selectedGuardianHandle = guardianHandle;
+                
+                // Update profile header
+                const profileAvatar = document.getElementById('guardian-profile-avatar');
+                const profileName = document.getElementById('guardian-profile-name');
+                const profileHandle = document.getElementById('guardian-profile-handle');
+                const profileHeader = document.querySelector('.guardian-profile-header');
+                const profileLink = document.getElementById('guardian-profile-link');
+                if (profileAvatar) profileAvatar.src = guardianAvatar;
+                if (profileName) profileName.textContent = guardianName;
+                if (profileHandle) profileHandle.textContent = `@${guardianHandle}`;
+                // Set the dreamer link
+                if (profileLink) profileLink.href = `/dreamers/${guardianHandle}`;
+                // Apply user's color as background tint
+                if (profileHeader) profileHeader.style.background = guardianColor + '22';
+                
+                // Fetch the guardian's lists from the API
+                const listsRes = await fetch(`/api/guardian/${encodeURIComponent(guardianDid)}/lists`);
+                const listsData = listsRes.ok ? await listsRes.json() : { barred_users: [], barred_content: [], allowed_users: [], allowed_content: [], ward_count: 0, charge_count: 0 };
+                
+                const barredUsers = listsData.barred_users || [];
+                const barredContent = listsData.barred_content || [];
+                const allowedUsers = listsData.allowed_users || [];
+                const allowedContent = listsData.allowed_content || [];
+                const wardCount = listsData.ward_count || 0;
+                const chargeCount = listsData.charge_count || 0;
+                
+                // Update header counts (wards/charges = users under this guardian)
+                const wardCountBadge = document.getElementById('ward-count-badge');
+                const chargeCountBadge = document.getElementById('charge-count-badge');
+                if (wardCountBadge) wardCountBadge.textContent = wardCount;
+                if (chargeCountBadge) chargeCountBadge.textContent = chargeCount;
+                
+                // Update stats grid (barred/approved lists)
+                const barredDreamersEl = document.getElementById('guardian-barred-dreamers');
+                const barredDreamsEl = document.getElementById('guardian-barred-dreams');
+                const approvedDreamersEl = document.getElementById('guardian-approved-dreamers');
+                const approvedDreamsEl = document.getElementById('guardian-approved-dreams');
+                if (barredDreamersEl) barredDreamersEl.textContent = barredUsers.length;
+                if (barredDreamsEl) barredDreamsEl.textContent = barredContent.length;
+                if (approvedDreamersEl) approvedDreamersEl.textContent = allowedUsers.length;
+                if (approvedDreamsEl) approvedDreamsEl.textContent = allowedContent.length;
+                
+                // Update REVIEW/MANAGE button based on if user is the guardian
+                const reviewBtn = document.getElementById('guardian-review-btn');
+                if (reviewBtn) {
+                    const currentUserDid = window.oauthManager?.getSession()?.did;
+                    if (currentUserDid && currentUserDid === guardianDid) {
+                        reviewBtn.textContent = 'MANAGE';
+                    } else {
+                        reviewBtn.textContent = 'REVIEW';
+                    }
+                }
+                
+                // Update ward/charge buttons based on current user's status
+                await updateWardChargeButtons(guardianDid);
+                
+            } catch (error) {
+                console.error('Error loading guardian details:', error);
+            }
+        }
+        
+        // Update ward/charge buttons based on user's current status
+        async function updateWardChargeButtons(guardianDid) {
+            const wardBtn = document.getElementById('become-ward-btn');
+            const chargeBtn = document.getElementById('become-charge-btn');
+            if (!wardBtn || !chargeBtn) return;
+            
+            const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            if (!token) {
+                // Not logged in - show default buttons
+                resetWardChargeButtons();
+                return;
+            }
+            
+            // Get current user's DID to check if viewing themselves
+            const currentUserDid = currentSession?.sub || currentSession?.did;
+            const isViewingSelf = currentUserDid && currentUserDid === guardianDid;
+            
+            // If viewing self, show disabled buttons
+            if (isViewingSelf) {
+                showDisabledButtons();
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/guardian/my-status', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Check if user is a ward of THIS guardian
+                    if (data.is_ward && data.ward_of === guardianDid) {
+                        // Show Leave Guardian button in ward slot, keep charge button visible
+                        wardBtn.innerHTML = `
+                            <svg class="guardian-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M15 9l-6 6M9 9l6 6"/>
+                            </svg>
+                            <span class="guardian-action-label">Leave Guardian</span>
+                        `;
+                        wardBtn.className = 'guardian-action-btn leave-btn';
+                        wardBtn.onclick = () => showLeaveGuardianConfirm();
+                        wardBtn.style.display = '';
+                        wardBtn.disabled = false;
+                        // Reset charge button to default
+                        chargeBtn.innerHTML = `
+                            <svg class="guardian-action-icon" viewBox="0 0 20 20" fill="currentColor">
+                                <polygon points="17.17,15.76 20,18.59 18.59,20 15.76,17.17 14.35,18.59 12.93,17.17 14.35,15.76 10,10.98 5.65,15.76 7.07,17.17 5.65,18.59 4.24,17.17 1.41,20 0,18.59 2.83,15.76 1.41,14.35 2.83,12.93 4.24,14.35 9.06,9.96 0,0 10,9.1 20,0 10.94,9.96 15.76,14.35 17.17,12.93 18.59,14.35"/>
+                            </svg>
+                            <span class="guardian-action-label">Become a Charge</span>
+                        `;
+                        chargeBtn.className = 'guardian-action-btn charge-btn';
+                        chargeBtn.onclick = () => showChargeConfirmation();
+                        chargeBtn.style.display = '';
+                        chargeBtn.disabled = false;
+                    }
+                    // Check if user is a charge of THIS guardian
+                    else if (data.is_charge && data.charge_of === guardianDid) {
+                        // Show Leave Guardian button in charge slot, keep ward button visible
+                        chargeBtn.innerHTML = `
+                            <svg class="guardian-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M15 9l-6 6M9 9l6 6"/>
+                            </svg>
+                            <span class="guardian-action-label">Leave Guardian</span>
+                        `;
+                        chargeBtn.className = 'guardian-action-btn leave-btn';
+                        chargeBtn.onclick = () => showLeaveGuardianConfirm();
+                        chargeBtn.style.display = '';
+                        chargeBtn.disabled = false;
+                        // Reset ward button to default
+                        wardBtn.innerHTML = `
+                            <svg class="guardian-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                            </svg>
+                            <span class="guardian-action-label">Become a Ward</span>
+                        `;
+                        wardBtn.className = 'guardian-action-btn ward-btn';
+                        wardBtn.onclick = () => showWardConfirmation();
+                        wardBtn.style.display = '';
+                        wardBtn.disabled = false;
+                    }
+                    // User is ward/charge of another guardian or not at all
+                    else {
+                        resetWardChargeButtons();
+                    }
+                } else {
+                    resetWardChargeButtons();
+                }
+            } catch (error) {
+                console.error('Error checking ward/charge status:', error);
+                resetWardChargeButtons();
+            }
+        }
+        
+        // Reset ward/charge buttons to default state
+        function resetWardChargeButtons() {
+            const wardBtn = document.getElementById('become-ward-btn');
+            const chargeBtn = document.getElementById('become-charge-btn');
+            if (wardBtn) {
+                wardBtn.innerHTML = `
+                    <svg class="guardian-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                    </svg>
+                    <span class="guardian-action-label">Become a Ward</span>
+                `;
+                wardBtn.className = 'guardian-action-btn ward-btn';
+                wardBtn.onclick = () => showWardConfirmation();
+                wardBtn.style.display = '';
+                wardBtn.disabled = false;
+            }
+            if (chargeBtn) {
+                chargeBtn.innerHTML = `
+                    <svg class="guardian-action-icon" viewBox="0 0 20 20" fill="currentColor">
+                        <polygon points="17.17,15.76 20,18.59 18.59,20 15.76,17.17 14.35,18.59 12.93,17.17 14.35,15.76 10,10.98 5.65,15.76 7.07,17.17 5.65,18.59 4.24,17.17 1.41,20 0,18.59 2.83,15.76 1.41,14.35 2.83,12.93 4.24,14.35 9.06,9.96 0,0 10,9.1 20,0 10.94,9.96 15.76,14.35 17.17,12.93 18.59,14.35"/>
+                    </svg>
+                    <span class="guardian-action-label">Become a Charge</span>
+                `;
+                chargeBtn.className = 'guardian-action-btn charge-btn';
+                chargeBtn.onclick = () => showChargeConfirmation();
+                chargeBtn.style.display = '';
+                chargeBtn.disabled = false;
+            }
+        }
+        
+        // Show disabled buttons when viewing yourself
+        function showDisabledButtons() {
+            const wardBtn = document.getElementById('become-ward-btn');
+            const chargeBtn = document.getElementById('become-charge-btn');
+            if (wardBtn) {
+                wardBtn.innerHTML = `
+                    <svg class="guardian-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                    </svg>
+                    <span class="guardian-action-label">Become a Ward</span>
+                `;
+                wardBtn.className = 'guardian-action-btn ward-btn disabled-btn';
+                wardBtn.onclick = null;
+                wardBtn.style.display = '';
+                wardBtn.disabled = true;
+            }
+            if (chargeBtn) {
+                chargeBtn.innerHTML = `
+                    <svg class="guardian-action-icon" viewBox="0 0 20 20" fill="currentColor">
+                        <polygon points="17.17,15.76 20,18.59 18.59,20 15.76,17.17 14.35,18.59 12.93,17.17 14.35,15.76 10,10.98 5.65,15.76 7.07,17.17 5.65,18.59 4.24,17.17 1.41,20 0,18.59 2.83,15.76 1.41,14.35 2.83,12.93 4.24,14.35 9.06,9.96 0,0 10,9.1 20,0 10.94,9.96 15.76,14.35 17.17,12.93 18.59,14.35"/>
+                    </svg>
+                    <span class="guardian-action-label">Become a Charge</span>
+                `;
+                chargeBtn.className = 'guardian-action-btn charge-btn disabled-btn';
+                chargeBtn.onclick = null;
+                chargeBtn.style.display = '';
+                chargeBtn.disabled = true;
+            }
+        }
+        
+        // Show leave guardian confirmation popup
+        function showLeaveGuardianConfirm() {
+            const guardianName = window.selectedGuardianName || 'this guardian';
+            const modal = document.getElementById('guardianConfirmModal');
+            const content = document.getElementById('guardianConfirmContent');
+            
+            content.innerHTML = `
+                <div class="guardian-confirm-box leave-confirm">
+                    <div class="guardian-confirm-header">
+                        <div class="guardian-confirm-icon leave-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M15 9l-6 6M9 9l6 6"/>
+                            </svg>
+                        </div>
+                        <div class="guardian-confirm-title">Leave Guardian</div>
+                    </div>
+                    <div class="guardian-confirm-body">
+                        <p class="guardian-confirm-description">You will no longer be under the stewardship of <strong>${guardianName}</strong>. Their curation lists will no longer affect your experience.</p>
+                    </div>
+                    <div class="guardian-confirm-actions">
+                        <button class="guardian-confirm-btn accept-btn leave-accept" onclick="confirmLeaveGuardian()">
+                            LEAVE
+                        </button>
+                        <button class="guardian-confirm-btn cancel-btn" onclick="closeGuardianConfirm()">
+                            CANCEL
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        // Confirm and execute leave guardian
+        async function confirmLeaveGuardian() {
+            const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            if (!token) {
+                showCelebration('Please log in first', 'error');
+                closeGuardianConfirm();
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/guardian/leave', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                closeGuardianConfirm();
+                
+                if (data.success) {
+                    showCelebration('You have left your guardian.', 'info');
+                    // Refresh the guardian details
+                    if (selectedGuardian) {
+                        await selectGuardian(selectedGuardian);
+                    }
+                } else {
+                    showCelebration(data.error || 'Failed to leave guardian', 'error');
+                }
+            } catch (error) {
+                console.error('Error leaving guardian:', error);
+                showCelebration('An error occurred. Please try again.', 'error');
+            }
+        }
+        
+        // Open the guardian panel
+        function openGuardianPanel() {
+            if (!selectedGuardian) return;
+            const guardianName = window.selectedGuardianName || 'Guardian';
+            window.guardianPanel?.open(selectedGuardian, guardianName);
+        }
+        
+        // Show ward confirmation popup
+        function showWardConfirmation() {
+            // Check if logged in first
+            const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            if (!token) {
+                if (window.triggerLogin) {
+                    window.triggerLogin();
+                }
+                return;
+            }
+            
+            if (!selectedGuardian) {
+                alert('Please select a guardian first');
+                return;
+            }
+            const guardianName = window.selectedGuardianName || 'this guardian';
+            showGuardianConfirmPopup('ward', guardianName);
+        }
+        
+        // Show charge confirmation popup
+        function showChargeConfirmation() {
+            // Check if logged in first
+            const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            if (!token) {
+                if (window.triggerLogin) {
+                    window.triggerLogin();
+                }
+                return;
+            }
+            
+            if (!selectedGuardian) {
+                alert('Please select a guardian first');
+                return;
+            }
+            const guardianName = window.selectedGuardianName || 'this guardian';
+            showGuardianConfirmPopup('charge', guardianName);
+        }
+        
+        // Show the guardian confirmation popup
+        function showGuardianConfirmPopup(type, guardianName) {
+            const modal = document.getElementById('guardianConfirmModal');
+            const content = document.getElementById('guardianConfirmContent');
+            
+            const isWard = type === 'ward';
+            const iconSvg = isWard 
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>'
+                : '<svg viewBox="0 0 20 20" fill="currentColor"><polygon points="17.17,15.76 20,18.59 18.59,20 15.76,17.17 14.35,18.59 12.93,17.17 14.35,15.76 10,10.98 5.65,15.76 7.07,17.17 5.65,18.59 4.24,17.17 1.41,20 0,18.59 2.83,15.76 1.41,14.35 2.83,12.93 4.24,14.35 9.06,9.96 0,0 10,9.1 20,0 10.94,9.96 15.76,14.35 17.17,12.93 18.59,14.35"/></svg>';
+            
+            const description = isWard
+                ? `As a <strong>Ward</strong> of <strong>${guardianName}</strong>, you will be able to see and interact with content from other dreamers they deem safe for you.`
+                : `As a <strong>Charge</strong> of <strong>${guardianName}</strong>, you will be able to see and interact with all content from other dreamers, except that which they deem unsafe for you.`;
+            
+            content.innerHTML = `
+                <div class="guardian-confirm-box ${type}-confirm">
+                    <div class="guardian-confirm-header">
+                        <div class="guardian-confirm-icon ${type}-icon">
+                            ${iconSvg}
+                        </div>
+                        <div class="guardian-confirm-title">Become ${isWard ? 'Ward' : 'Charge'}</div>
+                    </div>
+                    <div class="guardian-confirm-body">
+                        <p class="guardian-confirm-description">${description}</p>
+                    </div>
+                    <div class="guardian-confirm-actions">
+                        <button class="guardian-confirm-btn accept-btn ${type}-accept" onclick="acceptGuardianRole('${type}')">
+                            ACCEPT
+                        </button>
+                        <button class="guardian-confirm-btn cancel-btn" onclick="closeGuardianConfirm()">
+                            CANCEL
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        // Close the guardian confirmation popup
+        function closeGuardianConfirm() {
+            const modal = document.getElementById('guardianConfirmModal');
+            modal.style.display = 'none';
+        }
+        
+        // Accept guardian role (ward or charge)
+        async function acceptGuardianRole(type) {
+            if (!selectedGuardian) {
+                alert('No guardian selected');
+                closeGuardianConfirm();
+                return;
+            }
+            
+            const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+            if (!token) {
+                alert('Please log in first');
+                closeGuardianConfirm();
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/guardian/become', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        guardian_did: selectedGuardian,
+                        type: type
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeGuardianConfirm();
+                    // Refresh the guardian details to update counts
+                    await selectGuardian(selectedGuardian);
+                    // Show celebration with bubbles
+                    const roleName = type.charAt(0).toUpperCase() + type.slice(1);
+                    showCelebration(`You are now a ${roleName} of ${window.selectedGuardianName || 'this guardian'}!`, 'success');
+                } else {
+                    showCelebration(data.error || 'Failed to become ' + type, 'error');
+                }
+            } catch (error) {
+                console.error('Error becoming ' + type + ':', error);
+                showCelebration('An error occurred. Please try again.', 'error');
+            }
+        }
+        
         // Load cheerful members list
         async function loadCheerfulList() {
             const listContainer = document.getElementById('cheerful-list');
@@ -2183,8 +3101,12 @@ We'd be endebted to your help.`;
                 
                 const data = await response.json();
                 console.log('🌸 [Cheerful List] Response data:', data);
-                const workers = data.role_info?.workers || [];
+                let workers = data.role_info?.workers || [];
                 console.log('🌸 [Cheerful List] Workers found:', workers.length, workers);
+                
+                // Apply guardian filtering
+                workers = filterWorkersByGuardian(workers);
+                console.log('🌸 [Cheerful List] After filtering:', workers.length);
                 
                 if (workers.length === 0) {
                     console.log('🌸 [Cheerful List] No workers, showing empty message');
@@ -3442,8 +4364,13 @@ We'd be endebted to your help.`;
             // Just store the session - we'll wait for profile-loaded to update UI
             currentSession = event.detail.session;
             
-            // Don't reload greeter status here - profile-loaded will do it
-            // This prevents duplicate API calls
+            // Reload guardian rules for the logged-in user
+            await loadGuardianRules();
+            
+            // Reload lists with new filtering
+            loadDreamstylerList();
+            loadGuardianList();
+            loadCheerfulList();
         });
 
         window.addEventListener('oauth:logout', async () => {
@@ -3460,10 +4387,18 @@ We'd be endebted to your help.`;
             sessionCheckComplete = true;
             profileLoaded = false;
             
+            // Reload guardian rules for guest (aggregate barred)
+            await loadGuardianRules();
+            
             // Reload current role status to show current state
             console.log('🔄 Work: Refreshing role status after logout...');
             await loadRoleStatus(currentRole);
             updateUI();
+            
+            // Reload lists with guest filtering
+            loadDreamstylerList();
+            loadGuardianList();
+            loadCheerfulList();
         });
 
         // Check for session - simplified since we rely on events
@@ -3506,9 +4441,12 @@ We'd be endebted to your help.`;
         }
 
         // Check if already logged in on page load - with retries
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             let attempts = 0;
             const maxAttempts = 5;
+            
+            // Load guardian rules for filtering
+            await loadGuardianRules();
             
             // Check admin status and show/hide admin-only tabs
             checkAdminStatus();
@@ -3521,7 +4459,7 @@ We'd be endebted to your help.`;
             const hashRole = window.location.hash.replace('#', '');
             
             // Build allowed roles list (admin-only roles handled by updateAdminRoleVisibility)
-            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful'];
+            let allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful', 'guardian'];
             
             let initialTab = null;
             
@@ -3581,9 +4519,13 @@ We'd be endebted to your help.`;
             loadRoleStatus('provisioner');
             loadRoleStatus('dreamstyler');
             loadRoleStatus('bursar');
+            loadRoleStatus('cheerful');
+            loadRoleStatus('guardian');
             
-            // Load greeting events for greeter tab
-            loadGreetingEvents();
+            // Load greeting events for greeter tab (only if greeter is the current tab)
+            if (currentRole === 'greeter') {
+                loadGreetingEvents();
+            }
             
             // Setup work event listeners for cross-page synchronization
             const setupWorkEvents = () => {
@@ -3658,7 +4600,7 @@ We'd be endebted to your help.`;
             
             // Handle browser back/forward navigation
             window.addEventListener('popstate', (event) => {
-                const allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful'];
+                const allowedRoles = ['greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful', 'guardian'];
                 let role = null;
                 
                 // Check state first
@@ -4273,7 +5215,7 @@ We'd be endebted to your help.`;
             const workerDisplay = document.getElementById('worker-display');
             
             if (!roleInfo.workers || roleInfo.workers.length === 0) {
-                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : role === 'provisioner' ? 'Provisioner' : role === 'bursar' ? 'Bursar' : role === 'cheerful' ? 'Cheerful' : 'Dreamstyler';
+                const roleTitle = role === 'greeter' ? 'Greeter' : role === 'mapper' ? 'Mapper' : role === 'cogitarian' ? 'Cogitarian' : role === 'provisioner' ? 'Provisioner' : role === 'bursar' ? 'Bursar' : role === 'cheerful' ? 'Cheerful' : role === 'guardian' ? 'Guardian' : 'Dreamstyler';
                 
                 // Reset worker card borders to default when no worker
                 const workerCard = document.querySelector('.role-worker-card');
@@ -4293,12 +5235,13 @@ We'd be endebted to your help.`;
                     'provisioner': 'var(--role-provisioner)',
                     'dreamstyler': 'var(--role-dreamstyler)',
                     'bursar': 'var(--role-bursar)',
-                    'cheerful': 'var(--role-cheerful)'
+                    'cheerful': 'var(--role-cheerful)',
+                    'guardian': 'var(--role-guardian)'
                 };
                 const roleColor = roleColors[role] || 'var(--role-greeter)';
                 
                 // Different empty messages for special roles
-                const emptyMessage = role === 'dreamstyler' ? 'No Active Dreamstylers' : role === 'bursar' ? 'No Current Bursar' : role === 'cheerful' ? 'No Current Cheerful' : 'No Current Worker';
+                const emptyMessage = role === 'dreamstyler' ? 'No Active Dreamstylers' : role === 'bursar' ? 'No Current Bursar' : role === 'cheerful' ? 'No Current Cheerful' : role === 'guardian' ? 'No Active Guardians' : 'No Current Worker';
                 
                 workerDisplay.innerHTML = `
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5" style="margin: 0 auto; display: block;">
@@ -4325,8 +5268,8 @@ We'd be endebted to your help.`;
                 return;
             }
 
-            // Special handling for multi-worker roles (dreamstyler, cheerful)
-            if (role === 'dreamstyler' || role === 'cheerful') {
+            // Special handling for multi-worker roles (dreamstyler, cheerful, guardian)
+            if (role === 'dreamstyler' || role === 'cheerful' || role === 'guardian') {
                 await updateMultiWorkerDisplay(roleInfo, role);
                 return;
             }
@@ -4456,14 +5399,32 @@ We'd be endebted to your help.`;
             }
         }
 
-        // Display multiple workers for multi-worker roles (like dreamstyler, cheerful)
+        // Display multiple workers for multi-worker roles (like dreamstyler, cheerful, guardian)
         async function updateMultiWorkerDisplay(roleInfo, role) {
             const workerDisplay = document.getElementById('worker-display');
-            const workers = roleInfo.workers || [];
-            const roleColor = role === 'cheerful' ? 'var(--role-cheerful)' : 'var(--role-dreamstyler)';
-            const defaultColor = role === 'cheerful' ? '#e05ecf' : '#9e75e5';
-            const buttonText = role === 'cheerful' ? 'Join The Cheerful' : 'Become Dreamstyler';
-            const emptyMessage = role === 'cheerful' ? 'No Current Cheerful' : 'No Active Dreamstylers';
+            let workers = roleInfo.workers || [];
+            
+            // Apply guardian filtering to multi-worker displays
+            workers = filterWorkersByGuardian(workers);
+            
+            // Role-specific styling
+            let roleColor, defaultColor, buttonText, emptyMessage;
+            if (role === 'cheerful') {
+                roleColor = 'var(--role-cheerful)';
+                defaultColor = '#e05ecf';
+                buttonText = 'Join The Cheerful';
+                emptyMessage = 'No Current Cheerful';
+            } else if (role === 'guardian') {
+                roleColor = 'var(--role-guardian)';
+                defaultColor = '#8b5a2b';
+                buttonText = 'Become Guardian';
+                emptyMessage = 'No Active Guardians';
+            } else {
+                roleColor = 'var(--role-dreamstyler)';
+                defaultColor = '#9e75e5';
+                buttonText = 'Become Dreamstyler';
+                emptyMessage = 'No Active Dreamstylers';
+            }
             
             // Set card border color
             const workerCard = document.querySelector('.role-worker-card');
@@ -4755,6 +5716,23 @@ We'd be endebted to your help.`;
                 activationMessage: 'You have joined The Cheerful\nYour positivity will ripple outward.\nA welcome mat that never sleeps.',
                 showExamples: false,
                 requiresAppPassword: true,
+                multiWorker: true,
+                getExamples: () => []
+            },
+            guardian: {
+                title: 'Guardians',
+                description: 'Guardians are trusted dreamweavers who steward the journeys of their Charges and Wards as they explore our wild mindscape together.<br><br>Each Guardian maintains their own curation to permit and deny presence for certain dreams and dreamweavers for those who rely on their defense. Charges may see everything but the barred, while Wards may only see what is allowed.',
+                exampleLabel: 'Protection Lists',
+                appPasswordName: 'Guardian',
+                passwordPurpose: 'for managing protection lists',
+                roleName: 'Guardian',
+                roleNameLower: 'guardian',
+                buttonText: 'BECOME GUARDIAN',
+                confirmTitle: 'Become a Guardian?',
+                confirmMessage: 'As <strong>Guardian</strong>, you are tasked with curating a whitelist and a blacklist of content and accounts.<br><br><strong>Charges</strong> and <strong>Wards</strong> who trust your judgment will subscribe to these lists and benefit from your stewardship.<br><br>All relationships and lists are public.',
+                activationMessage: 'You are now a Guardian\nProtect those who seek your shelter.',
+                showExamples: false,
+                requiresAppPassword: false,
                 multiWorker: true,
                 getExamples: () => []
             }
@@ -5430,8 +6408,18 @@ We'd be endebted to your help.`;
             else if (roleStatuses.dreamstyler && roleStatuses.dreamstyler.is_worker) userCurrentRole = 'dreamstyler';
             else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) userCurrentRole = 'bursar';
             else if (roleStatuses.cheerful && roleStatuses.cheerful.is_worker) userCurrentRole = 'cheerful';
+            else if (roleStatuses.guardian && roleStatuses.guardian.is_worker) userCurrentRole = 'guardian';
             
-            if (userCurrentRole && userCurrentRole !== role) {
+            // Multi-worker roles (cheerful, guardian, dreamstyler) can coexist with single-worker roles
+            // Users can have multiple multi-worker roles at once
+            const multiWorkerRoles = ['cheerful', 'guardian', 'dreamstyler'];
+            const isMultiWorkerTarget = multiWorkerRoles.includes(role);
+            const isMultiWorkerCurrent = userCurrentRole && multiWorkerRoles.includes(userCurrentRole);
+            
+            // Only block if:
+            // 1. User has a single-worker role and is trying to take another single-worker role
+            // 2. (Multi-worker roles are always allowed)
+            if (userCurrentRole && userCurrentRole !== role && !isMultiWorkerTarget && !isMultiWorkerCurrent) {
                 const currentRoleConfig = roleConfigs[userCurrentRole];
                 const currentRoleTitle = currentRoleConfig ? currentRoleConfig.title : userCurrentRole;
                 showCelebration(`You are currently ${currentRoleTitle}.\n\nStep down first to take on a new role.`, 'error');
@@ -5447,8 +6435,8 @@ We'd be endebted to your help.`;
             currentModalRole = role;
             
             // Check if there's already an active worker for this role
-            // (Skip this check for dreamstyler since it's multi-worker)
-            if (role !== 'dreamstyler') {
+            // Skip this check for multi-worker roles (dreamstyler, cheerful, guardian)
+            if (!multiWorkerRoles.includes(role)) {
                 const statusResponse = await fetch(`/api/work/${role}/status`);
                 if (statusResponse.ok) {
                     const statusData = await statusResponse.json();

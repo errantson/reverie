@@ -366,20 +366,20 @@ def serve_dreamer_profile(name):
                             text=True
                         )
                         if result.returncode == 0:
-                            print(f"✅ [SUBDOMAIN] Background generation completed for {safe_handle}")
+                            print(f"[SUBDOMAIN] Background generation completed for {safe_handle}")
                         else:
-                            print(f"❌ [SUBDOMAIN] Background generation failed: {result.stderr}")
+                            print(f"[SUBDOMAIN] Background generation failed: {result.stderr}")
                     except Exception as e:
-                        print(f"❌ [SUBDOMAIN] Background generation error: {e}")
+                        print(f"[SUBDOMAIN] Background generation error: {e}")
                 
                 thread = threading.Thread(target=generate_async, daemon=True)
                 thread.start()
                 print(f"📤 [SUBDOMAIN] Background generation queued for {safe_handle}")
                 
             except Exception as e:
-                print(f"❌ [SUBDOMAIN] Failed to queue background generation: {e}")
+                print(f"[SUBDOMAIN] Failed to queue background generation: {e}")
         else:
-            print(f"✅ [SUBDOMAIN] Using cached image for {safe_handle}")
+            print(f"[SUBDOMAIN] Using cached image for {safe_handle}")
         
         # Build profile page HTML with OG tags
         title = f"{display_name or name}'s Profile - Reverie House"
@@ -423,7 +423,7 @@ def serve_dreamer_profile(name):
         return Response(html, mimetype='text/html')
         
     except Exception as e:
-        print(f"❌ [SUBDOMAIN] Error serving dreamer profile: {e}")
+        print(f"[SUBDOMAIN] Error serving dreamer profile: {e}")
         return redirect('https://reverie.house/')
 
 
@@ -756,7 +756,7 @@ def origin_redirect(handle):
                 
                 # Get the ACTUAL resolved handle from the API (supports custom domains)
                 actual_handle = data.get('handle', handle)
-                print(f"✅ Spectrum calculated for {actual_handle}")
+                print(f"Spectrum calculated for {actual_handle}")
                 
                 # Use resolved handle for filename
                 safe_resolved = actual_handle.replace('/', '').replace('\\', '').replace('..', '')
@@ -777,7 +777,7 @@ def origin_redirect(handle):
                 
                 if gen_response.status_code == 200:
                     result = gen_response.json()
-                    print(f"✅ Image generated: {result.get('url')}")
+                    print(f"Image generated: {result.get('url')}")
                 else:
                     print(f"⚠️  Image generation failed: {gen_response.status_code}")
                     return redirect(f'https://reverie.house/origin.html?handle={actual_handle}')
@@ -791,7 +791,7 @@ def origin_redirect(handle):
         # Image exists (either pre-existing or just created) - serve OG tags
         # Re-determine the safe filename for the image
         safe_actual = actual_handle.replace('/', '').replace('\\', '').replace('..', '')
-        print(f"✅ [SERVING] OG tags for {actual_handle}")
+        print(f"[SERVING] OG tags for {actual_handle}")
         
         display_name = actual_handle
         try:
@@ -2452,7 +2452,7 @@ def apply_lore_label():
             print(f"   - Auth method: {auth_method}")
             print(f"   - Cookie preview: {cookie_session[:20]}...")
         else:
-            print(f"❌ [Lore Label] No authentication credentials found")
+            print(f"[Lore Label] No authentication credentials found")
             return jsonify({
                 'success': False,
                 'error': 'Authentication required. Please log in.'
@@ -2462,19 +2462,19 @@ def apply_lore_label():
         print(f"🔐 [Lore Label] Validating token using validate_work_token()...")
         valid, authenticated_did, handle = validate_work_token(token)
         
-        print(f"📋 [Lore Label] Validation result:")
+        print(f"[Lore Label] Validation result:")
         print(f"   - Valid: {valid}")
         print(f"   - Authenticated DID: {authenticated_did}")
         print(f"   - Handle: {handle}")
         
         if not valid:
-            print(f"❌ [Lore Label] Authentication validation failed")
+            print(f"[Lore Label] Authentication validation failed")
             return jsonify({
                 'success': False,
                 'error': 'Invalid token. Please log in again.'
             }), 401
         
-        print(f"✅ [Lore Label] Authentication successful - DID: {authenticated_did}")
+        print(f"[Lore Label] Authentication successful - DID: {authenticated_did}")
         
         # Load LOREFARM_KEY from environment or file
         lorefarm_key = os.environ.get('LOREFARM_KEY')
@@ -2485,28 +2485,28 @@ def apply_lore_label():
             try:
                 with open(lorefarm_key_file, 'r') as f:
                     lorefarm_key = f.read().strip()
-                print(f"✅ [Lore Label] LOREFARM_KEY loaded from file")
+                print(f"[Lore Label] LOREFARM_KEY loaded from file")
             except FileNotFoundError:
-                print(f"❌ [Lore Label] LOREFARM_KEY file not found: {lorefarm_key_file}")
+                print(f"[Lore Label] LOREFARM_KEY file not found: {lorefarm_key_file}")
                 return jsonify({
                     'success': False,
                     'error': 'Server configuration error: LOREFARM_KEY missing'
                 }), 500
             except Exception as e:
-                print(f"❌ [Lore Label] Error reading LOREFARM_KEY file: {e}")
+                print(f"[Lore Label] Error reading LOREFARM_KEY file: {e}")
                 return jsonify({
                     'success': False,
                     'error': 'Server configuration error: Could not read LOREFARM_KEY'
                 }), 500
         
         if not lorefarm_key:
-            print(f"❌ [Lore Label] LOREFARM_KEY is empty")
+            print(f"[Lore Label] LOREFARM_KEY is empty")
             return jsonify({
                 'success': False,
                 'error': 'Server configuration error: LOREFARM_KEY empty'
             }), 500
         
-        print(f"✅ [Lore Label] LOREFARM_KEY present (length: {len(lorefarm_key)} chars)")
+        print(f"[Lore Label] LOREFARM_KEY present (length: {len(lorefarm_key)} chars)")
         print(f"🔑 [Lore Label] LOREFARM_KEY preview: {lorefarm_key[:15]}...")
         
         # Test LOREFARM_KEY against lore.farm API
@@ -2517,9 +2517,9 @@ def apply_lore_label():
                 headers={'Authorization': f'Bearer {lorefarm_key}'},
                 timeout=5
             )
-            print(f"📋 [Lore Label] lore.farm health check: {verify_response.status_code}")
+            print(f"[Lore Label] lore.farm health check: {verify_response.status_code}")
             if verify_response.status_code == 200:
-                print(f"✅ [Lore Label] LOREFARM_KEY validated successfully")
+                print(f"[Lore Label] LOREFARM_KEY validated successfully")
             else:
                 print(f"⚠️  [Lore Label] Health check returned status {verify_response.status_code}")
                 print(f"   Response: {verify_response.text[:200]}")
@@ -2532,7 +2532,7 @@ def apply_lore_label():
         print(f"📦 [Lore Label] Request data received: {data}")
         
         if not data:
-            print(f"❌ [Lore Label] No JSON data in request")
+            print(f"[Lore Label] No JSON data in request")
             return jsonify({
                 'success': False,
                 'error': 'Missing request data'
@@ -2542,13 +2542,13 @@ def apply_lore_label():
         user_did = data.get('userDid')
         label = data.get('label', 'lore:reverie.house')
         
-        print(f"📋 [Lore Label] Parsed fields:")
+        print(f"[Lore Label] Parsed fields:")
         print(f"   - URI: {uri}")
         print(f"   - User DID: {user_did}")
         print(f"   - Label: {label}")
         
         if not uri or not user_did:
-            print(f"❌ [Lore Label] Missing required fields")
+            print(f"[Lore Label] Missing required fields")
             return jsonify({
                 'success': False,
                 'error': 'Missing required fields: uri, userDid'
@@ -2674,7 +2674,7 @@ def apply_lore_label():
         if response.status_code == 200:
             try:
                 result = response.json()
-                print(f"✅ [Lore Label] Success! Label applied.")
+                print(f"[Lore Label] Success! Label applied.")
                 print(f"   Result: {result}")
                 print("=" * 80)
                 return jsonify({
@@ -2691,7 +2691,7 @@ def apply_lore_label():
                 })
         
         # Handle errors with user-friendly messages
-        print(f"❌ [Lore Label] lore.farm returned error status: {response.status_code}")
+        print(f"[Lore Label] lore.farm returned error status: {response.status_code}")
         
         # Try to parse error response
         error_data = {}
@@ -2857,7 +2857,7 @@ def register_character():
             
             if response.status_code == 200:
                 result = response.json()
-                print(f"✅ [Character Registration] Success: {result}")
+                print(f"[Character Registration] Success: {result}")
                 return jsonify({
                     'success': True,
                     'character': result.get('character'),
@@ -2865,14 +2865,14 @@ def register_character():
                 })
             else:
                 error_data = response.json() if response.headers.get('content-type') == 'application/json' else {}
-                print(f"❌ [Character Registration] Failed: {response.status_code} - {error_data}")
+                print(f"[Character Registration] Failed: {response.status_code} - {error_data}")
                 return jsonify({
                     'success': False,
                     'error': error_data.get('error', f'Registration failed with status {response.status_code}')
                 }), response.status_code
                 
         except requests.exceptions.RequestException as e:
-            print(f"❌ [Character Registration] API request failed: {str(e)}")
+            print(f"[Character Registration] API request failed: {str(e)}")
             return jsonify({
                 'success': False,
                 'error': f'Failed to connect to lore.farm: {str(e)}'
@@ -3321,7 +3321,7 @@ def get_all_headings():
         headings = {row['did']: row['heading'] for row in cursor.fetchall()}
         return jsonify(headings)
     except Exception as e:
-        print(f"❌ Error in /api/headings: {e}")
+        print(f"Error in /api/headings: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -4039,24 +4039,24 @@ def update_quest(title):
         print(f"Update success: {success}")
         
         if success:
-            print("✅ Quest updated successfully")
+            print("Quest updated successfully")
             
             # Fetch and return the updated quest
             updated_title = data.get('new_title') or title
             updated_quest = quest_manager.get_quest(updated_title)
             
             if updated_quest:
-                print(f"✅ Returning updated quest: {updated_quest.get('title')}")
+                print(f"Returning updated quest: {updated_quest.get('title')}")
                 return jsonify({'success': True, 'message': 'Quest updated successfully', 'quest': updated_quest})
             else:
                 print("⚠️ Quest updated but not found for return")
                 return jsonify({'success': True, 'message': 'Quest updated successfully'})
         else:
-            print("❌ Quest not found or update failed")
+            print("Quest not found or update failed")
             return jsonify({'error': 'Quest not found or update failed'}), 404
             
     except Exception as e:
-        print(f"❌ Exception in update_quest: {e}")
+        print(f"Exception in update_quest: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -4657,12 +4657,12 @@ def update_dialogue():
             ))
         
         conn.commit()
-        print(f"✅ Dialogue '{key}' saved with {len(messages)} messages")
+        print(f"Dialogue '{key}' saved with {len(messages)} messages")
         
         return jsonify({'success': True, 'message': 'Dialogue saved successfully'})
         
     except Exception as e:
-        print(f"❌ Exception in update_dialogue: {e}")
+        print(f"Exception in update_dialogue: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -4725,12 +4725,12 @@ def update_dialogue_metadata():
         updated_count = cursor.rowcount
         
         conn.commit()
-        print(f"✅ Updated {updated_count} rows for key: {key}")
+        print(f"Updated {updated_count} rows for key: {key}")
         
         return jsonify({'success': True, 'updated': updated_count})
         
     except Exception as e:
-        print(f"❌ Exception in update_dialogue_metadata: {e}")
+        print(f"Exception in update_dialogue_metadata: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -4847,14 +4847,14 @@ def gatekeep_dialogue():
             })
         
         if not candidates:
-            print(f"   ❌ No available dialogues found")
+            print(f"   No available dialogues found")
             return jsonify({'error': 'No dialogues available'}), 404
         
         # Sort by score (descending), then by created_at (newer first)
         candidates.sort(key=lambda x: (x['score'], x['created_at']), reverse=True)
         best_match = candidates[0]
         
-        print(f"   ✅ Best match: {best_match['key']} (score: {best_match['score']})")
+        print(f"   Best match: {best_match['key']} (score: {best_match['score']})")
         
         # Fetch and process dialogue messages
         cursor = db.execute('''
@@ -4906,7 +4906,7 @@ def gatekeep_dialogue():
         })
         
     except Exception as e:
-        print(f"   ❌ Exception in gatekeep: {e}")
+        print(f"   Exception in gatekeep: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -5008,7 +5008,7 @@ def get_message_count():
         
         inbox_data = get_inbox(user_did, limit=1)
         
-        print(f"📊 [COUNT] User {user_did[:30]}... has {inbox_data['unread']} unread messages")
+        print(f"[COUNT] User {user_did[:30]}... has {inbox_data['unread']} unread messages")
         
         return jsonify({
             'status': 'success',
@@ -5020,7 +5020,7 @@ def get_message_count():
         })
         
     except Exception as e:
-        print(f"❌ Error getting message count: {e}")
+        print(f"Error getting message count: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
@@ -5046,7 +5046,7 @@ def get_user_inbox():
         
         inbox_data = get_inbox(user_did, status=status, limit=limit, offset=offset)
         
-        print(f"📊 [INBOX] Found {len(inbox_data.get('messages', []))} messages for user")
+        print(f"[INBOX] Found {len(inbox_data.get('messages', []))} messages for user")
         
         return jsonify({
             'status': 'success',
@@ -5054,7 +5054,7 @@ def get_user_inbox():
         })
         
     except Exception as e:
-        print(f"❌ Error loading inbox: {e}")
+        print(f"Error loading inbox: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5086,10 +5086,10 @@ def get_single_message(message_id):
         row = cursor.fetchone()
         
         if not row:
-            print(f"❌ [MESSAGE] Message {message_id} not found for user")
+            print(f"[MESSAGE] Message {message_id} not found for user")
             return jsonify({'status': 'error', 'error': 'Message not found'}), 404
         
-        print(f"✅ [MESSAGE] Found message {message_id}")
+        print(f"[MESSAGE] Found message {message_id}")
         
         message = {
             'id': row['id'],
@@ -5111,7 +5111,7 @@ def get_single_message(message_id):
         })
         
     except Exception as e:
-        print(f"❌ Error getting message: {e}")
+        print(f"Error getting message: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
@@ -5132,10 +5132,10 @@ def mark_message_read(message_id):
         success = mark_read(message_id, user_did)
         
         if not success:
-            print(f"❌ [READ] Message {message_id} not found or already read")
+            print(f"[READ] Message {message_id} not found or already read")
             return jsonify({'error': 'Message not found or already read'}), 404
         
-        print(f"✅ [READ] Message {message_id} marked as read")
+        print(f"[READ] Message {message_id} marked as read")
         
         return jsonify({
             'success': True,
@@ -5144,7 +5144,7 @@ def mark_message_read(message_id):
         })
         
     except Exception as e:
-        print(f"❌ Error marking as read: {e}")
+        print(f"Error marking as read: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -5165,10 +5165,10 @@ def dismiss_message(message_id):
         success = mark_dismissed(message_id, user_did)
         
         if not success:
-            print(f"❌ [DISMISS] Message {message_id} not found or already dismissed")
+            print(f"[DISMISS] Message {message_id} not found or already dismissed")
             return jsonify({'status': 'error', 'error': 'Message not found'}), 404
         
-        print(f"✅ [DISMISS] Message {message_id} dismissed")
+        print(f"[DISMISS] Message {message_id} dismissed")
         
         return jsonify({
             'status': 'success',
@@ -5177,7 +5177,7 @@ def dismiss_message(message_id):
         })
         
     except Exception as e:
-        print(f"❌ Error dismissing message: {e}")
+        print(f"Error dismissing message: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
@@ -5208,7 +5208,7 @@ def delete_message(message_id):
         })
         
     except Exception as e:
-        print(f"❌ Error deleting message: {e}")
+        print(f"Error deleting message: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5236,7 +5236,7 @@ def bulk_dismiss_messages():
         })
         
     except Exception as e:
-        print(f"❌ Error bulk dismissing: {e}")
+        print(f"Error bulk dismissing: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -5288,7 +5288,7 @@ def send_message_admin():
         print(f"📨 [SEND] Loaded {len(messages)} messages for dialogue {dialogue_key}")
         
         if not messages:
-            print(f"❌ [SEND] No messages found for dialogue {dialogue_key}")
+            print(f"[SEND] No messages found for dialogue {dialogue_key}")
             return jsonify({'status': 'error', 'error': f'Dialogue {dialogue_key} not found or disabled'}), 404
         
         # Determine recipients
@@ -5329,7 +5329,7 @@ def send_message_admin():
             if msg_id:
                 message_ids.append(msg_id)
         
-        print(f"✅ [SEND] Admin {request.admin_handle} sent {dialogue_key} to {len(message_ids)} users")
+        print(f"[SEND] Admin {request.admin_handle} sent {dialogue_key} to {len(message_ids)} users")
         
         return jsonify({
             'status': 'success',
@@ -5340,7 +5340,7 @@ def send_message_admin():
         })
         
     except Exception as e:
-        print(f"❌ [SEND] Error sending message: {e}")
+        print(f"[SEND] Error sending message: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5361,7 +5361,7 @@ def get_messages_analytics():
         })
         
     except Exception as e:
-        print(f"❌ Error getting message analytics: {e}")
+        print(f"Error getting message analytics: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5408,7 +5408,7 @@ def create_test_message_for_user():
             priority=75
         )
         
-        print(f"✅ Created test message {message_id} for {user_did}")
+        print(f"Created test message {message_id} for {user_did}")
         
         return jsonify({
             'status': 'success',
@@ -5419,7 +5419,7 @@ def create_test_message_for_user():
         })
         
     except Exception as e:
-        print(f"❌ Error creating test message: {e}")
+        print(f"Error creating test message: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5490,7 +5490,7 @@ def get_recent_messages():
         return response
         
     except Exception as e:
-        print(f"❌ Error getting recent messages: {e}")
+        print(f"Error getting recent messages: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5537,7 +5537,7 @@ def get_message_templates():
         })
         
     except Exception as e:
-        print(f"❌ Error getting message templates: {e}")
+        print(f"Error getting message templates: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5588,7 +5588,7 @@ def get_messages_for_dreamer():
         })
         
     except Exception as e:
-        print(f"❌ Error getting messages for dreamer: {e}")
+        print(f"Error getting messages for dreamer: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5631,7 +5631,7 @@ def get_last_sent_message():
             })
         
     except Exception as e:
-        print(f"❌ Error getting last sent message: {e}")
+        print(f"Error getting last sent message: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5698,7 +5698,7 @@ def get_dialogue_templates():
         })
         
     except Exception as e:
-        print(f"❌ Error getting dialogue templates: {e}")
+        print(f"Error getting dialogue templates: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5734,12 +5734,12 @@ def set_user_cookie_for_testing():
         })
         resp.set_cookie('user_did', row['did'], max_age=30*24*60*60, samesite='Lax')
         
-        print(f"✅ Set user_did cookie for {row['handle']} ({row['did']})")
+        print(f"Set user_did cookie for {row['handle']} ({row['did']})")
         
         return resp
         
     except Exception as e:
-        print(f"❌ Error setting user cookie: {e}")
+        print(f"Error setting user cookie: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -5826,12 +5826,12 @@ def delete_dialogue(key):
         deleted_count = cursor.rowcount
         
         conn.commit()
-        print(f"✅ Deleted {deleted_count} messages for dialogue '{key}'")
+        print(f"Deleted {deleted_count} messages for dialogue '{key}'")
         
         return jsonify({'success': True, 'message': f'Dialogue deleted ({deleted_count} messages)'})
         
     except Exception as e:
-        print(f"❌ Exception in delete_dialogue: {e}")
+        print(f"Exception in delete_dialogue: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -5867,12 +5867,12 @@ def reorder_dialogues():
                 updated_count += cursor.rowcount
         
         conn.commit()
-        print(f"✅ Updated display_order for {updated_count} dialogue keys")
+        print(f"Updated display_order for {updated_count} dialogue keys")
         
         return jsonify({'success': True, 'updated': updated_count})
         
     except Exception as e:
-        print(f"❌ Exception in reorder_dialogues: {e}")
+        print(f"Exception in reorder_dialogues: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -5916,7 +5916,7 @@ def get_recent_seen():
         return jsonify(result)
         
     except Exception as e:
-        print(f"❌ Error in get_recent_seen: {e}")
+        print(f"Error in get_recent_seen: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -5954,7 +5954,7 @@ def get_popular_dialogues():
         return jsonify(result)
         
     except Exception as e:
-        print(f"❌ Error in get_popular_dialogues: {e}")
+        print(f"Error in get_popular_dialogues: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -6023,7 +6023,7 @@ def get_dialogue_conditions():
         return jsonify(result)
         
     except Exception as e:
-        print(f"❌ Error in get_dialogue_conditions: {e}")
+        print(f"Error in get_dialogue_conditions: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -6063,11 +6063,11 @@ def create_dialogue_condition():
               condition_operator, dialogue_key, description))
         # DatabaseManager auto-commits after execute()
         
-        print(f"✅ Created condition: {rule_name} (priority {priority}) → {dialogue_key}")
+        print(f"Created condition: {rule_name} (priority {priority}) → {dialogue_key}")
         return jsonify({'success': True, 'rule_name': rule_name})
         
     except Exception as e:
-        print(f"❌ Error in create_dialogue_condition: {e}")
+        print(f"Error in create_dialogue_condition: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -6091,11 +6091,11 @@ def delete_dialogue_condition(rule_name):
         db.execute("DELETE FROM dialogue_conditions WHERE rule_name = %s", (rule_name,))
         # DatabaseManager auto-commits after execute()
         
-        print(f"✅ Deleted condition: {rule_name}")
+        print(f"Deleted condition: {rule_name}")
         return jsonify({'success': True})
         
     except Exception as e:
-        print(f"❌ Error in delete_dialogue_condition: {e}")
+        print(f"Error in delete_dialogue_condition: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -6127,7 +6127,7 @@ def get_dialogue_coverage():
         })
         
     except Exception as e:
-        print(f"❌ Error in get_dialogue_coverage: {e}")
+        print(f"Error in get_dialogue_coverage: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -6345,7 +6345,7 @@ def get_conditionals():
         })
         
     except Exception as e:
-        print(f"❌ Error in get_conditionals: {e}")
+        print(f"Error in get_conditionals: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -6374,7 +6374,7 @@ def get_header_rotator():
         else:
             return jsonify({'messages': default_messages})
     except Exception as e:
-        print(f"❌ Error loading header rotator: {e}")
+        print(f"Error loading header rotator: {e}")
         return jsonify({'messages': default_messages})
 
 
@@ -6403,11 +6403,11 @@ def update_header_rotator():
         with open(rotator_file, 'w') as f:
             json.dump(messages, f, indent=2)
         
-        print(f"✅ Saved {len(messages)} header rotator messages")
+        print(f"Saved {len(messages)} header rotator messages")
         return jsonify({'success': True, 'count': len(messages)})
         
     except Exception as e:
-        print(f"❌ Error saving header rotator: {e}")
+        print(f"Error saving header rotator: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -6474,7 +6474,31 @@ def get_work_info(role):
 @app.route('/api/work/<role>/status')
 @rate_limit()
 def get_work_status(role):
-    """Get user's status for a role (requires auth)"""
+    """Get user's status for a role (requires auth)
+    
+    Note: Multi-worker roles (dreamstyler, cheerful, guardian) don't require auth
+    for their status endpoint. Forward to their specific handlers.
+    """
+    # Multi-worker roles have their own public status endpoints
+    # Forward to them to avoid auth requirement for public status checks
+    if role == 'greeter':
+        return get_greeter_status()
+    elif role == 'mapper':
+        return get_mapper_status()
+    elif role == 'cogitarian':
+        return get_cogitarian_status()
+    elif role == 'provisioner':
+        return get_provisioner_status()
+    elif role == 'dreamstyler':
+        return get_dreamstyler_status()
+    elif role == 'bursar':
+        return get_bursar_status()
+    elif role == 'cheerful':
+        return get_cheerful_status()
+    elif role == 'guardian':
+        return get_guardian_status()
+    
+    # For any other role, require auth
     try:
         from core.database import DatabaseManager
         
@@ -6860,16 +6884,16 @@ def validate_work_token(token):
     Returns: (valid, user_did, handle)
     """
     if not token:
-        print(f"❌ [validate_work_token] No token provided")
+        print(f"[validate_work_token] No token provided")
         return False, None, None
     
     # Validate session token
     valid, did, handle = auth.validate_session(token)
     if valid:
-        print(f"✅ [validate_work_token] Session VALID - DID: {did}, Handle: {handle}")
+        print(f"[validate_work_token] Session VALID - DID: {did}, Handle: {handle}")
         return True, did, handle
     
-    print(f"❌ [validate_work_token] Invalid session token")
+    print(f"[validate_work_token] Invalid session token")
     return False, None, None
 
 
@@ -7074,13 +7098,13 @@ def activate_greeter():
                         # Don't block activation on rate limits
                     else:
                         # For authentication errors (401), reject the password
-                        print(f"❌ App password validation failed: {login_response.status_code} - {error_detail}")
+                        print(f"App password validation failed: {login_response.status_code} - {error_detail}")
                         return jsonify({
                             'error': 'App password is invalid or incorrect',
                             'detail': 'Please check your app password and try again'
                         }), 401
                 else:
-                    print(f"✅ App password validated successfully")
+                    print(f"App password validated successfully")
                 
             except requests.exceptions.Timeout:
                 print(f"⚠️ PDS validation timeout - proceeding anyway")
@@ -7202,7 +7226,7 @@ def activate_greeter():
         print(f"  ✓ Updated legacy work table")
         
         # Auto-committed by DatabaseManager
-        print(f"✅ Greeter activation complete (dual-system storage)")
+        print(f"Greeter activation complete (dual-system storage)")
         
         audit_log(
             event_type='work_activated',
@@ -7301,7 +7325,7 @@ def set_greeter_status():
         print(f"  ✓ Updated legacy work table status to '{new_status}'")
         
         # Auto-committed by DatabaseManager
-        print(f"✅ Status change complete (dual-system update)")
+        print(f"Status change complete (dual-system update)")
         
         audit_log(
             event_type='work_status_changed',
@@ -7384,7 +7408,7 @@ def step_down_greeter():
         print(f"  ✓ Removed from legacy work table")
         
         # Auto-committed by DatabaseManager
-        print(f"✅ Greeter step-down complete (dual-system removal)")
+        print(f"Greeter step-down complete (dual-system removal)")
         
         audit_log(
             event_type='work_resigned',
@@ -7616,7 +7640,7 @@ def activate_mapper():
         
         # Auto-committed by DatabaseManager
         
-        print(f"✅ Mapper activated for {user_did}")
+        print(f"Mapper activated for {user_did}")
         
         return jsonify({
             'success': True,
@@ -7758,7 +7782,7 @@ def step_down_mapper():
         
         # Auto-committed by DatabaseManager
         
-        print(f"✅ Mapper step-down complete for {user_did}")
+        print(f"Mapper step-down complete for {user_did}")
         
         return jsonify({
             'success': True,
@@ -8453,7 +8477,7 @@ def activate_cogitarian():
         
         # Auto-committed by DatabaseManager
         
-        print(f"✅ Cogitarian activated for {user_did}")
+        print(f"Cogitarian activated for {user_did}")
         
         return jsonify({
             'success': True,
@@ -8595,7 +8619,7 @@ def step_down_cogitarian():
         
         # Auto-committed by DatabaseManager
         
-        print(f"✅ Cogitarian step-down complete for {user_did}")
+        print(f"Cogitarian step-down complete for {user_did}")
         
         return jsonify({
             'success': True,
@@ -8793,12 +8817,12 @@ def activate_provisioner():
             'provisioner'
         )
         
-        print(f"✅ Provisioner activated for {user_did}")
+        print(f"Provisioner activated for {user_did}")
         
         # Auto-sync follows to ensure provisioner can receive DMs from all dreamers
         # This runs in the background after activation
         try:
-            print(f"🔄 Starting follow sync for new provisioner...")
+            print(f"Starting follow sync for new provisioner...")
             sync_results = sync_reverie_follows(user_did, handle, db_manager)
             print(f"   Followed {sync_results['followed']} dreamers")
         except Exception as sync_error:
@@ -8937,7 +8961,7 @@ def step_down_provisioner():
         """, (json.dumps(updated_workers), int(time.time())))
         print(f"  ✓ Removed from legacy work table")
         
-        print(f"✅ Provisioner step-down complete for {user_did}")
+        print(f"Provisioner step-down complete for {user_did}")
         
         return jsonify({
             'success': True,
@@ -8970,7 +8994,7 @@ def sync_reverie_follows(user_did, user_handle, db_manager):
     from atproto import Client
     
     print(f"\n{'='*80}")
-    print(f"🔄 SYNCING REVERIE FOLLOWS FOR {user_handle}")
+    print(f"SYNCING REVERIE FOLLOWS FOR {user_handle}")
     print(f"{'='*80}")
     
     results = {
@@ -9013,7 +9037,7 @@ def sync_reverie_follows(user_did, user_handle, db_manager):
         app_password = decrypt_password(cred_row['app_password_hash'])
         client = Client(base_url=pds_url)
         client.login(user_handle, app_password)
-        print(f"✅ Logged in as {user_handle}")
+        print(f"Logged in as {user_handle}")
         
         # Get all reverie.house dreamers (the target follow list)
         cursor = db_manager.execute("""
@@ -9023,7 +9047,7 @@ def sync_reverie_follows(user_did, user_handle, db_manager):
         """, (user_did,))
         
         reverie_dreamers = {row['did']: row['handle'] for row in cursor.fetchall()}
-        print(f"📋 Found {len(reverie_dreamers)} reverie.house dreamers to follow")
+        print(f"Found {len(reverie_dreamers)} reverie.house dreamers to follow")
         
         # Get current follows
         current_follows = {}  # did -> follow record uri
@@ -9046,7 +9070,7 @@ def sync_reverie_follows(user_did, user_handle, db_manager):
                 print(f"⚠️ Error fetching follows: {e}")
                 break
         
-        print(f"📊 Currently following {len(current_follows)} accounts")
+        print(f"Currently following {len(current_follows)} accounts")
         
         # Determine who to follow and unfollow
         reverie_dids = set(reverie_dreamers.keys())
@@ -9064,7 +9088,7 @@ def sync_reverie_follows(user_did, user_handle, db_manager):
             try:
                 client.follow(did)
                 results['followed'] += 1
-                print(f"  ✅ Followed {handle}")
+                print(f"  Followed {handle}")
                 # Small delay to avoid rate limiting
                 import time
                 time.sleep(0.1)
@@ -9074,7 +9098,7 @@ def sync_reverie_follows(user_did, user_handle, db_manager):
                     results['already_following'] += 1
                 else:
                     results['errors'].append(f"Failed to follow {handle}: {error_str}")
-                    print(f"  ❌ Failed to follow {handle}: {e}")
+                    print(f"  Failed to follow {handle}: {e}")
         
         # Unfollow non-reverie accounts
         for did in to_unfollow:
@@ -9112,7 +9136,7 @@ def sync_reverie_follows(user_did, user_handle, db_manager):
                 results['skipped'] += 1
         
         print(f"\n{'='*80}")
-        print(f"✅ SYNC COMPLETE")
+        print(f"SYNC COMPLETE")
         print(f"   Followed: {results['followed']}")
         print(f"   Unfollowed: {results['unfollowed']}")
         print(f"   Already following: {results['already_following']}")
@@ -9423,7 +9447,7 @@ def activate_dreamstyler():
             'dreamstyler'
         )
         
-        print(f"✅ Dreamstyler activated for {user_did}")
+        print(f"Dreamstyler activated for {user_did}")
         
         return jsonify({
             'success': True,
@@ -9485,7 +9509,7 @@ def step_down_dreamstyler():
         """, (json.dumps(updated_workers), int(time.time())))
         print(f"  ✓ Removed from legacy work table (remaining: {len(updated_workers)})")
         
-        print(f"✅ Dreamstyler step-down complete for {user_did}")
+        print(f"Dreamstyler step-down complete for {user_did}")
         
         return jsonify({
             'success': True,
@@ -9727,6 +9751,1063 @@ def entreat_dreamstyler():
 
 
 # ============================================================================
+# GUARDIAN WORK ENDPOINTS (Multi-worker role)
+# ============================================================================
+
+@app.route('/api/work/guardian/status')
+@rate_limit()
+def get_guardian_status():
+    """Get current guardian work status - supports multiple active workers"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        valid, user_did, handle = validate_work_token(token)
+        
+        db_manager = DatabaseManager()
+        row = db_manager.fetch_one("""
+            SELECT workers, status, forced_retirement, worker_limit, created_at, updated_at
+            FROM work 
+            WHERE role = 'guardian' 
+            LIMIT 1
+        """)
+        
+        if not row:
+            return jsonify({
+                'success': True,
+                'is_worker': False,
+                'current_worker': None,
+                'all_workers': [],
+                'role_info': None
+            })
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        # Check if the logged-in user is a guardian
+        is_worker = False
+        worker_status = None
+        current_worker = None
+        
+        if user_did:
+            for worker in workers:
+                if worker.get('did') == user_did:
+                    is_worker = True
+                    worker_status = worker.get('status', 'working')
+                    current_worker = worker
+                    break
+        
+        # Include role info in response
+        role_info = {
+            'role': 'guardian',
+            'status': row['status'],
+            'forced_retirement': row['forced_retirement'],
+            'worker_limit': row['worker_limit'],  # 0 = unlimited
+            'workers': workers,
+            'worker_count': len(workers),
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at']
+        }
+        
+        return jsonify({
+            'success': True,
+            'is_worker': is_worker,
+            'status': worker_status,
+            'current_worker': {
+                'did': current_worker['did'],
+                'status': current_worker.get('status', 'working')
+            } if current_worker else None,
+            'all_workers': [{
+                'did': w['did'],
+                'status': w.get('status', 'working')
+            } for w in workers],
+            'role_info': role_info
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/guardian/<guardian_did>/stats')
+@rate_limit()
+def get_guardian_stats(guardian_did):
+    """Get ward/charge counts for a specific guardian"""
+    try:
+        from core.database import DatabaseManager
+        from urllib.parse import unquote
+        
+        # URL decode the DID in case it's encoded
+        guardian_did = unquote(guardian_did)
+        
+        db_manager = DatabaseManager()
+        
+        # Get stewardship record for this guardian
+        steward = db_manager.fetch_one("""
+            SELECT wards, charges FROM stewardship WHERE guardian_did = %s
+        """, (guardian_did,))
+        
+        if not steward:
+            return jsonify({
+                'success': True,
+                'ward_count': 0,
+                'charge_count': 0
+            })
+        
+        wards = steward['wards'] or []
+        charges = steward['charges'] or []
+        
+        return jsonify({
+            'success': True,
+            'ward_count': len(wards),
+            'charge_count': len(charges)
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/guardian/activate', methods=['POST'])
+@rate_limit()
+def activate_guardian():
+    """Activate as guardian - multi-worker role, no conflict check"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        print(f"\n{'='*80}")
+        print(f"{'='*80}")
+        print(f"Session DID: {user_did}")
+        print(f"Session handle: {handle}")
+        print(f"{'='*80}\n")
+        
+        # Guardian doesn't require app password - it's a curation role
+        
+        # ===== UNIFIED SYSTEM (PRIMARY) =====
+        print(f"💾 Updating unified user_roles table...")
+        
+        # No conflict check for guardian - multiple workers allowed
+        
+        # Add/update role in user_roles table
+        existing_role = db_manager.fetch_one("""
+            SELECT 1 FROM user_roles WHERE did = %s AND role = 'guardian'
+        """, (user_did,))
+        
+        if existing_role:
+            db_manager.execute("""
+                UPDATE user_roles
+                SET status = 'active', activated_at = CURRENT_TIMESTAMP, deactivated_at = NULL
+                WHERE did = %s AND role = 'guardian'
+            """, (user_did,))
+            print(f"  ✓ Reactivated guardian role")
+        else:
+            db_manager.execute("""
+                INSERT INTO user_roles (did, role, status)
+                VALUES (%s, 'guardian', 'active')
+            """, (user_did,))
+            print(f"  ✓ Created guardian role")
+        
+        # ===== LEGACY SYSTEM (BACKWARD COMPATIBILITY) =====
+        print(f"💾 Updating legacy work table...")
+        
+        work_row = db_manager.fetch_one("""
+            SELECT workers, status FROM work
+            WHERE role = 'guardian'
+        """)
+        
+        if not work_row:
+            return jsonify({'error': 'Guardian role not found in work table'}), 404
+        
+        workers = json.loads(work_row['workers']) if work_row['workers'] else []
+        
+        # Check if user is already in workers array
+        already_active = any(w['did'] == user_did for w in workers)
+        
+        if already_active:
+            # Update their status to working
+            for w in workers:
+                if w['did'] == user_did:
+                    w['status'] = 'working'
+                    break
+            print(f"  ✓ Updated existing worker to 'working'")
+        else:
+            # Add new worker (no passhash needed for guardian)
+            new_worker = {
+                'did': user_did,
+                'status': 'working'
+            }
+            workers.append(new_worker)
+            print(f"  ✓ Added new guardian (total: {len(workers)})")
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'guardian'
+        """, (json.dumps(workers), int(time.time())))
+        
+        # Create stewardship entry if not exists (for ward/charge functionality)
+        db_manager.execute("""
+            INSERT INTO stewardship (guardian_did)
+            VALUES (%s)
+            ON CONFLICT (guardian_did) DO NOTHING
+        """, (user_did,))
+        print(f"  ✓ Ensured stewardship entry exists")
+        
+        # Add first-time work canon entry
+        add_first_time_work_canon(
+            db_manager, 
+            user_did, 
+            'guardian',
+            'became a Guardian',
+            'guardian'
+        )
+        
+        print(f"Guardian activated for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': True,
+            'status': 'working'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/guardian/step-down', methods=['POST'])
+@rate_limit()
+def step_down_guardian():
+    """Step down as guardian"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        
+        # Unified system
+        db_manager.execute("""
+            UPDATE user_roles
+            SET status = 'inactive', deactivated_at = CURRENT_TIMESTAMP
+            WHERE did = %s AND role = 'guardian'
+        """, (user_did,))
+        print(f"  ✓ Deactivated guardian role in unified system")
+        
+        # Legacy system
+        cursor = db_manager.execute("SELECT workers FROM work WHERE role = 'guardian'")
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Guardian role not found'}), 404
+        
+        workers = json.loads(row['workers']) if row['workers'] else []
+        
+        updated_workers = [w for w in workers if w['did'] != user_did]
+        
+        if len(updated_workers) == len(workers):
+            return jsonify({'error': 'You are not a current guardian'}), 403
+        
+        db_manager.execute("""
+            UPDATE work
+            SET workers = %s, updated_at = %s
+            WHERE role = 'guardian'
+        """, (json.dumps(updated_workers), int(time.time())))
+        print(f"  ✓ Removed from legacy work table (remaining: {len(updated_workers)})")
+        
+        print(f"Guardian step-down complete for {user_did}")
+        
+        return jsonify({
+            'success': True,
+            'is_worker': False
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# GUARDIAN STEWARDSHIP ENDPOINTS (Simplified)
+# ============================================================================
+
+@app.route('/api/guardian/<guardian_did>/lists')
+@rate_limit()
+def get_guardian_lists(guardian_did):
+    """Get all lists for a specific guardian"""
+    try:
+        from core.database import DatabaseManager
+        
+        db_manager = DatabaseManager()
+        
+        # Get barred users
+        barred_users_rows = db_manager.fetch_all("""
+            SELECT user_did, reason, created_at FROM barred_users 
+            WHERE guardian_did = %s ORDER BY created_at DESC
+        """, (guardian_did,))
+        
+        # Get barred content
+        barred_content_rows = db_manager.fetch_all("""
+            SELECT content_uri, reason, created_at FROM barred_content 
+            WHERE guardian_did = %s ORDER BY created_at DESC
+        """, (guardian_did,))
+        
+        # Get allowed users
+        allowed_users_rows = db_manager.fetch_all("""
+            SELECT user_did, reason, created_at FROM allowed_users 
+            WHERE guardian_did = %s ORDER BY created_at DESC
+        """, (guardian_did,))
+        
+        # Get allowed content
+        allowed_content_rows = db_manager.fetch_all("""
+            SELECT content_uri, reason, created_at FROM allowed_content 
+            WHERE guardian_did = %s ORDER BY created_at DESC
+        """, (guardian_did,))
+        
+        # Enrich user data with dreamer info
+        def enrich_users(rows, did_field='user_did'):
+            result = []
+            for row in (rows or []):
+                dreamer = db_manager.fetch_one("""
+                    SELECT handle, display_name, avatar FROM dreamers WHERE did = %s
+                """, (row[did_field],))
+                result.append({
+                    'did': row[did_field],
+                    'handle': dreamer['handle'] if dreamer else 'unknown',
+                    'displayName': dreamer['display_name'] if dreamer else 'Unknown',
+                    'avatar': dreamer['avatar'] if dreamer else '/assets/default-avatar.png',
+                    'reason': row.get('reason'),
+                    'created_at': row['created_at'].isoformat() if row.get('created_at') else None
+                })
+            return result
+        
+        def enrich_content(rows):
+            result = []
+            for row in (rows or []):
+                result.append({
+                    'uri': row['content_uri'],
+                    'reason': row.get('reason'),
+                    'created_at': row['created_at'].isoformat() if row.get('created_at') else None
+                })
+            return result
+        
+        # Get ward/charge counts from stewardship table columns
+        steward_row = db_manager.fetch_one("""
+            SELECT wards, charges FROM stewardship WHERE guardian_did = %s
+        """, (guardian_did,))
+        wards = steward_row['wards'] if steward_row and steward_row['wards'] else []
+        charges = steward_row['charges'] if steward_row and steward_row['charges'] else []
+        
+        # Enrich wards with dreamer info
+        def enrich_did_list(did_list):
+            result = []
+            for did in (did_list or []):
+                dreamer = db_manager.fetch_one("""
+                    SELECT handle, display_name, avatar FROM dreamers WHERE did = %s
+                """, (did,))
+                result.append({
+                    'did': did,
+                    'handle': dreamer['handle'] if dreamer else 'unknown',
+                    'displayName': dreamer['display_name'] if dreamer else 'Unknown',
+                    'avatar': dreamer['avatar'] if dreamer else '/assets/default-avatar.png'
+                })
+            return result
+        
+        return jsonify({
+            'success': True,
+            'guardian_did': guardian_did,
+            'ward_count': len(wards),
+            'charge_count': len(charges),
+            'wards': enrich_did_list(wards),
+            'charges': enrich_did_list(charges),
+            'barred_users': enrich_users(barred_users_rows),
+            'barred_content': enrich_content(barred_content_rows),
+            'allowed_users': enrich_users(allowed_users_rows),
+            'allowed_content': enrich_content(allowed_content_rows)
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/content/hide', methods=['POST'])
+@rate_limit()
+def hide_content_for_self():
+    """Hide content for the logged-in user (self-moderation)
+    
+    This allows any user to hide content they don't want to see.
+    Creates a stewardship entry if needed, treating the user as their own guardian.
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        content_uri = data.get('uri', '').strip()
+        reason = data.get('reason', 'User hidden')
+        
+        if not content_uri:
+            return jsonify({'error': 'Content URI required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        # Auto-create stewardship entry for the user if not exists
+        # This treats them as their own guardian for self-moderation
+        db_manager.execute("""
+            INSERT INTO stewardship (guardian_did, notes) 
+            VALUES (%s, 'Auto-created for self-moderation')
+            ON CONFLICT (guardian_did) DO NOTHING
+        """, (user_did,))
+        
+        # Check if already hidden
+        existing = db_manager.fetch_one("""
+            SELECT id FROM barred_content 
+            WHERE guardian_did = %s AND content_uri = %s
+        """, (user_did, content_uri))
+        
+        if existing:
+            return jsonify({'success': True, 'message': 'Content already hidden', 'already_hidden': True})
+        
+        # Add to barred_content
+        db_manager.execute("""
+            INSERT INTO barred_content (guardian_did, content_uri, reason)
+            VALUES (%s, %s, %s)
+        """, (user_did, content_uri, reason))
+        
+        
+        return jsonify({'success': True, 'message': 'Content hidden'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/content/unhide', methods=['POST'])
+@rate_limit()
+def unhide_content_for_self():
+    """Unhide content the user previously hid"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        content_uri = data.get('uri', '').strip()
+        
+        if not content_uri:
+            return jsonify({'error': 'Content URI required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        # Remove from barred_content (only if user is the guardian)
+        db_manager.execute("""
+            DELETE FROM barred_content 
+            WHERE guardian_did = %s AND content_uri = %s
+        """, (user_did, content_uri))
+        
+        print(f"👁️ CONTENT UNHIDE: {user_did} unhid content: {content_uri[:60]}...")
+        
+        return jsonify({'success': True, 'message': 'Content unhidden'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/guardian/add', methods=['POST'])
+@rate_limit()
+def guardian_add_item():
+    """Add an item to a guardian's list"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        list_name = data.get('list')  # barred_users, barred_content, allowed_users, allowed_content
+        value = data.get('value', '').strip()
+        reason = data.get('reason', '')
+        
+        if list_name not in ('barred_users', 'barred_content', 'allowed_users', 'allowed_content'):
+            return jsonify({'error': 'Invalid list name'}), 400
+        
+        if not value:
+            return jsonify({'error': 'Value required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        # Check if user is a guardian (must have stewardship entry)
+        steward = db_manager.fetch_one("SELECT guardian_did FROM stewardship WHERE guardian_did = %s", (user_did,))
+        if not steward:
+            # Auto-create stewardship entry if user is in work table as guardian
+            row = db_manager.fetch_one("SELECT workers FROM work WHERE role = 'guardian'")
+            if row:
+                workers = json.loads(row['workers']) if row['workers'] else []
+                is_guardian = any(w.get('did') == user_did for w in workers)
+                if is_guardian:
+                    db_manager.execute("INSERT INTO stewardship (guardian_did) VALUES (%s) ON CONFLICT DO NOTHING", (user_did,))
+                else:
+                    return jsonify({'error': 'You are not a guardian'}), 403
+            else:
+                return jsonify({'error': 'You are not a guardian'}), 403
+        
+        
+        # Determine column name based on list
+        if list_name in ('barred_users', 'allowed_users'):
+            col = 'user_did'
+        else:
+            col = 'content_uri'
+        
+        db_manager.execute(f"""
+            INSERT INTO {list_name} (guardian_did, {col}, reason)
+            VALUES (%s, %s, %s)
+        """, (user_did, value, reason))
+        
+        return jsonify({'success': True, 'message': f'Added to {list_name}'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/guardian/remove', methods=['POST'])
+@rate_limit()
+def guardian_remove_item():
+    """Remove an item from a guardian's list"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        list_name = data.get('list')  # barred_users, barred_content, allowed_users, allowed_content
+        value = data.get('value', '').strip()
+        
+        if list_name not in ('barred_users', 'barred_content', 'allowed_users', 'allowed_content'):
+            return jsonify({'error': 'Invalid list name'}), 400
+        
+        if not value:
+            return jsonify({'error': 'Value required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        
+        # Determine column name based on list
+        if list_name in ('barred_users', 'allowed_users'):
+            col = 'user_did'
+        else:
+            col = 'content_uri'
+        
+        db_manager.execute(f"""
+            DELETE FROM {list_name} WHERE guardian_did = %s AND {col} = %s
+        """, (user_did, value))
+        
+        return jsonify({'success': True, 'message': f'Removed from {list_name}'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/guardian/become', methods=['POST'])
+@rate_limit()
+def guardian_become_ward_or_charge():
+    """Become a ward or charge of a guardian"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        guardian_did = data.get('guardian_did', '').strip()
+        role_type = data.get('type', '').strip()  # 'ward' or 'charge'
+        
+        if not guardian_did:
+            return jsonify({'error': 'Guardian DID required'}), 400
+        
+        if role_type not in ('ward', 'charge'):
+            return jsonify({'error': 'Invalid type, must be "ward" or "charge"'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        # Verify guardian exists in stewardship
+        steward = db_manager.fetch_one("SELECT guardian_did FROM stewardship WHERE guardian_did = %s", (guardian_did,))
+        if not steward:
+            return jsonify({'error': 'Guardian not found'}), 404
+        
+        # Cannot become ward/charge of yourself
+        if user_did == guardian_did:
+            return jsonify({'error': 'You cannot become your own ward or charge'}), 400
+        
+        
+        # Remove user from ALL guardians' wards and charges arrays (can only be under one guardian)
+        db_manager.execute("""
+            UPDATE stewardship 
+            SET wards = array_remove(wards, %s),
+                charges = array_remove(charges, %s)
+            WHERE %s = ANY(wards) OR %s = ANY(charges)
+        """, (user_did, user_did, user_did, user_did))
+        
+        # Add user to the appropriate array for this guardian
+        if role_type == 'ward':
+            db_manager.execute("""
+                UPDATE stewardship 
+                SET wards = array_append(wards, %s)
+                WHERE guardian_did = %s
+            """, (user_did, guardian_did))
+        else:
+            db_manager.execute("""
+                UPDATE stewardship 
+                SET charges = array_append(charges, %s)
+                WHERE guardian_did = %s
+            """, (user_did, guardian_did))
+        
+        print(f"  ✓ {user_did} is now a {role_type} of {guardian_did}")
+        
+        # Get guardian's name for the event text
+        guardian = db_manager.fetch_one("""
+            SELECT d.name, d.handle FROM dreamers d WHERE d.did = %s
+        """, (guardian_did,))
+        guardian_name = guardian['name'] if guardian and guardian.get('name') else guardian['handle'] if guardian else 'Unknown'
+        
+        # Create event record for becoming a ward/charge
+        import time
+        epoch = int(time.time())
+        event_text = f"is guarded by {guardian_name}"
+        event_key = role_type  # 'ward' or 'charge'
+        event_url = '/guardian'
+        
+        db_manager.execute("""
+            INSERT INTO events (did, epoch, type, event, key, url, color_source, color_intensity)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (user_did, epoch, 'guardian', event_text, event_key, event_url, 'role', 'none'))
+        
+        print(f"  ✨ Created guardian event: {event_text}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'You are now a {role_type} of this guardian',
+            'type': role_type,
+            'guardian_did': guardian_did
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/guardian/leave', methods=['POST'])
+@rate_limit()
+def guardian_leave_ward_or_charge():
+    """Leave a guardian's wards or charges"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        
+        # Remove user from ALL guardians' wards and charges arrays
+        db_manager.execute("""
+            UPDATE stewardship 
+            SET wards = array_remove(wards, %s),
+                charges = array_remove(charges, %s)
+            WHERE %s = ANY(wards) OR %s = ANY(charges)
+        """, (user_did, user_did, user_did, user_did))
+        
+        print(f"  ✓ {user_did} has left all guardian relationships")
+        
+        return jsonify({
+            'success': True,
+            'message': 'You have left your guardian'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/guardian/my-status')
+@rate_limit()
+def guardian_my_status():
+    """Get current user's ward/charge status"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        # Check if user is a ward of any guardian
+        ward_of = db_manager.fetch_one("""
+            SELECT guardian_did FROM stewardship WHERE %s = ANY(wards)
+        """, (user_did,))
+        
+        # Check if user is a charge of any guardian
+        charge_of = db_manager.fetch_one("""
+            SELECT guardian_did FROM stewardship WHERE %s = ANY(charges)
+        """, (user_did,))
+        
+        result = {
+            'success': True,
+            'is_ward': ward_of is not None,
+            'is_charge': charge_of is not None,
+            'ward_of': ward_of['guardian_did'] if ward_of else None,
+            'charge_of': charge_of['guardian_did'] if charge_of else None
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/guardian/community-stats')
+@rate_limit()
+def guardian_community_stats():
+    """Get aggregate community shield statistics
+    
+    Returns counts of total barred/allowed dreamers and dreams across all guardians.
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        db_manager = DatabaseManager()
+        
+        # Get total guardian count
+        guardian_count_row = db_manager.fetch_one("SELECT COUNT(*) as count FROM stewardship")
+        total_guardians = guardian_count_row['count'] if guardian_count_row else 0
+        
+        # Get total wards and charges
+        totals_row = db_manager.fetch_one("""
+            SELECT 
+                COALESCE(SUM(COALESCE(array_length(wards, 1), 0)), 0) as total_wards,
+                COALESCE(SUM(COALESCE(array_length(charges, 1), 0)), 0) as total_charges
+            FROM stewardship
+        """)
+        total_wards = totals_row['total_wards'] if totals_row else 0
+        total_charges = totals_row['total_charges'] if totals_row else 0
+        
+        # Count unique barred dreamers (users)
+        barred_dreamers_row = db_manager.fetch_one("""
+            SELECT COUNT(DISTINCT user_did) as count FROM barred_users
+        """)
+        barred_dreamers = barred_dreamers_row['count'] if barred_dreamers_row else 0
+        
+        # Count unique barred dreams (content)
+        barred_dreams_row = db_manager.fetch_one("""
+            SELECT COUNT(DISTINCT content_uri) as count FROM barred_content
+        """)
+        barred_dreams = barred_dreams_row['count'] if barred_dreams_row else 0
+        
+        # Count unique allowed dreamers (users)
+        allowed_dreamers_row = db_manager.fetch_one("""
+            SELECT COUNT(DISTINCT user_did) as count FROM allowed_users
+        """)
+        allowed_dreamers = allowed_dreamers_row['count'] if allowed_dreamers_row else 0
+        
+        # Count unique allowed dreams (content)
+        allowed_dreams_row = db_manager.fetch_one("""
+            SELECT COUNT(DISTINCT content_uri) as count FROM allowed_content
+        """)
+        allowed_dreams = allowed_dreams_row['count'] if allowed_dreams_row else 0
+        
+        return jsonify({
+            'success': True,
+            'total_guardians': total_guardians,
+            'total_wards': total_wards,
+            'total_charges': total_charges,
+            'barred_dreamers': barred_dreamers,
+            'barred_dreams': barred_dreams,
+            'allowed_dreamers': allowed_dreamers,
+            'allowed_dreams': allowed_dreams
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/guardian/aggregate-barred')
+@rate_limit()
+def guardian_aggregate_barred():
+    """Get users and content barred by a majority of guardians (for guest filtering)
+    
+    Returns lists of user DIDs and content URIs that have been barred by more than half of all guardians.
+    This is used to filter content for non-logged-in users.
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        db_manager = DatabaseManager()
+        
+        # Get total number of guardians (workers in guardian role)
+        # We need to count from the work table, not stewardship
+        work_row = db_manager.fetch_one("""
+            SELECT workers FROM work WHERE role = 'guardian' LIMIT 1
+        """)
+        
+        if work_row and work_row['workers']:
+            workers = json.loads(work_row['workers']) if isinstance(work_row['workers'], str) else work_row['workers']
+            total_guardians = len(workers)
+        else:
+            total_guardians = 0
+        
+        if total_guardians == 0:
+            return jsonify({
+                'success': True,
+                'barred_dids': [],
+                'barred_uris': [],
+                'total_guardians': 0,
+                'threshold': 0
+            })
+        
+        # Threshold is majority (more than half)
+        threshold = total_guardians // 2 + 1
+        
+        # Count how many guardians have barred each user
+        barred_user_counts = db_manager.fetch_all("""
+            SELECT user_did, COUNT(DISTINCT guardian_did) as bar_count
+            FROM barred_users
+            GROUP BY user_did
+            HAVING COUNT(DISTINCT guardian_did) >= %s
+        """, (threshold,))
+        
+        barred_dids = [row['user_did'] for row in (barred_user_counts or [])]
+        
+        # Count how many guardians have barred each content URI
+        barred_content_counts = db_manager.fetch_all("""
+            SELECT content_uri, COUNT(DISTINCT guardian_did) as bar_count
+            FROM barred_content
+            GROUP BY content_uri
+            HAVING COUNT(DISTINCT guardian_did) >= %s
+        """, (threshold,))
+        
+        barred_uris = [row['content_uri'] for row in (barred_content_counts or [])]
+        
+        return jsonify({
+            'success': True,
+            'barred_dids': barred_dids,
+            'barred_uris': barred_uris,
+            'total_guardians': total_guardians,
+            'threshold': threshold
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/guardian/my-rules')
+@rate_limit()
+def guardian_my_rules():
+    """Get current user's guardian filtering rules (for wards/charges)
+    
+    Returns the lists that should filter the user's view based on their guardian status.
+    Users always act as their own guardian for self-moderation (blacklist mode).
+    Additionally:
+    - If user is a WARD: guardian's allowed_users list (whitelist - only show these)
+    - If user is a CHARGE: guardian's barred_users list (blacklist - hide these, merged with own)
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({
+                'success': True,
+                'has_guardian': False,
+                'filter_mode': None,
+                'filter_dids': [],
+                'filter_uris': [],
+                'own_barred_dids': [],
+                'own_barred_uris': []
+            })
+        
+        valid, user_did, handle = validate_work_token(token)
+        
+        if not valid or not user_did:
+            return jsonify({
+                'success': True,
+                'has_guardian': False,
+                'filter_mode': None,
+                'filter_dids': [],
+                'filter_uris': [],
+                'own_barred_dids': [],
+                'own_barred_uris': []
+            })
+        
+        db_manager = DatabaseManager()
+        
+        # Always fetch user's own barred lists (user as their own guardian)
+        own_barred_users = db_manager.fetch_all("""
+            SELECT user_did FROM barred_users WHERE guardian_did = %s
+        """, (user_did,))
+        own_barred_content = db_manager.fetch_all("""
+            SELECT content_uri FROM barred_content WHERE guardian_did = %s
+        """, (user_did,))
+        
+        own_barred_dids = [r['user_did'] for r in (own_barred_users or [])]
+        own_barred_uris = [r['content_uri'] for r in (own_barred_content or [])]
+        
+        # Check if user is a ward of any guardian
+        ward_of = db_manager.fetch_one("""
+            SELECT guardian_did FROM stewardship WHERE %s = ANY(wards)
+        """, (user_did,))
+        
+        # Check if user is a charge of any guardian
+        charge_of = db_manager.fetch_one("""
+            SELECT guardian_did FROM stewardship WHERE %s = ANY(charges)
+        """, (user_did,))
+        
+        
+        result = {
+            'success': True,
+            'has_guardian': False,
+            'filter_mode': None,
+            'filter_dids': [],
+            'filter_uris': [],
+            'own_barred_dids': own_barred_dids,  # User's own moderation (always applied as blacklist)
+            'own_barred_uris': own_barred_uris,
+            'guardian_did': None
+        }
+        
+        # Ward gets whitelist (allowed_users) - only show users on this list
+        # But also respect any specifically barred content
+        if ward_of:
+            guardian_did = ward_of['guardian_did']
+            allowed_users = db_manager.fetch_all("""
+                SELECT user_did FROM allowed_users WHERE guardian_did = %s
+            """, (guardian_did,))
+            allowed_content = db_manager.fetch_all("""
+                SELECT content_uri FROM allowed_content WHERE guardian_did = %s
+            """, (guardian_did,))
+            # Also fetch barred content - wards can see allowed users but not their barred content
+            barred_content = db_manager.fetch_all("""
+                SELECT content_uri FROM barred_content WHERE guardian_did = %s
+            """, (guardian_did,))
+            
+            result['has_guardian'] = True
+            result['filter_mode'] = 'whitelist'
+            result['filter_dids'] = [r['user_did'] for r in (allowed_users or [])]
+            result['filter_uris'] = [r['content_uri'] for r in (allowed_content or [])]
+            result['barred_uris'] = [r['content_uri'] for r in (barred_content or [])]  # Content to hide even from allowed users
+            result['guardian_did'] = guardian_did
+            
+            # Guardian is always allowed for their wards
+            if guardian_did not in result['filter_dids']:
+                result['filter_dids'].append(guardian_did)
+            
+            
+        # Charge gets blacklist (barred_users) - hide users on this list
+        elif charge_of:
+            guardian_did = charge_of['guardian_did']
+            barred_users = db_manager.fetch_all("""
+                SELECT user_did FROM barred_users WHERE guardian_did = %s
+            """, (guardian_did,))
+            barred_content = db_manager.fetch_all("""
+                SELECT content_uri FROM barred_content WHERE guardian_did = %s
+            """, (guardian_did,))
+            
+            result['has_guardian'] = True
+            result['filter_mode'] = 'blacklist'
+            result['filter_dids'] = [r['user_did'] for r in (barred_users or [])]
+            result['filter_uris'] = [r['content_uri'] for r in (barred_content or [])]
+            result['guardian_did'] = guardian_did
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
 # BURSAR WORK ENDPOINTS (Single-worker role, top-patron only)
 # ============================================================================
 
@@ -9910,7 +10991,7 @@ def activate_bursar():
             'bursar'
         )
         
-        print(f"✅ Bursar activated for {user_did}")
+        print(f"Bursar activated for {user_did}")
         
         return jsonify({
             'success': True,
@@ -9970,7 +11051,7 @@ def step_down_bursar():
         """, (int(time.time()),))
         print(f"  ✓ Cleared bursar from legacy work table")
         
-        print(f"✅ Bursar step-down complete for {user_did}")
+        print(f"Bursar step-down complete for {user_did}")
         
         return jsonify({
             'success': True,
@@ -10025,7 +11106,7 @@ def set_bursar_status():
             WHERE role = 'bursar'
         """, (json.dumps(workers), int(time.time())))
         
-        print(f"✅ Bursar status set to {new_status} for {user_did}")
+        print(f"Bursar status set to {new_status} for {user_did}")
         
         return jsonify({
             'success': True,
@@ -10219,7 +11300,7 @@ def activate_cheerful():
             'cheerful'
         )
         
-        print(f"✅ Cheerful activated for {user_did}")
+        print(f"Cheerful activated for {user_did}")
         
         return jsonify({
             'success': True,
@@ -10281,7 +11362,7 @@ def step_down_cheerful():
         """, (json.dumps(updated_workers), int(time.time())))
         print(f"  ✓ Removed from legacy work table (remaining: {len(updated_workers)})")
         
-        print(f"✅ Cheerful step-down complete for {user_did}")
+        print(f"Cheerful step-down complete for {user_did}")
         
         return jsonify({
             'success': True,
@@ -10413,7 +11494,7 @@ def send_provisioner_request():
                     print(f"🔐 Attempting chat login via {chat_endpoint}...")
                     client = Client(base_url=chat_endpoint)
                     client.login(user_handle, app_password)
-                    print(f"✅ Login successful via {chat_endpoint}")
+                    print(f"Login successful via {chat_endpoint}")
             
                     # Create chat proxy client
                     dm_client = client.with_bsky_chat_proxy()
@@ -10477,7 +11558,7 @@ def send_provisioner_request():
                                 # Have provisioner follow the requester
                                 print(f"🤝 Provisioner following requester {user_did}...")
                                 prov_client.follow(user_did)
-                                print(f"✅ Provisioner now follows requester")
+                                print(f"Provisioner now follows requester")
                         
                                 # Wait a moment for the follow to propagate
                                 import time
@@ -10494,7 +11575,7 @@ def send_provisioner_request():
                     convo = dm.get_convo_for_members(
                         models.ChatBskyConvoGetConvoForMembers.Params(members=[provisioner_did])
                     ).convo
-                    print(f"✅ Got conversation: {convo.id}")
+                    print(f"Got conversation: {convo.id}")
             
                     # Compose the message
                     message_text = f"Hey, {provisioner_name}! If you're around to help, I'm in {city} and could use some free food whenever it's available. Thanks in advance."
@@ -10510,7 +11591,7 @@ def send_provisioner_request():
                         )
                     )
             
-                    print(f"✅ Message sent successfully! Message ID: {message.id}")
+                    print(f"Message sent successfully! Message ID: {message.id}")
             
                     return jsonify({
                         'success': True,
@@ -10525,7 +11606,7 @@ def send_provisioner_request():
                     
                     # If it's a token/auth error, try the next endpoint
                     if 'InvalidToken' in error_str or 'Bad token' in error_str:
-                        print(f"🔄 Token error detected, trying next endpoint...")
+                        print(f"Token error detected, trying next endpoint...")
                         continue
                     
                     # If it's a DM restriction error, don't retry
@@ -10540,7 +11621,7 @@ def send_provisioner_request():
             
         except Exception as auth_error:
             error_str = str(auth_error)
-            print(f"❌ AT Protocol error: {auth_error}")
+            print(f"AT Protocol error: {auth_error}")
             import traceback
             traceback.print_exc()
             
@@ -10656,9 +11737,9 @@ def send_bursar_scheme():
                 (requester_did, requester_handle, bursar_did, domain, request_amount, status, dm_sent)
                 VALUES (%s, %s, %s, %s, %s, 'pending', FALSE)
             """, (user_did, user_handle, bursar_did, domain, request_amount))
-            print(f"✅ Scheme saved to database for bursar review")
+            print(f"Scheme saved to database for bursar review")
         except Exception as save_err:
-            print(f"❌ Failed to save scheme: {save_err}")
+            print(f"Failed to save scheme: {save_err}")
             return jsonify({'error': f'Failed to save scheme: {save_err}'}), 500
         
         # ================================================================
@@ -10712,7 +11793,7 @@ def send_bursar_scheme():
                     print(f"🔐 Attempting chat login via {pds_url}...")
                     client = Client(base_url=pds_url)
                     client.login(user_handle, app_password)
-                    print(f"✅ Login successful via {pds_url}")
+                    print(f"Login successful via {pds_url}")
                     
                     # Create chat proxy client
                     dm_client = client.with_bsky_chat_proxy()
@@ -10723,7 +11804,7 @@ def send_bursar_scheme():
                     convo = dm.get_convo_for_members(
                         models.ChatBskyConvoGetConvoForMembers.Params(members=[bursar_did])
                     ).convo
-                    print(f"✅ Got conversation: {convo.id}")
+                    print(f"Got conversation: {convo.id}")
                     
                     # Compose the message - just 3 lines
                     message_text = f"Domain: {domain}\nCreated By: @{user_handle}\nRequest: ${request_amount}"
@@ -10739,7 +11820,7 @@ def send_bursar_scheme():
                         )
                     )
                     
-                    print(f"✅ Scheme DM sent successfully! Message ID: {message.id}")
+                    print(f"Scheme DM sent successfully! Message ID: {message.id}")
                     dm_sent = True
                     
                 except Exception as dm_err:
@@ -11084,7 +12165,7 @@ def sync_treasury():
                   print_revenue_cents, print_books,
                   total_balance_cents, total_raised_cents))
             
-            print(f"✅ [Treasury] Synced: total_raised=${total_raised_cents/100}, total_balance=${total_balance_cents/100}")
+            print(f"[Treasury] Synced: total_raised=${total_raised_cents/100}, total_balance=${total_balance_cents/100}")
             
         except Exception as db_error:
             print(f"⚠️ [Treasury] Database update failed: {db_error}")
@@ -11126,9 +12207,9 @@ def sync_treasury():
                 """, (oc_balance_cents, oc_raised_cents, oc_disbursed_cents,
                       print_revenue_cents, print_books,
                       total_balance_cents, total_raised_cents))
-                print(f"✅ [Treasury] Table created and synced")
+                print(f"[Treasury] Table created and synced")
             except Exception as create_error:
-                print(f"❌ [Treasury] Failed to create table: {create_error}")
+                print(f"[Treasury] Failed to create table: {create_error}")
                 import traceback
                 traceback.print_exc()
         
@@ -11177,7 +12258,7 @@ def connect_user_credentials():
         print(f"🔑 Token received: {token[:20] + '...' if token else 'NONE'}")
         
         if not token:
-            print(f"❌ No authorization token provided")
+            print(f"No authorization token provided")
             return jsonify({'error': 'No authorization token provided'}), 401
         
         # Validate token (supports both admin sessions and OAuth tokens)
@@ -11188,7 +12269,7 @@ def connect_user_credentials():
         print(f"   - Handle: {handle}")
         
         if not valid or not user_did:
-            print(f"❌ Invalid or expired token")
+            print(f"Invalid or expired token")
             return jsonify({'error': 'Invalid or expired token'}), 401
         
         # Get app password from request
@@ -11197,7 +12278,7 @@ def connect_user_credentials():
         print(f"   - Has 'app_password': {'app_password' in data if data else False}")
         
         if not data or 'app_password' not in data:
-            print(f"❌ app_password required but not provided")
+            print(f"app_password required but not provided")
             return jsonify({'error': 'app_password required'}), 400
         
         app_password = data['app_password'].strip()
@@ -11257,13 +12338,13 @@ def connect_user_credentials():
             return jsonify({'error': 'App password already connected. Disconnect first to update.'}), 409
         
         if existing:
-            print(f"🔄 Existing row found but no password hash, will update")
+            print(f"Existing row found but no password hash, will update")
         
         # Validate password with WorkerNetworkClient
         try:
             encrypted_password = encrypt_password(formatted_password)
         except Exception as e:
-            print(f"❌ Failed to encrypt password: {e}")
+            print(f"Failed to encrypt password: {e}")
             return jsonify({
                 'error': 'Encryption failed',
                 'detail': 'Unable to encrypt app password. Please contact support.'
@@ -11276,7 +12357,7 @@ def connect_user_credentials():
                 app_password_base64=encrypted_password
             )
         except Exception as e:
-            print(f"❌ Failed to create WorkerNetworkClient: {e}")
+            print(f"Failed to create WorkerNetworkClient: {e}")
             import traceback
             traceback.print_exc()
             return jsonify({
@@ -11289,7 +12370,7 @@ def connect_user_credentials():
             print(f"🔐 Authentication attempt result: {auth_success}")
             print(f"🔐 PDS URL used: {worker_client.pds}")
         except Exception as e:
-            print(f"❌ Authentication exception: {e}")
+            print(f"Authentication exception: {e}")
             import traceback
             traceback.print_exc()
             return jsonify({
@@ -11298,14 +12379,14 @@ def connect_user_credentials():
             }), 500
         
         if not auth_success:
-            print(f"❌ App password authentication failed for {user_handle}")
+            print(f"App password authentication failed for {user_handle}")
             
             return jsonify({
                 'error': 'Authentication failed',
                 'detail': 'App password is invalid or incorrect. Please check your password and try again.'
             }), 401
         
-        print(f"✅ App password validated successfully for {user_handle}")
+        print(f"App password validated successfully for {user_handle}")
         
         # Store credential
         import time as time_module
@@ -11327,7 +12408,7 @@ def connect_user_credentials():
                 is_valid = TRUE
         """, (user_did, encrypted_password, pds, now_epoch))
         
-        print(f"✅ Database INSERT/UPDATE completed")
+        print(f"Database INSERT/UPDATE completed")
         
         # Auto-committed by DatabaseManager
         
@@ -11340,14 +12421,14 @@ def connect_user_credentials():
         
         print(f"🔍 Verification query result:")
         if verify_cred:
-            print(f"   ✅ Record exists in database")
+            print(f"   Record exists in database")
             print(f"   - DID: {verify_cred['did']}")
             print(f"   - app_password_hash length: {len(verify_cred['app_password_hash']) if verify_cred['app_password_hash'] else 0}")
             print(f"   - pds_url: {verify_cred['pds_url']}")
             print(f"   - is_valid: {verify_cred['is_valid']}")
             print(f"   - last_verified: {verify_cred['last_verified']}")
         else:
-            print(f"   ❌ Record NOT found in database after insert!")
+            print(f"   Record NOT found in database after insert!")
         
         # Return available roles
         roles_available = ['greeter']  # Future: add 'moderator', etc.
@@ -11358,7 +12439,7 @@ def connect_user_credentials():
             'roles_available': roles_available
         }
         
-        print(f"✅ Returning success response:")
+        print(f"Returning success response:")
         print(f"   {response_data}")
         print(f"{'='*80}\n")
         
@@ -11375,7 +12456,7 @@ def connect_user_credentials():
         return jsonify(response_data)
         
     except Exception as e:
-        print(f"❌ Exception in connect_user_credentials:")
+        print(f"Exception in connect_user_credentials:")
         import traceback
         traceback.print_exc()
         print(f"{'='*80}\n")
@@ -11394,7 +12475,7 @@ def get_credentials_status():
         from core.database import DatabaseManager
         
         print(f"\n{'='*80}")
-        print(f"📊 CREDENTIALS STATUS CHECK")
+        print(f"CREDENTIALS STATUS CHECK")
         print(f"{'='*80}")
         
         # Get token from header
@@ -11402,7 +12483,7 @@ def get_credentials_status():
         print(f"🔐 Token received: {token[:20] + '...' if token else 'NONE'}")
         
         if not token:
-            print(f"❌ No authorization token provided")
+            print(f"No authorization token provided")
             return jsonify({'error': 'No authorization token provided'}), 401
         
         # Validate token (supports both admin sessions and OAuth tokens)
@@ -11413,7 +12494,7 @@ def get_credentials_status():
         print(f"   - Handle: {handle}")
         
         if not valid or not user_did:
-            print(f"❌ Invalid or expired token")
+            print(f"Invalid or expired token")
             return jsonify({'error': 'Invalid or expired token'}), 401
         
         # Check credential
@@ -11443,7 +12524,7 @@ def get_credentials_status():
                 'connected': False,
                 'roles_available': ['greeter']
             }
-            print(f"✅ Returning (no credentials):")
+            print(f"Returning (no credentials):")
             print(f"   {response_data}")
             print(f"{'='*80}\n")
             return jsonify(response_data)
@@ -11470,14 +12551,14 @@ def get_credentials_status():
             'roles_available': ['greeter'] if has_valid_credentials else []
         }
         
-        print(f"✅ Returning response:")
+        print(f"Returning response:")
         print(f"   {response_data}")
         print(f"{'='*80}\n")
         
         return jsonify(response_data)
         
     except Exception as e:
-        print(f"❌ Exception in get_credentials_status:")
+        print(f"Exception in get_credentials_status:")
         import traceback
         traceback.print_exc()
         print(f"{'='*80}\n")
@@ -11560,7 +12641,7 @@ def update_user_profile():
     try:
         from utils.update_avatar import update_profile
         
-        print("🔄 [API] /api/user/update-profile called")
+        print("[API] /api/user/update-profile called")
         
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
@@ -11572,7 +12653,7 @@ def update_user_profile():
         if not valid or not user_did:
             return jsonify({'error': 'Invalid or expired token'}), 401
         
-        print(f"✅ [API] Token validated for user: {user_did}")
+        print(f"[API] Token validated for user: {user_did}")
         
         # Check if user is wretched (locked from profile updates)
         from core.database import DatabaseManager
@@ -11614,7 +12695,7 @@ def update_user_profile():
             
             if result.get('success'):
                 bluesky_synced = True
-                print("✅ [API] Bluesky profile updated successfully")
+                print("[API] Bluesky profile updated successfully")
             else:
                 bluesky_error = result.get('error', 'Unknown error')
                 print(f"⚠️ [API] Bluesky sync skipped: {bluesky_error}")
@@ -11649,9 +12730,9 @@ def update_user_profile():
         )
         
         if display_name is not None:
-            print(f"✅ [API] Database updated with new display name: {display_name}")
+            print(f"[API] Database updated with new display name: {display_name}")
         if heading is not None:
-            print(f"✅ [API] Database updated with new heading: {heading}")
+            print(f"[API] Database updated with new heading: {heading}")
         
         # Calculate and save user designation
         try:
@@ -11663,7 +12744,7 @@ def update_user_profile():
             if row:
                 user_handle, user_server = row['handle'], row['server']
                 designation = Designation.calculate_and_save(user_did, user_handle, user_server, token)
-                print(f"✅ [API] User designation updated: {designation}")
+                print(f"[API] User designation updated: {designation}")
         except Exception as e:
             print(f"⚠️ [API] Could not update user designation: {e}")
         
@@ -11677,7 +12758,7 @@ def update_user_profile():
             user_agent=request.headers.get('User-Agent')
         )
         
-        print("✅ [API] Profile update complete, returning success response")
+        print("[API] Profile update complete, returning success response")
         response_data = {
             'success': True,
             'message': 'Profile updated successfully',
@@ -11690,7 +12771,7 @@ def update_user_profile():
         
     except Exception as e:
         import traceback
-        print(f"❌ [API] Exception in update_user_profile:")
+        print(f"[API] Exception in update_user_profile:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
@@ -11706,27 +12787,27 @@ def set_primary_name():
     No app password required - just OAuth token.
     """
     try:
-        print("🔄 [API] /api/user/set-primary-name called")
+        print("[API] /api/user/set-primary-name called")
         
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
         if not token:
-            print("❌ [API] No authorization token provided")
+            print("[API] No authorization token provided")
             return jsonify({'error': 'Authorization token required'}), 401
         
         # Validate token and get user DID
         valid, user_did, handle = validate_work_token(token)
         
         if not valid or not user_did:
-            print(f"❌ [API] Invalid token")
+            print(f"[API] Invalid token")
             return jsonify({'error': 'Invalid or expired token'}), 401
         
-        print(f"✅ [API] Token validated for user: {user_did}")
+        print(f"[API] Token validated for user: {user_did}")
         
         # Get requested name from request
         data = request.get_json()
         if not data or 'name' not in data:
-            print("❌ [API] No name in request body")
+            print("[API] No name in request body")
             return jsonify({'error': 'name required'}), 400
         
         requested_name = data['name'].strip().lower()
@@ -11744,14 +12825,14 @@ def set_primary_name():
         dreamer = cursor.fetchone()
         
         if not dreamer:
-            print(f"❌ [API] User not found: {user_did}")
+            print(f"[API] User not found: {user_did}")
             return jsonify({'error': 'User not found'}), 404
         
         current_name = dreamer['name']
         current_handle = dreamer['handle']
         current_alts = dreamer['alts'] or ''
         
-        print(f"📋 [API] Current state:")
+        print(f"[API] Current state:")
         print(f"   name: {current_name}")
         print(f"   handle: {current_handle}")
         print(f"   alts: {current_alts}")
@@ -11770,10 +12851,10 @@ def set_primary_name():
         # Parse alts and verify requested name exists
         alt_list = [a.strip() for a in current_alts.split(',') if a.strip()]
         
-        print(f"📋 [API] Parsed alt list: {alt_list}")
+        print(f"[API] Parsed alt list: {alt_list}")
         
         if requested_name not in alt_list:
-            print(f"❌ [API] Name '{requested_name}' not in alts: {alt_list}")
+            print(f"[API] Name '{requested_name}' not in alts: {alt_list}")
             return jsonify({'error': f'Name "{requested_name}" is not in your alternate names'}), 400
         
         # Swap: remove requested from alts, add current to alts
@@ -11781,7 +12862,7 @@ def set_primary_name():
         alt_list.append(current_name)
         new_alts = ', '.join(alt_list)
         
-        print(f"🔄 [API] Swapping (local only):")
+        print(f"[API] Swapping (local only):")
         print(f"   name: {current_name} → {requested_name}")
         print(f"   alts: {current_alts} → {new_alts}")
         print(f"   handle: {current_handle} (unchanged)")
@@ -11792,7 +12873,7 @@ def set_primary_name():
             (requested_name, new_alts, int(time.time()), user_did)
         )
         
-        print(f"✅ [API] Local name swap complete")
+        print(f"[API] Local name swap complete")
         
         audit_log(
             event_type='name_swapped',
@@ -11814,7 +12895,7 @@ def set_primary_name():
         
     except Exception as e:
         import traceback
-        print(f"❌ [API] Exception in set_primary_name:")
+        print(f"[API] Exception in set_primary_name:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
@@ -11830,7 +12911,7 @@ def update_user_name():
     Does NOT touch Bluesky display name.
     """
     try:
-        print("🔄 [API] /api/user/update-name called")
+        print("[API] /api/user/update-name called")
         
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
@@ -11842,7 +12923,7 @@ def update_user_name():
         if not valid or not user_did:
             return jsonify({'error': 'Invalid or expired token'}), 401
         
-        print(f"✅ [API] Token validated for user: {user_did}")
+        print(f"[API] Token validated for user: {user_did}")
         
         # Get data from request
         data = request.get_json()
@@ -11918,7 +12999,7 @@ def update_user_name():
             (new_name, new_alts, int(time.time()), user_did)
         )
         
-        print(f"✅ [API] Name updated: {current_name} → {new_name}")
+        print(f"[API] Name updated: {current_name} → {new_name}")
         print(f"   Alts now: {new_alts}")
         
         audit_log(
@@ -11940,7 +13021,7 @@ def update_user_name():
         
     except Exception as e:
         import traceback
-        print(f"❌ [API] Exception in update_user_name:")
+        print(f"[API] Exception in update_user_name:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
@@ -11956,7 +13037,7 @@ def update_user_avatar():
     try:
         from utils.update_avatar import update_avatar
         
-        print("🔄 [API] /api/user/update-avatar called")
+        print("[API] /api/user/update-avatar called")
         
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
@@ -11968,7 +13049,7 @@ def update_user_avatar():
         if not valid or not user_did:
             return jsonify({'error': 'Invalid or expired token'}), 401
         
-        print(f"✅ [API] Token validated for user: {user_did}")
+        print(f"[API] Token validated for user: {user_did}")
         
         # Check for file upload
         if 'avatar' not in request.files:
@@ -11992,17 +13073,17 @@ def update_user_avatar():
         if len(image_data) > 1024 * 1024:
             return jsonify({'error': 'Image must be smaller than 1MB'}), 400
         
-        print(f"✅ [API] File validated, size: {len(image_data)} bytes")
+        print(f"[API] File validated, size: {len(image_data)} bytes")
         
         # Update avatar
-        print("🔄 [API] Calling update_avatar()...")
+        print("[API] Calling update_avatar()...")
         result = update_avatar(user_did, image_data)
         
         if not result.get('success'):
-            print(f"❌ [API] Avatar update failed: {result.get('error')}")
+            print(f"[API] Avatar update failed: {result.get('error')}")
             return jsonify({'error': result.get('error', 'Unknown error')}), 400
         
-        print("✅ [API] Bluesky avatar updated successfully")
+        print("[API] Bluesky avatar updated successfully")
         
         # Fetch the updated avatar URL from Bluesky and sync to local database
         from core.database import DatabaseManager
@@ -12011,7 +13092,7 @@ def update_user_avatar():
         
         # Get the new avatar URL from Bluesky
         try:
-            print("🔄 [API] Fetching updated profile from Bluesky...")
+            print("[API] Fetching updated profile from Bluesky...")
             profile_response = requests.get(
                 f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile",
                 params={"actor": user_did}
@@ -12020,7 +13101,7 @@ def update_user_avatar():
                 profile_data = profile_response.json()
                 new_avatar_url = profile_data.get('avatar')
                 
-                print(f"✅ [API] Got new avatar URL from Bluesky: {new_avatar_url[:60]}...")
+                print(f"[API] Got new avatar URL from Bluesky: {new_avatar_url[:60]}...")
                 
                 # Update local database
                 db.execute(
@@ -12028,7 +13109,7 @@ def update_user_avatar():
                     (new_avatar_url, int(time.time()), user_did)
                 )
                 
-                print(f"✅ [API] Database updated with new avatar URL")
+                print(f"[API] Database updated with new avatar URL")
             else:
                 print(f"⚠️ [API] Failed to fetch profile from Bluesky: {profile_response.status_code}")
         except Exception as e:
@@ -12044,7 +13125,7 @@ def update_user_avatar():
             if row:
                 user_handle, user_server = row['handle'], row['server']
                 designation = Designation.calculate_and_save(user_did, user_handle, user_server, token)
-                print(f"✅ [API] User designation updated: {designation}")
+                print(f"[API] User designation updated: {designation}")
         except Exception as e:
             print(f"⚠️ [API] Could not update user designation: {e}")
         
@@ -12058,7 +13139,7 @@ def update_user_avatar():
             user_agent=request.headers.get('User-Agent')
         )
         
-        print("✅ [API] Avatar update complete, returning success response")
+        print("[API] Avatar update complete, returning success response")
         return jsonify({
             'success': True,
             'message': 'Avatar updated successfully'
@@ -12066,7 +13147,7 @@ def update_user_avatar():
         
     except Exception as e:
         import traceback
-        print(f"❌ [API] Exception in update_user_avatar:")
+        print(f"[API] Exception in update_user_avatar:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
@@ -12082,7 +13163,7 @@ def update_user_description():
     try:
         from core.database import DatabaseManager
         
-        print("🔄 [API] /api/user/update-description called")
+        print("[API] /api/user/update-description called")
         
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
@@ -12094,7 +13175,7 @@ def update_user_description():
         if not valid or not user_did:
             return jsonify({'error': 'Invalid or expired token'}), 401
         
-        print(f"✅ [API] Token validated for user: {user_did}")
+        print(f"[API] Token validated for user: {user_did}")
         
         # Get request data
         data = request.get_json()
@@ -12107,7 +13188,7 @@ def update_user_description():
         if len(description) > 300:
             return jsonify({'error': 'Description must be 300 characters or less'}), 400
         
-        print(f"✅ [API] Updating description for {user_did}: {description[:50]}...")
+        print(f"[API] Updating description for {user_did}: {description[:50]}...")
         
         # Update Bluesky profile if user has app password connected
         try:
@@ -12115,7 +13196,7 @@ def update_user_description():
             result = update_profile_description(user_did, description)
             
             if result.get('success'):
-                print(f"✅ [API] Bluesky profile description updated")
+                print(f"[API] Bluesky profile description updated")
             else:
                 print(f"⚠️ [API] Could not update Bluesky profile: {result.get('error')}")
                 # Continue anyway to update local database
@@ -12131,7 +13212,7 @@ def update_user_description():
             (description, int(time.time()), user_did)
         )
         
-        print(f"✅ [API] Description updated in database")
+        print(f"[API] Description updated in database")
         
         audit_log(
             event_type='description_updated',
@@ -12143,7 +13224,7 @@ def update_user_description():
             user_agent=request.headers.get('User-Agent')
         )
         
-        print("✅ [API] Description update complete")
+        print("[API] Description update complete")
         return jsonify({
             'success': True,
             'description': description
@@ -12151,7 +13232,7 @@ def update_user_description():
         
     except Exception as e:
         import traceback
-        print(f"❌ [API] Exception in update_user_description:")
+        print(f"[API] Exception in update_user_description:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
@@ -12169,7 +13250,7 @@ def refresh_user_designation():
         from utils.designation import Designation
         from core.database import DatabaseManager
         
-        print("🔄 [API] /api/user/refresh-designation called")
+        print("[API] /api/user/refresh-designation called")
         
         # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
@@ -12181,7 +13262,7 @@ def refresh_user_designation():
         if not valid or not user_did:
             return jsonify({'error': 'Invalid or expired token'}), 401
         
-        print(f"✅ [API] Token validated for user: {user_did}")
+        print(f"[API] Token validated for user: {user_did}")
         
         # Get user's handle and server from database
         db = DatabaseManager()
@@ -12197,7 +13278,7 @@ def refresh_user_designation():
         # Calculate and save new designation
         designation = Designation.calculate_and_save(user_did, user_handle, user_server, token)
         
-        print(f"✅ [API] Designation refreshed: {designation}")
+        print(f"[API] Designation refreshed: {designation}")
         
         audit_log(
             event_type='designation_refreshed',
@@ -12216,7 +13297,7 @@ def refresh_user_designation():
         
     except Exception as e:
         import traceback
-        print(f"❌ [API] Exception in refresh_user_designation:")
+        print(f"[API] Exception in refresh_user_designation:")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
@@ -12483,13 +13564,13 @@ def proxy_avatar():
         print(f"🖼️  Avatar proxy request: {avatar_url[:80] if avatar_url else 'NO URL'}...")
         
         if not avatar_url:
-            print("❌ No URL provided")
+            print("No URL provided")
             return '', 400
         
         # Validate URL
         is_safe, error = is_avatar_url_safe(avatar_url)
         if not is_safe:
-            print(f"❌ Rejected: {error}")
+            print(f"Rejected: {error}")
             return jsonify({'error': error}), 403
         
         # Fetch the avatar
@@ -12499,7 +13580,7 @@ def proxy_avatar():
         if response.status_code == 200:
             content_type = response.headers.get('content-type', '')
             if not content_type.startswith('image/'):
-                print(f"❌ Rejected: not an image")
+                print(f"Rejected: not an image")
                 return '', 400
             
             # Read with 5MB limit
@@ -12509,18 +13590,18 @@ def proxy_avatar():
                 if len(content) > 5 * 1024 * 1024:
                     return '', 413
             
-            print(f"   ✅ Size: {len(content)} bytes")
+            print(f"   Size: {len(content)} bytes")
             return Response(
                 content,
                 mimetype=content_type,
                 headers={'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*'}
             )
         else:
-            print(f"❌ Remote returned {response.status_code}")
+            print(f"Remote returned {response.status_code}")
             return '', 404
             
     except Exception as e:
-        print(f"❌ Avatar proxy error: {e}")
+        print(f"Avatar proxy error: {e}")
         return '', 404
 
 
@@ -12586,7 +13667,7 @@ if __name__ == '__main__':
         
         Runs every interval_seconds (default: 1 hour)
         """
-        print(f"🔄 Follow sync worker started (interval: {interval_seconds}s)")
+        print(f"Follow sync worker started (interval: {interval_seconds}s)")
         
         # Wait a bit before first run to let the app fully start
         time_module.sleep(30)
@@ -12597,7 +13678,7 @@ if __name__ == '__main__':
                 db_manager = DatabaseManager()
                 
                 print(f"\n{'='*60}")
-                print(f"🔄 SCHEDULED FOLLOW SYNC - {time_module.strftime('%Y-%m-%d %H:%M:%S')}")
+                print(f"SCHEDULED FOLLOW SYNC - {time_module.strftime('%Y-%m-%d %H:%M:%S')}")
                 print(f"{'='*60}")
                 
                 # 1. Sync reverie.house account
@@ -12612,7 +13693,7 @@ if __name__ == '__main__':
                     else:
                         print(f"   ⚠️ reverie.house account not found")
                 except Exception as e:
-                    print(f"   ❌ reverie.house sync failed: {e}")
+                    print(f"   reverie.house sync failed: {e}")
                 
                 # 2. Sync active Provisioner
                 try:
@@ -12634,14 +13715,14 @@ if __name__ == '__main__':
                     else:
                         print(f"   ℹ️ No active Provisioner to sync")
                 except Exception as e:
-                    print(f"   ❌ Provisioner sync failed: {e}")
+                    print(f"   Provisioner sync failed: {e}")
                 
                 print(f"\n{'='*60}")
-                print(f"✅ Follow sync complete. Next run in {interval_seconds}s")
+                print(f"Follow sync complete. Next run in {interval_seconds}s")
                 print(f"{'='*60}\n")
                 
             except Exception as e:
-                print(f"❌ Follow sync worker error: {e}")
+                print(f"Follow sync worker error: {e}")
                 import traceback
                 traceback.print_exc()
             
@@ -12657,7 +13738,7 @@ if __name__ == '__main__':
             name="FollowSyncWorker"
         )
         sync_thread.start()
-        print("🔄 Follow sync worker started (runs hourly)")
+        print("Follow sync worker started (runs hourly)")
     except Exception as e:
         print(f"⚠️ Failed to start follow sync worker: {e}")
     

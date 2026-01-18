@@ -15,6 +15,10 @@
             this.dreamers = [];
             this.loremasters = [];
             
+            // Guardian filtering rules
+            this.guardianRules = null;
+            this.aggregateBarred = null;
+            
             this.init();
         }
 
@@ -69,6 +73,9 @@
             // Setup user status listener
             this.setupUserStatus();
             
+            // Load guardian rules first (needs auth token)
+            await this.loadGuardianRules();
+            
             // Load dreamers first
             await this.loadDreamers();
             
@@ -87,6 +94,17 @@
             window.addEventListener('oauth:profile-loaded', (event) => {
                 const profile = event.detail;
                 this.updateUserDisplay(profile);
+                // Reload guardian rules when user logs in
+                this.loadGuardianRules().then(() => {
+                    // Re-apply filters if rules changed
+                    if (this.guardianRules?.has_guardian) {
+                        this.applyFilters();
+                        this.renderCarousel();
+                        if (this.filteredStories.length > 0) {
+                            this.showStory(0);
+                        }
+                    }
+                });
             });
 
             // Check if profile already loaded
@@ -95,6 +113,35 @@
             } else {
                 // Show guest state
                 this.showGuestState();
+            }
+        }
+        
+        async loadGuardianRules() {
+            try {
+                const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                
+                if (token) {
+                    // Logged-in user: get their specific guardian rules
+                    const response = await fetch('/api/guardian/my-rules', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.ok) {
+                        this.guardianRules = await response.json();
+                    }
+                    this.aggregateBarred = null;
+                } else {
+                    // Guest: load aggregate barred list
+                    this.guardianRules = null;
+                    const response = await fetch('/api/guardian/aggregate-barred');
+                    if (response.ok) {
+                        this.aggregateBarred = await response.json();
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to load guardian rules:', error);
+                this.guardianRules = null;
+                this.aggregateBarred = null;
             }
         }
 
@@ -295,7 +342,39 @@
                 this.filteredStories = [...this.stories];
             }
             
-            console.log(`🔍 After filter '${this.currentFilter}': ${this.filteredStories.length} stories`);
+            // Apply guardian filtering if user is a ward or charge
+            if (this.guardianRules?.has_guardian) {
+                if (this.guardianRules.filter_mode === 'whitelist') {
+                    // Ward: only show posts from allowed users/content
+                    const allowedDids = new Set(this.guardianRules.filter_dids);
+                    const allowedUris = new Set(this.guardianRules.filter_uris);
+                    
+                    this.filteredStories = this.filteredStories.filter(story => {
+                        return allowedDids.has(story.author?.did) || allowedUris.has(story.uri);
+                    });
+                    
+                } else if (this.guardianRules.filter_mode === 'blacklist') {
+                    // Charge: hide posts from barred users/content
+                    const barredDids = new Set(this.guardianRules.filter_dids);
+                    const barredUris = new Set(this.guardianRules.filter_uris);
+                    
+                    this.filteredStories = this.filteredStories.filter(story => {
+                        return !barredDids.has(story.author?.did) && !barredUris.has(story.uri);
+                    });
+                }
+            }
+            
+            // Guest aggregate barred filtering
+            if (this.aggregateBarred) {
+                const barredDids = new Set(this.aggregateBarred.barred_dids || []);
+                const barredUris = new Set(this.aggregateBarred.barred_uris || []);
+                
+                if (barredDids.size > 0 || barredUris.size > 0) {
+                    this.filteredStories = this.filteredStories.filter(story => {
+                        return !barredDids.has(story.author?.did) && !barredUris.has(story.uri);
+                    });
+                }
+            }
             
             // Sort
             if (this.currentSort === 'newest') {

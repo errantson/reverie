@@ -159,6 +159,35 @@
         let allStories = [];
         let currentFilter = sessionStorage.getItem('storyFilter') || 'canon';
         let allDreamers = []; // Store dreamers for handle resolution
+        let guardianRules = null;
+        let aggregateBarred = null;
+
+        // Load guardian filtering rules
+        async function loadGuardianRules() {
+            try {
+                const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                
+                if (token) {
+                    const response = await fetch('/api/guardian/my-rules', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        guardianRules = await response.json();
+                    }
+                    aggregateBarred = null;
+                } else {
+                    guardianRules = null;
+                    const response = await fetch('/api/guardian/aggregate-barred');
+                    if (response.ok) {
+                        aggregateBarred = await response.json();
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to load guardian rules:', error);
+                guardianRules = null;
+                aggregateBarred = null;
+            }
+        }
 
         // Fetch dreamers data
         async function fetchDreamers() {
@@ -691,20 +720,35 @@
         }
 
         function renderStories() {
-            console.log('Rendering stories, filter:', currentFilter, 'total stories:', allStories.length);
             const container = document.getElementById('stories-container');
             
             // Filter out reposts and apply canon filter
             let filtered = allStories.filter(s => {
-                // Exclude reposts (posts with reason field indicating they're reposts)
                 if (s.post?.record?.reason || s.post?.reason) return false;
-                
-                // Apply canon filter
                 return currentFilter === 'all' || s.isCanon;
             });
             
-            console.log('Filtered stories:', filtered.length);
-            console.log('Sample story:', filtered[0]);
+            // Apply guardian filtering for logged-in wards/charges
+            if (guardianRules?.has_guardian) {
+                if (guardianRules.filter_mode === 'whitelist') {
+                    const allowedDids = new Set(guardianRules.filter_dids || []);
+                    const allowedUris = new Set(guardianRules.filter_uris || []);
+                    filtered = filtered.filter(s => allowedDids.has(s.post?.author?.did) || allowedUris.has(s.uri));
+                } else if (guardianRules.filter_mode === 'blacklist') {
+                    const barredDids = new Set(guardianRules.filter_dids || []);
+                    const barredUris = new Set(guardianRules.filter_uris || []);
+                    filtered = filtered.filter(s => !barredDids.has(s.post?.author?.did) && !barredUris.has(s.uri));
+                }
+            }
+            
+            // Apply aggregate barred filtering for guests
+            if (aggregateBarred) {
+                const barredDids = new Set(aggregateBarred.barred_dids || []);
+                const barredUris = new Set(aggregateBarred.barred_uris || []);
+                if (barredDids.size > 0 || barredUris.size > 0) {
+                    filtered = filtered.filter(s => !barredDids.has(s.post?.author?.did) && !barredUris.has(s.uri));
+                }
+            }
             
             if (filtered.length === 0) {
                 container.innerHTML = '<div class="empty-state">No stories found matching your filter.</div>';
@@ -712,12 +756,7 @@
             }
             
             const html = filtered.map(createStoryCard).join('');
-            console.log('Generated HTML length:', html.length);
             container.innerHTML = html;
-            console.log('Stories rendered to DOM');
-            console.log('Container element:', container);
-            console.log('Container children:', container.children.length);
-            console.log('First story card:', container.querySelector('.story-card'));
         }
 
         function updateStats() {
@@ -1027,8 +1066,11 @@
             });
         });
 
-        // Load stories on page load
-        loadStories();
+        // Load guardian rules then stories on page load
+        (async () => {
+            await loadGuardianRules();
+            loadStories();
+        })();
         
         // Initialize explainer and dreamer hover widgets
         let dreamerHoverWidget;

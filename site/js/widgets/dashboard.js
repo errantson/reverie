@@ -143,6 +143,13 @@ class Dashboard {
             calendarScript.src = '/js/calendar.js';
             document.head.appendChild(calendarScript);
         }
+        
+        // Load guardian panel widget for moderation
+        if (!document.querySelector('script[src*="js/widgets/guardianpanel.js"]')) {
+            const guardianPanelScript = document.createElement('script');
+            guardianPanelScript.src = '/js/widgets/guardianpanel.js?v=5';
+            document.head.appendChild(guardianPanelScript);
+        }
     }
 
     /**
@@ -1134,6 +1141,12 @@ class Dashboard {
         return `
             <div class="account-actions-inline-container">
                 ${deleteAccountButton}
+                <button class="account-action-compact moderation-btn" onclick="window.dashboardWidget.openModerationPanel()" title="Moderation">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    Moderation
+                </button>
                 <button class="account-action-compact logout-btn" onclick="window.dashboardWidget.handleLogout()" title="Logout">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -3442,10 +3455,10 @@ class Dashboard {
             // Check if mapper is available (for tools that need it)
             let mapperAvailable = false;
             try {
-                const mapperInfoResponse = await fetch('/api/work/mapper/info');
-                if (mapperInfoResponse.ok) {
-                    const mapperData = await mapperInfoResponse.json();
-                    mapperAvailable = mapperData.status === 'active' && mapperData.workers?.length > 0;
+                const mapperStatusResponse = await fetch('/api/work/mapper/status');
+                if (mapperStatusResponse.ok) {
+                    const mapperData = await mapperStatusResponse.json();
+                    mapperAvailable = mapperData.role_info?.workers?.length > 0;
                 }
             } catch (error) {
                 console.warn('Failed to check mapper availability:', error);
@@ -3839,6 +3852,25 @@ class Dashboard {
         } else {
             console.error('Spectrum Calculator modal not available');
             alert('Spectrum Calculator is not available. Please refresh the page.');
+        }
+    }
+    
+    async openModerationPanel() {
+        // Open the guardian panel for the current user (self-moderation)
+        const session = window.oauthManager?.getSession();
+        if (!session?.did) {
+            alert('You must be logged in to access moderation settings.');
+            return;
+        }
+        
+        const displayName = session.profile?.displayName || session.profile?.handle || 'You';
+        
+        // Check if guardian panel widget is available
+        if (window.guardianPanel) {
+            await window.guardianPanel.open(session.did, displayName, { selfModeration: true });
+        } else {
+            console.error('Guardian Panel widget not available');
+            alert('Moderation panel is not available. Please refresh the page.');
         }
     }
     

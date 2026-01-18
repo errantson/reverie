@@ -493,6 +493,28 @@ const RowStyleRegistry = {
             return (event.color_source === 'role' && event.key === 'cheerful') || (event.type === 'work' && event.key === 'cheerful');
         }
     },
+
+    guardian: {
+        name: "guardian",
+        description: "Warm brown for guardian moderation work",
+        category: "role",
+        rendering: {
+            cssClasses: ['row-entry', 'color-role', 'role-guardian', 'intensity-highlight'],
+            cssFiles: ['color-rows.css', 'roles.css'],
+            cssVariables: ['--role-guardian', '--role-guardian-light', '--role-guardian-medium', '--role-guardian-dark'],
+            effects: [],
+            appearance: {
+                background: 'Warm brown gradient (medium to light to transparent)',
+                border: '3px solid brown (--role-guardian)',
+                color: 'Deep brown',
+                animation: 'None',
+                special: 'Protective and trustworthy tones for guardian moderation'
+            }
+        },
+        matches: (event) => {
+            return (event.color_source === 'role' && event.key === 'guardian') || (event.type === 'work' && event.key === 'guardian');
+        }
+    },
     
     // =========================================================================
     // OCTANT STYLES (Generated dynamically)
@@ -579,7 +601,7 @@ function computeRowStyle(event) {
         // User color variations
         'user-highlight', 'user',
         // Role styles
-        'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful',
+        'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful', 'guardian',
         // Octant styles (checked dynamically)
         ...['adaptive', 'chaotic', 'intended', 'prepared', 'contented', 'assertive', 'ordered', 'guarded', 'equilibrium', 'confused', 'singling', 'uncertain']
     ];

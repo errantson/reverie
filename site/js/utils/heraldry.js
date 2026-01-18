@@ -5,8 +5,6 @@
  * Provides utility functions for getting heraldry based on server URL or handle
  */
 
-console.log('🛡️ Loading heraldry.js...');
-
 class HeraldrySystem {
     constructor() {
         // Known PDS server configurations
@@ -895,8 +893,6 @@ class HeraldrySystem {
             description: 'Unknown realm',
             className: 'heraldry-default'
         };
-
-        console.log(`🛡️ Heraldry registry loaded with ${Object.keys(this.registry).length} known servers`);
     }
 
     /**
@@ -934,8 +930,6 @@ class HeraldrySystem {
     getByServer(serverUrl) {
         if (!serverUrl) return this.defaultHeraldry;
         
-        console.log(`🛡️ getByServer called with: ${serverUrl}`);
-        
         // Extract domain from URL
         try {
             const url = new URL(serverUrl);
@@ -943,7 +937,6 @@ class HeraldrySystem {
             
             // Check registry for exact match
             if (this.registry[hostname]) {
-                console.log(`🛡️ Exact match found for ${hostname}:`, this.registry[hostname].name);
                 return this.registry[hostname];
             }
             
@@ -952,15 +945,13 @@ class HeraldrySystem {
             for (let i = 0; i < parts.length - 1; i++) {
                 const subdomain = parts.slice(i).join('.');
                 if (this.registry[subdomain]) {
-                    console.log(`🛡️ Subdomain match found for ${subdomain}:`, this.registry[subdomain].name);
                     return this.registry[subdomain];
                 }
             }
         } catch (error) {
-            console.warn('🛡️ Invalid server URL:', serverUrl);
+            // Invalid server URL
         }
         
-        console.log(`🛡️ No match found for ${serverUrl}, using default`);
         return this.defaultHeraldry;
     }
 
@@ -1036,7 +1027,6 @@ class HeraldrySystem {
             description: config.description || '',
             className: config.className || `heraldry-${config.id || domain.replace(/\./g, '_')}`
         };
-        console.log(`🛡️ Registered heraldry for ${domain}`);
     }
 
     /**
@@ -1063,5 +1053,3 @@ class HeraldrySystem {
 
 // Create global instance
 window.heraldrySystem = new HeraldrySystem();
-
-console.log('✅ Heraldry system initialized');
