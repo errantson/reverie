@@ -10418,6 +10418,179 @@ def user_unblock_content():
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================================================
+# COMMUNITY SHIELD - Aggregate filtering toggle for logged-in users
+# ============================================================================
+
+@app.route('/api/user/shield', methods=['GET'])
+@rate_limit()
+def get_community_shield():
+    """Get the user's community shield status"""
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        row = db_manager.fetch_one("""
+            SELECT community_shield, shield_unlocked FROM dreamers WHERE did = %s
+        """, (user_did,))
+        
+        if not row:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'community_shield': row['community_shield'] if row['community_shield'] is not None else True,
+            'shield_unlocked': row['shield_unlocked'] if row['shield_unlocked'] is not None else False
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/shield', methods=['POST'])
+@rate_limit()
+def set_community_shield():
+    """Toggle the community shield on/off
+    
+    When turning OFF:
+    - If shield_unlocked is false, reject (user must verify age first)
+    - If shield_unlocked is true, allow the toggle
+    
+    When turning ON:
+    - Always allowed
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        enabled = data.get('enabled')
+        
+        if enabled is None:
+            return jsonify({'error': 'enabled field required'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        # Check current state
+        row = db_manager.fetch_one("""
+            SELECT community_shield, shield_unlocked FROM dreamers WHERE did = %s
+        """, (user_did,))
+        
+        if not row:
+            return jsonify({'error': 'User not found'}), 404
+        
+        shield_unlocked = row['shield_unlocked'] if row['shield_unlocked'] is not None else False
+        
+        # If trying to turn OFF and not unlocked, reject
+        if not enabled and not shield_unlocked:
+            return jsonify({
+                'success': False,
+                'error': 'Age verification required',
+                'requires_verification': True
+            }), 403
+        
+        # Update the shield status
+        db_manager.execute("""
+            UPDATE dreamers SET community_shield = %s WHERE did = %s
+        """, (enabled, user_did))
+        
+        status = "enabled" if enabled else "disabled"
+        print(f"🛡️ COMMUNITY SHIELD: {handle} {status} their community shield")
+        
+        return jsonify({
+            'success': True,
+            'community_shield': enabled,
+            'message': f'Community Shield {status}'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/shield/unlock', methods=['POST'])
+@rate_limit()
+def unlock_community_shield():
+    """Unlock the ability to toggle the community shield off
+    
+    User must provide a birthdate proving they are at least 21 years old.
+    We do NOT store the birthdate, only set shield_unlocked = true.
+    """
+    try:
+        from core.database import DatabaseManager
+        from datetime import datetime, timedelta
+        
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        data = request.get_json() or {}
+        birthdate_str = data.get('birthdate', '').strip()
+        
+        if not birthdate_str:
+            return jsonify({'error': 'Birthdate required'}), 400
+        
+        # Parse birthdate (expect YYYY-MM-DD format)
+        try:
+            birthdate = datetime.strptime(birthdate_str, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        # Calculate age
+        today = datetime.now()
+        age = today.year - birthdate.year
+        if (today.month, today.day) < (birthdate.month, birthdate.day):
+            age -= 1
+        
+        if age < 21:
+            return jsonify({
+                'success': False,
+                'error': 'You must be at least 21 years old to disable the Community Shield'
+            }), 403
+        
+        # Unlock the shield toggle (do NOT store the birthdate)
+        db_manager = DatabaseManager()
+        db_manager.execute("""
+            UPDATE dreamers SET shield_unlocked = TRUE WHERE did = %s
+        """, (user_did,))
+        
+        print(f"🔓 SHIELD UNLOCKED: {handle} verified age and unlocked shield toggle")
+        
+        return jsonify({
+            'success': True,
+            'shield_unlocked': True,
+            'message': 'Shield toggle unlocked'
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/content/hide', methods=['POST'])
 @rate_limit()
 def hide_content_for_self():

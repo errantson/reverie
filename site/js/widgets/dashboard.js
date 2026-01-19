@@ -3506,6 +3506,22 @@ class Dashboard {
                 </div>
             `;
             
+            // Community Shield toggle - aggregate filtering for logged-in users
+            const shieldEnabled = this.dreamerData?.community_shield !== false;
+            const shieldUnlocked = this.dreamerData?.shield_unlocked === true;
+            html += `
+                <div class="character-row ${isSideDoor ? 'disabled-tool' : ''}">
+                    <span class="character-label">Community Shield</span>
+                    <label class="character-toggle ${isSideDoor ? 'disabled' : ''}">
+                        <input type="checkbox" 
+                               id="communityShieldToggle" 
+                               ${shieldEnabled ? 'checked' : ''}
+                               onchange="window.dashboardWidget.toggleCommunityShield(this.checked)">
+                        <span class="character-toggle-slider"></span>
+                    </label>
+                </div>
+            `;
+            
             // Show worker roles with step down button
             if (workerRoles.length > 0) {
                 workerRoles.forEach(role => {
@@ -3725,6 +3741,242 @@ class Dashboard {
             if (checkbox) checkbox.checked = !enabled;
             alert(`Failed to ${enabled ? 'enable' : 'disable'} character status: ${error.message}`);
         }
+    }
+    
+    async toggleCommunityShield(enabled) {
+        // Check if Side Door user - prompt for credentials
+        if (this.isSideDoorUser()) {
+            console.log('🚪 Side Door user - prompting for credentials for shield toggle');
+            const checkbox = document.getElementById('communityShieldToggle');
+            if (checkbox) checkbox.checked = !enabled;
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
+        
+        try {
+            const token = await this.getOAuthToken();
+            if (!token) {
+                throw new Error('Not authenticated. Please log in.');
+            }
+            
+            // If turning OFF, check if unlocked
+            if (!enabled) {
+                const shieldUnlocked = this.dreamerData?.shield_unlocked === true;
+                
+                if (!shieldUnlocked) {
+                    // Show age verification popup
+                    const checkbox = document.getElementById('communityShieldToggle');
+                    if (checkbox) checkbox.checked = true; // Revert to ON
+                    
+                    this.showShieldVerificationPopup();
+                    return;
+                }
+            }
+            
+            // Make the API call to toggle shield
+            const response = await fetch('/api/user/shield', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ enabled })
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+                if (result.requires_verification) {
+                    // Show verification popup
+                    const checkbox = document.getElementById('communityShieldToggle');
+                    if (checkbox) checkbox.checked = true;
+                    this.showShieldVerificationPopup();
+                    return;
+                }
+                throw new Error(result.error || 'Failed to update shield');
+            }
+            
+            console.log(`🛡️ Community Shield ${enabled ? 'enabled' : 'disabled'}`);
+            
+            // Update local data
+            if (this.dreamerData) {
+                this.dreamerData.community_shield = enabled;
+            }
+            
+            // If shield is now ON, show brief confirmation
+            if (enabled) {
+                this.showToast('Community Shield enabled');
+            } else {
+                this.showToast('Community Shield disabled - you may see unfiltered content');
+            }
+            
+            // Refresh the page after a brief delay to apply new filtering
+            setTimeout(() => {
+                window.location.reload();
+            }, 800);
+            
+        } catch (error) {
+            console.error('Failed to toggle community shield:', error);
+            const checkbox = document.getElementById('communityShieldToggle');
+            if (checkbox) checkbox.checked = !enabled;
+            alert(`Failed to ${enabled ? 'enable' : 'disable'} Community Shield: ${error.message}`);
+        }
+    }
+    
+    showShieldVerificationPopup() {
+        // Create popup overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'shield-popup-overlay';
+        const userColor = this.dreamerData?.color_hex || '#734ba1';
+        overlay.innerHTML = `
+            <div class="shield-popup" style="--user-color: ${userColor}">
+                <div class="shield-popup-header">
+                    <span class="shield-popup-title">Community Shield</span>
+                </div>
+                <div class="shield-popup-content">
+                    <p class="shield-warning">Disabling the <strong>Community Shield</strong> means you will be exposed to dreams and dreamweavers beyond the stewardship of our <strong>Guardians</strong>.</p>
+                    <p class="shield-age-prompt">Enter your birthdate to confirm:</p>
+                    <div class="shield-birthdate-fields">
+                        <input type="text" id="shieldBirthMonth" class="shield-date-field" placeholder="MM" maxlength="2" inputmode="numeric">
+                        <span class="shield-date-sep">/</span>
+                        <input type="text" id="shieldBirthDay" class="shield-date-field" placeholder="DD" maxlength="2" inputmode="numeric">
+                        <span class="shield-date-sep">/</span>
+                        <input type="text" id="shieldBirthYear" class="shield-date-field shield-date-year" placeholder="YYYY" maxlength="4" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="shield-popup-buttons">
+                    <button class="shield-cancel-btn" onclick="window.dashboardWidget.closeShieldPopup()">Cancel</button>
+                    <button class="shield-confirm-btn" onclick="window.dashboardWidget.verifyShieldAge()">Confirm</button>
+                </div>
+            </div>
+        `;
+        
+        // Block all events from propagating to layers below
+        overlay.addEventListener('click', (e) => e.stopPropagation());
+        overlay.addEventListener('mousedown', (e) => e.stopPropagation());
+        overlay.addEventListener('touchstart', (e) => e.stopPropagation());
+        
+        document.body.appendChild(overlay);
+        
+        // Auto-advance between fields
+        const monthInput = document.getElementById('shieldBirthMonth');
+        const dayInput = document.getElementById('shieldBirthDay');
+        const yearInput = document.getElementById('shieldBirthYear');
+        
+        monthInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+            if (e.target.value.length === 2) dayInput.focus();
+        });
+        dayInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+            if (e.target.value.length === 2) yearInput.focus();
+        });
+        yearInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+        
+        // Focus the first input
+        setTimeout(() => monthInput.focus(), 100);
+    }
+    
+    closeShieldPopup() {
+        const overlay = document.querySelector('.shield-popup-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+    
+    async verifyShieldAge() {
+        const monthInput = document.getElementById('shieldBirthMonth');
+        const dayInput = document.getElementById('shieldBirthDay');
+        const yearInput = document.getElementById('shieldBirthYear');
+        
+        const month = monthInput?.value?.trim();
+        const day = dayInput?.value?.trim();
+        const year = yearInput?.value?.trim();
+        
+        if (!month || !day || !year || month.length < 1 || day.length < 1 || year.length !== 4) {
+            alert('Please enter a valid birthdate');
+            return;
+        }
+        
+        const birthdate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        
+        // Calculate age
+        const today = new Date();
+        const birth = new Date(birthdate);
+        
+        if (isNaN(birth.getTime())) {
+            alert('Please enter a valid birthdate');
+            return;
+        }
+        let age = today.getFullYear() - birth.getFullYear();
+        if ((today.getMonth(), today.getDate()) < (birth.getMonth(), birth.getDate())) {
+            age--;
+        }
+        
+        if (age < 21) {
+            alert('You must be at least 21 years old to disable the Community Shield');
+            return;
+        }
+        
+        try {
+            const token = await this.getOAuthToken();
+            
+            // Call the unlock endpoint
+            const response = await fetch('/api/user/shield/unlock', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ birthdate })
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.error || 'Verification failed');
+            }
+            
+            // Update local data
+            if (this.dreamerData) {
+                this.dreamerData.shield_unlocked = true;
+            }
+            
+            // Close popup
+            this.closeShieldPopup();
+            
+            // Now toggle the shield off
+            const checkbox = document.getElementById('communityShieldToggle');
+            if (checkbox) {
+                checkbox.checked = false;
+                await this.toggleCommunityShield(false);
+            }
+            
+        } catch (error) {
+            console.error('Age verification failed:', error);
+            alert(error.message || 'Verification failed');
+        }
+    }
+    
+    showToast(message) {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = 'dashboard-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
     
     async stepDownGreeter() {

@@ -8,8 +8,9 @@ class Sidebar {
         this.carouselIndex = 0; // Track current carousel view
         this.carouselInterval = null; // Auto-rotation timer
         this.guardianRules = null; // Guardian filtering rules
-        this.aggregateBarred = null; // Aggregate barred list for guests
+        this.aggregateBarred = null; // Aggregate barred list for guests AND users with shield ON
         this.guardianRulesLoaded = false; // Track if guardian rules have been loaded
+        this.communityShieldEnabled = true; // Default ON, will be updated when user data loads
         this.render();
         this.initialize();
     }
@@ -27,10 +28,35 @@ class Sidebar {
                 if (response.ok) {
                     this.guardianRules = await response.json();
                 }
-                this.aggregateBarred = null; // Clear aggregate for logged-in users
+                
+                // Check if user has community shield enabled
+                // We need to get this from the dreamer data or shield API
+                try {
+                    const shieldResponse = await fetch('/api/user/shield', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (shieldResponse.ok) {
+                        const shieldData = await shieldResponse.json();
+                        this.communityShieldEnabled = shieldData.community_shield !== false;
+                    }
+                } catch (e) {
+                    console.warn('[Sidebar] Failed to check shield status:', e);
+                    this.communityShieldEnabled = true; // Default to ON for safety
+                }
+                
+                // If shield is enabled, also load aggregate barred list
+                if (this.communityShieldEnabled) {
+                    const aggregateResponse = await fetch('/api/guardian/aggregate-barred');
+                    if (aggregateResponse.ok) {
+                        this.aggregateBarred = await aggregateResponse.json();
+                    }
+                } else {
+                    this.aggregateBarred = null;
+                }
             } else {
                 // Guest user: load aggregate barred list
                 this.guardianRules = null;
+                this.communityShieldEnabled = true; // Guests always have shield ON
                 
                 const response = await fetch('/api/guardian/aggregate-barred');
                 if (response.ok) {
@@ -73,7 +99,7 @@ class Sidebar {
             beforeCount = filtered.length;
         }
         
-        // Ward/charge filtering
+        // Ward/charge filtering (guardian relationship)
         if (this.guardianRules?.has_guardian) {
             if (this.guardianRules.filter_mode === 'whitelist') {
                 const allowedDids = new Set(this.guardianRules.filter_dids);
@@ -82,14 +108,13 @@ class Sidebar {
                 const barredDids = new Set(this.guardianRules.filter_dids);
                 filtered = filtered.filter(d => !barredDids.has(d.did));
             }
-            return filtered;
+            // Note: still apply aggregate below if shield is on
         }
         
-        // Guest filtering
+        // Aggregate filtering (for guests AND logged-in users with Community Shield ON)
         if (this.aggregateBarred?.barred_dids?.length > 0) {
             const barredDids = new Set(this.aggregateBarred.barred_dids);
             filtered = filtered.filter(d => !barredDids.has(d.did));
-            return filtered;
         }
         
         return filtered;

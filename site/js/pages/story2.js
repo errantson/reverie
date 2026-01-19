@@ -129,7 +129,30 @@
                     if (response.ok) {
                         this.guardianRules = await response.json();
                     }
-                    this.aggregateBarred = null;
+                    
+                    // Check if user has community shield enabled
+                    let shieldEnabled = true; // Default to ON
+                    try {
+                        const shieldResponse = await fetch('/api/user/shield', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (shieldResponse.ok) {
+                            const shieldData = await shieldResponse.json();
+                            shieldEnabled = shieldData.community_shield !== false;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to check shield status:', e);
+                    }
+                    
+                    // If shield is enabled, also load aggregate barred list
+                    if (shieldEnabled) {
+                        const aggregateResponse = await fetch('/api/guardian/aggregate-barred');
+                        if (aggregateResponse.ok) {
+                            this.aggregateBarred = await aggregateResponse.json();
+                        }
+                    } else {
+                        this.aggregateBarred = null;
+                    }
                 } else {
                     // Guest: load aggregate barred list
                     this.guardianRules = null;

@@ -69,6 +69,7 @@ def get_dreamers():
                 d.created_at, d.arrival, d.heading, d.color_hex, d.phanera,
                 d.status, d.designation, d.alts,
                 d.canon_score, d.lore_score, d.patron_score, d.contribution_score,
+                d.community_shield, d.shield_unlocked,
                 s.oblivion, s.authority, s.skeptic, s.receptive, 
                 s.liberty, s.entropy, s.octant,
                 s.origin_oblivion, s.origin_authority, s.origin_skeptic,
@@ -132,6 +133,8 @@ def get_dreamers():
                 'status': dreamer['status'],
                 'designation': dreamer['designation'],
                 'alt_names': dreamer['alts'] or '',
+                'community_shield': dreamer['community_shield'] if dreamer['community_shield'] is not None else True,
+                'shield_unlocked': dreamer['shield_unlocked'] if dreamer['shield_unlocked'] is not None else False,
                 'spectrum': {
                     'entropy': dreamer['entropy'] or 0,
                     'oblivion': dreamer['oblivion'] or 0,

@@ -6712,3 +6712,165 @@
         transform: translateY(0);
     }
 }
+
+/* ============================================================================
+   COMMUNITY SHIELD POPUP
+   ============================================================================ */
+
+.shield-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100001;
+    animation: fadeIn 0.2s ease;
+}
+
+.shield-popup {
+    background: var(--surface, white);
+    border-radius: 0;
+    padding: 20px;
+    max-width: 340px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.3s ease;
+    border: 2px solid var(--user-color, #734ba1);
+    text-align: center;
+}
+
+.shield-popup-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--user-color, #734ba1);
+}
+
+.shield-popup-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--user-color, #734ba1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.shield-popup-content {
+    margin-bottom: 16px;
+}
+
+.shield-warning {
+    color: var(--text-primary, #1f2937);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: color-mix(in srgb, var(--user-color, #734ba1) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--user-color, #734ba1) 30%, transparent);
+    text-align: center;
+}
+
+.shield-warning strong {
+    color: var(--user-color, #734ba1);
+}
+
+.shield-age-prompt {
+    color: var(--text-secondary, #4b5563);
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+}
+
+.shield-birthdate-fields {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.shield-date-field {
+    width: 40px;
+    padding: 8px 4px;
+    font-size: 0.95rem;
+    border: 1px solid var(--user-color, #734ba1);
+    border-radius: 0;
+    background: var(--surface, white);
+    text-align: center;
+    font-family: monospace;
+}
+
+.shield-date-field.shield-date-year {
+    width: 56px;
+}
+
+.shield-date-field:focus {
+    outline: none;
+    border-color: var(--user-color, #734ba1);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--user-color, #734ba1) 20%, transparent);
+}
+
+.shield-date-sep {
+    color: var(--text-dim, #9ca3af);
+    font-size: 1rem;
+}
+
+.shield-popup-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding-top: 4px;
+}
+
+.shield-cancel-btn {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border, #d1d5db);
+    border-radius: 0;
+    color: var(--text-dim, #6b7280);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.shield-cancel-btn:hover {
+    background: var(--hover-bg, #f9fafb);
+    border-color: var(--user-color, #734ba1);
+}
+
+.shield-confirm-btn {
+    padding: 10px 20px;
+    background: var(--user-color, #734ba1);
+    border: none;
+    border-radius: 0;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.shield-confirm-btn:hover {
+    filter: brightness(1.1);
+}
+
+/* Dashboard Toast Notification */
+.dashboard-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1f2937;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 0;
+    font-size: 0.9rem;
+    z-index: 10001;
+    opacity: 0;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}

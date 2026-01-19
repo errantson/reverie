@@ -1169,7 +1169,30 @@
                     if (response.ok) {
                         guardianRules = await response.json();
                     }
-                    aggregateBarred = null;
+                    
+                    // Check if user has community shield enabled
+                    let shieldEnabled = true; // Default to ON
+                    try {
+                        const shieldResponse = await fetch('/api/user/shield', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (shieldResponse.ok) {
+                            const shieldData = await shieldResponse.json();
+                            shieldEnabled = shieldData.community_shield !== false;
+                        }
+                    } catch (e) {
+                        console.warn('[Work] Failed to check shield status:', e);
+                    }
+                    
+                    // If shield is enabled, also load aggregate barred list
+                    if (shieldEnabled) {
+                        const aggregateResponse = await fetch('/api/guardian/aggregate-barred');
+                        if (aggregateResponse.ok) {
+                            aggregateBarred = await aggregateResponse.json();
+                        }
+                    } else {
+                        aggregateBarred = null;
+                    }
                 } else {
                     // Guest user: load aggregate barred list
                     guardianRules = null;
@@ -1190,7 +1213,7 @@
         function filterWorkersByGuardian(workers) {
             if (!workers || workers.length === 0) return workers;
             
-            // Logged-in ward/charge filtering
+            // Logged-in ward/charge filtering (guardian relationship)
             if (guardianRules?.has_guardian) {
                 if (guardianRules.filter_mode === 'whitelist') {
                     const allowedDids = new Set(guardianRules.filter_dids);
@@ -1199,14 +1222,13 @@
                     const barredDids = new Set(guardianRules.filter_dids);
                     workers = workers.filter(w => !barredDids.has(w.did));
                 }
-                return workers;
+                // Note: still apply aggregate below if shield is on
             }
             
-            // Guest aggregate barred filtering
+            // Aggregate barred filtering (for guests AND logged-in users with Community Shield ON)
             if (aggregateBarred?.barred_dids?.length > 0) {
                 const barredDids = new Set(aggregateBarred.barred_dids);
                 workers = workers.filter(w => !barredDids.has(w.did));
-                return workers;
             }
             
             return workers;
