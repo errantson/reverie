@@ -2,6 +2,13 @@
  * User Status Utility
  * Centralized status/role determination for users across the site
  * Checks lore.farm for character tags and work roles
+ * 
+ * Designation Hierarchy:
+ * - Singular Overrides: House Patron, Keeper of Reverie House
+ * - Exclusive Work Roles: Guardian, Greeter, Mapper, Cogitarian, Provisioner, Bursar
+ * - Affix Roles: Cheerful (prefix), Stylist (suffix) - can compound
+ * - Base Identities: Resident > Dreamweaver > Ward/Charge/Dreamer
+ *   - Ward/Charge replace Dreamer only (not Dreamweaver/Resident)
  */
 
 // Only define if not already loaded
@@ -22,18 +29,28 @@ class UserStatus {
             did: dreamer.did,
             handle: dreamer.handle,
             server: dreamer.server,
+            // Singular overrides
             isKeeper: false,
+            // Exclusive work roles
+            isGuardian: false,
             isGreeter: false,
             isMapper: false,
             isCogitarian: false,
             isProvisioner: false,
-            isDreamstyler: false,
             isBursar: false,
-            isCheerful: false,
+            // Affix roles (can compound)
+            isCheerful: false,    // Prefix: "Cheerful X"
+            isStylist: false,     // Suffix: "X Stylist" (was isDreamstyler)
+            // Stewardship (Ward/Charge replace Dreamer only)
+            isWard: false,        // Under protective stewardship
+            isCharge: false,      // Under light stewardship
+            guardianDid: null,    // Their guardian's DID
+            // Character info
             isCharacter: false,
             characterLevel: null, // 'known', 'well-known', or 'revered'
             canAutoLore: false,
             canAutoCanon: false,
+            // Base identity info
             pdsHost: dreamer.server ? dreamer.server.replace(/^https?:\/\//, '') : undefined
         };
         
@@ -41,10 +58,11 @@ class UserStatus {
         const checks = [
             this._checkKeeperStatus(dreamer.did),
             this._checkCharacterStatus(dreamer.did),
-            this._checkWorkerStatus(dreamer.did, options.authToken)
+            this._checkWorkerStatus(dreamer.did, options.authToken),
+            this._checkStewardshipStatus(dreamer.did, options.authToken)
         ];
         
-        const [keeperResult, characterResult, workerResult] = await Promise.allSettled(checks);
+        const [keeperResult, characterResult, workerResult, stewardshipResult] = await Promise.allSettled(checks);
         
         // Process results
         if (keeperResult.status === 'fulfilled' && keeperResult.value) {
@@ -59,13 +77,22 @@ class UserStatus {
         }
         
         if (workerResult.status === 'fulfilled' && workerResult.value) {
+            // Exclusive work roles
+            status.isGuardian = workerResult.value.isGuardian || false;
             status.isGreeter = workerResult.value.isGreeter || false;
             status.isMapper = workerResult.value.isMapper || false;
             status.isCogitarian = workerResult.value.isCogitarian || false;
             status.isProvisioner = workerResult.value.isProvisioner || false;
-            status.isDreamstyler = workerResult.value.isDreamstyler || false;
             status.isBursar = workerResult.value.isBursar || false;
+            // Affix roles
             status.isCheerful = workerResult.value.isCheerful || false;
+            status.isStylist = workerResult.value.isStylist || false;
+        }
+        
+        if (stewardshipResult.status === 'fulfilled' && stewardshipResult.value) {
+            status.isWard = stewardshipResult.value.isWard || false;
+            status.isCharge = stewardshipResult.value.isCharge || false;
+            status.guardianDid = stewardshipResult.value.guardianDid || null;
         }
         
         return status;
@@ -182,26 +209,38 @@ class UserStatus {
     }
     
     /**
-     * Check worker status (greeter/mapper/cogitarian/provisioner) from work APIs
+     * Check worker status (exclusive roles + affix roles) from work APIs
      * @private
      * If authToken is provided, uses authenticated endpoints for current user
      * Otherwise uses public /api/work/{role}/info endpoints to check if DID is a worker
+     * 
+     * Exclusive work roles: cheerful, guardian, greeter, mapper, cogitarian, provisioner, bursar
+     * Affix roles: dreamstyler→stylist (suffix)
      */
     static async _checkWorkerStatus(did, authToken) {
         const result = {
+            // Exclusive work roles
+            isCheerful: false,
+            isGuardian: false,
             isGreeter: false,
             isMapper: false,
             isCogitarian: false,
             isProvisioner: false,
-            isDreamstyler: false,
             isBursar: false,
-            isCheerful: false
+            // Affix roles (can compound)
+            isStylist: false
         };
         
         if (authToken) {
             // Authenticated check - use status endpoints
             try {
-                const [greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse, dreamstylerResponse, bursarResponse, cheerfulResponse] = await Promise.allSettled([
+                const [cheerfulResponse, guardianResponse, greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse, bursarResponse, dreamstylerResponse] = await Promise.allSettled([
+                    fetch('/api/work/cheerful/status', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
+                    fetch('/api/work/guardian/status', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    }),
                     fetch('/api/work/greeter/status', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     }),
@@ -214,57 +253,60 @@ class UserStatus {
                     fetch('/api/work/provisioner/status', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     }),
-                    fetch('/api/work/dreamstyler/status', {
-                        headers: { 'Authorization': `Bearer ${authToken}` }
-                    }),
                     fetch('/api/work/bursar/status', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     }),
-                    fetch('/api/work/cheerful/status', {
+                    fetch('/api/work/dreamstyler/status', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     })
                 ]);
                 
-                // Process greeter status
+                // Process cheerful status (exclusive work role - checked first)
+                if (cheerfulResponse.status === 'fulfilled' && cheerfulResponse.value.ok) {
+                    const data = await cheerfulResponse.value.json();
+                    result.isCheerful = data.is_worker || false;
+                }
+                
+                // Process guardian status (exclusive work role)
+                if (guardianResponse.status === 'fulfilled' && guardianResponse.value.ok) {
+                    const data = await guardianResponse.value.json();
+                    result.isGuardian = data.is_worker || false;
+                }
+                
+                // Process greeter status (exclusive work role)
                 if (greeterResponse.status === 'fulfilled' && greeterResponse.value.ok) {
                     const data = await greeterResponse.value.json();
                     result.isGreeter = data.is_worker || false;
                 }
                 
-                // Process mapper status
+                // Process mapper status (exclusive work role)
                 if (mapperResponse.status === 'fulfilled' && mapperResponse.value.ok) {
                     const data = await mapperResponse.value.json();
                     result.isMapper = data.is_worker || false;
                 }
                 
-                // Process cogitarian status
+                // Process cogitarian status (exclusive work role)
                 if (cogitarianResponse.status === 'fulfilled' && cogitarianResponse.value.ok) {
                     const data = await cogitarianResponse.value.json();
                     result.isCogitarian = data.is_worker || false;
                 }
                 
-                // Process provisioner status
+                // Process provisioner status (exclusive work role)
                 if (provisionerResponse.status === 'fulfilled' && provisionerResponse.value.ok) {
                     const data = await provisionerResponse.value.json();
                     result.isProvisioner = data.is_worker || false;
                 }
                 
-                // Process dreamstyler status
-                if (dreamstylerResponse.status === 'fulfilled' && dreamstylerResponse.value.ok) {
-                    const data = await dreamstylerResponse.value.json();
-                    result.isDreamstyler = data.is_worker || false;
-                }
-                
-                // Process bursar status
+                // Process bursar status (exclusive work role)
                 if (bursarResponse.status === 'fulfilled' && bursarResponse.value.ok) {
                     const data = await bursarResponse.value.json();
                     result.isBursar = data.is_worker || false;
                 }
                 
-                // Process cheerful status
-                if (cheerfulResponse.status === 'fulfilled' && cheerfulResponse.value.ok) {
-                    const data = await cheerfulResponse.value.json();
-                    result.isCheerful = data.is_worker || false;
+                // Process dreamstyler status (affix - suffix "Stylist")
+                if (dreamstylerResponse.status === 'fulfilled' && dreamstylerResponse.value.ok) {
+                    const data = await dreamstylerResponse.value.json();
+                    result.isStylist = data.is_worker || false;
                 }
             } catch (error) {
                 console.warn('Failed to check worker status (authenticated):', error);
@@ -272,67 +314,119 @@ class UserStatus {
         } else {
             // Public check - use info endpoints and check if DID is in workers list
             try {
-                const [greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse, dreamstylerResponse, bursarResponse, cheerfulResponse] = await Promise.allSettled([
+                const [cheerfulResponse, guardianResponse, greeterResponse, mapperResponse, cogitarianResponse, provisionerResponse, bursarResponse, dreamstylerResponse] = await Promise.allSettled([
+                    fetch('/api/work/cheerful/info'),
+                    fetch('/api/work/guardian/info'),
                     fetch('/api/work/greeter/info'),
                     fetch('/api/work/mapper/info'),
                     fetch('/api/work/cogitarian/info'),
                     fetch('/api/work/provisioner/info'),
-                    fetch('/api/work/dreamstyler/info'),
                     fetch('/api/work/bursar/info'),
-                    fetch('/api/work/cheerful/info')
+                    fetch('/api/work/dreamstyler/info')
                 ]);
                 
-                // Check greeter
+                // Check cheerful (exclusive work role - checked first)
+                if (cheerfulResponse.status === 'fulfilled' && cheerfulResponse.value.ok) {
+                    const data = await cheerfulResponse.value.json();
+                    const workers = data.workers || [];
+                    result.isCheerful = workers.some(w => w.did === did);
+                }
+                
+                // Check guardian (exclusive work role)
+                if (guardianResponse.status === 'fulfilled' && guardianResponse.value.ok) {
+                    const data = await guardianResponse.value.json();
+                    const workers = data.workers || [];
+                    result.isGuardian = workers.some(w => w.did === did);
+                }
+                
+                // Check greeter (exclusive work role)
                 if (greeterResponse.status === 'fulfilled' && greeterResponse.value.ok) {
                     const data = await greeterResponse.value.json();
                     const workers = data.workers || [];
                     result.isGreeter = workers.some(w => w.did === did);
                 }
                 
-                // Check mapper
+                // Check mapper (exclusive work role)
                 if (mapperResponse.status === 'fulfilled' && mapperResponse.value.ok) {
                     const data = await mapperResponse.value.json();
                     const workers = data.workers || [];
                     result.isMapper = workers.some(w => w.did === did);
                 }
                 
-                // Check cogitarian
+                // Check cogitarian (exclusive work role)
                 if (cogitarianResponse.status === 'fulfilled' && cogitarianResponse.value.ok) {
                     const data = await cogitarianResponse.value.json();
                     const workers = data.workers || [];
                     result.isCogitarian = workers.some(w => w.did === did);
                 }
                 
-                // Check provisioner
+                // Check provisioner (exclusive work role)
                 if (provisionerResponse.status === 'fulfilled' && provisionerResponse.value.ok) {
                     const data = await provisionerResponse.value.json();
                     const workers = data.workers || [];
                     result.isProvisioner = workers.some(w => w.did === did);
                 }
                 
-                // Check dreamstyler
-                if (dreamstylerResponse.status === 'fulfilled' && dreamstylerResponse.value.ok) {
-                    const data = await dreamstylerResponse.value.json();
-                    const workers = data.workers || [];
-                    result.isDreamstyler = workers.some(w => w.did === did);
-                }
-                
-                // Check bursar
+                // Check bursar (exclusive work role)
                 if (bursarResponse.status === 'fulfilled' && bursarResponse.value.ok) {
                     const data = await bursarResponse.value.json();
                     const workers = data.workers || [];
                     result.isBursar = workers.some(w => w.did === did);
                 }
                 
-                // Check cheerful
-                if (cheerfulResponse.status === 'fulfilled' && cheerfulResponse.value.ok) {
-                    const data = await cheerfulResponse.value.json();
+                // Check dreamstyler (affix - suffix "Stylist")
+                if (dreamstylerResponse.status === 'fulfilled' && dreamstylerResponse.value.ok) {
+                    const data = await dreamstylerResponse.value.json();
                     const workers = data.workers || [];
-                    result.isCheerful = workers.some(w => w.did === did);
+                    result.isStylist = workers.some(w => w.did === did);
                 }
             } catch (error) {
                 console.warn('Failed to check worker status (public):', error);
             }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Check stewardship status (Ward/Charge of a Guardian)
+     * @private
+     */
+    static async _checkStewardshipStatus(did, authToken) {
+        const result = {
+            isWard: false,
+            isCharge: false,
+            guardianDid: null
+        };
+        
+        try {
+            // Use the guardian my-rules endpoint if authenticated
+            if (authToken) {
+                const response = await fetch('/api/guardian/my-rules', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.has_guardian && data.guardian_did) {
+                        result.guardianDid = data.guardian_did;
+                        // filter_mode: 'whitelist' = ward, 'blacklist' = charge
+                        result.isWard = data.filter_mode === 'whitelist';
+                        result.isCharge = data.filter_mode === 'blacklist';
+                    }
+                }
+            } else {
+                // Public check - need to check if DID appears in any stewardship
+                const response = await fetch(`/api/guardian/stewardship-check?did=${encodeURIComponent(did)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    result.isWard = data.is_ward || false;
+                    result.isCharge = data.is_charge || false;
+                    result.guardianDid = data.guardian_did || null;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to check stewardship status:', error);
         }
         
         return result;
@@ -345,13 +439,21 @@ class UserStatus {
     static _getDefaultStatus() {
         return {
             isKeeper: false,
+            // Exclusive work roles
+            isGuardian: false,
             isGreeter: false,
             isMapper: false,
             isCogitarian: false,
             isProvisioner: false,
-            isDreamstyler: false,
             isBursar: false,
+            // Affix roles
             isCheerful: false,
+            isStylist: false,
+            // Stewardship
+            isWard: false,
+            isCharge: false,
+            guardianDid: null,
+            // Character
             isCharacter: false,
             characterLevel: null,
             canAutoLore: false,
@@ -361,68 +463,128 @@ class UserStatus {
     
     /**
      * Get the status label for a user (synchronous, requires pre-fetched data)
+     * Follows the new designation hierarchy:
+     * - Singular overrides (Keeper)
+     * - Exclusive work roles (Guardian, Greeter, etc.)
+     * - Affix roles compound with base (Cheerful prefix, Stylist suffix)
+     * - Ward/Charge replace Dreamer (not Dreamweaver/Resident)
+     * 
      * @param {Object} user - User object with status data
      * @returns {string} Status label
      */
     static getStatusLabel(user) {
-        if (!user) return 'dreamer';
+        if (!user) return 'Dreamer';
         
-        // Check for Keeper status - highest priority
+        // Singular override - Keeper
         if (user.isKeeper) {
             return 'Keeper of Reverie House';
         }
         
-        // Check for worker roles (prioritize in order: greeter, mapper, cogitarian, provisioner, dreamstyler, bursar, cheerful)
-        if (user.isGreeter) {
-            return 'Greeter of Reveries';
-        }
-        if (user.isMapper) {
-            return 'Spectrum Mapper';
-        }
-        if (user.isCogitarian) {
-            return 'Cogitarian (Prime)';
-        }
-        if (user.isProvisioner) {
-            return 'Head of Pantry';
-        }
-        if (user.isDreamstyler) {
-            return 'Dreamstyler';
-        }
-        if (user.isBursar) {
-            return 'Bursar';
-        }
+        // Check for exclusive work roles (priority order)
+        // Cheerful is now exclusive - cannot combine with other roles
         if (user.isCheerful) {
-            return 'Cheerful';
+            return 'The Cheerful';
         }
         
-        // Base status
-        let baseStatus = 'dreamer';
+        let hasExclusiveRole = false;
+        let exclusiveRole = null;
         
-        // Check if resident (PDS hosted on reverie.house)
-        if (user.pdsHost === 'reverie.house' || user.server === 'reverie.house') {
-            baseStatus = 'resident';
-        }
-        // Check if dreamweaver (has .reverie.house subdomain handle)
-        else if (user.handle?.endsWith('.reverie.house')) {
-            baseStatus = 'dreamweaver';
+        if (user.isGuardian) {
+            exclusiveRole = 'Guardian';
+            hasExclusiveRole = true;
+        } else if (user.isGreeter) {
+            exclusiveRole = 'Greeter of Reveries';
+            hasExclusiveRole = true;
+        } else if (user.isMapper) {
+            exclusiveRole = 'Spectrum Mapper';
+            hasExclusiveRole = true;
+        } else if (user.isCogitarian) {
+            exclusiveRole = 'Cogitarian';
+            hasExclusiveRole = true;
+        } else if (user.isProvisioner) {
+            exclusiveRole = 'Provisioner';
+            hasExclusiveRole = true;
+        } else if (user.isBursar) {
+            exclusiveRole = 'Bursar';
+            hasExclusiveRole = true;
         }
         
-        // Add character prefix if applicable
+        // Build designation components
+        const parts = [];
+        
+        // Character prefix
         if (user.characterLevel) {
             const prefixes = {
                 'known': 'Known',
                 'well-known': 'Well-Known',
                 'revered': 'Revered'
             };
-            const prefix = prefixes[user.characterLevel] || '';
-            if (prefix) {
-                // Capitalize base status for character prefix
-                const capitalizedBase = baseStatus.charAt(0).toUpperCase() + baseStatus.slice(1);
-                return `${prefix} ${capitalizedBase}`;
+            const prefix = prefixes[user.characterLevel];
+            if (prefix) parts.push(prefix);
+        }
+        
+        // Determine base identity
+        let baseIdentity = 'Dreamer';
+        let isResident = false;
+        let isDreamweaver = false;
+        let isWard = false;
+        let isCharge = false;
+        
+        if (user.pdsHost === 'reverie.house' || user.server === 'reverie.house') {
+            baseIdentity = 'Resident';
+            isResident = true;
+        } else if (user.handle?.endsWith('.reverie.house')) {
+            baseIdentity = 'Dreamweaver';
+            isDreamweaver = true;
+        } else {
+            // Ward/Charge replace Dreamer only
+            if (user.isWard) {
+                baseIdentity = 'Ward';
+                isWard = true;
+            } else if (user.isCharge) {
+                baseIdentity = 'Charge';
+                isCharge = true;
             }
         }
         
-        return baseStatus;
+        // Patronage prefix (for Dreamweaver, Ward, Charge)
+        // Patronage suffix (for Resident, Dreamer)
+        let patronagePrefix = null;
+        let patronageSuffix = null;
+        
+        if (user.characterLevel) {
+            // Use character tier as patronage prefix for Ward/Charge/Dreamweaver
+            const prefixes = {
+                'known': 'Reading',
+                'well-known': 'Weaving', 
+                'revered': 'Altruist'
+            };
+            patronagePrefix = prefixes[user.characterLevel];
+        }
+        
+        // For work roles with Resident
+        if (hasExclusiveRole) {
+            if (isResident) {
+                parts.push('Resident');
+            }
+            parts.push(exclusiveRole);
+        } else if (isDreamweaver || isWard || isCharge) {
+            // These use PREFIX patronage: "[Character] [Patronage] [Base]"
+            if (patronagePrefix && !isResident) {
+                parts.push(patronagePrefix);
+            }
+            parts.push(baseIdentity);
+        } else {
+            // Resident and Dreamer use SUFFIX patronage: "[Character] [Base] [Patronage]"
+            parts.push(baseIdentity);
+        }
+        
+        // Stylist affix (suffix) - only on base identities, not on work roles
+        if (user.isStylist && !hasExclusiveRole) {
+            parts.push('Stylist');
+        }
+        
+        return parts.join(' ');
     }
     
     /**
@@ -433,11 +595,17 @@ class UserStatus {
     static getDetailedStatus(user) {
         const label = this.getStatusLabel(user);
         
+        // Known status mappings
         const statusMap = {
             'Keeper of Reverie House': {
                 label: 'Keeper of Reverie House',
                 tier: 'keeper',
                 description: 'Loremaster of Reverie House, guardian of the world\'s canon and lore'
+            },
+            'Guardian': {
+                label: 'Guardian',
+                tier: 'worker',
+                description: 'Steward protecting wards and charges in the wild mindscape'
             },
             'Greeter of Reveries': {
                 label: 'Greeter of Reveries',
@@ -449,100 +617,40 @@ class UserStatus {
                 tier: 'worker',
                 description: 'Active worker charting the origins of dreamers in the wild mindscape'
             },
-            'Cogitarian (Prime)': {
-                label: 'Cogitarian (Prime)',
+            'Cogitarian': {
+                label: 'Cogitarian',
                 tier: 'worker',
                 description: 'Active worker fostering thoughtful discourse in Reverie House'
             },
-            'Head of Pantry': {
-                label: 'Head of Pantry',
+            'Provisioner': {
+                label: 'Provisioner',
                 tier: 'worker',
                 description: 'Active worker providing for those in need at Reverie House'
-            },
-            'Dreamstyler': {
-                label: 'Dreamstyler',
-                tier: 'worker',
-                description: 'Active worker crafting visual aesthetics for dreamweavers'
             },
             'Bursar': {
                 label: 'Bursar',
                 tier: 'worker',
                 description: 'Active worker managing the treasury of Reverie House'
             },
-            'Cheerful': {
-                label: 'Cheerful',
-                tier: 'worker',
-                description: 'Active worker spreading positivity throughout Reverie House'
+            'Ward': {
+                label: 'Ward',
+                tier: 'stewardship',
+                description: 'Under protective stewardship of a Guardian (whitelist filtering)'
             },
-            'Revered Resident': {
-                label: 'Revered Resident',
-                tier: 'character',
-                description: 'Revered character of lore.farm with auto-canon privileges'
-            },
-            'Revered Dreamweaver': {
-                label: 'Revered Dreamweaver',
-                tier: 'character',
-                description: 'Revered character of lore.farm with auto-canon privileges'
-            },
-            'Revered Dreamer': {
-                label: 'Revered Dreamer',
-                tier: 'character',
-                description: 'Revered character of lore.farm with auto-canon privileges'
-            },
-            'Well-Known Resident': {
-                label: 'Well-Known Resident',
-                tier: 'character',
-                description: 'Well-known character of lore.farm with auto-lore privileges'
-            },
-            'Well-Known Dreamweaver': {
-                label: 'Well-Known Dreamweaver',
-                tier: 'character',
-                description: 'Well-known character of lore.farm with auto-lore privileges'
-            },
-            'Well-Known Dreamer': {
-                label: 'Well-Known Dreamer',
-                tier: 'character',
-                description: 'Well-known character of lore.farm with auto-lore privileges'
-            },
-            'Known Resident': {
-                label: 'Known Resident',
-                tier: 'character',
-                description: 'Known character of Reverie House in lore.farm'
-            },
-            'Known Dreamweaver': {
-                label: 'Known Dreamweaver',
-                tier: 'character',
-                description: 'Known character of Reverie House in lore.farm'
-            },
-            'Known Dreamer': {
-                label: 'Known Dreamer',
-                tier: 'character',
-                description: 'Known character of Reverie House in lore.farm'
-            },
-            'resident': {
-                label: 'Resident',
-                tier: 'resident',
-                description: 'PDS hosted on reverie.house'
+            'Charge': {
+                label: 'Charge',
+                tier: 'stewardship',
+                description: 'Under light stewardship of a Guardian (blacklist filtering)'
             },
             'Resident': {
                 label: 'Resident',
                 tier: 'resident',
                 description: 'PDS hosted on reverie.house'
             },
-            'dreamweaver': {
-                label: 'Dreamweaver',
-                tier: 'dreamweaver',
-                description: 'Handle registered under reverie.house domain'
-            },
             'Dreamweaver': {
                 label: 'Dreamweaver',
                 tier: 'dreamweaver',
                 description: 'Handle registered under reverie.house domain'
-            },
-            'dreamer': {
-                label: 'Dreamer',
-                tier: 'visitor',
-                description: 'Member of the ATProtocol network'
             },
             'Dreamer': {
                 label: 'Dreamer',
@@ -551,7 +659,50 @@ class UserStatus {
             }
         };
         
-        return statusMap[label] || statusMap['dreamer'];
+        // Check for exact match first
+        if (statusMap[label]) {
+            return statusMap[label];
+        }
+        
+        // Dynamic matching for compound designations
+        // Determine tier based on components
+        let tier = 'visitor';
+        let description = 'Member of the ATProtocol network';
+        
+        if (label.includes('Keeper')) {
+            tier = 'keeper';
+            description = 'Loremaster of Reverie House';
+        } else if (label.includes('Guardian') || label.includes('Greeter') || 
+                   label.includes('Mapper') || label.includes('Cogitarian') ||
+                   label.includes('Provisioner') || label.includes('Bursar')) {
+            tier = 'worker';
+            description = 'Active worker at Reverie House';
+        } else if (label.includes('Resident')) {
+            tier = 'resident';
+            description = 'PDS hosted on reverie.house';
+        } else if (label.includes('Dreamweaver')) {
+            tier = 'dreamweaver';
+            description = 'Handle registered under reverie.house domain';
+        } else if (label.includes('Ward')) {
+            tier = 'stewardship';
+            description = 'Under protective stewardship of a Guardian';
+        } else if (label.includes('Charge')) {
+            tier = 'stewardship';
+            description = 'Under light stewardship of a Guardian';
+        }
+        
+        // Add context for affixes
+        if (label.includes('Cheerful')) {
+            description += ' • Member of The Cheerful';
+        }
+        if (label.includes('Stylist')) {
+            description += ' • Crafting visual aesthetics';
+        }
+        if (label.includes('Known') || label.includes('Well-Known') || label.includes('Revered')) {
+            description += ' • Registered character on lore.farm';
+        }
+        
+        return { label, tier, description };
     }
     
     /**
@@ -575,19 +726,14 @@ class UserStatus {
      * Format status for display with optional styling
      * @param {Object} user - User object
      * @param {Object} [options] - Display options
-     * @param {boolean} [options.capitalize] - Capitalize the label
+     * @param {boolean} [options.capitalize] - Capitalize the label (unused - labels are already capitalized)
      * @param {boolean} [options.article] - Include article (a/an)
      * @returns {string} Formatted status
      */
     static formatStatus(user, options = {}) {
         let label = this.getStatusLabel(user);
         
-        // Don't modify worker role titles - they're already properly capitalized
-        const workerRoles = ['Greeter of Reveries', 'Spectrum Mapper', 'Cogitarian (Prime)', 'Head of Pantry', 'Dreamstyler', 'Bursar', 'Cheerful', 'Keeper of Reverie House'];
-        
-        if (options.capitalize && !workerRoles.includes(label)) {
-            label = label.charAt(0).toUpperCase() + label.slice(1);
-        }
+        // Labels are now always properly capitalized by getStatusLabel
         
         if (options.article) {
             const article = ['a', 'e', 'i', 'o', 'u'].includes(label.charAt(0).toLowerCase()) ? 'an' : 'a';
