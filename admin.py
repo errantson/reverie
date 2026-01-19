@@ -11159,6 +11159,49 @@ def guardian_my_status():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/guardian/stewardship-check')
+@rate_limit()
+def guardian_stewardship_check():
+    """Public endpoint to check if a DID is a ward or charge of any guardian.
+    
+    Used by frontend to determine designation without authentication.
+    Query param: did - the DID to check
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        did = request.args.get('did')
+        if not did:
+            return jsonify({'error': 'Missing did parameter'}), 400
+        
+        db_manager = DatabaseManager()
+        
+        # Check if DID is a ward of any guardian
+        ward_of = db_manager.fetch_one("""
+            SELECT guardian_did FROM stewardship WHERE %s = ANY(wards)
+        """, (did,))
+        
+        # Check if DID is a charge of any guardian
+        charge_of = db_manager.fetch_one("""
+            SELECT guardian_did FROM stewardship WHERE %s = ANY(charges)
+        """, (did,))
+        
+        result = {
+            'success': True,
+            'is_ward': ward_of is not None,
+            'is_charge': charge_of is not None,
+            'guardian_did': ward_of['guardian_did'] if ward_of else (charge_of['guardian_did'] if charge_of else None),
+            'relationship': 'ward' if ward_of else ('charge' if charge_of else None)
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/guardian/community-stats')
 @rate_limit()
 def guardian_community_stats():

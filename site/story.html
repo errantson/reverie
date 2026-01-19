@@ -99,6 +99,26 @@
 
     <div id="footer-container"></div>
     
+    <!-- Delete Confirmation Popup -->
+    <div class="delete-confirm-popup" id="deleteConfirmPopup">
+        <div class="delete-confirm-overlay" onclick="closeDeletePopup()"></div>
+        <div class="delete-confirm-dialog">
+            <div class="delete-confirm-header">
+                <svg class="delete-confirm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"></path>
+                    <path d="M10 11v6M14 11v6"></path>
+                </svg>
+                <h3>Delete Post</h3>
+            </div>
+            <p>This will permanently remove the post from Bluesky.</p>
+            <p class="delete-warning">This action cannot be undone.</p>
+            <div class="delete-confirm-actions">
+                <button class="delete-cancel-btn" onclick="closeDeletePopup()">Cancel</button>
+                <button class="delete-confirm-btn" id="deleteConfirmBtn" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Explanation Modal -->
     <div class="explanation-modal-overlay" id="explanationModalOverlay">
         <div class="explanation-modal">
@@ -671,6 +691,9 @@
                 const truncatedText = rawText.substring(0, 30) + (rawText.length > 30 ? '...' : '');
                 const escapedPostText = escapeForAttribute(truncatedText);
                 
+                // Check if this is the user's own post
+                const isOwnPost = session.did === authorDid;
+                
                 actionsHtml = `
                     <div class="story-actions">
                         <button class="story-action-btn like-btn ${isLiked ? 'liked' : ''}" 
@@ -709,6 +732,24 @@
                                 title="Share link to this post">
                             <span>Share</span>
                         </button>
+                        ${!isOwnPost ? `
+                        <button class="story-action-btn hide-btn" 
+                                data-uri="${story.uri}"
+                                data-handle="${authorHandle}"
+                                onclick="handleHide(this.dataset.uri, this.dataset.handle, this)"
+                                title="Hide this post from your view">
+                            <span>Hide</span>
+                        </button>
+                        ` : ''}
+                        ${isOwnPost ? `
+                        <button class="story-action-btn delete-btn" 
+                                data-uri="${story.uri}"
+                                data-cid="${story.post?.cid || ''}"
+                                onclick="handleDelete(this.dataset.uri, this.dataset.cid, this)"
+                                title="Delete your post">
+                            <span>Delete</span>
+                        </button>
+                        ` : ''}
                     </div>
                 `;
             }
@@ -1329,6 +1370,213 @@
             }
             
             await window.atprotoInteractions.sharePost(postUrl, authorHandle);
+        }
+        
+        /**
+         * Handle hiding a post (adds to user's barred_uris for self-moderation)
+         */
+        async function handleHide(uri, authorHandle, button) {
+            const session = window.oauthManager?.getSession();
+            if (!session) {
+                alert('Please log in to hide posts');
+                return;
+            }
+            
+            // Confirm with user
+            if (!confirm(`Hide this post by @${authorHandle}?\n\nYou won't see it in the Living Story anymore. You can unhide it later from your settings.`)) {
+                return;
+            }
+            
+            button.disabled = true;
+            
+            try {
+                const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                const response = await fetch('/api/content/hide', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        uri: uri,
+                        reason: 'Hidden from Living Story'
+                    })
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to hide post');
+                }
+                
+                // Remove the card from DOM
+                const card = button.closest('.story-card');
+                if (card) {
+                    card.style.transition = 'opacity 0.3s ease';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                }
+                
+                // Remove from allStories array
+                allStories = allStories.filter(s => s.uri !== uri);
+                updateStats();
+                
+            } catch (error) {
+                console.error('❌ [Hide] Error:', error);
+                alert(`Failed to hide post: ${error.message}`);
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        // Delete popup state
+        let pendingDeleteData = null;
+        
+        /**
+         * Show the delete confirmation popup
+         */
+        function showDeletePopup(uri, cid, button) {
+            pendingDeleteData = { uri, cid, button };
+            const popup = document.getElementById('deleteConfirmPopup');
+            popup.classList.add('show');
+        }
+        
+        /**
+         * Close the delete confirmation popup
+         */
+        function closeDeletePopup() {
+            const popup = document.getElementById('deleteConfirmPopup');
+            popup.classList.remove('show');
+            pendingDeleteData = null;
+        }
+        
+        /**
+         * Called when user clicks Delete in the popup
+         */
+        async function confirmDelete() {
+            if (!pendingDeleteData) return;
+            
+            const { uri, cid, button } = pendingDeleteData;
+            const confirmBtn = document.getElementById('deleteConfirmBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+            
+            try {
+                await executeDelete(uri, cid, button);
+                closeDeletePopup();
+            } catch (error) {
+                alert(`Failed to delete post: ${error.message}`);
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Delete';
+            }
+        }
+        
+        /**
+         * Handle deleting the user's own post - shows confirmation popup
+         */
+        function handleDelete(uri, cid, button) {
+            const session = window.oauthManager?.getSession();
+            if (!session) {
+                alert('Please log in to delete posts');
+                return;
+            }
+            
+            // Show custom confirmation popup
+            showDeletePopup(uri, cid, button);
+        }
+        
+        /**
+         * Execute the actual post deletion
+         */
+        async function executeDelete(uri, cid, button) {
+            const session = window.oauthManager?.getSession();
+            
+            button.disabled = true;
+            
+            try {
+                // Extract rkey from URI: at://did:plc:xxx/app.bsky.feed.post/rkey
+                const uriParts = uri.split('/');
+                const rkey = uriParts[uriParts.length - 1];
+                const collection = 'app.bsky.feed.post';
+                
+                // Use atproto interactions if available for proper session handling
+                if (window.atprotoInteractions) {
+                    const atSession = window.atprotoInteractions.getSession();
+                    
+                    if (window.atprotoInteractions.isPdsSession(atSession)) {
+                        // PDS session - delete directly
+                        const pdsEndpoint = window.atprotoInteractions.getPdsEndpoint(atSession);
+                        const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${atSession.accessJwt}`
+                            },
+                            body: JSON.stringify({
+                                repo: atSession.did,
+                                collection: collection,
+                                rkey: rkey
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`Failed to delete post: ${response.status} - ${errorText}`);
+                        }
+                    } else {
+                        // OAuth session - use server-side deletion with stored credentials
+                        const hasCredentials = await window.atprotoInteractions.hasStoredCredentials();
+                        if (hasCredentials) {
+                            // Server-side deletion with stored credentials
+                            const token = localStorage.getItem('oauth_token');
+                            const response = await fetch('/api/interactions/execute', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': token ? `Bearer ${token}` : ''
+                                },
+                                body: JSON.stringify({
+                                    action: 'deletePost',
+                                    user_did: session.did || session.sub,
+                                    uri: uri,
+                                    rkey: rkey,
+                                    collection: collection
+                                })
+                            });
+                            
+                            if (!response.ok) {
+                                const error = await response.json();
+                                if (error.error?.includes('Unknown action')) {
+                                    throw new Error('Post deletion requires a direct PDS login. Please use the Bluesky app to delete this post.');
+                                }
+                                throw new Error(error.error || 'Failed to delete post');
+                            }
+                        } else {
+                            throw new Error('Post deletion requires a direct PDS login or stored credentials. Please use the Bluesky app to delete this post.');
+                        }
+                    }
+                } else {
+                    throw new Error('AT Protocol interactions not available');
+                }
+                
+                // Remove the card from DOM
+                const card = button.closest('.story-card');
+                if (card) {
+                    card.style.transition = 'opacity 0.3s ease';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                }
+                
+                // Remove from allStories array
+                allStories = allStories.filter(s => s.uri !== uri);
+                updateStats();
+                
+            } catch (error) {
+                console.error('❌ [Delete] Error:', error);
+                throw error;
+            } finally {
+                button.disabled = false;
+            }
         }
     </script>
 </body>

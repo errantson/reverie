@@ -147,6 +147,16 @@ def execute_interaction():
                 pds_url, access_jwt, user_did,
                 'app.bsky.feed.repost', uri
             )
+        elif action == 'deletePost':
+            # Delete user's own post by rkey
+            rkey = data.get('rkey')
+            collection = data.get('collection', 'app.bsky.feed.post')
+            if not rkey:
+                return jsonify({'status': 'error', 'error': 'rkey required for deletePost'}), 400
+            result = delete_record_by_rkey(
+                pds_url, access_jwt, user_did,
+                collection, rkey
+            )
         else:
             return jsonify({'status': 'error', 'error': f'Unknown action: {action}'}), 400
         
@@ -250,4 +260,33 @@ def delete_record_by_subject(pds_url, access_jwt, repo, collection, subject_uri)
     
     except Exception as e:
         print(f"❌ [INTERACTIONS] Delete record error: {e}")
+        return {'error': str(e)}
+
+
+def delete_record_by_rkey(pds_url, access_jwt, repo, collection, rkey):
+    """Delete a record directly by its rkey (for deleting own posts)"""
+    try:
+        delete_response = requests.post(
+            f'{pds_url}/xrpc/com.atproto.repo.deleteRecord',
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {access_jwt}'
+            },
+            json={
+                'repo': repo,
+                'collection': collection,
+                'rkey': rkey
+            },
+            timeout=10
+        )
+        
+        if delete_response.status_code == 200:
+            return {'deleted': True, 'rkey': rkey}
+        else:
+            error_text = delete_response.text
+            print(f"❌ [INTERACTIONS] Delete record by rkey failed: {delete_response.status_code} - {error_text}")
+            return {'error': f'Failed to delete record: {delete_response.status_code}'}
+    
+    except Exception as e:
+        print(f"❌ [INTERACTIONS] Delete record by rkey error: {e}")
         return {'error': str(e)}

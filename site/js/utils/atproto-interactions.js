@@ -38,9 +38,13 @@ class ATProtoInteractions {
 
     /**
      * Check if session is OAuth or PDS-based
+     * PDS sessions have accessJwt directly on the session object
+     * OAuth sessions may have sub but no accessJwt (or accessJwt is inside SDK)
      */
     isPdsSession(session) {
-        return session && session.accessJwt && !session.sub;
+        // PDS sessions have accessJwt directly on the session
+        // The presence of 'sub' doesn't mean it's OAuth - it could be added for compatibility
+        return session && session.accessJwt && typeof session.accessJwt === 'string';
     }
 
     /**

@@ -2104,6 +2104,15 @@ body.story-page {
     color: #666;
 }
 
+/* Delete button styling - same as hide for consistency */
+.story-action-btn.delete-btn {
+    color: #888;
+}
+
+.story-action-btn.delete-btn:hover {
+    color: #666;
+}
+
 /* Hide confirmation popup */
 .hide-confirm-popup {
     position: fixed;
@@ -2208,6 +2217,128 @@ body.story-page {
 }
 
 .hide-confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+/* Delete confirmation popup */
+.delete-confirm-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.delete-confirm-popup.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.delete-confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.delete-confirm-dialog {
+    position: relative;
+    background: var(--internal-background-color, #fefefe);
+    border: 2px solid #888;
+    border-radius: 0;
+    padding: 16px 20px;
+    max-width: 340px;
+    width: 85%;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.delete-confirm-popup.show .delete-confirm-dialog {
+    transform: scale(1);
+}
+
+.delete-confirm-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.delete-confirm-icon {
+    width: 20px;
+    height: 20px;
+    color: #666;
+}
+
+.delete-confirm-dialog h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #444;
+    font-weight: 600;
+}
+
+.delete-confirm-dialog p {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    color: #444;
+    line-height: 1.4;
+}
+
+.delete-confirm-dialog .delete-warning {
+    font-size: 0.8rem;
+    color: #888;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+.delete-confirm-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    justify-content: flex-end;
+}
+
+.delete-cancel-btn,
+.delete-confirm-btn {
+    padding: 6px 12px;
+    border-radius: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.delete-cancel-btn {
+    background: #eee;
+    border: 1px solid #ccc;
+    color: #666;
+}
+
+.delete-cancel-btn:hover {
+    background: #ddd;
+}
+
+.delete-confirm-btn {
+    background: #555;
+    border: 1px solid #444;
+    color: white;
+}
+
+.delete-confirm-btn:hover {
+    background: #444;
+}
+
+.delete-confirm-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
