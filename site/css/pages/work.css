@@ -996,6 +996,11 @@ body[data-current-role="cheerful"] .role-title {
     color: var(--role-cheerful);
 }
 
+.role-tab[data-role="guardian"].active ~ .role-card .role-title,
+body[data-current-role="guardian"] .role-title {
+    color: var(--role-guardian);
+}
+
 /* Right: Current Worker Card */
 .role-worker-card {
     background: linear-gradient(135deg, #fafafa 0%, white 100%);

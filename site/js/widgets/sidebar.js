@@ -514,11 +514,12 @@ class Sidebar {
             // Ensure guardian rules are loaded before filtering
             await this.ensureGuardianRulesLoaded();
             
-            const response = await fetch('/api/dreamers/recent');
+            // Fetch more than needed to account for filtered-out users
+            const response = await fetch('/api/dreamers/recent?limit=15');
             let recentDreamers = await response.json();
             
-            // Apply guardian filtering
-            recentDreamers = this.filterDreamersByGuardian(recentDreamers);
+            // Apply guardian filtering then slice to show exactly 3
+            recentDreamers = this.filterDreamersByGuardian(recentDreamers).slice(0, 3);
             
             const container = this.container.querySelector('.carousel-container') || this.container.querySelector('.recent-arrivals-container');
             if (!container) return;
@@ -941,11 +942,12 @@ class Sidebar {
             // Ensure guardian rules are loaded before filtering
             await this.ensureGuardianRulesLoaded();
             
-            const response = await fetch('/api/dreamers/active');
+            // Fetch more than needed to account for filtered-out users
+            const response = await fetch('/api/dreamers/active?limit=10');
             let activeDreamers = await response.json();
             
-            // Apply guardian filtering
-            activeDreamers = this.filterDreamersByGuardian(activeDreamers || []);
+            // Apply guardian filtering then slice to show exactly 3
+            activeDreamers = this.filterDreamersByGuardian(activeDreamers || []).slice(0, 3);
             
             const container = this.container.querySelector('.active-dreamers-container');
             if (!container) return;

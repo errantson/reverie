@@ -209,21 +209,25 @@ def get_newcomers_today():
 
 @bp.route('/dreamers/recent')
 def get_recent_dreamers():
-    """Get the 3 most recently added dreamers (by sequential id)"""
+    """Get the most recently added dreamers (by sequential id)"""
     try:
         from core.database import DatabaseManager
         
         db = DatabaseManager()
         
-        # Get 3 most recent dreamers by sequential id (highest = newest)
+        # Support limit parameter for client-side filtering (default 10 to allow for filtering)
+        limit = request.args.get('limit', 10, type=int)
+        limit = min(max(limit, 1), 50)  # Clamp between 1 and 50
+        
+        # Get recent dreamers by sequential id (highest = newest)
         cursor = db.execute("""
             SELECT 
                 d.did, d.handle, d.name, d.display_name,
                 d.server, d.avatar, d.created_at, d.color_hex, d.id
             FROM dreamers d
             ORDER BY d.id DESC
-            LIMIT 3
-        """)
+            LIMIT ?
+        """, (limit,))
         dreamers = cursor.fetchall()
         
         # Format response
@@ -260,9 +264,13 @@ def get_active_dreamers():
         from core.database import DatabaseManager
         import subprocess
         
+        # Support limit parameter for client-side filtering (default 10)
+        display_limit = request.args.get('limit', 3, type=int)
+        display_limit = min(max(display_limit, 1), 20)  # Clamp between 1 and 20
+        fetch_limit = display_limit + 10  # Fetch extra to account for filtering
+        
         # Query lore.farm PostgreSQL database directly for accurate counts
-        # Get top 4 so we have 3 after filtering out errantson
-        query = """
+        query = f"""
             SELECT 
                 SUBSTRING(uri FROM 'at://([^/]+)') as did, 
                 COUNT(*) as label_count 
@@ -270,7 +278,7 @@ def get_active_dreamers():
             WHERE val = 'lore:reverie.house' 
             GROUP BY did 
             ORDER BY label_count DESC 
-            LIMIT 4
+            LIMIT {fetch_limit}
         """
         
         result = subprocess.run(
@@ -318,8 +326,8 @@ def get_active_dreamers():
                     'contribution_score': int(label_count)
                 })
             
-            # Stop once we have 3 (excluding errantson)
-            if len(active_dreamers) >= 3:
+            # Stop once we have enough for the requested limit
+            if len(active_dreamers) >= display_limit:
                 break
         
         return jsonify(active_dreamers)
