@@ -6,7 +6,7 @@ Single source of truth for composing user designations in Reverie House.
 
 Composition Order:
 ------------------
-[Former?] [Character?] [Cheerful?] [Base/Role] [Patronage?] [Stylist?]
+[Former?] [Character?] [Cheerful?] [Resident?/Patronage?] [Base/Role] [Stylist?]
 
 Hierarchy:
 ----------
@@ -14,14 +14,14 @@ Hierarchy:
    - House Patron (highest lifetime patronage)
    - Keeper of Reverie House (GM of reverie.house world)
 
-2. EXCLUSIVE WORK ROLES (one at a time, can have character prefix + cheerful):
+2. EXCLUSIVE WORK ROLES (one at a time, overrides base identity):
    - Guardian, Greeter of Reveries, Spectrum Mapper, Cogitarian, Provisioner, Bursar
-   - Pattern: "[Character?] [Cheerful?] [Resident?] [Work Role]"
-   - e.g., Known Cheerful Guardian, Resident Spectrum Mapper
+   - Pattern: "[Character?] [Cheerful?] [Resident?] [Patronage?] [Work Role]"
+   - e.g., Known Resident Guardian, Cheerful Greeter of Reveries
 
-3. AFFIX ROLES (compound with anything below singular):
-   - Cheerful: PREFIX - "Cheerful Ward", "Cheerful Dreamweaver"
-   - Stylist: SUFFIX - "Resident Stylist", "Cheerful Ward Stylist"
+3. AFFIX ROLES (compound with base identities and work roles):
+   - Cheerful: PREFIX - "Cheerful Resident", "Cheerful Ward", "Cheerful Guardian"
+   - Stylist: SUFFIX - "Resident Stylist", "Ward Stylist"
 
 4. BASE IDENTITIES (mutually exclusive, hierarchy: Resident > Dreamweaver > Ward/Charge/Dreamer):
    
@@ -34,12 +34,12 @@ Hierarchy:
    - e.g., Known Cheerful Altruist Dreamweaver
    
    WARD (replaces Dreamer when under protective stewardship):
-   - "[Character?] [Cheerful?] Ward [Patronage Suffix?]"
-   - e.g., Known Cheerful Ward Reader
+   - "[Character?] [Cheerful?] [Patronage Prefix?] Ward"
+   - e.g., Known Cheerful Reading Ward
    
    CHARGE (replaces Dreamer when under light stewardship):
-   - "[Character?] [Cheerful?] Charge [Patronage Suffix?]"
-   - e.g., Cheerful Charge Patron
+   - "[Character?] [Cheerful?] [Patronage Prefix?] Charge"
+   - e.g., Cheerful Reading Charge
    
    DREAMER (default, transforms to "Dreaming" with patronage):
    - With patronage: "[Character?] [Cheerful?] Dreaming [Patronage Suffix]"
@@ -48,19 +48,20 @@ Hierarchy:
 
 5. FORMER PREFIX (deactivated accounts):
    - Prepended when account is deactivated/dissipated
-   - e.g., Former Resident, Former Cheerful Ward
+   - e.g., Former Resident, Former Ward
 
 Example Designations:
 ---------------------
 - House Patron
 - Keeper of Reverie House
-- Known Cheerful Guardian
+- The Cheerful
+- Known Resident Guardian
 - Resident Spectrum Mapper
-- Cheerful Ward Reader
-- Known Charge Patron
-- Revered Cheerful Resident Altruist Stylist
+- Known Reading Ward
+- Reading Charge
+- Revered Resident Altruist Stylist
 - Well-Known Altruist Dreamweaver
-- Cheerful Dreaming Reader
+- Known Dreaming Reader
 - Former Known Ward
 """
 
@@ -99,9 +100,7 @@ class Designation:
     }
     
     # Exclusive work roles (override base identity, one at a time)
-    # Cannot be combined with each other or with base identities
     WORK_ROLES = {
-        'cheerful': 'The Cheerful',
         'guardian': 'Guardian',
         'greeter': 'Greeter of Reveries',
         'mapper': 'Spectrum Mapper',
@@ -110,9 +109,11 @@ class Designation:
         'bursar': 'Bursar'
     }
     
-    # Affix roles (can compound with base identity)
+    # Affix roles (can compound with base identity or work roles)
+    # Cheerful is a PREFIX: "Cheerful Ward", "Cheerful Guardian"
     # Stylist is a SUFFIX: "Resident Stylist", "Ward Stylist"
     AFFIX_ROLES = {
+        'cheerful': {'word': 'Cheerful', 'position': 'prefix'},
         'dreamstyler': {'word': 'Stylist', 'position': 'suffix'}
     }
     
@@ -217,7 +218,15 @@ class Designation:
         users = cursor.fetchall()
         
         results = {}
-        for did, handle, server in users:
+        for row in users:
+            # Handle both dict-style (psycopg2) and tuple-style results
+            if hasattr(row, 'get'):
+                did = row.get('did')
+                handle = row.get('handle')
+                server = row.get('server')
+            else:
+                did, handle, server = row
+                
             try:
                 designation = cls.calculate_and_save(did, handle, server, auth_token)
                 results[did] = designation
@@ -265,6 +274,7 @@ class Designation:
         is_dreamweaver = (base_identity == 'dreamweaver')
         
         # Check affix roles
+        is_cheerful = data.get('is_cheerful', False)
         is_stylist = data.get('is_stylist', False)
         
         # Check stewardship (Ward/Charge) - only affects Dreamers
@@ -275,7 +285,7 @@ class Designation:
         
         print(f"   📊 Components: character={character_prefix}, base={base_identity}, "
               f"work={work_role}, patronage={patronage_tier}, resident={is_resident}, "
-              f"stylist={is_stylist}, ward={is_ward}, charge={is_charge}, "
+              f"cheerful={is_cheerful}, stylist={is_stylist}, ward={is_ward}, charge={is_charge}, "
               f"deactivated={is_deactivated}")
         
         # Step 3: Adjust base identity for Ward/Charge (only if Dreamer)
@@ -295,24 +305,25 @@ class Designation:
                 character_prefix=character_prefix,
                 work_role=work_role,
                 patronage_tier=patronage_tier,
-                is_resident=is_resident
+                is_resident=is_resident,
+                is_cheerful=is_cheerful
             )
         
         # BASE IDENTITY DESIGNATION
         elif base_identity == 'resident':
-            designation = cls._compose_resident(character_prefix, patronage_tier)
+            designation = cls._compose_resident(character_prefix, patronage_tier, is_cheerful)
         
         elif base_identity == 'dreamweaver':
-            designation = cls._compose_dreamweaver(character_prefix, patronage_tier)
+            designation = cls._compose_dreamweaver(character_prefix, patronage_tier, is_cheerful)
         
         elif base_identity == 'ward':
-            designation = cls._compose_ward(character_prefix, patronage_tier)
+            designation = cls._compose_ward(character_prefix, patronage_tier, is_cheerful)
         
         elif base_identity == 'charge':
-            designation = cls._compose_charge(character_prefix, patronage_tier)
+            designation = cls._compose_charge(character_prefix, patronage_tier, is_cheerful)
         
         else:  # dreamer
-            designation = cls._compose_dreamer(character_prefix, patronage_tier)
+            designation = cls._compose_dreamer(character_prefix, patronage_tier, is_cheerful)
         
         # Step 5: Apply Stylist suffix if applicable
         if is_stylist and designation:
@@ -327,13 +338,13 @@ class Designation:
     @classmethod
     def _compose_work_role(cls, character_prefix: Optional[str],
                            work_role: str, patronage_tier: Optional[str],
-                           is_resident: bool) -> str:
+                           is_resident: bool, is_cheerful: bool = False) -> str:
         """
         Compose work role designation.
         
-        Pattern: "[Character?] [Resident?] [Patronage?] [Work Role]"
-        If Resident: "Resident [Work Role]"
-        Else: "[Character?] [Patronage?] [Work Role]"
+        Pattern: "[Character?] [Cheerful?] [Resident?] [Patronage?] [Work Role]"
+        If Resident: "[Character?] [Cheerful?] Resident [Work Role]"
+        Else: "[Character?] [Cheerful?] [Patronage?] [Work Role]"
         """
         role_name = cls.WORK_ROLES.get(work_role, work_role.title())
         
@@ -341,6 +352,9 @@ class Designation:
         
         if character_prefix:
             parts.append(cls.CHARACTER_PREFIXES.get(character_prefix, character_prefix.title()))
+        
+        if is_cheerful:
+            parts.append('Cheerful')
         
         if is_resident:
             parts.append('Resident')
@@ -353,16 +367,20 @@ class Designation:
     
     @classmethod
     def _compose_resident(cls, character_prefix: Optional[str],
-                          patronage_tier: Optional[str]) -> str:
+                          patronage_tier: Optional[str],
+                          is_cheerful: bool = False) -> str:
         """
         Compose Resident designation.
         
-        "[Character?] Resident [Patronage Suffix?]"
+        "[Character?] [Cheerful?] Resident [Patronage Suffix?]"
         """
         parts = []
         
         if character_prefix:
             parts.append(cls.CHARACTER_PREFIXES.get(character_prefix, character_prefix.title()))
+        
+        if is_cheerful:
+            parts.append('Cheerful')
         
         parts.append('Resident')
         
@@ -373,16 +391,20 @@ class Designation:
     
     @classmethod
     def _compose_dreamweaver(cls, character_prefix: Optional[str],
-                             patronage_tier: Optional[str]) -> str:
+                             patronage_tier: Optional[str],
+                             is_cheerful: bool = False) -> str:
         """
         Compose Dreamweaver designation.
         
-        Patronage becomes PREFIX: "[Character?] [Patronage Prefix?] Dreamweaver"
+        "[Character?] [Cheerful?] [Patronage Prefix?] Dreamweaver"
         """
         parts = []
         
         if character_prefix:
             parts.append(cls.CHARACTER_PREFIXES.get(character_prefix, character_prefix.title()))
+        
+        if is_cheerful:
+            parts.append('Cheerful')
         
         if patronage_tier:
             parts.append(cls.PATRONAGE_WORDS['prefix'].get(patronage_tier, patronage_tier.title()))
@@ -393,17 +415,21 @@ class Designation:
     
     @classmethod
     def _compose_ward(cls, character_prefix: Optional[str],
-                      patronage_tier: Optional[str]) -> str:
+                      patronage_tier: Optional[str],
+                      is_cheerful: bool = False) -> str:
         """
         Compose Ward designation (replaces Dreamer when under protective stewardship).
         
-        Pattern: "[Character?] [Patronage Prefix?] Ward"
-        e.g., "Known Reading Ward", "Altruist Ward"
+        Pattern: "[Character?] [Cheerful?] [Patronage Prefix?] Ward"
+        e.g., "Known Cheerful Reading Ward", "Cheerful Ward"
         """
         parts = []
         
         if character_prefix:
             parts.append(cls.CHARACTER_PREFIXES.get(character_prefix, character_prefix.title()))
+        
+        if is_cheerful:
+            parts.append('Cheerful')
         
         if patronage_tier:
             parts.append(cls.PATRONAGE_WORDS['prefix'].get(patronage_tier, patronage_tier.title()))
@@ -414,17 +440,21 @@ class Designation:
     
     @classmethod
     def _compose_charge(cls, character_prefix: Optional[str],
-                        patronage_tier: Optional[str]) -> str:
+                        patronage_tier: Optional[str],
+                        is_cheerful: bool = False) -> str:
         """
         Compose Charge designation (replaces Dreamer when under light stewardship).
         
-        Pattern: "[Character?] [Patronage Prefix?] Charge"
-        e.g., "Known Reading Charge", "Altruist Charge"
+        Pattern: "[Character?] [Cheerful?] [Patronage Prefix?] Charge"
+        e.g., "Known Cheerful Reading Charge", "Cheerful Charge"
         """
         parts = []
         
         if character_prefix:
             parts.append(cls.CHARACTER_PREFIXES.get(character_prefix, character_prefix.title()))
+        
+        if is_cheerful:
+            parts.append('Cheerful')
         
         if patronage_tier:
             parts.append(cls.PATRONAGE_WORDS['prefix'].get(patronage_tier, patronage_tier.title()))
@@ -435,17 +465,21 @@ class Designation:
     
     @classmethod
     def _compose_dreamer(cls, character_prefix: Optional[str],
-                         patronage_tier: Optional[str]) -> str:
+                         patronage_tier: Optional[str],
+                         is_cheerful: bool = False) -> str:
         """
         Compose Dreamer designation.
         
-        With patronage: "[Character?] Dreaming [Patronage Suffix]"
-        Without: "[Character?] Dreamer"
+        With patronage: "[Character?] [Cheerful?] Dreaming [Patronage Suffix]"
+        Without: "[Character?] [Cheerful?] Dreamer"
         """
         parts = []
         
         if character_prefix:
             parts.append(cls.CHARACTER_PREFIXES.get(character_prefix, character_prefix.title()))
+        
+        if is_cheerful:
+            parts.append('Cheerful')
         
         if patronage_tier:
             # Dreamer transforms to "Dreaming" when has patronage
@@ -476,8 +510,8 @@ class Designation:
             'work_role': None,        # 'guardian', 'greeter', 'mapper', 'cogitarian', 'provisioner', 'bursar'
             'base_identity': 'dreamer',  # 'resident', 'dreamweaver', 'dreamer'
             'patronage': 0,           # cents
-            # New affix roles
-            'is_cheerful': False,     # Member of The Cheerful (prefix affix)
+            # Affix roles (can compound)
+            'is_cheerful': False,     # Cheerful prefix affix
             'is_stylist': False,      # Dreamstyler (suffix affix)
             # Stewardship status (Ward/Charge replace Dreamer only)
             'is_ward': False,         # Under protective stewardship
@@ -503,7 +537,7 @@ class Designation:
         # Get exclusive work role (guardian, greeter, mapper, cogitarian, provisioner, bursar)
         data['work_role'] = cls._check_work_role(did, auth_token)
         
-        # Check affix roles (Cheerful, Stylist)
+        # Check affix roles (Cheerful prefix, Stylist suffix)
         affix_data = cls._check_affix_roles(did, auth_token)
         data['is_cheerful'] = affix_data.get('is_cheerful', False)
         data['is_stylist'] = affix_data.get('is_stylist', False)
@@ -726,9 +760,9 @@ class Designation:
         Returns: 'guardian', 'greeter', 'mapper', 'cogitarian', 'provisioner', 'bursar', or None
         Priority order: guardian > greeter > mapper > cogitarian > provisioner > bursar
         
-        Note: Cheerful and Dreamstyler are now AFFIX roles (handled separately)
+        Note: Cheerful is an AFFIX role (handled separately by _check_affix_roles)
         """
-        # Only exclusive work roles (Cheerful and Dreamstyler are affixes now)
+        # Exclusive work roles only (Cheerful is an affix)
         roles = ['guardian', 'greeter', 'mapper', 'cogitarian', 'provisioner', 'bursar']
         
         for role in roles:
@@ -765,7 +799,7 @@ class Designation:
     @classmethod
     def _check_affix_roles(cls, did: str, auth_token: str = None) -> Dict[str, bool]:
         """
-        Check if user has any AFFIX roles (Cheerful, Stylist).
+        Check if user has any AFFIX roles (Cheerful prefix, Stylist suffix).
         
         These can compound with base identity or work roles.
         """
@@ -774,7 +808,7 @@ class Designation:
             'is_stylist': False
         }
         
-        # Check Cheerful
+        # Check Cheerful (prefix affix)
         try:
             if auth_token:
                 response = requests.get(

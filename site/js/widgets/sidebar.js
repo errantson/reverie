@@ -1171,6 +1171,9 @@ class Sidebar {
             ).slice(0, 4) :
             this.shuffleArray(baseDreamers.slice()).slice(0, 4);
         
+        // Ensure we never show more than 4 results
+        results = results.slice(0, 4);
+        
         results.forEach((match, index) => {
             const item = document.createElement('div');       
             item.className = 'dreamer-item';

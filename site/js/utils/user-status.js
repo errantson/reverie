@@ -214,8 +214,8 @@ class UserStatus {
      * If authToken is provided, uses authenticated endpoints for current user
      * Otherwise uses public /api/work/{role}/info endpoints to check if DID is a worker
      * 
-     * Exclusive work roles: cheerful, guardian, greeter, mapper, cogitarian, provisioner, bursar
-     * Affix roles: dreamstyler→stylist (suffix)
+     * Exclusive work roles: guardian, greeter, mapper, cogitarian, provisioner, bursar
+     * Affix roles: cheerful→prefix, dreamstyler→stylist (suffix)
      */
     static async _checkWorkerStatus(did, authToken) {
         const result = {
@@ -261,7 +261,7 @@ class UserStatus {
                     })
                 ]);
                 
-                // Process cheerful status (exclusive work role - checked first)
+                // Process cheerful status (affix - prefix "Cheerful")
                 if (cheerfulResponse.status === 'fulfilled' && cheerfulResponse.value.ok) {
                     const data = await cheerfulResponse.value.json();
                     result.isCheerful = data.is_worker || false;
@@ -325,7 +325,7 @@ class UserStatus {
                     fetch('/api/work/dreamstyler/info')
                 ]);
                 
-                // Check cheerful (exclusive work role - checked first)
+                // Check cheerful (affix - prefix "Cheerful")
                 if (cheerfulResponse.status === 'fulfilled' && cheerfulResponse.value.ok) {
                     const data = await cheerfulResponse.value.json();
                     const workers = data.workers || [];
@@ -481,11 +481,6 @@ class UserStatus {
         }
         
         // Check for exclusive work roles (priority order)
-        // Cheerful is now exclusive - cannot combine with other roles
-        if (user.isCheerful) {
-            return 'The Cheerful';
-        }
-        
         let hasExclusiveRole = false;
         let exclusiveRole = null;
         
@@ -521,6 +516,11 @@ class UserStatus {
             };
             const prefix = prefixes[user.characterLevel];
             if (prefix) parts.push(prefix);
+        }
+        
+        // Cheerful prefix affix (compounds with base identity or work role)
+        if (user.isCheerful) {
+            parts.push('Cheerful');
         }
         
         // Determine base identity
