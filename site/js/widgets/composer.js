@@ -9,7 +9,7 @@ class ComposerWidget {
             prefillText: options.prefillText || '',
             prefillImages: options.prefillImages || [],
             scheduledFor: options.scheduledFor || null,
-            isLore: options.isLore || false,
+            isLore: options.isLore !== false,  // Default to true unless explicitly false
             courierId: options.courierId || null,
             onSuccess: options.onSuccess || null,
             onCancel: options.onCancel || null,

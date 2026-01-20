@@ -1663,7 +1663,7 @@ class Dashboard {
                     </div>
                     <div class="compose-footer-right">
                         <label class="compose-lore-toggle">
-                            <input type="checkbox" id="composeIsLore" class="compose-lore-checkbox">
+                            <input type="checkbox" id="composeIsLore" class="compose-lore-checkbox" checked>
                             <span class="compose-lore-label">LORE</span>
                         </label>
                     </div>
@@ -7142,7 +7142,7 @@ class Dashboard {
                 // Clear the form
                 textarea.value = '';
                 if (scheduleTime) scheduleTime.value = '';
-                if (isLore) isLore.checked = false;
+                if (isLore) isLore.checked = true;  // Keep LORE on by default
                 this.selectedImages = [];
                 this.updateImagePreview();
                 
@@ -7475,7 +7475,7 @@ class Dashboard {
             charCount.classList.remove('warning', 'error');
         }
         if (scheduleTime) scheduleTime.value = '';
-        if (isLore) isLore.checked = false;
+        if (isLore) isLore.checked = true;  // Keep LORE on by default
         if (submitBtn) submitBtn.textContent = 'Post';
         
         // Clear schedule display
