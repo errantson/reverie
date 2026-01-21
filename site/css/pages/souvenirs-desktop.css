@@ -388,7 +388,7 @@ body.souvenir-page {
     display: block;
 }
 
-/* Custom scrollbar styling for keepers face - overlay style */
+/* Custom scrollbar styling for keepers face - square style */
 .souvenir-keepers-face::-webkit-scrollbar {
     width: 8px;
 }
@@ -398,91 +398,65 @@ body.souvenir-page {
 }
 
 .souvenir-keepers-face::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 4px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
+    background: color-mix(in srgb, var(--user-color, #734ba1) 30%, transparent);
+    border-radius: 0;
+    border: none;
     transition: background 0.2s ease;
 }
 
 .souvenir-keepers-face::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px solid transparent;
-    background-clip: padding-box;
+    background: color-mix(in srgb, var(--user-color, #734ba1) 50%, transparent);
 }
 
 /* Firefox scrollbar */
 .souvenir-keepers-face {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-    overflow-y: overlay;
+    scrollbar-color: color-mix(in srgb, var(--user-color, #734ba1) 30%, transparent) transparent;
+    overflow-y: auto;
 }
 
 .souvenir-keepers-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 8px;
-    padding: 4px 0 40px 0;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1px;
+    padding: 0;
+    background: color-mix(in srgb, var(--user-color, #734ba1) 20%, #e0dce8);
 }
 
 .keeper-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 10px 8px;
-    background: linear-gradient(145deg, 
-        color-mix(in srgb, var(--user-color, #734ba1) 8%, white),
-        color-mix(in srgb, var(--user-color, #734ba1) 4%, #fdfcfe));
-    border: 1.5px solid color-mix(in srgb, var(--user-color, #734ba1) 25%, #e8e6f5);
-    border-radius: 8px;
-    transition: all 0.2s ease;
+    gap: 8px;
+    padding: 14px 10px;
+    background: color-mix(in srgb, var(--user-color, #734ba1) 4%, #fdfcfe);
+    border: none;
+    border-radius: 0;
+    transition: background 0.15s ease;
     cursor: pointer;
     position: relative;
     overflow: hidden;
 }
 
-.keeper-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, 
-        var(--user-color, #734ba1),
-        color-mix(in srgb, var(--user-color, #734ba1) 60%, white));
-    opacity: 0.8;
-}
-
 .keeper-card:hover {
-    background: linear-gradient(145deg,
-        color-mix(in srgb, var(--user-color, #734ba1) 12%, white),
-        color-mix(in srgb, var(--user-color, #734ba1) 6%, white));
-    border-color: color-mix(in srgb, var(--user-color, #734ba1) 50%, #e8e6f5);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--user-color, #734ba1) 20%, transparent);
-}
-
-.keeper-card:hover::before {
-    opacity: 1;
+    background: color-mix(in srgb, var(--user-color, #734ba1) 10%, white);
 }
 
 .keeper-card-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
     object-fit: cover;
     flex-shrink: 0;
     border: 2px solid var(--user-color, #734ba1);
-    box-shadow: 0 2px 6px color-mix(in srgb, var(--user-color, #734ba1) 25%, transparent);
+    box-shadow: none;
 }
 
 .keeper-card-info {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
     text-align: center;
     min-width: 0;
     width: 100%;
@@ -490,8 +464,8 @@ body.souvenir-page {
 
 .keeper-card-name {
     font-weight: 600;
-    font-size: 0.78rem;
-    color: color-mix(in srgb, var(--user-color, #734ba1) 70%, #2a2235);
+    font-size: 0.8rem;
+    color: color-mix(in srgb, var(--user-color, #734ba1) 80%, #1a1520);
     line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -500,33 +474,14 @@ body.souvenir-page {
 }
 
 .keeper-card-handle {
-    font-size: 0.6rem;
-    color: color-mix(in srgb, var(--user-color, #734ba1) 40%, #666);
+    font-size: 0.65rem;
+    color: color-mix(in srgb, var(--user-color, #734ba1) 50%, #555);
     font-family: monospace;
     line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 100%;
-}
-
-.keeper-card-status {
-    font-size: 0.55rem;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 500;
-    white-space: nowrap;
-    margin-top: 2px;
-    background: color-mix(in srgb, var(--user-color, #734ba1) 15%, white);
-    color: color-mix(in srgb, var(--user-color, #734ba1) 80%, #333);
-    border: 1px solid color-mix(in srgb, var(--user-color, #734ba1) 20%, transparent);
-    text-transform: lowercase;
-    letter-spacing: 0.3px;
-}
-
-/* Legacy badge - hidden but kept for compatibility */
-.keeper-badge-octant {
-    display: none;
 }
 
 /* Explore More Face - Souvenirs Physics Box */
@@ -1057,31 +1012,26 @@ body.souvenir-page {
     
     /* Keeper cards responsive adjustments */
     .souvenir-keepers-list {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 6px;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 1px;
     }
     
     .keeper-card {
-        padding: 8px 6px;
-        gap: 4px;
+        padding: 12px 8px;
+        gap: 6px;
     }
     
     .keeper-card-avatar {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
     }
     
     .keeper-card-name {
-        font-size: 0.72rem;
+        font-size: 0.75rem;
     }
     
     .keeper-card-handle {
-        font-size: 0.55rem;
-    }
-    
-    .keeper-card-status {
-        font-size: 0.5rem;
-        padding: 1px 6px;
+        font-size: 0.6rem;
     }
 }
 
@@ -1127,34 +1077,23 @@ body.souvenir-page {
     /* Keeper cards on extra small screens */
     .souvenir-keepers-list {
         grid-template-columns: repeat(2, 1fr);
-        gap: 5px;
+        gap: 1px;
     }
     
     .keeper-card {
-        padding: 6px 4px;
-        gap: 3px;
-    }
-    
-    .keeper-card::before {
-        height: 2px;
+        padding: 10px 6px;
+        gap: 6px;
     }
     
     .keeper-card-avatar {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         border-width: 1.5px;
     }
     
     .keeper-card-name {
-        font-size: 0.68rem;
+        font-size: 0.72rem;
     }
     
     .keeper-card-handle {
-        font-size: 0.5rem;
-    }
-    
-    .keeper-card-status {
-        font-size: 0.48rem;
-        padding: 1px 5px;
-    }
-}
+        font-size: 0.55rem;

@@ -750,49 +750,14 @@
                     if (!dreamer) return '';
                     
                     const avatarUrl = dreamer.avatar || '/assets/icon_face.png';
-                    const octant = dreamer.spectrum?.octant || 'unknown';
-                    const octantClass = octant !== 'unknown' ? `octant-${octant}` : '';
                     const userColor = dreamer.color_hex || '#734ba1';
                     
-                    // Get spectrum scores
-                    const intentional = dreamer.spectrum?.intentional || 0;
-                    const expressive = dreamer.spectrum?.expressive || 0;
-                    const skeptic = dreamer.spectrum?.skeptic || 0;
-                    const receptive = dreamer.spectrum?.receptive || 0;
-                    const creative = dreamer.spectrum?.creative || 0;
-                    const reactive = dreamer.spectrum?.reactive || 0;
-                    
-                    const total = Math.abs(intentional) + Math.abs(expressive) + Math.abs(skeptic) + 
-                                  Math.abs(receptive) + Math.abs(creative) + Math.abs(reactive);
-                    
-                    const oblivionWidth = total > 0 ? (Math.abs(intentional) / total * 100) : 0;
-                    const authorityWidth = total > 0 ? (Math.abs(expressive) / total * 100) : 0;
-                    const skepticWidth = total > 0 ? (Math.abs(skeptic) / total * 100) : 0;
-                    const receptiveWidth = total > 0 ? (Math.abs(receptive) / total * 100) : 0;
-                    const libertyWidth = total > 0 ? (Math.abs(creative) / total * 100) : 0;
-                    const entropyWidth = total > 0 ? (Math.abs(reactive) / total * 100) : 0;
-                    
-                    // Get designation (or derive from known_dreamer/resident for backward compatibility)
-                    let designation = dreamer.designation || 'Dreamer';
-                    if (!dreamer.designation) {
-                        if (dreamer.known_dreamer) {
-                            designation = 'Known Dreamer';
-                        }
-                        // Check server for Resident
-                        if (dreamer.server === 'https://reverie.house') {
-                            designation = dreamer.known_dreamer ? 'Known Resident' : 'Resident';
-                        }
-                    }
-                    
-                    const earnedTime = timeAgo(keeper.epoch);
-                    
                     return `
-                        <div class="keeper-card ${octantClass}" style="--user-color: ${userColor};\" onclick="window.location.href='/dreamer?did=${encodeURIComponent(dreamer.did)}'">
+                        <div class="keeper-card" style="--user-color: ${userColor};" onclick="window.location.href='/dreamer?did=${encodeURIComponent(dreamer.did)}'">
                             <img src="${avatarUrl}" alt="${dreamer.name}" class="keeper-card-avatar" onerror="this.src='/assets/icon_face.png'">
                             <div class="keeper-card-info">
                                 <div class="keeper-card-name">${dreamer.name}</div>
                                 <div class="keeper-card-handle">@${dreamer.handle}</div>
-                                ${octant !== 'unknown' ? `<div class="keeper-badge-octant octant-bg-${octant}">${octant.toUpperCase()}</div>` : ''}
                             </div>
                         </div>
                     `;
