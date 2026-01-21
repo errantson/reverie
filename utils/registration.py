@@ -434,6 +434,18 @@ def register_dreamer(
                 if verbose:
                     print(f"   ⚠️  Failed to assign residence souvenir: {e}")
         
+        # Register user's handle in PLC (for reverie.house accounts)
+        if server == 'https://reverie.house':
+            try:
+                from utils.user_plc_registration import register_handle_on_namegiver_completion
+                reverie_handle = f"{dreamer_name}.reverie.house"
+                register_handle_on_namegiver_completion(did, handle, dreamer_name)
+                if verbose:
+                    print(f"   ✅ Handle queued for PLC registration: {reverie_handle}")
+            except Exception as plc_err:
+                if verbose:
+                    print(f"   ⚠️  PLC registration queue failed (non-fatal): {plc_err}")
+        
         try:
             result_code = subprocess.run(
                 ['python3', '/srv/caddy/caddybuilder.py'],

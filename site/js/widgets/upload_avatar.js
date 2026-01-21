@@ -1,6 +1,6 @@
 /**
  * Avatar Upload Widget
- * Handles avatar updates with app password authentication
+ * Handles avatar updates using the logged-in session
  */
 
 class UploadAvatar {
@@ -11,128 +11,40 @@ class UploadAvatar {
 
     async initiate() {
         console.log('🖼️ [UploadAvatar] Initiate called');
-        // Check if app password is connected
-        const hasAppPassword = await this.checkAppPassword();
         
-        if (!hasAppPassword) {
-            // Show app password prompt first (customized from work.html pattern)
-            this.showAppPasswordPrompt();
-        } else {
-            // Show avatar upload dialog
-            this.showAvatarUpload();
+        // Get PDS session from login
+        const pdsSessionStr = localStorage.getItem('pds_session');
+        if (pdsSessionStr) {
+            try {
+                const pdsSession = JSON.parse(pdsSessionStr);
+                if (pdsSession.accessJwt && pdsSession.did) {
+                    console.log('🔑 [UploadAvatar] Using session for avatar upload');
+                    this.pdsSession = pdsSession;
+                    this.showAvatarUpload();
+                    return;
+                }
+            } catch (e) {
+                console.warn('[UploadAvatar] Failed to parse pds_session:', e);
+            }
         }
+        
+        // No valid session - show error
+        this.showError('Please log in to update your avatar.');
     }
 
-    async checkAppPassword() {
-        try {
-            const token = localStorage.getItem('oauth_token');
-            const response = await fetch('/api/user/credentials/check', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            return data.connected === true;
-        } catch (error) {
-            console.error('Error checking app password:', error);
-            return false;
-        }
-    }
-
-    showAppPasswordPrompt() {
+    showError(message) {
         this.modal = document.createElement('div');
         this.modal.className = 'avatar-upload-modal';
         this.modal.innerHTML = `
             <div class="avatar-upload-content">
-                <h3>App Password Required</h3>
-                <p>To update your avatar on Bluesky, you need to connect an app password.</p>
-                <p class="help-text">You can generate one at <a href="https://bsky.app/settings/app-passwords" target="_blank">bsky.app/settings/app-passwords</a></p>
-                
-                <div class="app-password-input-group">
-                    <label>Enter App Password</label>
-                    <input type="text" 
-                           id="avatarAppPassword" 
-                           class="app-password-input"
-                           placeholder="xxxx-xxxx-xxxx-xxxx"
-                           maxlength="19"
-                           autocomplete="off"
-                           autocorrect="off"
-                           autocapitalize="off"
-                           spellcheck="false">
-                </div>
-                
+                <h3>Cannot Update Avatar</h3>
+                <p>${message}</p>
                 <div class="avatar-upload-actions">
-                    <button class="cancel-btn" onclick="window.uploadAvatar.cancel()">Cancel</button>
-                    <button class="connect-btn" onclick="window.uploadAvatar.connectAndProceed()">Connect & Continue</button>
+                    <button class="cancel-btn" onclick="window.uploadAvatar.cancel()">Close</button>
                 </div>
-                <div class="avatar-upload-status" id="avatarUploadStatus"></div>
             </div>
         `;
         document.body.appendChild(this.modal);
-
-        // Setup input formatting
-        const input = document.getElementById('avatarAppPassword');
-        if (input) {
-            input.addEventListener('input', (e) => {
-                let value = e.target.value.replace(/[^a-z0-9-]/gi, '');
-                let formatted = '';
-                for (let i = 0; i < value.length && i < 16; i++) {
-                    if (i > 0 && i % 4 === 0) formatted += '-';
-                    formatted += value[i];
-                }
-                e.target.value = formatted;
-            });
-
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    this.connectAndProceed();
-                }
-            });
-        }
-    }
-
-    async connectAndProceed() {
-        const input = document.getElementById('avatarAppPassword');
-        const statusEl = document.getElementById('avatarUploadStatus');
-        const appPassword = input.value.trim();
-
-        if (!appPassword || appPassword.length < 19) {
-            statusEl.textContent = 'Please enter a valid app password';
-            statusEl.className = 'avatar-upload-status error';
-            return;
-        }
-
-        statusEl.textContent = 'Connecting...';
-        statusEl.className = 'avatar-upload-status checking';
-
-        try {
-            const token = localStorage.getItem('oauth_token');
-            const response = await fetch('/api/user/credentials/connect', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ appPassword })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Failed to connect app password');
-            }
-
-            statusEl.textContent = 'Connected! Opening avatar upload...';
-            statusEl.className = 'avatar-upload-status success';
-
-            setTimeout(() => {
-                this.cancel();
-                this.showAvatarUpload();
-            }, 1000);
-
-        } catch (error) {
-            console.error('Error connecting app password:', error);
-            statusEl.textContent = `Error: ${error.message}`;
-            statusEl.className = 'avatar-upload-status error';
-        }
     }
 
     showAvatarUpload() {
@@ -141,7 +53,7 @@ class UploadAvatar {
         this.modal.innerHTML = `
             <div class="avatar-upload-content">
                 <h3>Update Avatar</h3>
-                <p>Choose a new avatar image for your Bluesky profile.</p>
+                <p>Choose a new avatar image for your profile.</p>
                 
                 <div class="avatar-preview-area">
                     <img id="avatarPreview" src="/assets/icon_face.png" alt="Avatar preview">
@@ -155,7 +67,7 @@ class UploadAvatar {
                     <label for="avatarFileInput" class="file-input-label">
                         Choose Image
                     </label>
-                    <span class="file-input-hint">PNG or JPEG, max 1MB</span>
+                    <span class="file-input-hint">PNG or JPEG</span>
                 </div>
                 
                 <div class="avatar-upload-actions">
@@ -181,6 +93,53 @@ class UploadAvatar {
         }
     }
 
+    /**
+     * Resize an image file to fit within Bluesky's size limits (~1MB)
+     */
+    async resizeImageForUpload(file, maxSize = 800, quality = 0.9) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            img.onload = () => {
+                let { width, height } = img;
+                
+                // Scale down if larger than maxSize
+                if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                        height = Math.round(height * maxSize / width);
+                        width = maxSize;
+                    } else {
+                        width = Math.round(width * maxSize / height);
+                        height = maxSize;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Try to get under 900KB by reducing quality if needed
+                const tryCompress = (q) => {
+                    canvas.toBlob((blob) => {
+                        if (blob.size > 900000 && q > 0.5) {
+                            tryCompress(q - 0.1);
+                        } else {
+                            console.log(`📐 [UploadAvatar] Resized: ${img.width}x${img.height} → ${width}x${height}, quality: ${q.toFixed(1)}, size: ${(blob.size/1024).toFixed(1)}KB`);
+                            resolve(blob);
+                        }
+                    }, 'image/jpeg', q);
+                };
+                
+                tryCompress(quality);
+            };
+            
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
     async uploadImage() {
         const fileInput = document.getElementById('avatarFileInput');
         const statusEl = document.getElementById('avatarUploadStatus');
@@ -193,21 +152,25 @@ class UploadAvatar {
 
         const file = fileInput.files[0];
 
-        // Validate file size (1MB max)
-        if (file.size > 1024 * 1024) {
-            statusEl.textContent = 'Image must be smaller than 1MB';
-            statusEl.className = 'avatar-upload-status error';
-            return;
-        }
-
-        statusEl.textContent = 'Uploading avatar...';
+        statusEl.textContent = 'Processing image...';
         statusEl.className = 'avatar-upload-status uploading';
 
         try {
+            // Resize image to fit Bluesky's ~1MB limit
+            const resizedBlob = await this.resizeImageForUpload(file, 800, 0.9);
+            console.log('📐 [UploadAvatar] Resized image size:', resizedBlob.size, 'bytes');
+            
             const token = localStorage.getItem('oauth_token');
             const formData = new FormData();
-            formData.append('avatar', file);
+            formData.append('avatar', resizedBlob, file.name);
+            
+            // Include PDS session for direct upload
+            if (this.pdsSession && this.pdsSession.accessJwt) {
+                formData.append('access_jwt', this.pdsSession.accessJwt);
+                formData.append('pds_endpoint', this.pdsSession.serviceEndpoint || this.pdsSession.pdsEndpoint || 'https://reverie.house');
+            }
 
+            statusEl.textContent = 'Uploading avatar...';
             const response = await fetch('/api/user/update-avatar', {
                 method: 'POST',
                 headers: {
@@ -227,7 +190,7 @@ class UploadAvatar {
 
             setTimeout(() => {
                 this.cancel();
-                location.reload(); // Refresh to show new avatar
+                location.reload();
             }, 1500);
 
         } catch (error) {

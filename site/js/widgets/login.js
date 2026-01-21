@@ -764,7 +764,25 @@ class LoginWidget {
                 }
                 
                 // Resolve handle to DID
-                const didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
+                // Try handle's domain first for non-bsky handles, then fallback to bsky.social
+                let didResponse;
+                const handleParts = handle.split('.');
+                const handleDomain = handleParts.slice(1).join('.'); // e.g., 'reverie.house' from 'user.reverie.house'
+                
+                // For handles that aren't .bsky.social, try their own domain first
+                if (handleDomain && !handleDomain.endsWith('bsky.social')) {
+                    try {
+                        didResponse = await fetch(`https://${handleDomain}/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
+                    } catch (e) {
+                        console.log(`[Login] Could not resolve via ${handleDomain}, trying bsky.social`);
+                    }
+                }
+                
+                // Fallback to bsky.social if handle's domain failed or wasn't tried
+                if (!didResponse || !didResponse.ok) {
+                    didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
+                }
+                
                 if (!didResponse.ok) {
                     showNotFound();
                     return;
@@ -796,7 +814,9 @@ class LoginWidget {
                 let heraldry = window.heraldrySystem ? window.heraldrySystem.getByServer(serviceEndpoint) : null;
                 let accountIcon = heraldry ? heraldry.icon : '/assets/wild_mindscape.png';
                 let accountColor = heraldry ? heraldry.color : '#2d3748';
-                let accountName = 'welcome, honoured guest';
+                // Use heraldry fullName for the welcome message (e.g., 'Awakened Dreamweaver', 'Honoured Guest')
+                const heraldryName = heraldry ? heraldry.fullName : 'Honoured Guest';
+                let accountName = `welcome, ${heraldryName.toLowerCase()}`;
                 let isDreamweaver = false;
                 let isResident = false;
                 

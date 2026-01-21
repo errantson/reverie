@@ -4345,7 +4345,7 @@ class Dashboard {
                     <label for="avatarFileInput" class="file-input-label">
                         Choose Image
                     </label>
-                    <span class="file-input-hint">PNG or JPEG, max 1MB</span>
+                    <span class="file-input-hint">PNG or JPEG</span>
                 </div>
                 
                 <div class="avatar-upload-actions">
@@ -4532,6 +4532,58 @@ class Dashboard {
         }
     }
 
+    /**
+     * Resize an image file to fit within Bluesky's size limits (~1MB)
+     * @param {File} file - The image file to resize
+     * @param {number} maxSize - Maximum dimension (width/height) in pixels
+     * @param {number} quality - JPEG quality (0-1)
+     * @returns {Promise<Blob>} - Resized image as blob
+     */
+    async resizeImageForUpload(file, maxSize = 800, quality = 0.9) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            img.onload = () => {
+                let { width, height } = img;
+                
+                // Scale down if larger than maxSize
+                if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                        height = Math.round(height * maxSize / width);
+                        width = maxSize;
+                    } else {
+                        width = Math.round(width * maxSize / height);
+                        height = maxSize;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Try to get under 900KB by reducing quality if needed
+                const tryCompress = (q) => {
+                    canvas.toBlob((blob) => {
+                        if (blob.size > 900000 && q > 0.5) {
+                            // Still too large, reduce quality
+                            tryCompress(q - 0.1);
+                        } else {
+                            console.log(`📐 [Dashboard] Resized: ${img.width}x${img.height} → ${width}x${height}, quality: ${q.toFixed(1)}, size: ${(blob.size/1024).toFixed(1)}KB`);
+                            resolve(blob);
+                        }
+                    }, 'image/jpeg', q);
+                };
+                
+                tryCompress(quality);
+            };
+            
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
     async uploadAvatar() {
         console.log('🔄 [Dashboard] uploadAvatar() called');
         const fileInput = document.getElementById('avatarFileInput');
@@ -4546,21 +4598,34 @@ class Dashboard {
         const file = fileInput.files[0];
         console.log('📁 [Dashboard] Selected file:', file.name, 'Size:', file.size, 'bytes');
 
-        // Validate file size (1MB max)
-        if (file.size > 1024 * 1024) {
-            statusEl.textContent = 'Image must be smaller than 1MB';
-            statusEl.className = 'avatar-upload-status error';
-            return;
-        }
-
-        statusEl.textContent = 'Uploading avatar...';
+        statusEl.textContent = 'Processing image...';
         statusEl.className = 'avatar-upload-status uploading';
 
         try {
+            // Resize image to fit Bluesky's ~1MB limit
+            const resizedBlob = await this.resizeImageForUpload(file, 800, 0.9);
+            console.log('📐 [Dashboard] Resized image size:', resizedBlob.size, 'bytes');
+            
             const token = await this.getOAuthToken();
             const formData = new FormData();
-            formData.append('avatar', file);
+            formData.append('avatar', resizedBlob, file.name);
+            
+            // Include PDS session for direct upload
+            const pdsSessionStr = localStorage.getItem('pds_session');
+            if (pdsSessionStr) {
+                try {
+                    const pdsSession = JSON.parse(pdsSessionStr);
+                    if (pdsSession.accessJwt) {
+                        formData.append('access_jwt', pdsSession.accessJwt);
+                        formData.append('pds_endpoint', pdsSession.serviceEndpoint || pdsSession.pdsEndpoint || 'https://reverie.house');
+                        console.log('🔑 [Dashboard] Including PDS session for avatar upload');
+                    }
+                } catch (e) {
+                    console.warn('[Dashboard] Failed to parse pds_session:', e);
+                }
+            }
 
+            statusEl.textContent = 'Uploading avatar...';
             console.log('🌐 [Dashboard] Sending API request to /api/user/update-avatar');
             const response = await fetch('/api/user/update-avatar', {
                 method: 'POST',

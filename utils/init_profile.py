@@ -89,6 +89,7 @@ def init_pds_profile(did: str, handle: str, password: str, pds_url: str = "https
         # Step 4: Create profile record
         profile_data = {
             'displayName': display_name,
+            'handle': handle,
             '$type': 'app.bsky.actor.profile'
         }
         
@@ -196,6 +197,9 @@ def update_profile_avatar(did: str, handle: str, password: str, avatar_path: str
         
         profile = get_response.json().get('value', {})
         profile['avatar'] = avatar_ref
+        # Ensure handle is in profile
+        if 'handle' not in profile:
+            profile['handle'] = handle
         
         # Update profile
         put_response = requests.post(

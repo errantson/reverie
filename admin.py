@@ -13789,12 +13789,13 @@ def update_user_name():
 @rate_limit()
 def update_user_avatar():
     """
-    Update user's avatar on Bluesky using their app password
+    Update user's avatar on Bluesky using PDS session
     
-    Requires app password to be connected. Accepts image upload.
+    Requires access_jwt and pds_endpoint in form data (from logged-in session).
+    Accepts image upload.
     """
     try:
-        from utils.update_avatar import update_avatar
+        from utils.update_avatar import update_avatar_with_jwt
         
         print("[API] /api/user/update-avatar called")
         
@@ -13828,21 +13829,24 @@ def update_user_avatar():
         # Read file data
         image_data = file.read()
         
-        # Validate size (1MB max)
-        if len(image_data) > 1024 * 1024:
-            return jsonify({'error': 'Image must be smaller than 1MB'}), 400
-        
         print(f"[API] File validated, size: {len(image_data)} bytes")
         
-        # Update avatar
-        print("[API] Calling update_avatar()...")
-        result = update_avatar(user_did, image_data)
+        # Get PDS session from form data (required)
+        access_jwt = request.form.get('access_jwt')
+        pds_endpoint = request.form.get('pds_endpoint', 'https://reverie.house')
+        
+        if not access_jwt:
+            return jsonify({'error': 'Session expired. Please log in again.'}), 401
+        
+        # Use direct JWT upload
+        print(f"[API] Using session JWT for upload (endpoint: {pds_endpoint})")
+        result = update_avatar_with_jwt(user_did, image_data, access_jwt, pds_endpoint)
         
         if not result.get('success'):
             print(f"[API] Avatar update failed: {result.get('error')}")
             return jsonify({'error': result.get('error', 'Unknown error')}), 400
         
-        print("[API] Bluesky avatar updated successfully")
+        print("[API] Avatar updated successfully")
         
         # Fetch the updated avatar URL from Bluesky and sync to local database
         from core.database import DatabaseManager

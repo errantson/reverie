@@ -79,17 +79,38 @@ def reverie_login():
         import requests
         
         # Step 1: Resolve handle to DID
+        # For non-bsky handles, try their own domain first (e.g., reverie.house handles)
         try:
-            handle_response = requests.get(
-                f"https://bsky.social/xrpc/com.atproto.identity.resolveHandle",
-                params={'handle': handle},
-                timeout=30
-            )
-            if handle_response.status_code != 200:
-                return jsonify({'error': 'Handle not found'}), 404
+            did = None
+            handle_parts = handle.split('.')
+            handle_domain = '.'.join(handle_parts[1:]) if len(handle_parts) > 1 else None
             
-            did = handle_response.json()['did']
-            print(f"Resolved handle {handle} to DID: {did}")
+            # Try handle's own domain first for non-bsky.social handles
+            if handle_domain and not handle_domain.endswith('bsky.social'):
+                try:
+                    handle_response = requests.get(
+                        f"https://{handle_domain}/xrpc/com.atproto.identity.resolveHandle",
+                        params={'handle': handle},
+                        timeout=10
+                    )
+                    if handle_response.status_code == 200:
+                        did = handle_response.json().get('did')
+                        print(f"Resolved handle {handle} via {handle_domain} to DID: {did}")
+                except Exception as domain_err:
+                    print(f"Could not resolve via {handle_domain}: {domain_err}, trying bsky.social")
+            
+            # Fallback to bsky.social if handle's domain didn't work
+            if not did:
+                handle_response = requests.get(
+                    f"https://bsky.social/xrpc/com.atproto.identity.resolveHandle",
+                    params={'handle': handle},
+                    timeout=30
+                )
+                if handle_response.status_code != 200:
+                    return jsonify({'error': 'Handle not found'}), 404
+                
+                did = handle_response.json()['did']
+                print(f"Resolved handle {handle} via bsky.social to DID: {did}")
         except Exception as e:
             print(f"Handle resolution error: {e}")
             return jsonify({'error': 'Unable to resolve handle'}), 400
@@ -692,6 +713,14 @@ def create_account():
         except Exception as app_pass_error:
             print(f"   ⚠️  App password generation failed (non-fatal): {app_pass_error}")
             # Don't fail the whole registration if app password fails
+        
+        # Register user's handle in PLC
+        try:
+            from utils.user_plc_registration import register_handle_on_account_creation
+            register_handle_on_account_creation(did, handle)
+            print(f"   ✅ Handle queued for PLC registration")
+        except Exception as plc_err:
+            print(f"   ⚠️  PLC registration queue failed (non-fatal): {plc_err}")
         
         # Mark invite code as used - do this at the very end after all potential failpoints
         try:

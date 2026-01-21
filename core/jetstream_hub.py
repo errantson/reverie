@@ -189,6 +189,8 @@ class DreamerHandler(EventHandler):
                 updates['description'] = profile['description']
             if 'avatar' in profile:
                 updates['avatar'] = profile['avatar']
+            if 'banner' in profile:
+                updates['banner'] = profile['banner']
             if 'followersCount' in profile:
                 updates['followers_count'] = profile['followersCount']
             

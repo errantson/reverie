@@ -24,8 +24,8 @@ def _get_user_credentials(did: str):
     Returns:
         tuple: (handle, app_password, pds_url) or (None, None, None) if not found
     """
-    import base64
     import json
+    from core.encryption import decrypt_password
     
     db = get_db_connection()
     
@@ -154,6 +154,88 @@ def update_profile(did: str, display_name: str = None) -> dict:
         
     except Exception as e:
         print(f"Error updating profile for {did}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def update_avatar_with_jwt(did: str, image_data: bytes, access_jwt: str, pds_url: str) -> dict:
+    """
+    Update a user's avatar using a PDS session JWT directly.
+    
+    This is used for reverie.house residents who have a PDS session from login,
+    avoiding the need for an app password.
+    
+    Args:
+        did: User's DID
+        image_data: Raw image bytes
+        access_jwt: PDS session access token
+        pds_url: PDS endpoint URL (e.g., 'https://reverie.house')
+        
+    Returns:
+        dict with success status and optional error message
+    """
+    try:
+        # Upload blob
+        upload_response = requests.post(
+            f'{pds_url}/xrpc/com.atproto.repo.uploadBlob',
+            headers={
+                'Authorization': f'Bearer {access_jwt}',
+                'Content-Type': 'image/png'
+            },
+            data=image_data,
+            timeout=10
+        )
+        
+        if not upload_response.ok:
+            return {"success": False, "error": f"Failed to upload avatar: {upload_response.text}"}
+        
+        blob_data = upload_response.json().get('blob')
+        
+        # Get current profile
+        get_response = requests.get(
+            f'{pds_url}/xrpc/com.atproto.repo.getRecord',
+            params={
+                'repo': did,
+                'collection': 'app.bsky.actor.profile',
+                'rkey': 'self'
+            },
+            headers={'Authorization': f'Bearer {access_jwt}'},
+            timeout=10
+        )
+        
+        if not get_response.ok:
+            return {"success": False, "error": f"Failed to get profile: {get_response.text}"}
+        
+        profile_data = get_response.json()
+        profile = profile_data.get('value', {})
+        
+        # Update avatar
+        profile['avatar'] = blob_data
+        
+        # Put updated profile
+        put_response = requests.post(
+            f'{pds_url}/xrpc/com.atproto.repo.putRecord',
+            headers={
+                'Authorization': f'Bearer {access_jwt}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'repo': did,
+                'collection': 'app.bsky.actor.profile',
+                'rkey': 'self',
+                'record': profile
+            },
+            timeout=10
+        )
+        
+        if not put_response.ok:
+            return {"success": False, "error": f"Failed to update profile: {put_response.text}"}
+        
+        return {"success": True, "message": "Avatar updated successfully"}
+        
+    except Exception as e:
+        print(f"Error updating avatar with JWT for {did}: {str(e)}")
         import traceback
         traceback.print_exc()
         return {"success": False, "error": str(e)}
