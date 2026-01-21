@@ -58,7 +58,10 @@ def init_pds_profile(did: str, handle: str, password: str, pds_url: str = "https
         avatar_ref = None
         try:
             # Read the default avatar (use avatar001.png as default)
-            avatar_path = Path('/srv/reverie.house/site/assets/avatars/avatar001.png')
+            # Try container path first, then host path
+            avatar_path = Path('/srv/site/assets/avatars/avatar001.png')
+            if not avatar_path.exists():
+                avatar_path = Path('/srv/reverie.house/site/assets/avatars/avatar001.png')
             if avatar_path.exists():
                 with open(avatar_path, 'rb') as f:
                     avatar_bytes = f.read()

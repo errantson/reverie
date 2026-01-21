@@ -657,15 +657,33 @@ def create_account():
                 actual_app_password = app_pass_data.get('password')
                 
                 # Store app password hash in database
+                # Note: We can't insert into user_credentials until user is in dreamers table
+                # due to FK constraint. Store temporarily and let jetstream handler insert later.
                 db = DatabaseManager()
                 password_hash = base64.b64encode(actual_app_password.encode()).decode()
                 
+                # First ensure dreamer exists (minimal record)
+                import time as time_module
+                now = int(time_module.time())
                 db.execute("""
-                    INSERT OR REPLACE INTO credentials 
-                    (did, password_hash, pds, valid, last_verified)
-                    VALUES (%s, %s, %s, TRUE, CURRENT_TIMESTAMP)
+                    INSERT INTO dreamers (did, handle, name, server, arrival, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (did) DO UPDATE SET
+                        handle = EXCLUDED.handle,
+                        updated_at = EXCLUDED.updated_at
+                """, (did, handle, handle.split('.')[0].capitalize(), pds, now, f"{now}", now))
+                
+                # Now insert credentials
+                db.execute("""
+                    INSERT INTO user_credentials 
+                    (did, app_password_hash, pds_url, valid, is_valid, created_at)
+                    VALUES (%s, %s, %s, TRUE, TRUE, EXTRACT(epoch FROM now())::integer)
+                    ON CONFLICT (did) DO UPDATE SET
+                        app_password_hash = EXCLUDED.app_password_hash,
+                        pds_url = EXCLUDED.pds_url,
+                        valid = TRUE,
+                        is_valid = TRUE
                 """, (did, password_hash, pds))
-        # Auto-committed by DatabaseManager
                 
                 print(f"   ✅ App password stored for {handle}")
             else:
