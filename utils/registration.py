@@ -68,6 +68,15 @@ def register_dreamer(
     spectrum_mgr = SpectrumManager(db)
     
     try:
+        # Check if this DID is tombstoned (deleted account)
+        cursor = db.execute("SELECT did, handle, deleted_at FROM deleted_accounts WHERE did = %s", (did,))
+        tombstone = cursor.fetchone()
+        if tombstone:
+            if verbose:
+                print(f"   🪦 Blocked: DID {did} is tombstoned (deleted on {tombstone['deleted_at']})")
+            result['errors'].append('This account has been deleted and cannot be recreated')
+            return result
+        
         cursor = db.execute("SELECT did, name, handle, alts FROM dreamers WHERE did = %s", (did,))
         existing = cursor.fetchone()
         
