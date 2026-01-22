@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverie House — Live Events</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Discover upcoming events in the Reverie House community. RSVP, connect with fellow dreamweavers, and join gatherings across our wild mindscape.">
+    <meta name="keywords" content="events, gatherings, community, ATProto, dreamweavers, reverie house, RSVP">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/events.html">
+    <meta property="og:title" content="Live Events - Reverie House">
+    <meta property="og:description" content="Discover upcoming events in the Reverie House community. RSVP, connect with fellow dreamweavers, and join gatherings across our wild mindscape.">
+    <meta property="og:image" content="https://reverie.house/assets/og-image.png">
+    <meta property="og:site_name" content="Reverie House">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Live Events - Reverie House">
+    <meta name="twitter:description" content="Discover upcoming events in the Reverie House community. RSVP, connect with fellow dreamweavers, and join gatherings across our wild mindscape.">
+    <meta name="twitter:image" content="https://reverie.house/assets/og-image.png">
+    
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/heraldry.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    <link rel="stylesheet" href="/css/pages/events.css">
+    <link rel="stylesheet" href="/css/widgets/dialogue.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    
+    <!-- Core utilities -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/utils/heraldry.js"></script>
+    <script src="/js/widgets/background.js"></script>
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+    <script src="/js/pages/events.js" defer></script>
+</head>
+<body>
+    <div id="header-container"></div>
+    
+    <!-- Full-Screen Background Scene -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="souvenirs/residence/phanera.png" alt="Phanera Residence" class="scene-layer background-layer">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="events-page-container">
+        <!-- Left Sidebar -->
+        <div class="events-sidebar">
+            <!-- Header Section -->
+            <div class="sidebar-header">
+                <img src="/assets/logo.png" alt="Reverie House Logo" class="sidebar-logo">
+                <div class="sidebar-title">
+                    <img src="/assets/icon.png" alt="" class="title-icon">
+                    <h1>LIVE EVENTS</h1>
+                    <img src="/assets/icon_face.png" alt="" class="title-icon">
+                </div>
+            </div>
+
+            <!-- Events Philosophy -->
+            <div class="sidebar-philosophy">
+                <p>Dreamweavers of <b>Reverie House</b> gather to socialize, exchange ideas, and enjoy the company of kindred dreamers.</p>
+                <p>These are public events joined by fellow dreamweavers in the <b>Reverie House</b> community, taking place across our wild mindscape or within the waking world.</p>
+                <p class="emphasis">All dreamweavers are welcome.</p>
+            </div>
+
+            <!-- Event List Filter -->
+            <div class="sidebar-controls">
+                <div class="control-label">EVENT LIST</div>
+                <div class="view-toggle">
+                    <button class="view-btn active" data-list="reverie" onclick="switchEventList('reverie')">
+                        <img src="/assets/icon.png" alt="" class="btn-icon">
+                        <span>Reverie House Events</span>
+                    </button>
+                    <button class="view-btn" data-list="community" onclick="switchEventList('community')">
+                        <img src="/assets/bluesky.png" alt="" class="btn-icon">
+                        <span>All Community Events</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- View Controls -->
+            <div class="sidebar-controls">
+                <div class="control-label">EVENT VIEW</div>
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="upcoming" onclick="switchEventView('upcoming')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Upcoming</span>
+                    </button>
+                    <button class="view-btn" data-view="past" onclick="switchEventView('past')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v5h5"></path>
+                            <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path>
+                            <path d="M12 7v5l4 2"></path>
+                        </svg>
+                        <span>Past Events</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="sidebar-links">
+                <div class="links-label">QUICK LINKS</div>
+                <a href="https://smokesignal.events" target="_blank" class="sidebar-link">
+                    <svg width="16" height="16" viewBox="0 0 100 100" fill="none">
+                        <path fill="currentColor" d="M78.9,84.7H21.1c-5.1,0-9.2-4.1-9.2-9.2s4.1-9.2,9.2-9.2h57.8c5.1,0,9.2,4.1,9.2,9.2S84,84.7,78.9,84.7z M21.1,69.2c-3.4,0-6.2,2.8-6.2,6.2c0,3.4,2.8,6.2,6.2,6.2h57.8c3.4,0,6.2-2.8,6.2-6.2c0-3.4-2.8-6.2-6.2-6.2H21.1z M50,68.4c-11.3,0-20.5-9.2-20.5-20.5c0-10.5,1.1-16.5,3.6-18.9c2.3-2.2,4.7-0.3,6.4,1c1.6,1.2,2.7,2,3.8,1.7c1.4-0.4,3.6-2.8,6.4-11.6c1.4-4.3,3.6-5,5.2-4.7c7.1,1.1,15.6,24,15.6,32.5C70.5,59.2,61.3,68.4,50,68.4z M35.5,31c-0.1,0-0.2,0-0.3,0.1c-1.2,1.2-2.7,5.1-2.7,16.7c0,9.6,7.8,17.5,17.5,17.5s17.5-7.8,17.5-17.5c0-9-8.8-28.9-13.1-29.5c-0.9-0.1-1.6,1.8-1.9,2.7c-2.7,8.4-5.2,12.6-8.3,13.6c-2.7,0.8-4.9-0.9-6.6-2.2C36.3,31.4,35.8,31,35.5,31z M50,68.4c-6.1,0-11-4.9-11-11c0-5.5,0.6-8.6,2-10c1.6-1.6,3.3-0.2,4.2,0.4c0.4,0.3,1,0.8,1.2,0.7c0.1,0,1.2-0.5,2.7-5.3c0.9-2.8,2.5-3,3.4-2.9c4.2,0.7,8.4,12.8,8.4,17C61,63.4,56.1,68.4,50,68.4z M42.9,49.9c-0.4,0.7-0.9,2.5-0.9,7.5c0,4.4,3.6,8,8,8s8-3.6,8-8c0-4.1-3.9-12.9-5.7-13.9c-0.1,0.1-0.2,0.4-0.3,0.7c-1.4,4.5-2.8,6.7-4.7,7.3c-1.7,0.5-3.1-0.5-4-1.2C43.2,50.1,43,50,42.9,49.9z M36.6,75.8c0-0.8-0.7-1.5-1.5-1.5h-9.7c-0.8,0-1.5,0.7-1.5,1.5s0.7,1.5,1.5,1.5h9.7C36,77.3,36.6,76.6,36.6,75.8z M76.4,75.8c0-0.8-0.7-1.5-1.5-1.5h-9.7c-0.8,0-1.5,0.7-1.5,1.5s0.7,1.5,1.5,1.5h9.7C75.7,77.3,76.4,76.6,76.4,75.8z"/>
+                    </svg>
+                    <span>Create Event on Smoke Signal</span>
+                </a>
+            </div>
+            
+            <!-- Your RSVP Status (shown when logged in) -->
+            <div class="sidebar-rsvp-status" id="rsvp-status-section" style="display: none;">
+                <div class="links-label">YOUR RSVPS</div>
+                <div id="user-rsvps-container">
+                    <p class="no-rsvps">No upcoming RSVPs</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Content Area -->
+        <div class="events-content">
+            <!-- Loading State -->
+            <div class="events-loading" id="events-loading">
+                <div class="loading-spinner"></div>
+                <p>Gathering events from the mindscape...</p>
+            </div>
+            
+            <!-- Error State -->
+            <div class="events-error" id="events-error" style="display: none;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <p>Unable to load events. Please try again later.</p>
+                <button onclick="loadEvents()" class="retry-btn">Retry</button>
+            </div>
+            
+            <!-- Empty State -->
+            <div class="events-empty" id="events-empty" style="display: none;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <p>No upcoming events at this time.</p>
+                <p class="events-empty-sub">Check back soon or create an event on <a href="https://smokesignal.events" target="_blank">Smoke Signal</a>!</p>
+            </div>
+
+            <!-- Events List -->
+            <div class="events-list" id="events-list" style="display: none;">
+                <!-- Events will be rendered here by events.js -->
+            </div>
+        </div>
+        
+        <!-- Event Details Modal -->
+        <div class="event-modal-overlay" id="event-modal-overlay" style="display: none;">
+            <div class="event-modal" id="event-modal">
+                <button class="modal-close-btn" onclick="closeEventModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <div id="event-modal-content">
+                    <!-- Event details will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

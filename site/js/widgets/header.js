@@ -72,6 +72,7 @@ class Header {
             { href: '/work', icon: '🤝', title: 'Open Workshop' },
             { href: '/spectrum', icon: '🌌', title: 'Reverie Spectrum', hideOnMobile: true },
             { href: '/database', icon: '🔮', title: 'Shared History', hideOnMobile: true },
+            { href: '/events', icon: '📅', title: 'Live Events', hideOnMobile: true, conveyorAnimation: true },
             { href: '/order', icon: '📦', title: 'Special Orders' }
         ];
         
@@ -147,7 +148,8 @@ class Header {
                                 </button>`;
                             }
                             const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : '';
-                            return `<a href="${item.href}" class="nav-dropdown-item" ${target}>
+                            const conveyorClass = item.conveyorAnimation ? ' conveyor-icon' : '';
+                            return `<a href="${item.href}" class="nav-dropdown-item${conveyorClass}" ${target}>
                                 <span class="nav-item-icon">${item.icon}</span>
                                 <span class="nav-item-label">${item.title}</span>
                             </a>`;
@@ -292,6 +294,9 @@ class Header {
         }
         if (path.includes('/database')) {
             return navItems.findIndex(item => item.href === '/database');
+        }
+        if (path.includes('/events')) {
+            return navItems.findIndex(item => item.href === '/events');
         }
         if (path.includes('/order')) {
             return navItems.findIndex(item => item.href === '/order');
