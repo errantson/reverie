@@ -371,10 +371,11 @@
 /* Conveyor belt animation for Live Events calendar icon */
 .nav-dropdown-item.conveyor-icon .nav-item-icon {
     position: relative;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
     overflow: hidden;
-    width: 20px;
-    height: 20px;
-    font-size: 0;
+    font-size: 0; /* Hide the original emoji text */
 }
 
 .nav-dropdown-item.conveyor-icon .nav-item-icon::before,
@@ -383,25 +384,29 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 16px;
+    font-size: 14px;
+    line-height: 1;
 }
 
+/* First emoji - starts visible in the viewport */
 .nav-dropdown-item.conveyor-icon .nav-item-icon::before {
-    left: 2px;
+    left: 1px;
 }
 
+/* Second emoji - starts just outside viewport on the right */
 .nav-dropdown-item.conveyor-icon .nav-item-icon::after {
-    left: 26px;
+    left: 19px;
 }
 
+/* On hover, both slide left creating conveyor effect */
 .nav-dropdown-item.conveyor-icon:hover .nav-item-icon::before,
 .nav-dropdown-item.conveyor-icon:hover .nav-item-icon::after {
-    animation: conveyor-slide 0.25s linear infinite;
+    animation: conveyor-slide 0.3s linear infinite;
 }
 
 @keyframes conveyor-slide {
     from { transform: translateY(-50%) translateX(0); }
-    to { transform: translateY(-50%) translateX(-24px); }
+    to { transform: translateY(-50%) translateX(-18px); }
 }
 
 .nav-item-label {

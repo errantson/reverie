@@ -453,6 +453,14 @@ body {
     transition: border-color 0.2s ease;
 }
 
+.event-action-box .event-rsvp-btns {
+    flex: 1;
+}
+
+.event-action-box .event-more-info-btn {
+    margin-top: auto;
+}
+
 .event-card:hover .event-action-box {
     border-color: var(--user-color, #8b60af);
 }
@@ -558,6 +566,29 @@ body {
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* MORE INFO Button */
+.event-more-info-btn {
+    display: block;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    text-decoration: none;
+    background: #f0f0f0;
+    color: #666;
+    border: 2px solid #ddd;
+    transition: all 0.2s ease;
+}
+
+.event-more-info-btn:hover {
+    background: var(--user-color, #8b60af);
+    color: white;
+    border-color: var(--user-color, #8b60af);
 }
 
 /* Follow Button with Avatar */

@@ -416,8 +416,12 @@ function renderEvents() {
         filteredEvents.reverse();
     }
     
-    // Check if empty
+    // Check if empty - update text based on view
     if (filteredEvents.length === 0) {
+        const emptyText = currentView === 'upcoming' 
+            ? 'No upcoming events at this time.' 
+            : 'No prior events to display.';
+        emptyEl.querySelector('p:not(.events-empty-sub)').textContent = emptyText;
         emptyEl.style.display = 'flex';
         listContainer.style.display = 'none';
         return;
@@ -447,6 +451,11 @@ function renderEventCard(event) {
     // Extract rkey and build smokesignal URL
     const rkey = event.uri.split('/').pop();
     const smokesignalUrl = `https://smokesignal.events/${event.organizerDid}/${rkey}`;
+    
+    // Check if this is a past event
+    const now = new Date();
+    const endDate = event.endsAt ? new Date(event.endsAt) : new Date(event.startsAt);
+    const isPastEvent = endDate < now;
     
     // Campfire SVG for Smoke Signal link
     const campfireSvg = `<svg width="16" height="16" viewBox="0 0 100 100" fill="none">
@@ -504,10 +513,11 @@ function renderEventCard(event) {
             <div class="event-action-box" onclick="event.stopPropagation()">
                 <div class="event-action-label">RSVP</div>
                 <div class="event-rsvp-btns">
-                    ${renderRsvpButton(event.uri, 'attending', 'Attending')}
-                    ${renderRsvpButton(event.uri, 'interested', 'Interested')}
-                    ${renderRsvpButton(event.uri, 'notgoing', 'Not Going')}
+                    ${renderRsvpButton(event.uri, 'attending', 'Attending', isPastEvent)}
+                    ${renderRsvpButton(event.uri, 'interested', 'Interested', isPastEvent)}
+                    ${renderRsvpButton(event.uri, 'notgoing', 'Not Going', isPastEvent)}
                 </div>
+                <a href="${smokesignalUrl}" target="_blank" class="event-more-info-btn">MORE INFO</a>
             </div>
         </div>
     `;
@@ -694,8 +704,7 @@ function getEventMode(mode) {
 // Default banners for events without header images
 const DEFAULT_EVENT_BANNERS = [
     '/assets/banners/banner01.png',
-    '/assets/banners/banner02.png',
-    '/assets/banners/banner03.png'
+    '/assets/banners/banner02.png'
 ];
 
 function getEventHeaderImage(event) {
@@ -1154,7 +1163,7 @@ async function loadUserRsvps() {
 }
 
 // ===== RSVP MANAGEMENT =====
-function renderRsvpButton(eventUri, type, label) {
+function renderRsvpButton(eventUri, type, label, isPastEvent = false) {
     const isSelected = userRsvps[eventUri] === type;
     const hasSelection = userRsvps[eventUri] !== undefined;
     const isLoggedIn = !!currentUser;
@@ -1163,7 +1172,7 @@ function renderRsvpButton(eventUri, type, label) {
     let classes = `event-rsvp-btn ${type}`;
     if (isSelected) classes += ' selected';
     if (hasSelection && !isSelected) classes += ' faded';
-    if (!isLoggedIn) classes += ' disabled';
+    if (!isLoggedIn || isPastEvent) classes += ' disabled';
     
     // Avatar for selected state
     const avatarHtml = isSelected && currentUser?.avatar 
@@ -1172,6 +1181,10 @@ function renderRsvpButton(eventUri, type, label) {
     
     if (!isLoggedIn) {
         return `<span class="${classes}" title="Log in to RSVP">${avatarHtml}${label}</span>`;
+    }
+    
+    if (isPastEvent) {
+        return `<span class="${classes}" title="This event has ended">${avatarHtml}${label}</span>`;
     }
     
     // Use data attributes to pass event info
