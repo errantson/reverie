@@ -18,6 +18,7 @@ import time
 import json
 import requests
 from pathlib import Path
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
@@ -242,12 +243,18 @@ class FeedGenerator:
         self._lore_labels = None
         self._last_label_sync = None
         
-    def get_community_dids(self) -> set:
-        """Get all DIDs from reverie.db"""
-        if self._community_dids is None:
-            rows = self.main_db.fetch_all('SELECT did FROM dreamers')
+    def get_community_dids(self, force_refresh: bool = False) -> set:
+        """Get all active DIDs from dreamers table (excludes deactivated accounts)"""
+        if self._community_dids is None or force_refresh:
+            rows = self.main_db.fetch_all(
+                'SELECT did FROM dreamers WHERE deactivated IS NOT TRUE'
+            )
             self._community_dids = {row['did'] for row in rows}
         return self._community_dids
+    
+    def refresh_community_dids(self):
+        """Force refresh the community DIDs cache"""
+        return self.get_community_dids(force_refresh=True)
     
     def sync_lore_labels(self, force: bool = False):
         """Sync labels from lore.farm (cache for 5 minutes)"""

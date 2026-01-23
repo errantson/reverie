@@ -41,8 +41,8 @@ class FeedUpdater:
         # AT Protocol client for fetching posts
         self.client = Client(base_url='https://public.api.bsky.app')
         
-        # Get community DIDs
-        self.community_dids = self.generator.get_community_dids()
+        # Get community DIDs (will be refreshed each cycle)
+        self.community_dids = self.generator.get_community_dids(force_refresh=True)
         
         # Stats
         self.stats = {
@@ -176,13 +176,16 @@ class FeedUpdater:
     
     def update_community_posts(self):
         """Fetch latest posts from all community members"""
+        # Refresh community DIDs each cycle to pick up new members/deactivations
+        self.community_dids = self.generator.get_community_dids(force_refresh=True)
+        
         self.log(f"👥 Updating posts from {len(self.community_dids)} community members...")
         
         posts_this_cycle = 0
         errors_this_cycle = 0
         
         # Get handles for community members from database
-        dreamer_rows = self.main_db.fetch_all("SELECT did, handle FROM dreamers")
+        dreamer_rows = self.main_db.fetch_all("SELECT did, handle FROM dreamers WHERE deactivated IS NOT TRUE")
         dreamer_map = {row['did']: row['handle'] for row in dreamer_rows}
         
         for idx, did in enumerate(self.community_dids, 1):
