@@ -293,7 +293,9 @@ def greet_newcomer(replies: List[Dict], quest_config: Dict, verbose: bool = Fals
                                 greeting_url,
                                 greeting_epoch,
                                 greeting_epoch,
-                                name_event['id'] if name_event else None
+                                name_event['id'] if name_event else None,
+                                'greeter',  # color_source
+                                1           # color_intensity
                             ))
                             
                             greeting_event_id = cursor.fetchone()['id']

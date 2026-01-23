@@ -426,7 +426,9 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                 reply_uri,
                 reply_url,
                 reply_epoch,
-                int(time.time())
+                int(time.time()),
+                'user',      # color_source
+                'highlight'  # color_intensity
             ))
             
             db.commit()
@@ -668,7 +670,9 @@ def mod_spectrum(replies: List[Dict], quest_config: Dict,
                 reply_uri,
                 'spectrum',
                 'lastdream',
-                int(time.time())
+                int(time.time()),
+                'spectrum',  # color_source
+                1            # color_intensity
             ))
             
             db.commit()
