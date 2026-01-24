@@ -71,7 +71,7 @@ def send_message():
                 else:
                     errors.append(f"{did}: {result.get('error')}")
             except Exception as e:
-                errors.append(f"{did}: {str(e)}")
+                errors.append(f"{did}: Failed to send")
         
         print(f"[MESSAGES_API] Sent {sent_count}/{len(recipients)} messages")
         
@@ -95,7 +95,7 @@ def send_message():
         print(f"[MESSAGES_API] Error sending message: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Failed to send message'}), 500
 
 
 @bp.route('/recent', methods=['GET'])
@@ -178,7 +178,7 @@ def get_recent_messages():
         print(f"[MESSAGES_API] Error fetching messages: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/analytics', methods=['GET'])
@@ -241,7 +241,7 @@ def get_analytics():
         print(f"[MESSAGES_API] Error fetching analytics: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/<int:message_id>', methods=['GET'])
@@ -302,7 +302,7 @@ def get_message(message_id):
         print(f"[MESSAGES_API] Error fetching message: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/<int:message_id>/read', methods=['POST'])
@@ -332,7 +332,7 @@ def mark_message_read(message_id):
         print(f"[MESSAGES_API] Error marking message read: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/<int:message_id>/dismiss', methods=['POST'])
@@ -362,7 +362,7 @@ def dismiss_message(message_id):
         print(f"[MESSAGES_API] Error dismissing message: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/<int:message_id>', methods=['DELETE'])
@@ -381,7 +381,7 @@ def delete_message(message_id):
         print(f"[MESSAGES_API] Error deleting message: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 # ============================================================================
@@ -415,7 +415,7 @@ def bulk_dismiss():
         print(f"[MESSAGES_API] Error in bulk dismiss: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/bulk-delete', methods=['POST'])
@@ -441,4 +441,4 @@ def bulk_delete():
         print(f"[MESSAGES_API] Error in bulk delete: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500

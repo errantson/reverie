@@ -192,7 +192,7 @@ def admin_login():
                 user_agent=request.headers.get('User-Agent'),
                 error_message=str(e)
             )
-        return jsonify({'error': 'Login failed', 'message': str(e)}), 500
+        return jsonify({'error': 'Login failed'}), 500
 
 
 @bp.route('/logout', methods=['POST'])
@@ -222,7 +222,7 @@ def admin_logout():
         return jsonify({'success': True, 'message': 'Logged out successfully'})
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @bp.route('/verify', methods=['GET'])
@@ -277,8 +277,9 @@ def admin_debug_ratelimit():
 
 
 @bp.route('/debug/ratelimit/clear', methods=['POST'])
+@require_auth()
 def admin_clear_ratelimit():
-    """Clear rate limit for the current IP or all IPs (persistent storage)"""
+    """Clear rate limit for the current IP or all IPs (persistent storage) - ADMIN ONLY"""
     try:
         data = request.get_json() or {}
         clear_all = data.get('all', False)
@@ -302,7 +303,7 @@ def admin_clear_ratelimit():
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal server error'
         }), 500
 
 
@@ -337,7 +338,7 @@ def generate_challenge():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @bp.route('/verify-challenge', methods=['POST'])
@@ -373,4 +374,4 @@ def verify_challenge_auth():
             return jsonify({'error': 'Invalid signature. Ensure you used zowell.exe correctly.'}), 401
             
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500

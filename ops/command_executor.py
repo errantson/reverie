@@ -121,6 +121,8 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
             elif cmd_name == 'greet_newcomer':
                 from ops.commands.greet_newcomer import greet_newcomer
                 cmd_result = greet_newcomer(replies, quest_config, verbose=verbose)
+            elif cmd_name == 'record_trespass':
+                cmd_result = record_trespass(replies, quest_config, verbose=verbose)
             else:
                 result['errors'].append(f"Unknown command: {cmd_name}")
                 result['success'] = False
@@ -1222,6 +1224,98 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
                 
         except Exception as e:
             result['errors'].append(f"Error in reply_origin_spectrum: {e}")
+            if verbose:
+                import traceback
+                traceback.print_exc()
+    
+    return result
+
+
+def record_trespass(replies: List[Dict], quest_config: Dict, verbose: bool = False) -> Dict:
+    """
+    Record a trespass event in reverie.house's canon system.
+    
+    When someone posts the trespass confession phrase on Bluesky (triggered by
+    flawed.center's entry flow), we record it as a canon event in reverie.house.
+    
+    NOTE: flawed.center handles its own trespasser database internally.
+    This command only records the event in reverie.house's systems.
+    
+    Args:
+        replies: List of reply objects containing author info and post URI
+        quest_config: Quest configuration
+        verbose: Enable verbose output
+        
+    Returns:
+        {'success': bool, 'errors': []}
+    """
+    result = {'success': True, 'errors': []}
+    
+    db = DatabaseManager()
+    
+    for reply in replies:
+        try:
+            author = reply.get('author', {})
+            author_did = author.get('did', '')
+            author_handle = author.get('handle', 'unknown')
+            post_uri = reply.get('uri', '')
+            post_created_at = reply.get('record', {}).get('createdAt', '')
+            
+            if not author_did:
+                result['errors'].append('No author DID in reply')
+                continue
+            
+            if verbose:
+                print(f"   📜 Recording trespass canon for {author_handle} ({author_did[:20]}...)")
+            
+            # Check if this dreamer exists in reverie.house
+            cursor = db.execute(
+                "SELECT id, name, handle FROM dreamers WHERE did = %s",
+                (author_did,)
+            )
+            dreamer = cursor.fetchone()
+            
+            if dreamer:
+                # Add canon entry for existing dreamer
+                dreamer_id = dreamer['id']
+                dreamer_name = dreamer.get('name') or dreamer.get('handle') or author_handle
+                
+                # Check if they already have a trespass canon entry
+                cursor = db.execute(
+                    "SELECT id FROM canon WHERE dreamer_id = %s AND key = %s",
+                    (dreamer_id, 'trespassed_flawed_center')
+                )
+                existing = cursor.fetchone()
+                
+                if not existing:
+                    # Add the canon entry
+                    event_time = iso_to_unix(post_created_at) if post_created_at else int(time.time())
+                    
+                    db.execute(
+                        """INSERT INTO canon (dreamer_id, key, event, type, event_time, post_uri)
+                           VALUES (%s, %s, %s, %s, %s, %s)""",
+                        (
+                            dreamer_id,
+                            'trespassed_flawed_center',
+                            f'{dreamer_name} confessed to trespassing upon flawed.center',
+                            'trespass',
+                            event_time,
+                            post_uri
+                        )
+                    )
+                    
+                    if verbose:
+                        print(f"   ✅ Canon recorded: {dreamer_name} trespassed flawed.center")
+                else:
+                    if verbose:
+                        print(f"   ⏭️ {dreamer_name} already has trespass canon entry")
+            else:
+                # Not a registered dreamer - just log it
+                if verbose:
+                    print(f"   ℹ️ {author_handle} is not a registered dreamer (trespass noted)")
+                
+        except Exception as e:
+            result['errors'].append(f"Error recording trespass: {e}")
             if verbose:
                 import traceback
                 traceback.print_exc()

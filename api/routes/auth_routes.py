@@ -429,7 +429,7 @@ def reverie_login():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 # ============================================================================
@@ -746,7 +746,7 @@ def create_account():
         print(f"❌ Error in /api/create-account: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @bp.route('/register', methods=['POST'])
@@ -870,7 +870,7 @@ def register():
         print(f"Error in /api/register: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @bp.route('/auto-register', methods=['POST'])
@@ -963,7 +963,7 @@ def auto_register():
         print(f"Error in /api/auto-register: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @bp.route('/post-registration', methods=['POST'])
@@ -1074,7 +1074,7 @@ def post_registration():
         print(f"Error in /api/post-registration: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 # ============================================================================
@@ -1106,7 +1106,7 @@ def get_user_color():
         print(f"Error in /api/user/color: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 # ============================================================================
@@ -1154,5 +1154,5 @@ def check_auth_status():
         print(f"Error in /api/auth-status: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 

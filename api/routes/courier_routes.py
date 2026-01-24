@@ -145,7 +145,7 @@ def schedule_post():
         import traceback
         traceback.print_exc()
         print(f"{'='*80}\n")
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/scheduled', methods=['GET'])
@@ -256,7 +256,7 @@ def get_scheduled_posts():
         import traceback
         traceback.print_exc()
         print(f"{'='*80}\n")
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/<int:courier_id>', methods=['DELETE'])
@@ -292,7 +292,7 @@ def cancel_post(courier_id):
         print(f"❌ [COURIER] Error cancelling post: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/<int:courier_id>', methods=['PUT'])
@@ -369,7 +369,7 @@ def update_post(courier_id):
         print(f"❌ [COURIER] Error updating post: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/retry-auth-failed', methods=['POST'])
@@ -428,7 +428,7 @@ def retry_auth_failed_posts():
         print(f"❌ [COURIER] Error retrying auth-failed posts: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'Internal server error'}), 500
 
 
 @bp.route('/health', methods=['GET'])
@@ -520,5 +520,5 @@ def health_check():
         return jsonify({
             'status': 'error',
             'health': 'unhealthy',
-            'error': str(e)
+            'error': 'Health check failed'
         }), 500
