@@ -11,6 +11,8 @@ class Sidebar {
         this.aggregateBarred = null; // Aggregate barred list for guests AND users with shield ON
         this.guardianRulesLoaded = false; // Track if guardian rules have been loaded
         this.communityShieldEnabled = true; // Default ON, will be updated when user data loads
+        this.searchOperationId = 0; // Prevent race conditions in search
+        this.searchOperationId = 0; // Prevent race conditions in search
         this.render();
         this.initialize();
     }
@@ -1140,6 +1142,9 @@ class Sidebar {
     }
 
     async updateSearchResults(query, container) {
+        // Increment operation ID to track this search request
+        const currentOperationId = ++this.searchOperationId;
+        
         container.innerHTML = '';
         
         // If dreamers haven't loaded yet and not searching, show loading placeholders
@@ -1160,6 +1165,11 @@ class Sidebar {
         // Ensure guardian rules are loaded before filtering
         await this.ensureGuardianRulesLoaded();
         
+        // Check if this search operation is still current (prevents race conditions)
+        if (currentOperationId !== this.searchOperationId) {
+            return; // A newer search has started, abandon this one
+        }
+        
         // Get base list of dreamers, applying guardian filter
         let baseDreamers = this.filterDreamersByGuardian(this.dreamers);
         
@@ -1173,6 +1183,9 @@ class Sidebar {
         
         // Ensure we never show more than 4 results
         results = results.slice(0, 4);
+        
+        // Clear container again before adding results (in case of race condition)
+        container.innerHTML = '';
         
         results.forEach((match, index) => {
             const item = document.createElement('div');       

@@ -18,7 +18,7 @@ import argparse
 import requests
 
 BASE_URL = "http://localhost:4444"
-ORIGINCARDS_URL = "http://172.23.0.4:3050"  # Docker container IP
+ORIGINCARDS_URL = "http://localhost:3050"  # Uses host networking
 SPECTRUM_DIR = "/srv/reverie.house/data/spectrum"
 
 def get_all_dreamers(limit=None):

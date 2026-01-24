@@ -152,8 +152,8 @@ class AdminAuth:
             
             print(f"[AUTH] Handle verified, calling local PDS...")
             
-            # Call local PDS to create session (via gateway IP since PDS uses host networking)
-            pds_url = "http://172.23.0.1:3333"
+            # Call local PDS to create session (localhost since PDS uses host networking)
+            pds_url = "http://localhost:3333"
             response = requests.post(
                 f"{pds_url}/xrpc/com.atproto.server.createSession",
                 json={

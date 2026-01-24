@@ -792,7 +792,7 @@ class JetstreamHub:
                     pass
             
             conn = psycopg2.connect(
-                host=os.environ.get('POSTGRES_HOST', '172.23.0.3'),
+                host=os.environ.get('POSTGRES_HOST', 'localhost'),
                 port=int(os.environ.get('POSTGRES_PORT', 5432)),
                 database=os.environ.get('POSTGRES_DB', 'reverie_house'),
                 user=os.environ.get('POSTGRES_USER', 'reverie'),

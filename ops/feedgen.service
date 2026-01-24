@@ -7,7 +7,7 @@ Type=simple
 User=errantson
 Group=errantson
 WorkingDirectory=/srv/reverie.house
-Environment="POSTGRES_HOST=172.23.0.3"
+Environment="POSTGRES_HOST=localhost"
 Environment="POSTGRES_PORT=5432"
 Environment="POSTGRES_DB=reverie_house"
 Environment="POSTGRES_USER=reverie"
