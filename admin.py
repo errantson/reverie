@@ -1044,36 +1044,36 @@ def firehose_status():
                 'status': 'listening (35 DIDs)'
             }
         
-        # Check Questhose via database cursor
-        questhose_cursor = db.execute("""
+        # Check Phrase Scanner via database cursor
+        scanner_cursor = db.execute("""
             SELECT service_name, cursor, events_processed, 
                    EXTRACT(EPOCH FROM updated_at) as updated_epoch
             FROM firehose_cursors
-            WHERE service_name = 'questhose_unified'
+            WHERE service_name = 'phrase_scanner'
         """).fetchone()
         
-        if questhose_cursor and questhose_cursor['updated_epoch']:
-            age_seconds = now - float(questhose_cursor['updated_epoch'])
+        if scanner_cursor and scanner_cursor['updated_epoch']:
+            age_seconds = now - float(scanner_cursor['updated_epoch'])
             if age_seconds < 120:  # Updated in last 2 minutes
-                services['questhose'] = {
-                    'name': 'Unified Questhose',
-                    'description': 'Full network scanner (firehose_phrase triggers)',
+                services['phrase_scanner'] = {
+                    'name': 'Phrase Scanner',
+                    'description': 'Jetstream phrase monitor (firehose_phrase triggers)',
                     'running': True,
                     'status': f'active ({int(age_seconds)}s ago)',
-                    'events': questhose_cursor['events_processed']
+                    'events': scanner_cursor['events_processed']
                 }
             else:
-                services['questhose'] = {
-                    'name': 'Unified Questhose',
-                    'description': 'Full network scanner (firehose_phrase triggers)',
+                services['phrase_scanner'] = {
+                    'name': 'Phrase Scanner',
+                    'description': 'Jetstream phrase monitor (firehose_phrase triggers)',
                     'running': False,
                     'status': f'stale ({int(age_seconds/60)}m ago)',
-                    'events': questhose_cursor['events_processed']
+                    'events': scanner_cursor['events_processed']
                 }
         else:
-            services['questhose'] = {
-                'name': 'Unified Questhose',
-                'description': 'Full network scanner (firehose_phrase triggers)',
+            services['phrase_scanner'] = {
+                'name': 'Phrase Scanner',
+                'description': 'Jetstream phrase monitor (firehose_phrase triggers)',
                 'running': False,
                 'status': 'no cursor data'
             }
