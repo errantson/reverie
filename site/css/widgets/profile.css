@@ -937,11 +937,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 32px;
     color: #999;
     font-style: italic;
     text-align: center;
-    padding: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
 }
 
 .stickers-empty-state p {
@@ -955,6 +957,153 @@
 .stickers-hint a {
     color: #734ba1;
     text-decoration: underline;
+}
+
+/* Create Sticker Preview (empty state for owner) */
+.empty-state-owner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.create-sticker-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px;
+    background: rgba(115, 75, 161, 0.05);
+    border: 1px dashed rgba(115, 75, 161, 0.2);
+}
+
+.create-sticker-preview-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(115, 75, 161, 0.3);
+    box-shadow: 0 2px 8px rgba(115, 75, 161, 0.15);
+}
+
+.create-sticker-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #666;
+    font-style: normal;
+}
+
+/* Offer Exchange Preview (empty state for visitors) */
+.empty-state-visitor-offer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.offer-exchange-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: rgba(115, 75, 161, 0.05);
+    border-radius: 0;
+    border: 1px dashed rgba(115, 75, 161, 0.2);
+}
+
+.offer-exchange-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.offer-exchange-img {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(115, 75, 161, 0.3);
+    box-shadow: 0 2px 8px rgba(115, 75, 161, 0.15);
+}
+
+.offer-exchange-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #666;
+    font-style: normal;
+}
+
+.offer-exchange-arrow {
+    font-size: 1.5rem;
+    color: #734ba1;
+    font-weight: 300;
+    opacity: 0.7;
+}
+
+.offer-exchange-btn {
+    margin-top: 4px;
+    padding: 10px 24px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, #734ba1 0%, #5a3a85 100%);
+    color: white;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+
+.offer-exchange-btn:hover {
+    background: linear-gradient(135deg, #8a5cb8 0%, #6b4a96 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.3);
+}
+
+.offer-exchange-btn:active {
+    transform: translateY(0);
+}
+
+.offer-exchange-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Pending offer state */
+.offer-pending-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.pending-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8a7aaa;
+    background: rgba(115, 75, 161, 0.1);
+    border: 1px solid rgba(115, 75, 161, 0.25);
+}
+
+.pending-hint {
+    font-size: 0.75rem;
+    color: #888;
+    font-style: italic;
+    margin: 0;
+}
+
+.target-name-pending {
+    font-weight: 500;
+    color: #734ba1;
 }
 
 /* Stickers footer link */

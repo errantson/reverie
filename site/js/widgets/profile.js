@@ -1149,18 +1149,45 @@ class Profile {
                     </div>
                     <div class="stickers-empty-state" style="display: none;">
                         <p class="empty-state-title">No stickers collected yet</p>
-                        <p class="stickers-hint empty-state-visitor">Visit <a href="https://atsumeat.suibari.com" target="_blank">AtsumeAt</a> to start collecting!</p>
+                        <!-- Logged out visitor view -->
+                        <p class="stickers-hint empty-state-visitor-logged-out" style="display: none;">Visit <a href="https://atsumeat.suibari.com" target="_blank">AtsumeAt</a> to start collecting!</p>
+                        <!-- Logged in visitor: offer exchange prompt -->
+                        <div class="empty-state-visitor-offer" style="display: none;">
+                            <p class="stickers-hint offer-hint">Be the first to trade stickers with this dreamer!</p>
+                            <div class="offer-exchange-preview">
+                                <div class="offer-exchange-side">
+                                    <img src="" alt="Your sticker" class="offer-exchange-img yours">
+                                    <span class="offer-exchange-label">You</span>
+                                </div>
+                                <span class="offer-exchange-arrow">⇄</span>
+                                <div class="offer-exchange-side">
+                                    <img src="" alt="Their sticker" class="offer-exchange-img theirs">
+                                    <span class="offer-exchange-label target-name"></span>
+                                </div>
+                            </div>
+                            <button class="sticker-trade-btn confirm offer-exchange-btn">OFFER EXCHANGE</button>
+                            <!-- Pending state (shown when offer already sent) -->
+                            <div class="offer-pending-state" style="display: none;">
+                                <span class="pending-badge">PENDING</span>
+                                <p class="pending-hint">Waiting for <span class="target-name-pending"></span> to accept your exchange</p>
+                            </div>
+                        </div>
+                        <!-- Own profile: create sticker prompt -->
                         <div class="empty-state-owner" style="display: none;">
                             <p class="stickers-hint">Create your first sticker to start trading!</p>
-                            <button class="sticker-trade-btn confirm create-first-sticker">Create My Sticker</button>
+                            <div class="create-sticker-preview">
+                                <img src="" alt="Your avatar" class="create-sticker-preview-avatar">
+                                <span class="create-sticker-label">Your Sticker</span>
+                            </div>
+                            <button class="sticker-trade-btn confirm create-first-sticker">CREATE STICKER</button>
                         </div>
                     </div>
                     <div class="stickers-footer">
                         <span class="stickers-footer-text">Explore and collect more stickers on <a href="https://atsumeat.suibari.com" target="_blank" class="stickers-footer-link">AtsumeAT</a></span>
                     </div>
                 </div>
-                <!-- Toggle button: star for stickers, artistic bubbles for souvenirs (hidden until sticker check) -->
-                <button class="souvenirs-stickers-toggle" title="Toggle Stickers View" style="display: none; border-color: ${userColor}; color: ${userColor};">
+                <!-- Toggle button: star for stickers, artistic bubbles for souvenirs (always visible) -->
+                <button class="souvenirs-stickers-toggle" title="Toggle Stickers View" style="border-color: ${userColor}; color: ${userColor};">
                     <svg class="toggle-icon sticker-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                     </svg>
@@ -1484,74 +1511,32 @@ class Profile {
         
         if (!grid) return;
         
-        // Hide other elements during loading
+        // Hide empty state during loading (toggle button stays visible)
         if (emptyState) emptyState.style.display = 'none';
-        if (toggleBtn) toggleBtn.style.display = 'none';
         
         // Show loading state with rotating hourglass
         grid.innerHTML = '<div class="stickers-loading"><span>Loading stickers...</span><svg class="hourglass-spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></div>';
         
         try {
-            // Fetch stickers from user's PDS
-            let stickers = await this.fetchUserStickers(dreamer.did);
+            // Start fetching stickers and dreamers list in parallel (both needed regardless)
+            const [stickersResult, dreamersResult] = await Promise.all([
+                this.fetchUserStickers(dreamer.did),
+                fetch('/api/dreamers').then(r => r.ok ? r.json() : []).catch(() => [])
+            ]);
             
-            // Always run cleanup/claim for logged-in users (on any sticker page)
-            // Also stores pendingOutgoing for later use (avoids duplicate call)
+            let stickers = stickersResult;
+            const allDreamers = dreamersResult;
+            const knownDids = new Set(allDreamers.map(d => d.did));
+            this.knownDreamersMap = new Map(allDreamers.map(d => [d.did, d]));
+            
+            // Initialize results
             let pendingOutgoing = [];
-            let justClaimedSubjects = []; // Track what we just claimed this session
-            if (session?.did) {
-                // Claim any stickers from completed trades and clean up old offers
-                try {
-                    justClaimedSubjects = await this.claimCompletedTrades() || [];
-                    if (justClaimedSubjects.length > 0) {
-                        // Re-fetch stickers if we claimed new ones
-                        if (isOwnProfile) {
-                            stickers = await this.fetchUserStickers(dreamer.did);
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[Stickers] Error claiming completed trades:', e);
-                }
-                
-                // Check pending outgoing (also cleans up completed ones)
-                try {
-                    pendingOutgoing = await this.checkPendingOutgoing();
-                } catch (e) {
-                    console.warn('[Stickers] Error checking/cleaning pending:', e);
-                }
-            }
-            
-            // For NEW badge: get list of stickers user has already acknowledged
+            let justClaimedSubjects = [];
             let acknowledgedSubjects = [];
-            if (isOwnProfile && session?.did) {
-                try {
-                    const token = localStorage.getItem('oauth_token');
-                    if (token) {
-                        const res = await fetch('/api/sticker/acknowledged', {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (res.ok) {
-                            const data = await res.json();
-                            acknowledgedSubjects = data.acknowledged || [];
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[Stickers] Error fetching acknowledged list:', e);
-                }
-            }
-            
-            // Check for incoming trade offers if viewing own profile
             let incomingOffers = [];
-            if (isOwnProfile && session?.did) {
-                try {
-                    incomingOffers = await this.checkIncomingOffers();
-                } catch (e) {
-                    console.warn('[Stickers] Error checking offers:', e);
-                }
-            }
-            
-            // If viewing someone else's profile, check if logged user has pending offers TO this person
             let pendingToThisProfile = [];
+            
+            // For non-own profiles, check pending offers early (needed for empty state display)
             if (!isOwnProfile && session?.did) {
                 try {
                     pendingToThisProfile = await this.checkPendingToProfile(dreamer.did);
@@ -1560,41 +1545,70 @@ class Profile {
                 }
             }
             
-            if ((!stickers || stickers.length === 0) && incomingOffers.length === 0 && pendingOutgoing.length === 0 && pendingToThisProfile.length === 0) {
+            // For non-own profiles with no stickers, show empty state immediately (fast path)
+            if (!isOwnProfile && (!stickers || stickers.length === 0)) {
                 grid.innerHTML = '';
-                this.showEmptyState(emptyState, isOwnProfile, toggleBtn);
+                this.showEmptyState(emptyState, isOwnProfile, toggleBtn, dreamer, pendingToThisProfile);
                 return;
             }
             
-            // Filter to only show stickers with origins from known Reverie House users
-            // AND that have valid signatures (required by AtsumeAt)
-            try {
-                const dreamersResponse = await fetch('/api/dreamers');
-                if (dreamersResponse.ok) {
-                    const allDreamers = await dreamersResponse.json();
-                    const knownDids = new Set(allDreamers.map(d => d.did));
+            // Run all session-dependent checks in parallel
+            if (session?.did) {
+                const parallelChecks = [];
+                
+                // Always check these
+                parallelChecks.push(
+                    this.claimCompletedTrades().catch(e => { console.warn('[Stickers] Error claiming:', e); return []; }),
+                    this.checkPendingOutgoing().catch(e => { console.warn('[Stickers] Error pending:', e); return []; })
+                );
+                
+                if (isOwnProfile) {
+                    // Own profile checks
+                    const token = localStorage.getItem('oauth_token');
+                    parallelChecks.push(
+                        token ? fetch('/api/sticker/acknowledged', { headers: { 'Authorization': `Bearer ${token}` } })
+                            .then(r => r.ok ? r.json() : { acknowledged: [] })
+                            .then(d => d.acknowledged || [])
+                            .catch(() => []) : Promise.resolve([]),
+                        this.checkIncomingOffers().catch(e => { console.warn('[Stickers] Error offers:', e); return []; })
+                    );
                     
-                    // Store dreamers map for resolving handles later
-                    this.knownDreamersMap = new Map(allDreamers.map(d => [d.did, d]));
+                    const [claimed, pending, acknowledged, incoming] = await Promise.all(parallelChecks);
+                    justClaimedSubjects = claimed || [];
+                    pendingOutgoing = pending || [];
+                    acknowledgedSubjects = acknowledged || [];
+                    incomingOffers = incoming || [];
                     
-                    // Filter: only show stickers where:
-                    // 1. subjectDid is a known Reverie House user
-                    // 2. sticker has valid signature (required by AtsumeAt)
-                    if (stickers && stickers.length > 0) {
-                        stickers = stickers.filter(sticker => {
-                            const subjectDid = sticker.subjectDid;
-                            const hasSignature = sticker.signature && sticker.signedPayload;
-                            return subjectDid && knownDids.has(subjectDid) && hasSignature;
-                        });
+                    // Re-fetch stickers only if we claimed new ones
+                    if (justClaimedSubjects.length > 0) {
+                        stickers = await this.fetchUserStickers(dreamer.did);
                     }
+                } else {
+                    // Other profile checks - pendingToThisProfile already fetched above
+                    const [claimed, pending] = await Promise.all(parallelChecks);
+                    justClaimedSubjects = claimed || [];
+                    pendingOutgoing = pending || [];
                 }
-            } catch (e) {
-                console.warn('[Stickers] Could not filter by known users:', e);
+            }
+            
+            if ((!stickers || stickers.length === 0) && incomingOffers.length === 0 && pendingOutgoing.length === 0 && pendingToThisProfile.length === 0) {
+                grid.innerHTML = '';
+                this.showEmptyState(emptyState, isOwnProfile, toggleBtn, dreamer, pendingToThisProfile);
+                return;
+            }
+            
+            // Filter stickers by known Reverie House users and valid signatures
+            if (stickers && stickers.length > 0) {
+                stickers = stickers.filter(sticker => {
+                    const subjectDid = sticker.subjectDid;
+                    const hasSignature = sticker.signature && sticker.signedPayload;
+                    return subjectDid && knownDids.has(subjectDid) && hasSignature;
+                });
             }
             
             if ((!stickers || stickers.length === 0) && incomingOffers.length === 0) {
                 grid.innerHTML = '';
-                this.showEmptyState(emptyState, isOwnProfile, toggleBtn);
+                this.showEmptyState(emptyState, isOwnProfile, toggleBtn, dreamer, pendingToThisProfile);
                 return;
             }
             
@@ -2046,25 +2060,165 @@ class Profile {
         }
     }
     
-    showEmptyState(emptyState, isOwnProfile, toggleBtn) {
+    showEmptyState(emptyState, isOwnProfile, toggleBtn, dreamer, pendingToThisProfile = []) {
         if (!emptyState) return;
         
         emptyState.style.display = 'flex';
         
-        const visitorContent = emptyState.querySelector('.empty-state-visitor');
+        const visitorLoggedOut = emptyState.querySelector('.empty-state-visitor-logged-out');
+        const visitorOffer = emptyState.querySelector('.empty-state-visitor-offer');
         const ownerContent = emptyState.querySelector('.empty-state-owner');
+        
+        // Check if user is logged in
+        const session = window.oauthManager?.getSession?.();
+        const isLoggedIn = session && session.did;
+        
+        // Check if we already have a pending offer to this person
+        const hasPendingOffer = pendingToThisProfile && pendingToThisProfile.length > 0;
+        
+        // Always show toggle button so users can discover stickers tab
+        if (toggleBtn) toggleBtn.style.display = 'flex';
         
         if (isOwnProfile) {
             // Show create button for own profile
-            if (visitorContent) visitorContent.style.display = 'none';
-            if (ownerContent) ownerContent.style.display = 'block';
-            // Show toggle button for own profile so they can still switch views
-            if (toggleBtn) toggleBtn.style.display = 'flex';
-        } else {
-            // Show visitor message and hide toggle button
-            if (visitorContent) visitorContent.style.display = 'block';
+            if (visitorLoggedOut) visitorLoggedOut.style.display = 'none';
+            if (visitorOffer) visitorOffer.style.display = 'none';
+            if (ownerContent) {
+                ownerContent.style.display = 'flex';
+                
+                // Populate avatar preview
+                const avatarPreview = ownerContent.querySelector('.create-sticker-preview-avatar');
+                if (avatarPreview && session?.avatar) {
+                    avatarPreview.src = session.avatar;
+                } else if (avatarPreview) {
+                    avatarPreview.src = '/assets/icon_face.png';
+                }
+            }
+        } else if (isLoggedIn && dreamer) {
+            // Logged-in visitor viewing someone else's empty profile
+            if (visitorLoggedOut) visitorLoggedOut.style.display = 'none';
+            if (visitorOffer) {
+                visitorOffer.style.display = 'flex';
+                
+                // Get elements
+                const yourImg = visitorOffer.querySelector('.offer-exchange-img.yours');
+                const theirImg = visitorOffer.querySelector('.offer-exchange-img.theirs');
+                const targetNameEl = visitorOffer.querySelector('.target-name');
+                const offerBtn = visitorOffer.querySelector('.offer-exchange-btn');
+                const offerHint = visitorOffer.querySelector('.offer-hint');
+                const pendingState = visitorOffer.querySelector('.offer-pending-state');
+                const targetNamePending = visitorOffer.querySelector('.target-name-pending');
+                
+                const targetName = dreamer.name || dreamer.display_name || dreamer.handle?.split('.')[0] || 'Them';
+                
+                // Populate preview images
+                if (yourImg && session.avatar) {
+                    yourImg.src = session.avatar;
+                } else if (yourImg) {
+                    yourImg.src = '/assets/icon_face.png';
+                }
+                
+                if (theirImg && dreamer.avatar) {
+                    theirImg.src = dreamer.avatar;
+                } else if (theirImg) {
+                    theirImg.src = '/assets/icon_face.png';
+                }
+                
+                if (targetNameEl) {
+                    targetNameEl.textContent = targetName;
+                }
+                
+                // Check if we already have a pending offer
+                if (hasPendingOffer) {
+                    // Show pending state, hide offer button
+                    if (offerBtn) offerBtn.style.display = 'none';
+                    if (offerHint) offerHint.style.display = 'none';
+                    if (pendingState) {
+                        pendingState.style.display = 'flex';
+                        if (targetNamePending) targetNamePending.textContent = targetName;
+                    }
+                } else {
+                    // Show offer button, hide pending state
+                    if (offerBtn) {
+                        offerBtn.style.display = 'block';
+                        offerBtn.onclick = () => this.initiateExchangeOffer(dreamer);
+                    }
+                    if (offerHint) offerHint.style.display = 'block';
+                    if (pendingState) pendingState.style.display = 'none';
+                }
+            }
             if (ownerContent) ownerContent.style.display = 'none';
-            if (toggleBtn) toggleBtn.style.display = 'none';
+        } else {
+            // Logged-out visitor: show AtsumeAt link
+            if (visitorLoggedOut) visitorLoggedOut.style.display = 'block';
+            if (visitorOffer) visitorOffer.style.display = 'none';
+            if (ownerContent) ownerContent.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Initiate an exchange offer when clicking "OFFER EXCHANGE" on an empty sticker collection
+     * This creates the user's own sticker if needed, then opens the trade confirmation
+     */
+    async initiateExchangeOffer(targetDreamer) {
+        const session = window.oauthManager?.getSession?.();
+        if (!session || !session.did) {
+            if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
+                window.loginWidget.showLoginPopup();
+            } else {
+                alert('Please log in to offer an exchange');
+            }
+            return;
+        }
+        
+        const offerBtn = this.container.querySelector('.offer-exchange-btn');
+        if (offerBtn) {
+            offerBtn.disabled = true;
+            offerBtn.textContent = 'Preparing...';
+        }
+        
+        try {
+            // Check if user has their own sticker
+            let myStickers = await this.fetchUserStickers(session.did);
+            let mySelfSticker = myStickers.find(s => 
+                (s.subjectDid === session.did || s.originalOwner === session.did) && 
+                s.signature && s.signedPayload
+            );
+            
+            // Auto-create the user's sticker if they don't have one
+            if (!mySelfSticker) {
+                if (offerBtn) offerBtn.textContent = 'Creating your sticker...';
+                mySelfSticker = await this.createSelfSticker();
+                if (!mySelfSticker) {
+                    throw new Error('Could not create your sticker - please try again');
+                }
+            }
+            
+            // Now show the trade popup with a "virtual" sticker representing the target's self-sticker
+            // Since they have no stickers yet, we're essentially requesting their self-sticker that will be created
+            const virtualTargetSticker = {
+                uri: null, // Will be created on their end when they accept
+                image: targetDreamer.avatar || '/assets/icon_face.png',
+                subjectDid: targetDreamer.did,
+                originalOwner: targetDreamer.did,
+                isVirtual: true // Flag to indicate this is a request for their self-sticker
+            };
+            
+            // Store for popup
+            this.currentDetailSticker = virtualTargetSticker;
+            this.currentStickerOwner = targetDreamer;
+            
+            // Show trade confirmation popup
+            this.showTradePopup(virtualTargetSticker, targetDreamer);
+            
+        } catch (error) {
+            console.error('[Stickers] Exchange offer error:', error);
+            alert(`Failed to prepare exchange: ${error.message}`);
+        } finally {
+            if (offerBtn) {
+                offerBtn.disabled = false;
+                offerBtn.textContent = 'OFFER EXCHANGE';
+            }
         }
     }
     
@@ -3561,49 +3715,13 @@ class Profile {
     }
     
     async preCheckStickers(dreamer) {
-        // Quick check to determine if toggle button should be shown
-        // Called when souvenirs tab is activated
+        // Toggle button is now always visible - stickers feature is accessible to everyone
+        // This method is kept for potential future conditional checks
         const toggleBtn = this.container.querySelector('.souvenirs-stickers-toggle');
         if (!toggleBtn) return;
         
-        // Check if viewing own profile
-        const session = window.oauthManager?.getSession?.();
-        const isOwnProfile = session?.did === dreamer.did;
-        
-        // If own profile, always show the toggle button
-        if (isOwnProfile) {
-            toggleBtn.style.display = 'flex';
-            return;
-        }
-        
-        // For others' profiles, check if they have any stickers
-        try {
-            const stickers = await this.fetchUserStickers(dreamer.did);
-            
-            if (!stickers || stickers.length === 0) {
-                toggleBtn.style.display = 'none';
-                return;
-            }
-            
-            // Filter to valid stickers (known DIDs + signatures)
-            const dreamersResponse = await fetch('/api/dreamers');
-            if (dreamersResponse.ok) {
-                const allDreamers = await dreamersResponse.json();
-                const knownDids = new Set(allDreamers.map(d => d.did));
-                
-                const validStickers = stickers.filter(sticker => {
-                    const subjectDid = sticker.subjectDid;
-                    const hasSignature = sticker.signature && sticker.signedPayload;
-                    return subjectDid && knownDids.has(subjectDid) && hasSignature;
-                });
-                
-                toggleBtn.style.display = validStickers.length > 0 ? 'flex' : 'none';
-            }
-        } catch (error) {
-            console.warn('[Stickers] Pre-check failed:', error);
-            // Default to hiding on error for non-own profiles
-            toggleBtn.style.display = 'none';
-        }
+        // Always show the toggle button for all profiles
+        toggleBtn.style.display = 'flex';
     }
 
     async updateSpectrumFace(dreamer) {
