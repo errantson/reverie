@@ -1630,12 +1630,14 @@ class Profile {
                     // Use offered sticker if available, otherwise fall back to partner info
                     let displayImage = offer.profile?.avatar || '/assets/icon_face.png';
                     let displayName = offer.profile?.displayName || offer.profile?.handle?.split('.')[0] || 'Someone';
+                    let fallbackAvatar = '/assets/icon_face.png';
                     
                     if (offer.offeredSticker) {
                         displayImage = offer.offeredSticker.image || displayImage;
                         const subjectDreamer = this.knownDreamersMap?.get(offer.offeredSticker.subjectDid);
                         if (subjectDreamer) {
                             displayName = subjectDreamer.name || subjectDreamer.handle?.split('.')[0] || displayName;
+                            fallbackAvatar = subjectDreamer.avatar || fallbackAvatar;
                         }
                     }
                     
@@ -1643,8 +1645,7 @@ class Profile {
                         <div class="sticker-card sticker-offer-card" data-offer-uri="${offer.uri}">
                             <div class="sticker-offer-badge">AVAILABLE</div>
                             <div class="sticker-card-image">
-                                <img src="${displayImage}" alt="${displayName}" onerror="this.src='/assets/icon_face.png'">
-                            </div>
+                                <img src="${displayImage}" alt="${displayName}" onerror="this.src='${fallbackAvatar.replace(/'/g, "\\'")}'">                            </div>
                             <div class="sticker-card-name">${displayName}</div>
                             <button class="sticker-accept-btn-card" data-offer-uri="${offer.uri}">ACCEPT</button>
                         </div>
@@ -1659,6 +1660,7 @@ class Profile {
                     // Use requested sticker image if available, otherwise fall back to partner avatar
                     let displayImage = pending.profile?.avatar || '/assets/icon_face.png';
                     let displayName = pending.profile?.displayName || pending.profile?.handle?.split('.')[0] || 'Someone';
+                    let fallbackAvatar = '/assets/icon_face.png';
                     
                     if (pending.requestedSticker) {
                         displayImage = pending.requestedSticker.image || displayImage;
@@ -1666,6 +1668,7 @@ class Profile {
                         const subjectDreamer = this.knownDreamersMap?.get(pending.requestedSticker.subjectDid);
                         if (subjectDreamer) {
                             displayName = subjectDreamer.name || subjectDreamer.handle?.split('.')[0] || displayName;
+                            fallbackAvatar = subjectDreamer.avatar || fallbackAvatar;
                         }
                     }
                     
@@ -1673,8 +1676,7 @@ class Profile {
                         <div class="sticker-card sticker-pending-card" data-pending-uri="${pending.uri}">
                             <div class="sticker-pending-badge">PENDING</div>
                             <div class="sticker-card-image">
-                                <img src="${displayImage}" alt="${displayName}" onerror="this.src='/assets/icon_face.png'">
-                            </div>
+                                <img src="${displayImage}" alt="${displayName}" onerror="this.src='${fallbackAvatar.replace(/'/g, "\\'")}'">                            </div>
                             <div class="sticker-card-name">${displayName}</div>
                             <button class="sticker-cancel-btn-card" data-pending-uri="${pending.uri}">CANCEL</button>
                         </div>
@@ -1700,7 +1702,6 @@ class Profile {
             // Render existing stickers
             if (stickers && stickers.length > 0) {
                 gridHtml += stickers.map((sticker, index) => {
-                    const imageUrl = typeof sticker.image === 'string' ? sticker.image : '';
                     // For avatar stickers, use the SUBJECT's name and color (from knownDreamersMap)
                     let displayName = sticker.name || 'Sticker';
                     const subjectDreamer = sticker.subjectDid ? this.knownDreamersMap?.get(sticker.subjectDid) : null;
@@ -1709,6 +1710,10 @@ class Profile {
                     } else if (sticker.subjectDid && (displayName === 'Avatar Sticker' || displayName === 'Sticker')) {
                         displayName = sticker.subjectDid.replace('did:plc:', '').slice(0, 8);
                     }
+                    
+                    // Image URL with fallback to subject's current avatar (like atsumeat does)
+                    const imageUrl = typeof sticker.image === 'string' ? sticker.image : '';
+                    const fallbackAvatar = subjectDreamer?.avatar || '/assets/icon_face.png';
                     
                     // Get the SUBJECT's color for sticker frame styling
                     const subjectColor = subjectDreamer?.color_hex || '#734ba1';
@@ -1758,7 +1763,7 @@ class Profile {
                         <div class="sticker-card${newCardClass}" title="${displayName}" data-sticker-index="${index}" style="${cardStyle}">
                             ${newBadgeHtml}
                             <div class="sticker-card-image" style="${imageStyle}">
-                                <img src="${imageUrl}" alt="${displayName}" onerror="this.src='/assets/icon_face.png'">
+                                <img src="${imageUrl}" alt="${displayName}" onerror="this.src='${fallbackAvatar.replace(/'/g, "\\'")}'" data-fallback="${fallbackAvatar.replace(/"/g, '&quot;')}">
                             </div>
                             <div class="sticker-card-name" style="${nameStyle}">${displayName}</div>
                             ${buttonHtml}
@@ -1887,8 +1892,8 @@ class Profile {
         
         // Get display name - use SUBJECT's name for avatar stickers, not the profile owner
         let displayName = sticker.name || 'Sticker';
+        const subjectDreamer = sticker.subjectDid ? this.knownDreamersMap?.get(sticker.subjectDid) : null;
         if (displayName === 'Avatar Sticker' && sticker.imageType === 'avatar' && sticker.subjectDid) {
-            const subjectDreamer = this.knownDreamersMap?.get(sticker.subjectDid);
             if (subjectDreamer) {
                 displayName = subjectDreamer.name || subjectDreamer.display_name || subjectDreamer.handle?.split('.')[0] || 'Avatar';
             } else {
@@ -1896,7 +1901,12 @@ class Profile {
             }
         }
         
-        if (img) img.src = sticker.image || '/assets/icon_face.png';
+        // Use subject's current avatar as fallback (like atsumeat)
+        const fallbackAvatar = subjectDreamer?.avatar || '/assets/icon_face.png';
+        if (img) {
+            img.src = sticker.image || fallbackAvatar;
+            img.onerror = () => { img.src = fallbackAvatar; };
+        }
         if (nameEl) nameEl.textContent = displayName;
         if (typeEl) typeEl.textContent = sticker.imageType === 'avatar' ? 'Avatar' : (sticker.imageType || 'Custom');
         
@@ -1991,6 +2001,10 @@ class Profile {
         }
         if (theirImg && sticker.image) {
             theirImg.src = sticker.image;
+            // Fallback to subject's current avatar if image fails
+            const subjectDreamer = sticker.subjectDid ? this.knownDreamersMap?.get(sticker.subjectDid) : null;
+            const fallbackAvatar = subjectDreamer?.avatar || '/assets/icon_face.png';
+            theirImg.onerror = () => { theirImg.src = fallbackAvatar; };
         }
         
         // Store current trade data
@@ -2104,11 +2118,14 @@ class Profile {
         this.pendingDeleteBtn = btn;
         this.pendingDeleteDreamer = dreamer;
         
-        // Set preview image
+        // Set preview image with fallback to subject's current avatar
         const previewImg = popup.querySelector('.delete-sticker-preview-img');
         if (previewImg) {
             const imageUrl = typeof sticker.image === 'string' ? sticker.image : '';
-            previewImg.src = imageUrl || '/assets/icon_face.png';
+            const subjectDreamer = sticker.subjectDid ? this.knownDreamersMap?.get(sticker.subjectDid) : null;
+            const fallbackAvatar = subjectDreamer?.avatar || '/assets/icon_face.png';
+            previewImg.src = imageUrl || fallbackAvatar;
+            previewImg.onerror = () => { previewImg.src = fallbackAvatar; };
         }
         
         popup.style.display = 'flex';
@@ -2193,11 +2210,13 @@ class Profile {
         // Get what we're requesting (stickerIn)
         let requestImg = '/assets/icon_face.png';
         let requestName = 'Unknown';
+        let requestFallback = '/assets/icon_face.png';
         if (pending.requestedSticker) {
             requestImg = pending.requestedSticker.image || requestImg;
             const subjectDreamer = this.knownDreamersMap?.get(pending.requestedSticker.subjectDid);
             if (subjectDreamer) {
                 requestName = subjectDreamer.name || subjectDreamer.display_name || subjectDreamer.handle?.split('.')[0] || requestName;
+                requestFallback = subjectDreamer.avatar || requestFallback;
             }
         }
         
@@ -2210,7 +2229,10 @@ class Profile {
         
         if (offerImgEl) offerImgEl.src = offerImg;
         if (offerNameEl) offerNameEl.textContent = offerName;
-        if (requestImgEl) requestImgEl.src = requestImg;
+        if (requestImgEl) {
+            requestImgEl.src = requestImg;
+            requestImgEl.onerror = () => { requestImgEl.src = requestFallback; };
+        }
         if (requestNameEl) requestNameEl.textContent = requestName;
         if (partnerEl) partnerEl.textContent = `Trading with ${partnerName}`;
         
@@ -2644,6 +2666,29 @@ class Profile {
         return pdsUrl;
     }
     
+    /**
+     * Resolve a sticker image to the correct URL.
+     * Handles both blob refs and string URLs.
+     * @param {string|object} image - The image field from the sticker record
+     * @param {string} ownerDid - The DID who owns the blob (originalOwner or subjectDid)
+     * @param {string} fallbackDid - Fallback DID if ownerDid is not available
+     * @returns {string} - URL to display the image
+     */
+    resolveStickerImageUrl(image, ownerDid, fallbackDid) {
+        // Case 1: Blob reference object - build CDN URL
+        if (typeof image === 'object' && image?.ref) {
+            const ref = image.ref;
+            const link = ref['$link'] || ref.toString();
+            if (link && link !== '[object Object]') {
+                const blobDid = ownerDid || fallbackDid;
+                return `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
+            }
+        }
+        
+        // Case 2: String URL - use as-is
+        return image;
+    }
+    
     async checkIncomingOffers() {
         const TRANSACTION_COLLECTION = 'com.suibari.atsumeat.transaction';
         
@@ -2697,12 +2742,8 @@ class Profile {
                                     const stickerRes = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${stickerDid}&collection=com.suibari.atsumeat.sticker&rkey=${stickerRkey}`);
                                     if (stickerRes.ok) {
                                         const stickerData = await stickerRes.json();
-                                        let imageUrl = stickerData.value.image;
-                                        if (typeof imageUrl === 'object' && imageUrl?.ref) {
-                                            const link = imageUrl.ref['$link'] || imageUrl.ref.toString();
-                                            const blobDid = stickerData.value.originalOwner || stickerDid;
-                                            imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
-                                        }
+                                        const blobDid = stickerData.value.originalOwner || stickerData.value.subjectDid || stickerDid;
+                                        const imageUrl = this.resolveStickerImageUrl(stickerData.value.image, blobDid, stickerDid);
                                         offeredSticker = {
                                             uri: stickerUri,
                                             image: imageUrl,
@@ -2847,13 +2888,8 @@ class Profile {
                         const stickerRes = await fetch(`${stickerPdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${stickerDid}&collection=com.suibari.atsumeat.sticker&rkey=${stickerRkey}`);
                         if (stickerRes.ok) {
                             const stickerData = await stickerRes.json();
-                            let imageUrl = stickerData.value.image;
-                            // Resolve BlobRef if needed
-                            if (typeof imageUrl === 'object' && imageUrl?.ref) {
-                                const link = imageUrl.ref['$link'] || imageUrl.ref.toString();
-                                const blobDid = stickerData.value.originalOwner || stickerDid;
-                                imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
-                            }
+                            const blobDid = stickerData.value.originalOwner || stickerData.value.subjectDid || stickerDid;
+                            const imageUrl = this.resolveStickerImageUrl(stickerData.value.image, blobDid, stickerDid);
                             requestedSticker = {
                                 uri: stickerUri,
                                 image: imageUrl,
@@ -2933,12 +2969,8 @@ class Profile {
                             const stickerRes = await fetch(`${stickerPdsUrl}/xrpc/com.atproto.repo.getRecord?repo=${stickerDid}&collection=com.suibari.atsumeat.sticker&rkey=${stickerRkey}`);
                             if (stickerRes.ok) {
                                 const stickerData = await stickerRes.json();
-                                let imageUrl = stickerData.value.image;
-                                if (typeof imageUrl === 'object' && imageUrl?.ref) {
-                                    const link = imageUrl.ref['$link'] || imageUrl.ref.toString();
-                                    const blobDid = stickerData.value.originalOwner || stickerDid;
-                                    imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
-                                }
+                                const blobDid = stickerData.value.originalOwner || stickerData.value.subjectDid || stickerDid;
+                                const imageUrl = this.resolveStickerImageUrl(stickerData.value.image, blobDid, stickerDid);
                                 requestedSticker = {
                                     uri: stickerUri,
                                     image: imageUrl,
@@ -3036,12 +3068,8 @@ class Profile {
                         }
                         
                         // Resolve image URL if needed
-                        let imageUrl = sticker.image;
-                        if (typeof imageUrl === 'object' && imageUrl.ref) {
-                            const link = imageUrl.ref.$link || imageUrl.ref.toString();
-                            const blobDid = sticker.originalOwner || partnerDid;
-                            imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
-                        }
+                        const blobDid = sticker.originalOwner || sticker.subjectDid || partnerDid;
+                        const imageUrl = this.resolveStickerImageUrl(sticker.image, blobDid, partnerDid);
                         
                         // Request signature for the new sticker
                         const sigResponse = await fetch('/api/sticker/sign-seal', {
@@ -3205,12 +3233,8 @@ class Profile {
                 if (alreadyHas) continue;
                 
                 // Resolve image URL if needed
-                let imageUrl = sticker.image;
-                if (typeof imageUrl === 'object' && imageUrl.ref) {
-                    const link = imageUrl.ref.$link || imageUrl.ref.toString();
-                    const blobDid = sticker.originalOwner || offer.partnerDid;
-                    imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
-                }
+                const blobDid = sticker.originalOwner || sticker.subjectDid || offer.partnerDid;
+                const imageUrl = this.resolveStickerImageUrl(sticker.image, blobDid, offer.partnerDid);
                 
                 // Request signature for the new sticker
                 const sigResponse = await fetch('/api/sticker/sign-seal', {
@@ -3509,18 +3533,8 @@ class Profile {
             // Transform records to sticker objects with resolved image URLs
             const stickers = records.map(record => {
                 const sticker = record.value;
-                let imageUrl = sticker.image;
-                
-                // Resolve BlobRef to CDN URL
-                if (typeof sticker.image === 'object' && sticker.image?.ref) {
-                    const ref = sticker.image.ref;
-                    const link = ref['$link'] || ref.toString();
-                    if (link && link !== '[object Object]') {
-                        // Use original owner's DID for blob resolution
-                        const blobDid = sticker.originalOwner || did;
-                        imageUrl = `https://cdn.bsky.app/img/feed_fullsize/plain/${blobDid}/${link}@jpeg`;
-                    }
-                }
+                const blobDid = sticker.originalOwner || sticker.subjectDid || did;
+                const imageUrl = this.resolveStickerImageUrl(sticker.image, blobDid, did);
                 
                 return {
                     uri: record.uri,
