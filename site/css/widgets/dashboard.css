@@ -476,6 +476,68 @@
     margin-bottom: 12px;
 }
 
+/* Featured Tools Box */
+.featured-tools-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px;
+    background: linear-gradient(135deg, #f8f6ff 0%, #f0eeff 100%);
+    border: 2px solid var(--user-color, #734ba1);
+    border-radius: 0;
+}
+
+.featured-tool-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 8px;
+    background: white;
+    border: 1px solid var(--user-color, #734ba1);
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 60px;
+}
+
+.featured-tool-btn:hover {
+    background: color-mix(in srgb, var(--user-color, #734ba1) 8%, white);
+    border-color: var(--user-color, #734ba1);
+    transform: translateY(-1px);
+}
+
+.featured-tool-btn.unavailable {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+.featured-tool-btn.unavailable:hover {
+    transform: none;
+    background: #f5f5f5;
+}
+
+.featured-tool-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.featured-tool-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--user-color, #734ba1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.featured-tool-btn.unavailable .featured-tool-label {
+    color: #999;
+}
+
 .tool-row {
     display: flex;
     justify-content: space-between;
@@ -6874,3 +6936,331 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
+
+/* =====================================================
+   INVITES TOOL & MODAL STYLES
+   ===================================================== */
+
+/* Invites Tool Row */
+.tool-row.invites-tool {
+    gap: 8px;
+}
+
+.invites-counter {
+    flex: 1;
+    font-size: 0.75rem;
+    color: #888;
+    text-align: right;
+    padding-right: 8px;
+}
+
+/* Invites Modal Overlay */
+.invites-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 10500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 20px;
+}
+
+.invites-modal-overlay.visible {
+    opacity: 1;
+}
+
+.invites-modal {
+    background: #ffffff;
+    border: 2px solid var(--reverie-core-color, #734ba1);
+    border-radius: 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    max-width: 500px;
+    width: 100%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95);
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.invites-modal-overlay.visible .invites-modal {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* Modal Header */
+.invites-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: var(--reverie-core-color, #734ba1);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.invites-modal-title {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.invites-modal-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #ffffff;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.invites-modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Modal Body */
+.invites-modal-body {
+    padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.invites-modal-description {
+    margin: 0 0 1.25rem 0;
+    font-size: 0.875rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+/* Invites List */
+.invites-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.invites-loading,
+.invites-error {
+    text-align: center;
+    padding: 2rem;
+    color: #888;
+    font-size: 0.875rem;
+}
+
+.invites-error {
+    color: #dc3545;
+}
+
+/* Individual Invite Row */
+.invite-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f8f6ff;
+    border-left: 3px solid var(--reverie-core-color, #734ba1);
+}
+
+.invite-row.redeemed {
+    background: #f5f5f5;
+    border-left-color: #28a745;
+}
+
+.invite-label {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.invite-code-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Revealed Code */
+.invite-code {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.8rem;
+    color: var(--reverie-core-color, #734ba1);
+    background: white;
+    padding: 6px 10px;
+    border: 1px solid #d0c7f0;
+    user-select: all;
+}
+
+.invite-code.clickable {
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.invite-code.clickable:hover {
+    background: var(--reverie-core-color, #734ba1);
+    color: white;
+    border-color: var(--reverie-core-color, #734ba1);
+}
+
+.invite-code.copied {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.invite-code.just-revealed {
+    animation: revealPulse 0.5s ease;
+}
+
+@keyframes revealPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); background: #e8e0f4; }
+    100% { transform: scale(1); }
+}
+
+.invite-row.redeemed .invite-code {
+    color: #888;
+    background: #eee;
+    border-color: #ddd;
+    cursor: default;
+}
+
+.invite-status.redeemed {
+    font-size: 0.7rem;
+    color: #28a745;
+    font-weight: 600;
+}
+
+/* Copy Code Button */
+.invite-copy-btn {
+    padding: 4px 10px;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.invite-copy-btn:hover {
+    background: #4338ca;
+    transform: scale(1.02);
+}
+
+.invite-copy-btn.copied {
+    background: #059669;
+}
+
+/* Reveal Button (for unrevealed codes) */
+.invite-reveal-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: #1f2937;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 32px;
+}
+
+.invite-reveal-btn:hover {
+    background: #374151;
+}
+
+.invite-reveal-btn:disabled {
+    cursor: wait;
+}
+
+.reveal-blockout {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.8rem;
+    color: #4b5563;
+    letter-spacing: -1px;
+}
+
+.reveal-text {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.reveal-loading {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.reveal-error {
+    font-size: 0.7rem;
+    color: #f87171;
+    text-transform: uppercase;
+}
+
+/* Modal Footer */
+.invites-modal-footer {
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+.invites-footer-note {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    text-align: center;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    .invites-modal {
+        max-width: 100%;
+        margin: 10px;
+    }
+    
+    .invite-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .invite-code-container {
+        width: 100%;
+    }
+    
+    .invite-code {
+        font-size: 0.7rem;
+        word-break: break-all;
+    }
+}
+

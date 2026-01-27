@@ -17,9 +17,23 @@ class LoginWidget {
         const params = new URLSearchParams(window.location.search);
         if (params.get('login') === 'true') {
             console.log('🔐 Login param detected, opening login popup');
-            // Clean up the URL to remove the param
+            // Store returnTo URL if provided
+            const returnTo = params.get('returnTo');
+            if (returnTo) {
+                sessionStorage.setItem('login_returnTo', returnTo);
+                console.log('🔐 Return URL stored:', returnTo);
+            }
+            // Store handle if provided (for prefilling)
+            const handle = params.get('handle');
+            if (handle) {
+                sessionStorage.setItem('login_prefillHandle', handle);
+                console.log('🔐 Prefill handle stored:', handle);
+            }
+            // Clean up the URL to remove the params
             const url = new URL(window.location.href);
             url.searchParams.delete('login');
+            url.searchParams.delete('returnTo');
+            url.searchParams.delete('handle');
             window.history.replaceState({}, '', url.pathname + url.search);
             // Wait for DOM and OAuth manager to be ready, then show popup
             setTimeout(() => this.showLoginPopup(), 500);
@@ -109,6 +123,14 @@ class LoginWidget {
             }
         } catch (error) {
             console.error('❌ Error triggering user_login pigeons:', error);
+        }
+        
+        // Check for returnTo URL and redirect if present
+        const returnTo = sessionStorage.getItem('login_returnTo');
+        if (returnTo) {
+            sessionStorage.removeItem('login_returnTo');
+            console.log('🔐 Redirecting to:', returnTo);
+            window.location.href = returnTo;
         }
     }
     showLoginPopup() {
@@ -700,6 +722,16 @@ class LoginWidget {
         // Static placeholder - no rotation needed
         handleInput.placeholder = 'handle.bsky.social';
         
+        // Check for prefilled handle from sessionStorage (e.g., from heraldry page)
+        const prefillHandle = sessionStorage.getItem('login_prefillHandle');
+        if (prefillHandle) {
+            sessionStorage.removeItem('login_prefillHandle');
+            handleInput.value = prefillHandle;
+            console.log('🔐 Prefilled handle:', prefillHandle);
+            // Trigger the handle check after a brief delay
+            setTimeout(() => checkHandle(prefillHandle), 100);
+        }
+        
         // Check handle as user types
         const checkHandle = async (inputValue) => {
             let handle = inputValue.replace(/^@/, '').trim();
@@ -1117,21 +1149,42 @@ class LoginWidget {
         });
         
         // Become a Resident button
-        document.getElementById('loginBecomeResident').addEventListener('click', () => {
+        document.getElementById('loginBecomeResident').addEventListener('click', async () => {
             overlay.classList.remove('visible');
             loginBox.classList.remove('visible');
-            setTimeout(() => {
-                overlay.remove();
-                if (window.CreateDreamer) {
-                    const createDreamer = new window.CreateDreamer();
-                    createDreamer.show({
-                        onSuccess: (result) => console.log('✅ Account created:', result),
-                        onCancel: () => console.log('❌ Account creation cancelled')
+            
+            // Wait for animation to complete
+            await new Promise(r => setTimeout(r, 300));
+            overlay.remove();
+            
+            // Dynamically load CreateDreamer if not available
+            if (!window.CreateDreamer) {
+                try {
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = '/js/widgets/createdreamer.js';
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.appendChild(script);
                     });
-                } else {
-                    this.showMessage('Error', 'Account creation system not available', true);
+                    // Wait a moment for the class to register
+                    await new Promise(r => setTimeout(r, 150));
+                } catch (e) {
+                    console.error('Failed to load CreateDreamer:', e);
+                    alert('Account creation system failed to load. Please refresh the page.');
+                    return;
                 }
-            }, 300);
+            }
+            
+            if (window.CreateDreamer) {
+                const createDreamer = new window.CreateDreamer();
+                createDreamer.show({
+                    onSuccess: (result) => console.log('✅ Account created:', result),
+                    onCancel: () => console.log('❌ Account creation cancelled')
+                });
+            } else {
+                alert('Account creation system not available. Please refresh the page.');
+            }
         });
         
         // Close button

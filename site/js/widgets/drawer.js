@@ -245,7 +245,7 @@ class Drawer {
                 }
 
                 // Don't close drawer if clicking on dashboard modals
-                if (e.target.closest('.edit-name-modal, .edit-avatar-modal, .dreamer-modal-overlay')) {
+                if (e.target.closest('.edit-name-modal, .edit-avatar-modal, .dreamer-modal-overlay, .invites-modal-overlay, .invites-modal')) {
                     return;
                 }
 
@@ -270,6 +270,13 @@ class Drawer {
                 const loginOverlay = document.querySelector('.login-overlay, .logout-overlay');
                 if (loginOverlay && loginOverlay.classList.contains('visible')) {
                     console.log('🚫 [Drawer] Backdrop click blocked - login overlay is active');
+                    return;
+                }
+                
+                // Check if any modal overlays are open (invites, spectrum calculator, etc.)
+                const modalOverlay = document.querySelector('.invites-modal-overlay.visible, .spectrum-calculator-overlay.visible');
+                if (modalOverlay) {
+                    console.log('🚫 [Drawer] Backdrop click blocked - modal overlay is active');
                     return;
                 }
                 

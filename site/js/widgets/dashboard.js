@@ -150,6 +150,21 @@ class Dashboard {
             guardianPanelScript.src = '/js/widgets/guardianpanel.js?v=5';
             document.head.appendChild(guardianPanelScript);
         }
+        
+        // Load share lore widget (for Share Lore tool)
+        if (!document.querySelector('script[src*="js/widgets/sharelore.js"]')) {
+            const shareLoreScript = document.createElement('script');
+            shareLoreScript.src = '/js/widgets/sharelore.js';
+            document.head.appendChild(shareLoreScript);
+        }
+        
+        // Load share lore CSS
+        if (!document.querySelector('link[href*="css/pages/story.css"]')) {
+            const shareLoreCss = document.createElement('link');
+            shareLoreCss.rel = 'stylesheet';
+            shareLoreCss.href = '/css/pages/story.css';
+            document.head.appendChild(shareLoreCss);
+        }
     }
 
     /**
@@ -1212,13 +1227,34 @@ class Dashboard {
             return;
         }
         
-        // Open share lore modal
+        // Open share lore modal - create widget instance if needed
         if (window.shareLoreWidget) {
-            console.log('✅ [Dashboard] Opening share lore modal');
+            console.log('✅ [Dashboard] Opening share lore modal (existing instance)');
+            window.shareLoreWidget.show();
+        } else if (window.ShareLore) {
+            // Create a new instance if the class is loaded but no widget exists
+            console.log('🔄 [Dashboard] Creating new ShareLore instance');
+            window.shareLoreWidget = new window.ShareLore();
             window.shareLoreWidget.show();
         } else {
-            console.error('❌ [Dashboard] shareLoreWidget not available');
-            alert('Share Lore feature is loading. Please try again in a moment.');
+            // Script not loaded yet, try loading it
+            console.log('⏳ [Dashboard] ShareLore not loaded, attempting to load...');
+            const script = document.createElement('script');
+            script.src = '/js/widgets/sharelore.js';
+            script.onload = () => {
+                console.log('✅ [Dashboard] ShareLore script loaded');
+                if (window.ShareLore) {
+                    window.shareLoreWidget = new window.ShareLore();
+                    window.shareLoreWidget.show();
+                } else {
+                    alert('Share Lore feature failed to load. Please refresh the page.');
+                }
+            };
+            script.onerror = () => {
+                console.error('❌ [Dashboard] Failed to load ShareLore script');
+                alert('Share Lore feature failed to load. Please refresh the page.');
+            };
+            document.head.appendChild(script);
         }
     }
     
@@ -3200,8 +3236,7 @@ class Dashboard {
     async updateStatusDisplay() {
         const statusEl = document.getElementById('dashboardStatusDisplay');
         if (!statusEl) {
-            console.warn('[Dashboard] Status element not found');
-            // Retry once after a delay in case DOM isn't ready
+            // Element may not exist yet during initial render, retry silently
             setTimeout(() => {
                 const retryEl = document.getElementById('dashboardStatusDisplay');
                 if (retryEl && this.dreamerData) {
@@ -3385,9 +3420,35 @@ class Dashboard {
             // Check if user is a Side Door visitor (minimal permissions)
             const isSideDoor = this.isSideDoorUser();
             
+            // Check if mapper is available (for tools that need it)
+            let mapperAvailable = false;
+            try {
+                const mapperStatusResponse = await fetch('/api/work/mapper/status');
+                if (mapperStatusResponse.ok) {
+                    const mapperData = await mapperStatusResponse.json();
+                    mapperAvailable = mapperData.role_info?.workers?.length > 0;
+                }
+            } catch (error) {
+                console.warn('Failed to check mapper availability:', error);
+            }
+            
             // Tools Section
             html += '<div class="section-title-tools">Tools</div>';
             html += '<div class="tools-list">';
+            
+            // Share Lore & Find Origin - both buttons in one row
+            html += `
+                <div class="tool-row" style="justify-content: flex-start; gap: 8px;">
+                    <button class="tool-btn ${isSideDoor ? 'unavailable' : ''}" 
+                            onclick="window.dashboardWidget.handleShareLore()">
+                        SHARE LORE
+                    </button>
+                    <button class="tool-btn ${mapperAvailable ? '' : 'unavailable'}" 
+                            onclick="window.dashboardWidget.openSpectrumCalculator()">
+                        FIND ORIGIN
+                    </button>
+                </div>
+            `;
             
             // Handle Selector Tool FIRST - build available handles from name + alts
             const availableHandles = [];
@@ -3452,36 +3513,14 @@ class Dashboard {
                 </div>
             `;
             
-            // Check if mapper is available (for tools that need it)
-            let mapperAvailable = false;
-            try {
-                const mapperStatusResponse = await fetch('/api/work/mapper/status');
-                if (mapperStatusResponse.ok) {
-                    const mapperData = await mapperStatusResponse.json();
-                    mapperAvailable = mapperData.role_info?.workers?.length > 0;
-                }
-            } catch (error) {
-                console.warn('Failed to check mapper availability:', error);
-            }
-            
-            // Spectrum Calculator Tool
+            // Invites Tool - user's personal invite codes
             html += `
-                <div class="tool-row">
-                    <span class="tool-label">Spectrum Calculator</span>
-                    <button class="tool-btn ${mapperAvailable ? 'available' : 'unavailable'}" 
-                            onclick="window.dashboardWidget.openSpectrumCalculator()">
-                        ${mapperAvailable ? 'USE TOOL' : 'NEEDS MAPPER'}
-                    </button>
-                </div>
-            `;
-            
-            // Share Lore Tool - requires write access
-            html += `
-                <div class="tool-row ${isSideDoor ? 'disabled-tool' : ''}">
-                    <span class="tool-label">Share Lore</span>
-                    <button class="tool-btn ${isSideDoor ? 'unavailable' : 'available'}" 
-                            onclick="window.dashboardWidget.handleShareLore()">
-                        ${isSideDoor ? 'VISITING' : 'USE TOOL'}
+                <div class="tool-row invites-tool ${isSideDoor ? 'disabled-tool' : ''}">
+                    <span class="tool-label">Create Invites</span>
+                    <span class="invites-counter" id="invitesCounter">—/3 redeemed</span>
+                    <button class="tool-btn ${isSideDoor ? 'unavailable' : ''}" 
+                            onclick="window.dashboardWidget.openInvitesPopup()">
+                        GET CODE
                     </button>
                 </div>
             `;
@@ -3606,6 +3645,9 @@ class Dashboard {
             html += '</div>';
             
             section.innerHTML = html;
+            
+            // Load invites counter (async, don't block)
+            this.loadInvitesCounter();
             
             // Setup app password input formatting if not connected
             if (!isConnected) {
@@ -4104,6 +4146,384 @@ class Dashboard {
         } else {
             console.error('Spectrum Calculator modal not available');
             alert('Spectrum Calculator is not available. Please refresh the page.');
+        }
+    }
+    
+    /**
+     * Open the invites popup to show/reveal user's personal invite codes
+     */
+    async openInvitesPopup() {
+        console.log('🎫 [Dashboard] Opening invites popup');
+        
+        // Check if Side Door user
+        if (this.isSideDoorUser()) {
+            console.log('🚪 Side Door user - prompting for credentials');
+            if (window.oauthManager?._promptForCredentials) {
+                window.oauthManager._promptForCredentials();
+            }
+            return;
+        }
+        
+        // Check if logged in
+        const session = window.oauthManager?.getSession?.();
+        if (!session) {
+            console.log('⚠️ [Dashboard] No session, showing login');
+            if (window.loginWidget && window.loginWidget.showLoginPopup) {
+                window.loginWidget.showLoginPopup();
+            }
+            return;
+        }
+        
+        // Create and show the popup
+        this.showInvitesModal();
+    }
+    
+    /**
+     * Show the invites modal with the user's 3 invite codes
+     */
+    async showInvitesModal() {
+        // Remove existing modal if present
+        const existingModal = document.querySelector('.invites-modal-overlay');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Set flag to prevent drawer from closing
+        this.invitesModalOpen = true;
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'invites-modal-overlay';
+        
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'invites-modal';
+        
+        modal.innerHTML = `
+            <div class="invites-modal-header">
+                <h2 class="invites-modal-title">
+                    <img src="/assets/icon.png" style="width: 24px; height: 24px; margin-right: 0.5rem; vertical-align: middle;" alt="">
+                    Your Invite Codes
+                </h2>
+                <button class="invites-modal-close-btn" aria-label="Close">×</button>
+            </div>
+            <div class="invites-modal-body">
+                <p class="invites-modal-description">
+                    Share these codes to invite others to become resident dreamweavers at reverie.house.
+                    Each code can only be used once.
+                </p>
+                <div class="invites-list" id="invitesList">
+                    <div class="invites-loading">Loading your invite codes...</div>
+                </div>
+            </div>
+            <div class="invites-modal-footer">
+                <p class="invites-footer-note">
+                    Codes are generated when revealed and remain valid until used.
+                </p>
+            </div>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Animate in
+        requestAnimationFrame(() => {
+            overlay.classList.add('visible');
+        });
+        
+        // Close handlers
+        const closeBtn = modal.querySelector('.invites-modal-close-btn');
+        closeBtn.addEventListener('click', () => this.closeInvitesModal());
+        
+        // Prevent clicks inside modal from propagating to drawer
+        modal.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                this.closeInvitesModal();
+            }
+        });
+        
+        // Escape key to close
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                this.closeInvitesModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // Load invite data
+        await this.loadInvitesData();
+    }
+    
+    /**
+     * Load and render the user's invite codes
+     */
+    async loadInvitesData() {
+        const invitesList = document.getElementById('invitesList');
+        if (!invitesList) return;
+        
+        try {
+            const token = await this.getOAuthToken();
+            if (!token || token.length < 20) {
+                invitesList.innerHTML = '<div class="invites-error">Authentication required. Please refresh and try again.</div>';
+                return;
+            }
+            
+            const response = await fetch('/api/user/invites/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Invites API error:', response.status, errorText);
+                throw new Error(`Server error (${response.status})`);
+            }
+            
+            const data = await response.json();
+            this.renderInvitesList(data);
+            
+            // Update the counter in the dashboard
+            this.updateInvitesCounter(data.redeemed_count, data.total);
+            
+        } catch (error) {
+            console.error('❌ Error loading invites:', error);
+            invitesList.innerHTML = '<div class="invites-error">Failed to load invite codes. Please try again.</div>';
+        }
+    }
+    
+    /**
+     * Render the invites list in the modal
+     */
+    renderInvitesList(data) {
+        const invitesList = document.getElementById('invitesList');
+        if (!invitesList) return;
+        
+        let html = '';
+        
+        data.invites.forEach((invite, index) => {
+            const slotNum = String(invite.slot).padStart(2, '0');
+            const isRevealed = invite.revealed;
+            const isRedeemed = invite.redeemed;
+            
+            html += `
+                <div class="invite-row ${isRedeemed ? 'redeemed' : ''}" data-slot="${invite.slot}">
+                    <span class="invite-label">Invite ${slotNum}:</span>
+                    <div class="invite-code-container">
+                        ${isRevealed ? `
+                            <span class="invite-code ${isRedeemed ? '' : 'clickable'}" 
+                                  data-code="${invite.code}"
+                                  onclick="window.dashboardWidget.copyInviteCode(this)"
+                                  title="${isRedeemed ? 'This code has been redeemed' : 'Click to copy'}">
+                                ${invite.code}
+                            </span>
+                            ${isRedeemed ? 
+                                '<span class="invite-status redeemed">✓ REDEEMED</span>' : 
+                                `<button class="invite-copy-btn" 
+                                         onclick="window.dashboardWidget.copyInviteCodeBySlot(${invite.slot}, this)"
+                                         title="Copy code to clipboard">COPY CODE</button>`
+                            }
+                        ` : `
+                            <button class="invite-reveal-btn" 
+                                    onclick="window.dashboardWidget.revealInviteCode(${invite.slot}, this)">
+                                <span class="reveal-blockout">████████████████████</span>
+                                <span class="reveal-text">Click to reveal</span>
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `;
+        });
+        
+        invitesList.innerHTML = html;
+    }
+    
+    /**
+     * Reveal an invite code (generates it from PDS if needed)
+     */
+    async revealInviteCode(slot, buttonElement) {
+        console.log(`🎫 [Dashboard] Revealing invite slot ${slot}`);
+        
+        // Show loading state
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = '<span class="reveal-loading">Generating...</span>';
+        
+        try {
+            const token = await this.getOAuthToken();
+            if (!token) {
+                throw new Error('Authentication required');
+            }
+            
+            const response = await fetch(`/api/user/invites/reveal/${slot}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to generate code');
+            }
+            
+            const data = await response.json();
+            
+            // Replace button with the revealed code and copy button
+            const container = buttonElement.parentElement;
+            const row = container.closest('.invite-row');
+            const slotNum = row?.dataset.slot || slot;
+            
+            container.innerHTML = `
+                <span class="invite-code clickable" 
+                      data-code="${data.code}"
+                      onclick="window.dashboardWidget.copyInviteCode(this)"
+                      title="Click to copy">
+                    ${data.code}
+                </span>
+                <button class="invite-copy-btn" 
+                        onclick="window.dashboardWidget.copyInviteCodeBySlot(${slotNum}, this)"
+                        title="Copy code to clipboard">COPY CODE</button>
+            `;
+            
+            // Add reveal animation
+            container.querySelector('.invite-code').classList.add('just-revealed');
+            
+        } catch (error) {
+            console.error('❌ Error revealing invite:', error);
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = `
+                <span class="reveal-blockout">████████████████████</span>
+                <span class="reveal-error">Failed - click to retry</span>
+            `;
+        }
+    }
+    
+    /**
+     * Copy an invite code to clipboard
+     */
+    async copyInviteCode(element) {
+        const code = element.dataset.code;
+        if (!code) return;
+        
+        // Check if redeemed (don't allow copying redeemed codes)
+        if (element.closest('.invite-row')?.classList.contains('redeemed')) {
+            return;
+        }
+        
+        try {
+            await navigator.clipboard.writeText(code);
+            
+            // Visual feedback
+            element.classList.add('copied');
+            const originalText = element.textContent;
+            element.textContent = 'Copied!';
+            
+            setTimeout(() => {
+                element.textContent = originalText;
+                element.classList.remove('copied');
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Failed to copy:', error);
+            // Fallback: select the text
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }
+    
+    /**
+     * Copy an invite code by slot number (for COPY CODE button)
+     */
+    async copyInviteCodeBySlot(slot, buttonElement) {
+        const row = document.querySelector(`.invite-row[data-slot="${slot}"]`);
+        if (!row) return;
+        
+        const codeElement = row.querySelector('.invite-code');
+        if (!codeElement) return;
+        
+        const code = codeElement.dataset.code;
+        if (!code) return;
+        
+        try {
+            await navigator.clipboard.writeText(code);
+            
+            // Visual feedback on the button
+            const originalText = buttonElement.textContent;
+            buttonElement.textContent = 'COPIED!';
+            buttonElement.classList.add('copied');
+            
+            // Also flash the code
+            codeElement.classList.add('copied');
+            
+            setTimeout(() => {
+                buttonElement.textContent = originalText;
+                buttonElement.classList.remove('copied');
+                codeElement.classList.remove('copied');
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Failed to copy:', error);
+        }
+    }
+    
+    /**
+     * Update the invites counter in the dashboard
+     */
+    updateInvitesCounter(redeemed, total) {
+        const counter = document.getElementById('invitesCounter');
+        if (counter) {
+            counter.textContent = `${redeemed}/${total} redeemed`;
+        }
+    }
+    
+    /**
+     * Load invites counter on dashboard load (non-blocking)
+     */
+    async loadInvitesCounter() {
+        // Don't load for Side Door users
+        if (this.isSideDoorUser()) return;
+        
+        try {
+            const token = await this.getOAuthToken();
+            // Only proceed if we have a valid-looking token (at least 20 chars)
+            if (!token || token.length < 20) {
+                console.log('[Dashboard] Skipping invites counter - no valid token');
+                return;
+            }
+            
+            const response = await fetch('/api/user/invites/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.updateInvitesCounter(data.redeemed_count, data.total);
+            }
+        } catch (error) {
+            // Silently fail - this is just updating a counter
+            console.log('[Dashboard] Invites counter load skipped:', error.message);
+        }
+    }
+    
+    /**
+     * Close the invites modal
+     */
+    closeInvitesModal() {
+        this.invitesModalOpen = false;
+        const overlay = document.querySelector('.invites-modal-overlay');
+        if (overlay) {
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 300);
         }
     }
     

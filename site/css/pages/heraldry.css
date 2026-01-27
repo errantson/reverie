@@ -117,6 +117,7 @@ body.heraldry-page {
     visibility: visible !important;
     opacity: 1 !important;
     min-height: 300px;
+    border: 3px solid var(--user-color, #87408d);
 }
 
 /* Disabled for debugging
@@ -149,14 +150,14 @@ body.heraldry-page {
 }
 
 .heraldry-logo {
-    width: 56px;
+    width: 120px;
     height: auto;
     margin-bottom: 16px;
 }
 
 .heraldry-title {
     margin: 0 0 6px 0;
-    color: #87408d;
+    color: var(--user-color, #87408d);
     font-size: 1.4rem;
     font-weight: 700;
 }
@@ -182,7 +183,7 @@ body.heraldry-page {
     display: block;
     font-size: 0.7rem;
     font-weight: 600;
-    color: #87408d;
+    color: var(--user-color, #87408d);
     margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -205,12 +206,12 @@ body.heraldry-page {
 }
 
 .handle-input-wrapper:focus-within {
-    border-color: #87408d;
+    border-color: var(--user-color, #87408d);
 }
 
 .handle-prefix {
     padding: 12px 14px;
-    color: #87408d;
+    color: var(--user-color, #87408d);
     font-weight: 600;
     background: #faf8fc;
     border-right: 1px solid #e8e0f0;
@@ -253,8 +254,8 @@ body.heraldry-page {
 }
 
 .heraldry-status-message.success {
-    background: rgba(72, 187, 120, 0.1);
-    color: #276749;
+    background: color-mix(in srgb, var(--user-color, #87408d) 15%, white);
+    color: var(--user-color, #87408d);
 }
 
 .heraldry-status-message.error {
@@ -263,18 +264,20 @@ body.heraldry-page {
 }
 
 .heraldry-status-message.info {
-    background: rgba(66, 153, 225, 0.1);
-    color: #2b6cb0;
+    background: color-mix(in srgb, var(--user-color, #87408d) 10%, white);
+    color: #444;
 }
 
-.heraldry-status-message .status-link {
-    color: #87408d;
+.heraldry-status-message .status-link,
+.heraldry-status-message .herald-link {
+    color: var(--user-color, #87408d);
     text-decoration: underline;
-    font-weight: 500;
+    font-weight: 600;
 }
 
-.heraldry-status-message .status-link:hover {
-    color: #6b3370;
+.heraldry-status-message .status-link:hover,
+.heraldry-status-message .herald-link:hover {
+    filter: brightness(0.8);
 }
 
 /* Error */
@@ -309,7 +312,7 @@ body.heraldry-page {
 
 .heraldry-btn.primary {
     width: 100%;
-    background: #87408d;
+    background: var(--user-color, #87408d);
     color: white;
 }
 
@@ -319,12 +322,12 @@ body.heraldry-page {
 }
 
 .heraldry-btn.secondary {
-    background: #4299e1;
+    background: var(--user-color, #87408d);
     color: white;
 }
 
 .heraldry-btn.secondary:hover:not(:disabled) {
-    background: #3182ce;
+    filter: brightness(0.85);
 }
 
 .heraldry-btn.warning {
@@ -368,31 +371,29 @@ body.heraldry-page {
 }
 
 .heraldry-info-box strong {
-    color: #87408d;
+    color: var(--user-color, #87408d);
 }
 
 .heraldry-info-box p {
-    margin: 0 0 4px 0;
+    margin: 0 0 12px 0;
 }
 
 .heraldry-info-box p:last-child {
     margin-bottom: 0;
 }
 
-/* Back Link */
-.heraldry-back-link {
-    display: block;
-    margin-top: 20px;
-    color: #87408d;
-    text-decoration: none;
-    font-size: 0.8rem;
+/* Logged-in Notice */
+.heraldry-logged-in-notice {
+    padding: 10px 14px;
+    background: color-mix(in srgb, var(--user-color, #87408d) 10%, white);
+    font-size: 0.75rem;
+    color: #555;
     text-align: center;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+    margin-top: 8px;
 }
 
-.heraldry-back-link:hover {
-    opacity: 1;
+.heraldry-logged-in-notice strong {
+    color: var(--user-color, #87408d);
 }
 
 /* =============================================================================
@@ -416,7 +417,7 @@ body.heraldry-page {
     gap: 12px;
     padding: 14px 16px;
     background: linear-gradient(135deg, #f8f4fa 0%, #f0e8f3 100%);
-    border-left: 3px solid #87408d;
+    border-left: 3px solid var(--user-color, #87408d);
 }
 
 .user-status-card .user-avatar {
@@ -477,7 +478,7 @@ body.heraldry-page {
 }
 
 .not-herald-message strong {
-    color: #87408d;
+    color: var(--user-color, #87408d);
 }
 
 /* Herald explainer box */
@@ -490,7 +491,7 @@ body.heraldry-page {
 .herald-explainer h3 {
     margin: 0 0 12px 0;
     font-size: 0.95rem;
-    color: #87408d;
+    color: var(--user-color, #87408d);
     font-weight: 600;
 }
 
@@ -514,7 +515,7 @@ body.heraldry-page {
 }
 
 .herald-explainer strong {
-    color: #87408d;
+    color: var(--user-color, #87408d);
 }
 
 .herald-explainer .herald-note {
@@ -543,7 +544,7 @@ body.heraldry-page {
 .heraldry-info-box h4 {
     margin: 0 0 8px 0;
     font-size: 0.85rem;
-    color: #87408d;
+    color: var(--user-color, #87408d);
     font-weight: 600;
 }
 
@@ -562,7 +563,7 @@ body.heraldry-page {
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    background: linear-gradient(135deg, #87408d 0%, #6f336f 100%);
+    background: linear-gradient(135deg, var(--user-color, #87408d) 0%, var(--user-color-dark, #6f336f) 100%);
     color: white;
 }
 
@@ -682,7 +683,7 @@ body.heraldry-page {
     margin: 0 0 12px 0;
     font-size: 0.7rem;
     font-weight: 700;
-    color: #87408d;
+    color: var(--user-color, #87408d);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -712,7 +713,7 @@ body.heraldry-page {
 .control-label {
     display: block;
     font-weight: 600;
-    color: #87408d;
+    color: var(--user-color, #87408d);
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -795,7 +796,7 @@ body.heraldry-page {
 
 .color-hex-input:focus {
     outline: none;
-    border-color: #87408d;
+    border-color: var(--user-color, #87408d);
 }
 
 .color-picker-widget {
@@ -874,72 +875,50 @@ body.heraldry-page {
     align-items: center;
 }
 
-.coterie-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-}
-
-.coterie-stats-grid {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-}
-
-.coterie-stat {
-    padding: 12px 8px;
-    background: white;
-    border-radius: 0;
+.coterie-stats .section-title {
     text-align: center;
+    width: 100%;
+    margin-bottom: 8px;
 }
 
-.coterie-stat .stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #87408d;
-    margin: 0;
-    line-height: 1;
-}
-
-.coterie-stat .stat-label {
-    font-size: 0.6rem;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin: 6px 0 0 0;
+.coterie-info {
+    width: 100%;
 }
 
 .coterie-members {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
     width: 100%;
-    text-align: center;
+    max-height: 180px;
+    overflow-y: auto;
+    background: #f5f3f7;
+    padding: 4px;
 }
 
 .coterie-member {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 4px 6px;
     background: white;
-    border-radius: 0;
+    overflow: hidden;
 }
 
 .coterie-member .member-avatar {
     width: 20px;
     height: 20px;
-    border-radius: 0;
+    border-radius: 50%;
     object-fit: cover;
+    flex-shrink: 0;
 }
 
 .coterie-member .member-handle {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #555;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Actions */
@@ -990,7 +969,7 @@ body.heraldry-page {
 
 .heraldry-select:focus {
     outline: none;
-    border-color: #87408d;
+    border-color: var(--user-color, #87408d);
 }
 
 .action-group.danger-zone {
@@ -1030,7 +1009,7 @@ body.heraldry-page {
     }
     
     .heraldry-logo {
-        width: 64px;
+        width: 140px;
     }
     
     .heraldry-title {
@@ -1085,4 +1064,46 @@ body.heraldry-page {
     .herald-explainer {
         padding: 24px;
     }
+}
+
+/* Confirmation Modal */
+.confirm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.confirm-modal {
+    background: #ffffff;
+    border: 3px solid var(--user-color, #87408d);
+    padding: 24px;
+    max-width: 320px;
+    width: 90%;
+    text-align: center;
+}
+
+.confirm-modal-message {
+    margin: 0 0 20px 0;
+    font-size: 0.9rem;
+    color: #333;
+    line-height: 1.5;
+}
+
+.confirm-modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.confirm-modal-buttons .heraldry-btn {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 0.85rem;
 }

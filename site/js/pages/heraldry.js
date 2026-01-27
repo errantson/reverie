@@ -1,8 +1,8 @@
 /**
- * Heraldry System - Herald Dashboard
- * Allows community heralds to manage their PDS heraldry
+ * Heraldry System - Community Heraldry Browser & Editor
+ * Browse community heraldry; heralds can edit their community's identity.
  * 
- * Security: Uses OAuth or App Password verification via PDS createSession
+ * Architecture: Uses site-wide OAuth for authentication (no separate session)
  */
 
 console.log('[Heraldry] Loading heraldry.js...');
@@ -15,73 +15,41 @@ class Heraldry {
         this.coterie = [];
         this.hue = 280;
         this.resolvedProfile = null;
-        this.authMode = null; // 'oauth' or 'pds'
         this.oauthManager = null;
-        this.isLoggedOut = false; // Flag to prevent auto-login after logout
-        this.pendingIconClear = false; // Flag for pending icon clear action
-        this.redirectToMainEntrance = false; // Flag for redirect vs OAuth
+        this.pendingIconClear = false;
+        
+        // Set default heraldry colors on page load
+        this.resetHeraldryColors();
+        
         this.init();
     }
 
     async init() {
         console.log('[Heraldry] Initializing...');
         
-        // Check if user explicitly logged out (flag in sessionStorage)
-        const wasLoggedOut = sessionStorage.getItem('heraldry_logged_out');
-        if (wasLoggedOut) {
-            console.log('[Heraldry] User recently logged out, showing login form');
-            sessionStorage.removeItem('heraldry_logged_out');
-            this.setupEventListeners();
-            return;
-        }
-        
-        // Wait for OAuth manager
+        // Wait for OAuth manager (site-wide authentication)
         await this.waitForOAuthManager();
         
-        // Check for heraldry-specific session (PDS auth) FIRST
-        // This takes priority over OAuth since it's heraldry-specific
-        const heraldrySession = this.getHeraldrySession();
-        console.log('[Heraldry] Heraldry session:', heraldrySession);
+        // Get current OAuth session (if logged in site-wide)
+        const session = this.oauthManager?.getSession();
+        console.log('[Heraldry] OAuth session:', session ? { did: session.did, handle: session.handle } : null);
         
-        if (heraldrySession && heraldrySession.did && heraldrySession.heraldryId) {
-            console.log('[Heraldry] Found valid heraldry session, loading dashboard');
-            await this.loadDashboard(heraldrySession);
-            return;
-        }
-        
-        // Check for existing OAuth session (only if no heraldry session)
-        if (this.oauthManager) {
-            const oauthSession = this.oauthManager.getSession();
-            console.log('[Heraldry] OAuth session:', oauthSession ? { did: oauthSession.did, handle: oauthSession.handle } : null);
-            
-            if (oauthSession && oauthSession.did) {
-                console.log('[Heraldry] Checking if OAuth user is a herald...');
-                // Check if this user is a herald
-                const heraldry = await this.checkHeraldByDid(oauthSession.did);
-                console.log('[Heraldry] Ambassador check result:', heraldry);
-                
-                if (heraldry) {
-                    console.log('[Heraldry] User is herald, loading dashboard');
-                    // Create an heraldry session from OAuth
-                    const heraldryData = {
-                        did: oauthSession.did,
-                        handle: oauthSession.handle,
-                        heraldryId: heraldry.id,
-                        authMode: 'oauth'
-                    };
-                    this.setHeraldrySession(heraldryData);
-                    await this.loadDashboard(heraldryData);
-                    return;
-                } else {
-                    console.log('[Heraldry] OAuth user is not a herald, showing not-herald view');
-                    await this.showNotHeraldView(oauthSession);
-                    return;
-                }
+        // If user is logged in and is a herald, load their dashboard directly
+        if (session?.did) {
+            const heraldry = await this.checkHeraldByDid(session.did);
+            if (heraldry) {
+                console.log('[Heraldry] User is herald, loading dashboard');
+                await this.loadDashboard({
+                    did: session.did,
+                    handle: session.handle,
+                    heraldryId: heraldry.id
+                });
+                return;
             }
         }
         
-        console.log('[Heraldry] No session, showing login form');
-        // Setup event listeners for login form
+        // Otherwise show the search/browse interface
+        console.log('[Heraldry] Showing search form');
         this.setupEventListeners();
     }
 
@@ -107,6 +75,9 @@ class Heraldry {
     setupEventListeners() {
         console.log('[Heraldry] Setting up event listeners');
         
+        // Show logged-in status if applicable
+        this.updateLoggedInStatus();
+        
         // Handle input - check on typing
         const handleInput = document.getElementById('heraldHandle');
         if (handleInput) {
@@ -123,7 +94,7 @@ class Heraldry {
             });
         }
         
-        // App password input
+        // App password input (for reverie.house residents)
         const passwordInput = document.getElementById('appPassword');
         if (passwordInput) {
             passwordInput.addEventListener('keypress', (e) => {
@@ -140,19 +111,26 @@ class Heraldry {
             loginBtn.addEventListener('click', () => this.attemptLogin());
         }
         
-        // OAuth button - handles both OAuth login and redirect to main entrance
+        // OAuth / Sign In button - show login popup directly
         const oauthBtn = document.getElementById('oauthBtn');
         if (oauthBtn) {
             oauthBtn.addEventListener('click', () => {
-                if (this.redirectToMainEntrance) {
-                    window.location.href = '/?login=true';
+                // Store handle for prefill and show login popup on this page
+                const handleInput = document.getElementById('heraldHandle');
+                const handle = handleInput?.value?.trim() || '';
+                if (handle) {
+                    sessionStorage.setItem('login_prefillHandle', handle);
+                }
+                // Show login popup directly (login.js is loaded on this page)
+                if (window.loginWidget) {
+                    window.loginWidget.showLoginPopup();
                 } else {
-                    this.loginWithOAuth();
+                    console.error('[Heraldry] Login widget not available');
                 }
             });
         }
         
-        // Sign out button
+        // Sign out button (in dashboard) - redirects to home
         const signOutBtn = document.getElementById('signOutBtn');
         if (signOutBtn) {
             signOutBtn.addEventListener('click', () => this.logout());
@@ -213,76 +191,11 @@ class Heraldry {
     }
 
     async showNotHeraldView(oauthSession) {
-        console.log('[Heraldry] Showing not-herald view for:', oauthSession.handle);
-        
-        // Hide other views, show not-herald view
-        const loginView = document.getElementById('heraldryLogin');
-        const dashboardView = document.getElementById('heraldryDashboard');
-        const notHeraldView = document.getElementById('heraldryNotHerald');
-        
-        if (loginView) loginView.style.display = 'none';
-        if (dashboardView) dashboardView.style.display = 'none';
-        if (notHeraldView) notHeraldView.style.display = 'block';
-        
-        // Get user's profile and PDS info
-        let avatar = '/assets/icon.png'; // Default fallback
-        let pdsDisplay = 'Bluesky';
-        
-        try {
-            // Try to get avatar from OAuth session (profile is stored on currentSession)
-            const session = this.oauthManager.currentSession || this.oauthManager.getSession();
-            if (session) {
-                // Avatar can be on session directly or in session.profile
-                if (session.avatar) {
-                    avatar = session.avatar;
-                } else if (session.profile && session.profile.avatar) {
-                    avatar = session.profile.avatar;
-                }
-            }
-            
-            // Get PDS from DID doc
-            let didDocResponse;
-            if (oauthSession.did.startsWith('did:web:')) {
-                const domain = oauthSession.did.replace('did:web:', '');
-                didDocResponse = await fetch(`https://${domain}/.well-known/did.json`);
-            } else {
-                didDocResponse = await fetch(`https://plc.directory/${oauthSession.did}`);
-            }
-            
-            if (didDocResponse.ok) {
-                const didDoc = await didDocResponse.json();
-                const service = didDoc.service?.find(s => s.id === '#atproto_pds');
-                const pdsEndpoint = service?.serviceEndpoint || '';
-                const pdsDomain = pdsEndpoint.replace(/^https?:\/\//, '').split('/')[0];
-                if (pdsDomain) {
-                    pdsDisplay = pdsDomain;
-                }
-            }
-        } catch (e) {
-            console.warn('[Heraldry] Could not load profile/PDS info:', e);
-        }
-        
-        // Update the view with user info
-        const avatarEl = document.getElementById('notHeraldAvatar');
-        const handleEl = document.getElementById('notHeraldHandle');
-        const pdsEl = document.getElementById('notHeraldPds');
-        
-        if (avatarEl) avatarEl.src = avatar;
-        if (handleEl) handleEl.textContent = `@${oauthSession.handle}`;
-        if (pdsEl) pdsEl.textContent = `on ${pdsDisplay}`;
-        
-        // Setup sign out button
-        const signOutBtn = document.getElementById('notHeraldSignOutBtn');
-        if (signOutBtn) {
-            signOutBtn.addEventListener('click', () => {
-                console.log('[Heraldry] Signing out from not-herald view');
-                sessionStorage.setItem('heraldry_logged_out', 'true');
-                // Show login form
-                if (notHeraldView) notHeraldView.style.display = 'none';
-                if (loginView) loginView.style.display = 'block';
-                this.setupEventListeners();
-            });
-        }
+        // REMOVED - no longer needed
+        // If user is logged in but not a herald, they just see the search form
+        // with a notice that they're logged in
+        console.log('[Heraldry] User logged in but not herald, showing search form');
+        this.setupEventListeners();
     }
 
     setupDashboardListeners() {
@@ -352,85 +265,33 @@ class Heraldry {
     }
 
     // =========================================================================
-    // SESSION MANAGEMENT
+    // AUTHENTICATION (uses site-wide OAuth)
     // =========================================================================
 
-    getHeraldrySession() {
-        try {
-            const session = localStorage.getItem('heraldry_session');
-            return session ? JSON.parse(session) : null;
-        } catch {
-            return null;
-        }
-    }
-
-    setHeraldrySession(data) {
-        localStorage.setItem('heraldry_session', JSON.stringify(data));
-    }
-
-    clearHeraldrySession() {
-        localStorage.removeItem('heraldry_session');
+    getSession() {
+        // Get the current OAuth session (site-wide authentication)
+        return this.oauthManager?.getSession();
     }
 
     getAuthHeaders() {
-        // Get headers for authenticated requests
-        const session = this.getHeraldrySession();
+        // Get headers for authenticated requests using OAuth session
+        const session = this.getSession();
         return {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.authToken || ''}`,
             'X-Ambassador-DID': session?.did || ''
         };
     }
 
     logout() {
-        console.log('[Heraldry] Logging out...');
-        
-        // Clear heraldry session
-        this.clearHeraldrySession();
-        
-        // Set flag to prevent auto-login on next init
-        // Using sessionStorage so it persists across the page reload but not browser restart
-        sessionStorage.setItem('heraldry_logged_out', 'true');
+        console.log('[Heraldry] Logging out - redirecting to home');
         
         // Clear internal state
         this.currentHerald = null;
         this.currentHeraldry = null;
         this.resolvedProfile = null;
-        this.authMode = null;
-        this.isLoggedOut = true;
         
-        console.log('[Heraldry] Session cleared, resetting UI');
-        
-        // Reset UI - hide all views except login
-        const loginView = document.getElementById('heraldryLogin');
-        const dashboardView = document.getElementById('heraldryDashboard');
-        const notHeraldView = document.getElementById('heraldryNotHerald');
-        const handleInput = document.getElementById('heraldHandle');
-        const passwordInput = document.getElementById('appPassword');
-        const passwordGroup = document.getElementById('passwordGroup');
-        const oauthBtn = document.getElementById('oauthBtn');
-        const loginBtn = document.getElementById('loginBtn');
-        
-        if (loginView) loginView.style.display = 'block';
-        if (dashboardView) dashboardView.style.display = 'none';
-        if (notHeraldView) notHeraldView.style.display = 'none';
-        if (handleInput) handleInput.value = '';
-        if (passwordInput) passwordInput.value = '';
-        if (passwordGroup) passwordGroup.style.display = 'none';
-        if (oauthBtn) oauthBtn.style.display = 'none';
-        if (loginBtn) {
-            loginBtn.disabled = true;
-            loginBtn.style.display = 'block';
-            const btnText = loginBtn.querySelector('.btn-text');
-            if (btnText) btnText.textContent = 'Check Status';
-        }
-        
-        this.resetStatus();
-        
-        // Re-setup event listeners since we're back to login view
-        this.setupEventListeners();
-        
-        console.log('[Heraldry] Logout complete');
+        // Redirect to home page (main site handles the global logout)
+        window.location.href = '/';
     }
 
     // =========================================================================
@@ -452,7 +313,6 @@ class Heraldry {
         
         // Reset state
         this.resolvedProfile = null;
-        this.authMode = null;
         errorDiv.style.display = 'none';
         
         if (!handle || handle.length < 3) {
@@ -501,18 +361,51 @@ class Heraldry {
             let pdsDomain = pdsEndpoint.replace(/^https?:\/\//, '').split('/')[0];
             
             // For Bluesky users on relay endpoints, normalize to bsky.social
-            if (pdsDomain.includes('.host.bsky.network') || pdsDomain === 'bsky.social') {
+            const isBskySocial = pdsDomain.includes('.host.bsky.network') || pdsDomain === 'bsky.social';
+            if (isBskySocial) {
                 pdsDomain = 'bsky.social';
             }
             
-            // Check if this user is a herald
+            // Default herald for bsky.social if no DB record exists
+            const BSKY_DEFAULT_HERALD_DID = 'did:plc:ragtjsm2j2vknwkz3zp4oxrd'; // pfrazee.com
+            
+            // Check if this user is a herald via API (database-driven heraldry)
             const heraldryResponse = await fetch(`/api/heraldry/for-domain/${encodeURIComponent(pdsDomain)}`);
             let heraldry = null;
             let isHerald = false;
             
             if (heraldryResponse.ok) {
                 heraldry = await heraldryResponse.json();
+                
+                // For bsky.social with no ambassador set, default to pfrazee.com
+                if (isBskySocial && !heraldry.ambassador_did) {
+                    heraldry.ambassador_did = BSKY_DEFAULT_HERALD_DID;
+                }
+                
                 isHerald = heraldry.ambassador_did === did;
+                
+                // Apply heraldry colors to the page
+                this.applyHeraldryColors(heraldry);
+            } else {
+                // No API heraldry found - try window.heraldrySystem as fallback (static registry)
+                if (window.heraldrySystem) {
+                    const staticHeraldry = window.heraldrySystem.getByServer(pdsEndpoint);
+                    if (staticHeraldry) {
+                        // Normalize static heraldry to match API format for display
+                        heraldry = {
+                            name: staticHeraldry.name,
+                            icon_path: staticHeraldry.icon,
+                            color_primary: staticHeraldry.color,
+                            color_secondary: staticHeraldry.colorSecondary,
+                            ambassador_did: null // Static entries have no ambassador
+                        };
+                        this.applyHeraldryColors(heraldry);
+                    } else {
+                        this.resetHeraldryColors();
+                    }
+                } else {
+                    this.resetHeraldryColors();
+                }
             }
             
             // Store resolved profile
@@ -525,75 +418,98 @@ class Heraldry {
                 isHerald: isHerald
             };
             
-            // Determine auth mode: PDS residents use app password, others use OAuth
-            if (pdsEndpoint === 'https://reverie.house') {
-                this.authMode = 'pds';
-            } else {
-                this.authMode = 'oauth';
-            }
+            // Determine auth mode: PDS residents use app password, others redirect to main entrance
+            const isPdsResident = (pdsEndpoint === 'https://reverie.house');
             
-            // Reset redirect flag and OAuth button content
-            this.redirectToMainEntrance = false;
-            oauthBtn.innerHTML = '<span class="btn-text">Sign in with Bluesky</span>';
-            
-            // Update UI based on ambassador status
+            // Update UI based on herald status
             if (isHerald) {
+                // Use appropriate icon (bluesky.png for bsky.social)
+                const iconPath = heraldry.icon_path || (isBskySocial ? '/assets/bluesky.png' : '/assets/heraldry/default.png');
+                
                 statusMessage.className = 'heraldry-status-message success';
                 statusMessage.innerHTML = `
-                    <img src="${heraldry.icon_path || '/assets/heraldry/default.png'}" alt="" class="status-icon">
-                    <span><strong>Welcome, Ambassador</strong> of ${this.escapeHtml(heraldry.name)}</span>
+                    <img src="${iconPath}" alt="" class="status-icon">
+                    <span><strong>Welcome, Herald</strong> of ${this.escapeHtml(heraldry.name)}</span>
                 `;
                 
                 // Show appropriate auth method
-                if (this.authMode === 'pds') {
+                if (isPdsResident) {
+                    // reverie.house residents use app password
                     passwordGroup.style.display = 'block';
                     oauthBtn.style.display = 'none';
                     loginBtn.querySelector('.btn-text').textContent = 'Sign In';
+                    loginBtn.disabled = false;
                 } else {
+                    // Others redirect to main entrance for OAuth
                     passwordGroup.style.display = 'none';
                     oauthBtn.style.display = 'block';
+                    oauthBtn.innerHTML = '<span class="btn-text">Sign In to Edit</span>';
                     loginBtn.style.display = 'none';
                 }
-                
-                loginBtn.disabled = false;
             } else if (heraldry && heraldry.ambassador_did) {
-                // Not the ambassador - show who is
+                // Not the herald - show who is
                 statusMessage.className = 'heraldry-status-message info';
                 
-                // Try to get ambassador info
-                let ambassadorInfo = 'another user';
+                // Try to get herald info - first from local DB, then from AT Protocol
+                let heraldHandle = 'unknown';
                 try {
-                    const ambassadorResponse = await fetch(`/api/dreamer/did/${encodeURIComponent(heraldry.ambassador_did)}`);
-                    if (ambassadorResponse.ok) {
-                        const ambassador = await ambassadorResponse.json();
-                        ambassadorInfo = `@${ambassador.handle || 'unknown'}`;
+                    const heraldResponse = await fetch(`/api/dreamer/did/${encodeURIComponent(heraldry.ambassador_did)}`);
+                    if (heraldResponse.ok) {
+                        const herald = await heraldResponse.json();
+                        heraldHandle = herald.handle || 'unknown';
+                    } else {
+                        // Fallback: resolve handle from AT Protocol (for users not in our DB)
+                        const didDoc = await this.fetchDidDocument(heraldry.ambassador_did);
+                        if (didDoc && didDoc.alsoKnownAs) {
+                            const handleUri = didDoc.alsoKnownAs.find(aka => aka.startsWith('at://'));
+                            if (handleUri) {
+                                heraldHandle = handleUri.replace('at://', '');
+                            }
+                        }
                     }
                 } catch (e) {
-                    console.warn('Could not fetch ambassador info:', e);
+                    console.warn('Could not fetch herald info:', e);
                 }
                 
-                statusMessage.innerHTML = `
-                    <img src="${heraldry.icon_path || '/assets/heraldry/default.png'}" alt="" class="status-icon">
-                    <span>The ambassador for ${this.escapeHtml(heraldry.name)} is <strong>${ambassadorInfo}</strong></span>
-                `;
+                // Use appropriate icon (bluesky.png for bsky.social)
+                const iconPath = heraldry.icon_path || (isBskySocial ? '/assets/bluesky.png' : '/assets/heraldry/default.png');
                 
+                statusMessage.innerHTML = `
+                    <img src="${iconPath}" alt="" class="status-icon">
+                    <span>The herald of ${this.escapeHtml(heraldry.name)} is <a href="https://bsky.app/profile/${this.escapeHtml(heraldHandle)}" target="_blank" class="herald-link">@${this.escapeHtml(heraldHandle)}</a></span>
+`;
+                
+                // Read-only view - no actions
                 passwordGroup.style.display = 'none';
                 oauthBtn.style.display = 'none';
                 loginBtn.disabled = true;
-                loginBtn.querySelector('.btn-text').textContent = 'Not Ambassador';
-            } else {
-                // No heraldry record for this PDS yet - show invitation to enter via main site
+                loginBtn.style.display = 'block';
+                loginBtn.querySelector('.btn-text').textContent = 'View Only';
+            } else if (heraldry && !heraldry.ambassador_did) {
+                // Heraldry exists but no herald claimed it yet
                 statusMessage.className = 'heraldry-status-message info';
                 statusMessage.innerHTML = `
-                    <img src="/assets/heraldry/default.png" alt="" class="status-icon" style="border: 2px solid #87408d;">
-                    <span><strong>${this.escapeHtml(pdsDomain)}</strong> hasn't visited yet. <a href="/?login=true" class="status-link">Sign in</a> to become the first ambassador.</span>
+                    <img src="${heraldry.icon_path || '/assets/heraldry/default.png'}" alt="" class="status-icon">
+                    <span><strong>${this.escapeHtml(heraldry.name)}</strong> has no herald yet</span>
                 `;
                 
-                // Show simple button to main entrance
+                // Show sign in button to claim
                 passwordGroup.style.display = 'none';
                 oauthBtn.style.display = 'block';
-                oauthBtn.innerHTML = `<span class="btn-text">Sign In</span>`;
-                this.redirectToMainEntrance = true;
+                oauthBtn.innerHTML = '<span class="btn-text">Sign In to Claim</span>';
+                loginBtn.style.display = 'none';
+            } else {
+                // No heraldry record for this PDS at all
+                statusMessage.className = 'heraldry-status-message info';
+                statusMessage.innerHTML = `
+                    <img src="/assets/heraldry/default.png" alt="" class="status-icon" style="border: 2px solid var(--user-color, #87408d);">
+                    <span><strong>${this.escapeHtml(pdsDomain)}</strong> hasn't been claimed yet</span>
+                `;
+                
+                // Show sign in button to become first herald
+                passwordGroup.style.display = 'none';
+                oauthBtn.style.display = 'block';
+                oauthBtn.innerHTML = '<span class="btn-text">Sign In to Claim</span>';
                 loginBtn.style.display = 'none';
             }
             
@@ -605,6 +521,9 @@ class Heraldry {
 
     async checkHeraldByDid(did) {
         try {
+            // Default herald for bsky.social if no DB record exists
+            const BSKY_DEFAULT_HERALD_DID = 'did:plc:ragtjsm2j2vknwkz3zp4oxrd'; // pfrazee.com
+            
             // Get user's PDS from DID doc
             let didDocResponse;
             if (did.startsWith('did:web:')) {
@@ -619,25 +538,38 @@ class Heraldry {
             const didDoc = await didDocResponse.json();
             const service = didDoc.service?.find(s => s.id === '#atproto_pds');
             const pdsEndpoint = service?.serviceEndpoint || '';
-            const pdsDomain = pdsEndpoint.replace(/^https?:\/\//, '').split('/')[0];
+            let pdsDomain = pdsEndpoint.replace(/^https?:\/\//, '').split('/')[0];
+            
+            // Normalize bsky.social variations
+            const isBskySocial = pdsDomain.includes('.host.bsky.network') || pdsDomain === 'bsky.social';
+            if (isBskySocial) {
+                pdsDomain = 'bsky.social';
+            }
             
             // Check heraldry
             const heraldryResponse = await fetch(`/api/heraldry/for-domain/${encodeURIComponent(pdsDomain)}`);
             if (!heraldryResponse.ok) return null;
             
             const heraldry = await heraldryResponse.json();
+            
+            // For bsky.social with no ambassador, default to pfrazee.com
+            if (isBskySocial && !heraldry.ambassador_did) {
+                heraldry.ambassador_did = BSKY_DEFAULT_HERALD_DID;
+            }
+            
             if (heraldry.ambassador_did === did) {
                 return heraldry;
             }
             
             return null;
         } catch (e) {
-            console.error('Error checking ambassador by DID:', e);
+            console.error('Error checking herald by DID:', e);
             return null;
         }
     }
 
     async attemptLogin() {
+        // Only used for reverie.house residents with app password
         if (!this.resolvedProfile || !this.resolvedProfile.isHerald) {
             return;
         }
@@ -652,11 +584,7 @@ class Heraldry {
         errorDiv.style.display = 'none';
         
         try {
-            if (this.authMode === 'pds') {
-                await this.loginWithAppPassword();
-            } else {
-                await this.loginWithOAuth();
-            }
+            await this.loginWithAppPassword();
         } catch (error) {
             console.error('Login error:', error);
             this.showError(error.message || 'Authentication failed');
@@ -690,35 +618,12 @@ class Heraldry {
             throw new Error(error.error || 'Invalid app password');
         }
         
-        const result = await response.json();
-        
-        // Store session
-        this.setHeraldrySession({
-            did: this.resolvedProfile.did,
-            handle: this.resolvedProfile.handle,
-            heraldryId: this.resolvedProfile.heraldry.id,
-            authToken: result.token
-        });
-        
-        // Load dashboard
+        // Successfully authenticated - load dashboard
         await this.loadDashboard({
             did: this.resolvedProfile.did,
             handle: this.resolvedProfile.handle,
             heraldryId: this.resolvedProfile.heraldry.id
         });
-    }
-
-    async loginWithOAuth() {
-        if (!this.oauthManager) {
-            throw new Error('OAuth not available. Please try again.');
-        }
-        
-        // Trigger OAuth flow - this will redirect
-        try {
-            await this.oauthManager.login(this.resolvedProfile.handle);
-        } catch (e) {
-            throw new Error('OAuth login failed: ' + e.message);
-        }
     }
 
     // =========================================================================
@@ -727,9 +632,6 @@ class Heraldry {
 
     async loadDashboard(session) {
         console.log('[Heraldry] Loading dashboard for:', session);
-        
-        // Clear logout flag if present
-        sessionStorage.removeItem('heraldry_logged_out');
         
         const loginView = document.getElementById('heraldryLogin');
         const dashboardView = document.getElementById('heraldryDashboard');
@@ -746,6 +648,9 @@ class Heraldry {
             }
             this.currentHeraldry = await heraldryResponse.json();
             console.log('[Heraldry] Heraldry loaded:', this.currentHeraldry.name);
+            
+            // Apply heraldry colors to the entire page (including header)
+            this.applyHeraldryColors(this.currentHeraldry);
             
             // Load ambassador profile
             console.log('[Heraldry] Fetching ambassador profile...');
@@ -768,7 +673,7 @@ class Heraldry {
             
             // Render dashboard
             console.log('[Heraldry] Rendering dashboard...');
-            this.renderAmbassadorProfile();
+            this.renderHeraldProfile();
             this.renderHeraldryPreview();
             this.renderHeraldryControls();
             this.renderCoterieStats();
@@ -786,7 +691,7 @@ class Heraldry {
         }
     }
 
-    renderAmbassadorProfile() {
+    renderHeraldProfile() {
         const container = document.getElementById('heraldProfile');
         if (!container || !this.currentHerald) return;
         
@@ -799,7 +704,7 @@ class Heraldry {
             <div class="profile-info">
                 <p class="profile-name">${this.escapeHtml(name)}</p>
                 <p class="profile-handle">@${this.escapeHtml(handle)}</p>
-                <p class="profile-role">Ambassador</p>
+                <p class="profile-role">Herald</p>
             </div>
         `;
     }
@@ -845,35 +750,26 @@ class Heraldry {
         
         const total = this.coterie.length;
         
-        container.innerHTML = `
-            <div class="coterie-stats-grid">
-                <div class="coterie-stat">
-                    <p class="stat-value">${total}</p>
-                    <p class="stat-label">Members</p>
-                </div>
+        container.innerHTML = total > 0 ? `
+            <div class="coterie-members">
+                ${this.coterie.map(m => `
+                    <div class="coterie-member">
+                        <img src="${m.avatar || '/assets/icon.png'}" alt="" class="member-avatar" onerror="this.src='/assets/icon.png'">
+                        <span class="member-handle">@${this.escapeHtml(m.handle || 'unknown')}</span>
+                    </div>
+                `).join('')}
             </div>
-            ${total > 0 ? `
-                <div class="coterie-members">
-                    ${this.coterie.slice(0, 10).map(m => `
-                        <div class="coterie-member">
-                            <img src="${m.avatar || '/assets/icon.png'}" alt="" class="member-avatar" onerror="this.src='/assets/icon.png'">
-                            <span class="member-handle">@${this.escapeHtml(m.handle || 'unknown')}</span>
-                        </div>
-                    `).join('')}
-                    ${total > 10 ? `<div class="coterie-member"><span class="member-handle">+${total - 10} more</span></div>` : ''}
-                </div>
-            ` : '<p style="color: #666; font-size: 0.875rem;">No coterie members yet</p>'}
-        `;
+        ` : '<p style="color: #666; font-size: 0.8rem; text-align: center;">No coterie members yet</p>';
     }
 
     renderTransferOptions() {
         const select = document.getElementById('transferSelect');
         if (!select) return;
         
-        // Filter out current ambassador
+        // Filter out current herald
         const candidates = this.coterie.filter(m => m.did !== this.currentHerald?.did);
         
-        select.innerHTML = '<option value="">Select new ambassador...</option>' +
+        select.innerHTML = '<option value="">Select new herald...</option>' +
             candidates.map(m => `
                 <option value="${m.did}">@${this.escapeHtml(m.handle || 'unknown')}</option>
             `).join('');
@@ -1110,7 +1006,7 @@ class Heraldry {
         saveBtn.textContent = 'Saving...';
         
         try {
-            const session = this.getHeraldrySession();
+            const session = this.getSession();
             console.log('[Heraldry] Session DID:', session?.did);
             
             if (this.pendingIconClear) {
@@ -1119,7 +1015,6 @@ class Heraldry {
                 const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/icon`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${session?.authToken || ''}`,
                         'X-Ambassador-DID': session?.did || ''
                     }
                 });
@@ -1142,7 +1037,6 @@ class Heraldry {
                 const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/icon`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${session?.authToken || ''}`,
                         'X-Ambassador-DID': session?.did || ''
                     },
                     body: formData
@@ -1188,12 +1082,11 @@ class Heraldry {
         saveBtn.textContent = 'Saving...';
         
         try {
-            const session = this.getHeraldrySession();
+            const session = this.getSession();
             const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.authToken || ''}`,
                     'X-Ambassador-DID': session?.did || ''
                 },
                 body: JSON.stringify({ color_primary: color })
@@ -1228,18 +1121,17 @@ class Heraldry {
             return;
         }
         
-        if (!confirm('Are you sure you want to transfer ambassadorship? This cannot be undone.')) {
+        if (!confirm('Are you sure you want to transfer the herald role? This cannot be undone.')) {
             return;
         }
         
         try {
-            const session = this.getHeraldrySession();
+            const session = this.getSession();
             console.log('[Heraldry] Sending transfer request...');
             const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/transfer-ambassador`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.authToken || ''}`,
                     'X-Ambassador-DID': session?.did || ''
                 },
                 body: JSON.stringify({ new_ambassador_did: newDid })
@@ -1249,12 +1141,12 @@ class Heraldry {
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Failed to transfer ambassadorship');
+                throw new Error(error.error || 'Failed to transfer role');
             }
             
             const result = await response.json();
             console.log('[Heraldry] Transfer successful:', result);
-            alert(`Ambassadorship transferred successfully to @${result.new_ambassador_handle}!`);
+            alert(`Herald role transferred successfully to @${result.new_ambassador_handle}!`);
             this.logout();
             
         } catch (error) {
@@ -1266,18 +1158,18 @@ class Heraldry {
     async stepDown() {
         console.log('[Heraldry] stepDown called');
         
-        if (!confirm('Are you sure you want to step down as ambassador? The most active community member will be promoted.')) {
+        const confirmed = await this.showConfirmModal('Are you sure you want to step down as herald? The most active community member will be promoted.');
+        if (!confirmed) {
             console.log('[Heraldry] Step down cancelled by user');
             return;
         }
         
         try {
-            const session = this.getHeraldrySession();
+            const session = this.getSession();
             console.log('[Heraldry] Sending step-down request...');
             const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/step-down`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session?.authToken || ''}`,
                     'X-Ambassador-DID': session?.did || ''
                 }
             });
@@ -1293,7 +1185,7 @@ class Heraldry {
             console.log('[Heraldry] Step-down successful:', result);
             
             if (result.new_ambassador_did) {
-                alert(`You have stepped down. @${result.new_ambassador_handle} is now the ambassador.`);
+                alert(`You have stepped down. @${result.new_ambassador_handle} is now the herald.`);
             } else {
                 alert('You have stepped down. No successor was available.');
             }
@@ -1315,17 +1207,20 @@ class Heraldry {
         const passwordGroup = document.getElementById('passwordGroup');
         const oauthBtn = document.getElementById('oauthBtn');
         
+        // Reset heraldry colors to defaults
+        this.resetHeraldryColors();
+        
         if (statusMessage) {
             statusMessage.className = 'heraldry-status-message';
             statusMessage.innerHTML = `
                 <img src="/assets/icon.png" alt="" class="status-icon">
-                <span>Enter your handle to check ambassador status</span>
+                <span>Enter your handle to review a community's heraldry</span>
             `;
         }
         if (loginBtn) {
             loginBtn.disabled = true;
             loginBtn.style.display = 'block';
-            loginBtn.querySelector('.btn-text').textContent = 'Check Status';
+            loginBtn.querySelector('.btn-text').textContent = 'Review Heraldry';
             loginBtn.querySelector('.btn-spinner').style.display = 'none';
         }
         if (passwordGroup) {
@@ -1333,6 +1228,29 @@ class Heraldry {
         }
         if (oauthBtn) {
             oauthBtn.style.display = 'none';
+        }
+        
+        // Re-check logged in status
+        this.updateLoggedInStatus();
+    }
+
+    updateLoggedInStatus() {
+        // Check if user is logged in via OAuth and show a notice
+        const oauthSession = this.oauthManager?.getSession();
+        const infoBox = document.querySelector('.heraldry-info-box');
+        
+        // Remove any existing logged-in notice
+        const existingNotice = document.getElementById('loggedInNotice');
+        if (existingNotice) existingNotice.remove();
+        
+        if (oauthSession && oauthSession.did && infoBox) {
+            const notice = document.createElement('div');
+            notice.id = 'loggedInNotice';
+            notice.className = 'heraldry-logged-in-notice';
+            notice.innerHTML = `
+                <span>Signed in as <strong>@${this.escapeHtml(oauthSession.handle || 'unknown')}</strong></span>
+            `;
+            infoBox.parentNode.insertBefore(notice, infoBox);
         }
     }
 
@@ -1360,6 +1278,43 @@ class Heraldry {
         }
     }
 
+    showConfirmModal(message) {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('confirmModal');
+            const messageEl = document.getElementById('confirmModalMessage');
+            const confirmBtn = document.getElementById('confirmModalConfirm');
+            const cancelBtn = document.getElementById('confirmModalCancel');
+            
+            if (!overlay || !messageEl || !confirmBtn || !cancelBtn) {
+                // Fallback to native confirm if modal elements not found
+                resolve(confirm(message));
+                return;
+            }
+            
+            messageEl.textContent = message;
+            overlay.style.display = 'flex';
+            
+            const cleanup = () => {
+                overlay.style.display = 'none';
+                confirmBtn.removeEventListener('click', onConfirm);
+                cancelBtn.removeEventListener('click', onCancel);
+            };
+            
+            const onConfirm = () => {
+                cleanup();
+                resolve(true);
+            };
+            
+            const onCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+            
+            confirmBtn.addEventListener('click', onConfirm);
+            cancelBtn.addEventListener('click', onCancel);
+        });
+    }
+
     addSpinKeyframes() {
         if (!document.getElementById('heraldry-spin-keyframes')) {
             const style = document.createElement('style');
@@ -1369,10 +1324,62 @@ class Heraldry {
         }
     }
 
+    applyHeraldryColors(heraldry) {
+        // Apply heraldry colors to the page using CSS custom properties
+        // On the /heraldry page, we override ALL color variables to use heraldry colors
+        // This ensures header, drawer, and all elements use the community colors
+        if (heraldry && heraldry.color_primary) {
+            const color = heraldry.color_primary;
+            
+            // Set all color variables to heraldry color
+            document.documentElement.style.setProperty('--user-color', color);
+            document.documentElement.style.setProperty('--reverie-core-color', color);
+            
+            // Calculate dark variant for gradients
+            const rgb = this.hexToRgb(color);
+            if (rgb) {
+                const darkColor = `rgb(${Math.max(0, rgb.r - 40)}, ${Math.max(0, rgb.g - 40)}, ${Math.max(0, rgb.b - 40)})`;
+                document.documentElement.style.setProperty('--user-color-dark', darkColor);
+            }
+        }
+        
+        if (heraldry && heraldry.color_secondary) {
+            document.documentElement.style.setProperty('--user-color-secondary', heraldry.color_secondary);
+        }
+    }
+
+    resetHeraldryColors() {
+        // Reset to default Reverie House purple
+        const defaultColor = '#87408d';
+        document.documentElement.style.setProperty('--user-color', defaultColor);
+        document.documentElement.style.setProperty('--reverie-core-color', defaultColor);
+        document.documentElement.style.removeProperty('--user-color-dark');
+        document.documentElement.style.removeProperty('--user-color-secondary');
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    async fetchDidDocument(did) {
+        // Fetch DID document to get handle and other info
+        try {
+            let response;
+            if (did.startsWith('did:web:')) {
+                const domain = did.replace('did:web:', '');
+                response = await fetch(`https://${domain}/.well-known/did.json`);
+            } else {
+                response = await fetch(`https://plc.directory/${did}`);
+            }
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (e) {
+            console.warn('Could not fetch DID document:', e);
+        }
+        return null;
     }
 
     // =========================================================================

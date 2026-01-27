@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/widgets/header.css">
     <link rel="stylesheet" href="css/widgets/drawer.css">
     <link rel="stylesheet" href="css/widgets/login.css">
+    <link rel="stylesheet" href="css/widgets/dialogue.css">
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
     
     <!-- Core utilities (must load first) -->
@@ -26,7 +27,8 @@
     <script src="js/widgets/background.js"></script>
     <script src="js/widgets/header.js" defer></script>
     <script type="module" src="js/widgets/oauth-manager.js"></script>
-    <script src="js/widgets/sidebar.js?v=3" defer></script>
+    <script src="js/widgets/login.js" defer></script>
+    <!-- Note: sidebar.js not needed - heraldry has its own interface -->
     <script src="js/widgets/drawer.js" defer></script>
     
     <!-- Heraldry scripts -->
@@ -34,7 +36,7 @@
 </head>
 <body class="heraldry-page">
     <div id="header-container"></div>
-    <div id="search-container"></div>
+    <!-- Note: No #search-container here - heraldry page has its own interface -->
     
     <!-- Full-Screen Background Scene (matches dreamers page) -->
     <div class="fullscreen-background">
@@ -48,58 +50,17 @@
         <div class="heraldry-container">
             <!-- Heraldry Modal (centered in page, not overlay) -->
             <div class="heraldry-modal" id="heraldryModal">
-                <!-- Not a Herald View (shown when OAuth user is not a herald) -->
-                <div class="heraldry-view heraldry-not-herald" id="heraldryNotHerald" style="display: none;">
-                    <div class="heraldry-header">
-                        <img src="/assets/logo.png" alt="Reverie House" class="heraldry-logo">
-                        <h1 class="heraldry-title">Community Heraldry</h1>
-                        <p class="heraldry-subtitle">Herald management for PDS communities</p>
-                    </div>
-
-                    <div class="not-herald-content">
-                        <div class="user-status-card">
-                            <img id="notHeraldAvatar" src="/assets/icon.png" alt="" class="user-avatar">
-                            <div class="user-info">
-                                <span class="user-handle" id="notHeraldHandle">@handle</span>
-                                <span class="user-pds" id="notHeraldPds">on bsky.social</span>
-                            </div>
-                        </div>
-
-                        <div class="not-herald-message">
-                            <div class="message-icon">🛡️</div>
-                            <h2>Not a Herald</h2>
-                            <p>You're signed in, but you're not designated as a <strong>herald</strong> for any PDS community.</p>
-                        </div>
-
-                        <div class="herald-explainer">
-                            <h3>What is a Herald?</h3>
-                            <p>A <strong>herald</strong> is the designated representative for a Personal Data Server (PDS) community. Heralds can:</p>
-                            <ul>
-                                <li>Upload a custom icon for their PDS</li>
-                                <li>Set the primary color for their community's heraldry</li>
-                                <li>Transfer the herald role to another member</li>
-                            </ul>
-                            <p class="herald-note">Each PDS can have only one herald at a time. Heralds are typically the PDS operator or a trusted community member.</p>
-                        </div>
-
-                        <div class="not-herald-actions">
-                            <a href="/" class="heraldry-btn primary">Return to Reverie House</a>
-                            <button id="notHeraldSignOutBtn" class="heraldry-btn secondary">Sign Out</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Login View -->
+                <!-- Search/Browse View (default) -->
                 <div class="heraldry-view heraldry-login" id="heraldryLogin">
                     <div class="heraldry-header">
                         <img src="/assets/logo.png" alt="Reverie House" class="heraldry-logo">
                         <h1 class="heraldry-title">Community Heraldry</h1>
-                        <p class="heraldry-subtitle">Herald management for PDS communities</p>
+                        <p class="heraldry-subtitle">Hang the banners of your community</p>
                     </div>
 
                     <div class="heraldry-login-form">
                         <div class="form-group">
-                            <label class="form-label">Your Handle</label>
+                            <label class="form-label">Enter Handle</label>
                             <div class="handle-input-wrapper">
                                 <span class="handle-prefix">@</span>
                                 <input type="text" 
@@ -113,7 +74,7 @@
 
                         <div id="loginStatusMessage" class="heraldry-status-message">
                             <img src="/assets/icon.png" alt="" class="status-icon">
-                            <span>Enter your handle to check herald status</span>
+                            <span>Enter your handle to review a community's heraldry</span>
                         </div>
 
                         <!-- Password field (shown for PDS residents) -->
@@ -134,7 +95,7 @@
 
                         <div class="heraldry-buttons">
                             <button id="loginBtn" class="heraldry-btn primary" disabled>
-                                <span class="btn-text">Check Status</span>
+                                <span class="btn-text">Review Heraldry</span>
                                 <span class="btn-spinner" style="display: none;"></span>
                             </button>
                             
@@ -145,13 +106,11 @@
                         </div>
 
                         <div class="heraldry-info-box">
-                            <h4>What is a Herald?</h4>
-                            <p>A <strong>herald</strong> is the designated representative for a Personal Data Server (PDS) community. Only heralds can customize their community's icon and color.</p>
-                            <p>If you're a PDS operator, you may already be listed as the herald. Check by entering your handle above.</p>
+                            <h4>What is a Community Herald?</h4>
+                            <p>Heralds are designated members from different communities from across our wild mindscape who act as representatives within Reverie House and are responsible for the changing of colours and symbols signifying their collective memberships.</p>
+                            <p>The first member of each community to proclaim themselves as Herald shall be recognized as such within Reverie House.</p>
                         </div>
                     </div>
-
-                    <a href="/" class="heraldry-back-link">Return to Reverie House</a>
                 </div>
 
                 <!-- Dashboard View (shown when authenticated as ambassador) -->
@@ -213,18 +172,8 @@
                             </div>
                         </section>
 
-                        <!-- Coterie Stats Section -->
-                        <section class="heraldry-section coterie-stats">
-                            <h2 class="section-title">Your Coterie</h2>
-                            <div class="coterie-info" id="coterieInfo">
-                                <!-- Filled dynamically -->
-                            </div>
-                        </section>
-
-                        <!-- Herald Actions Section -->
+                        <!-- Herald Actions (Transfer & Step Down) -->
                         <section class="heraldry-section herald-actions">
-                            <h2 class="section-title">Herald Actions</h2>
-                            
                             <div class="action-group">
                                 <h3>Transfer Herald Role</h3>
                                 <p class="action-description">Assign a member of your coterie as the new herald.</p>
@@ -246,10 +195,27 @@
                                 </button>
                             </div>
                         </section>
-                    </div>
 
-                    <a href="/" class="heraldry-back-link">Return to Reverie House</a>
+                        <!-- Coterie Section -->
+                        <section class="heraldry-section coterie-stats">
+                            <h2 class="section-title">Your Coterie</h2>
+                            <div class="coterie-info" id="coterieInfo">
+                                <!-- Filled dynamically -->
+                            </div>
+                        </section>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="confirm-modal-overlay" style="display: none;">
+        <div class="confirm-modal">
+            <p id="confirmModalMessage" class="confirm-modal-message"></p>
+            <div class="confirm-modal-buttons">
+                <button id="confirmModalCancel" class="heraldry-btn secondary">Cancel</button>
+                <button id="confirmModalConfirm" class="heraldry-btn danger">Confirm</button>
             </div>
         </div>
     </div>
