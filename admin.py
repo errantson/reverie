@@ -340,7 +340,10 @@ def serve_dreamer_profile(name):
             # Dreamer not found, redirect to main site
             return redirect('https://reverie.house/')
         
-        did, handle, display_name = dreamer
+        # Extract values from RealDictRow using dictionary access
+        did = dreamer['did']
+        handle = dreamer['handle']
+        display_name = dreamer['display_name']
         safe_handle = handle.replace('/', '').replace('\\', '').replace('..', '')
         
         # Check if spectrum image exists

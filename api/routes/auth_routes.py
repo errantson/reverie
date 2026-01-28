@@ -735,6 +735,43 @@ def create_account():
             """, (did, now, invite_code))
         # Auto-committed by DatabaseManager
             print(f"   ✅ Invite code marked as used: {invite_code}")
+            
+            # Track invitation relationship if this is a personal invite code
+            # Look up who generated this code in user_invites
+            cursor = db.execute("""
+                SELECT ui.owner_did, d.handle
+                FROM user_invites ui
+                JOIN dreamers d ON d.did = ui.owner_did
+                WHERE ui.code = %s
+            """, (invite_code,))
+            inviter_row = cursor.fetchone()
+            
+            if inviter_row:
+                inviter_did = inviter_row['owner_did']
+                inviter_handle = inviter_row['handle'] or 'a dreamer'
+                
+                # Update user_invites to track who redeemed
+                db.execute("""
+                    UPDATE user_invites
+                    SET redeemed_by = %s, redeemed_at = %s
+                    WHERE code = %s
+                """, (did, now, invite_code))
+                
+                # Create invitation event for the new user
+                db.execute("""
+                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
+                    VALUES (%s, %s, 'souvenir', 'invitation', %s, %s, %s, %s, 'souvenir', 'highlight')
+                """, (
+                    did,
+                    f'was invited by {inviter_handle}',
+                    inviter_did,  # uri stores inviter's DID for linking
+                    f'/dreamer?did={inviter_did}',  # url links to inviter's profile
+                    now,
+                    now
+                ))
+                
+                print(f"   🎫 Invitation tracked: {handle} was invited by {inviter_handle}")
+            
         except Exception as invite_err:
             print(f"   ⚠️  Failed to mark invite code as used (non-fatal): {invite_err}")
         

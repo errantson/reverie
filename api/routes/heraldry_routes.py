@@ -367,12 +367,14 @@ def get_coterie(heraldry_id):
         
         where_clause = " OR ".join(domain_conditions)
         
+        # Exclude dissipated accounts (those in the formers table)
         cursor = db.execute(f"""
             SELECT d.did, d.handle, d.name, d.display_name, d.avatar, d.server,
                    d.updated_at, d.arrival,
                    COALESCE(d.canon_score, 0) + COALESCE(d.lore_score, 0) as activity_score
             FROM dreamers d
             WHERE ({where_clause})
+              AND d.did NOT IN (SELECT did FROM formers)
             ORDER BY d.updated_at DESC NULLS LAST
             LIMIT 100
         """, params)
@@ -743,11 +745,13 @@ def step_down(heraldry_id, ambassador_did):
         where_clause = " OR ".join(domain_conditions)
         params.append(ambassador_did)
         
+        # Exclude dissipated accounts (those in the formers table)
         cursor = db.execute(f"""
             SELECT d.did, d.handle, d.name,
                    COALESCE(d.canon_score, 0) + COALESCE(d.lore_score, 0) as activity_score
             FROM dreamers d
             WHERE ({where_clause}) AND d.did != %s
+              AND d.did NOT IN (SELECT did FROM formers)
             ORDER BY activity_score DESC, d.updated_at DESC NULLS LAST
             LIMIT 1
         """, params)
