@@ -25,8 +25,8 @@ import time
 import random
 import requests
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Set
+from datetime import datetime
+from typing import Dict, List, Optional, Set
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -105,39 +105,6 @@ def queue_celebration(
         return None
 
 
-def _check_user_rate_limit(db: DatabaseManager, target_did: str) -> bool:
-    """Check if user can receive more cheers today/this week."""
-    cursor = db.execute("""
-        SELECT last_cheered_at, cheers_today, cheers_this_week, week_start
-        FROM cheer_user_limits WHERE target_did = %s
-    """, (target_did,))
-    limits = cursor.fetchone()
-    
-    if not limits:
-        return True  # No record = no limits hit yet
-    
-    today = datetime.now().date()
-    
-    # Reset daily counter if it's a new day
-    last_cheered = limits['last_cheered_at']
-    if last_cheered and last_cheered.date() < today:
-        # Will be reset when we record the cheer
-        return limits['cheers_this_week'] < MAX_CHEERS_PER_USER_PER_WEEK
-    
-    # Reset weekly counter if it's a new week
-    week_start = limits['week_start']
-    if week_start and (today - week_start).days >= 7:
-        return True  # New week, limits reset
-    
-    # Check limits
-    if limits['cheers_today'] >= MAX_CHEERS_PER_USER_PER_DAY:
-        return False
-    if limits['cheers_this_week'] >= MAX_CHEERS_PER_USER_PER_WEEK:
-        return False
-    
-    return True
-
-
 def _update_user_rate_limit(db: DatabaseManager, target_did: str):
     """Update rate limit counters after a successful cheer."""
     today = datetime.now().date()
@@ -178,43 +145,33 @@ class CelebrationProcessor:
         }
     
     def _load_workers(self) -> int:
-        """Load all cheerful workers with credentials. Returns count."""
+        """Load all cheerful workers with credentials from user_roles + user_credentials."""
         try:
             db = DatabaseManager()
             
-            # Get workers from work.workers JSON
-            cursor = db.execute("SELECT workers FROM work WHERE role = 'cheerful'")
-            result = cursor.fetchone()
+            # Get cheerful workers directly from user_roles joined with credentials
+            # This is the authoritative source - no legacy work.workers JSON needed
+            cursor = db.execute("""
+                SELECT ur.did, d.handle, uc.app_password_hash, uc.pds_url
+                FROM user_roles ur
+                JOIN dreamers d ON ur.did = d.did
+                JOIN user_credentials uc ON ur.did = uc.did
+                WHERE ur.role = 'cheerful' 
+                  AND ur.status = 'active'
+                  AND uc.app_password_hash IS NOT NULL 
+                  AND uc.app_password_hash != ''
+            """)
+            results = cursor.fetchall()
             
-            if not result or not result['workers']:
-                self.workers = []
-                return 0
-            
-            workers_data = json.loads(result['workers'])
             new_workers = []
-            
-            for w in workers_data:
-                did = w.get('did')
-                if not did or w.get('status') not in ('active', 'working'):
-                    continue
-                
-                # Get credentials
-                cursor = db.execute("""
-                    SELECT d.handle, uc.app_password_hash, uc.pds_url
-                    FROM dreamers d 
-                    JOIN user_credentials uc ON d.did = uc.did
-                    WHERE d.did = %s AND uc.app_password_hash IS NOT NULL
-                """, (did,))
-                creds = cursor.fetchone()
-                
-                if creds:
-                    new_workers.append({
-                        'did': did,
-                        'handle': creds['handle'],
-                        'passhash': creds['app_password_hash'],
-                        'pds_url': creds.get('pds_url'),
-                        'client': None
-                    })
+            for row in results:
+                new_workers.append({
+                    'did': row['did'],
+                    'handle': row['handle'],
+                    'passhash': row['app_password_hash'],
+                    'pds_url': row.get('pds_url'),
+                    'client': None
+                })
             
             self.workers = new_workers
             return len(self.workers)
@@ -328,8 +285,6 @@ class CelebrationProcessor:
             return True
             
         except Exception as e:
-            error_str = str(e).lower()
-            
             # Record failure
             try:
                 db = DatabaseManager()
