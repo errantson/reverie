@@ -33,16 +33,6 @@ from config import Config
 class MapperhoseMonitor:
     """Poll the origin quest for new replies every minute."""
     
-    # Retry messages when user doesn't include trigger words
-    RETRY_MESSAGES = [
-        "Hmmm... I'm having a hard time tracing this phanera.\n\nWas it a dream, or a nightmare?",
-        "Apologies... your phanera still eludes me.\n\nWould you call it a dream, or a nightmare?",
-        "There's some difficulty tracing your phanera still.\n\nWould you describe it as a dream, or a nightmare?",
-        "We can't find your phanera for some reason.\n\nDo you think it's a dream, or a nightmare?",
-        "We're still looking for your phanera.\n\nWas it a dream, or more like a nightmare?",
-        "I need a bit more to track your phanera properly.\n\nDo you think it's a dream, or moreso a nightmare?"
-    ]
-    
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
         
@@ -111,8 +101,9 @@ class MapperhoseMonitor:
             db = DatabaseManager()
             
             # Load DIDs of dreamers who have already declared their origin
+            # Note: add_canon writes to the EVENTS table, not canon table
             cursor = db.execute(
-                "SELECT DISTINCT did FROM canon WHERE key = 'origin'"
+                "SELECT DISTINCT did FROM events WHERE key = 'origin'"
             )
             results = cursor.fetchall()
             
@@ -268,6 +259,7 @@ class MapperhoseMonitor:
         author_did = reply['author']['did']
         author_handle = reply['author']['handle']
         reply_uri = reply['uri']
+        reply_cid = reply.get('cid')
         post_text = reply['record']['text']
         post_created_at = reply['record']['createdAt']
         
@@ -290,7 +282,7 @@ class MapperhoseMonitor:
         # Process through quest system
         success, skip_reason = self._process_origin_declaration(
             reply_uri, author_did, author_handle,
-            post_text, post_created_at
+            post_text, post_created_at, reply_cid
         )
         
         # Only mark as processed if declaration succeeds
@@ -300,19 +292,16 @@ class MapperhoseMonitor:
             self.stats['origins_declared'] += 1
             print(f"   ✅ Origin declared successfully")
             
-            # Remove from retry requests if they had one
+            # Remove from retry requests if they had one (legacy)
             if author_did in self.retry_requests:
                 self._remove_retry_request(author_did)
         else:
-            # Send retry request if not already sent
-            if author_did not in self.retry_requests:
-                self._send_retry_request(reply_uri, author_did, author_handle, skip_reason)
-            else:
-                print(f"   ⏭️  Retry request already sent, waiting for response")
+            # Log the failure - with any_reply condition, failures indicate system errors
+            print(f"   ❌ Origin declaration failed: {skip_reason}")
     
     def _process_origin_declaration(self, reply_uri: str, author_did: str,
                                     author_handle: str, post_text: str,
-                                    post_created_at: str) -> tuple:
+                                    post_created_at: str, reply_cid: str = None) -> tuple:
         """
         Process an origin declaration through the quest system.
         
@@ -329,7 +318,8 @@ class MapperhoseMonitor:
                 post_text=post_text,
                 post_created_at=post_created_at,
                 quest_uri=self.origin_uri,
-                verbose=self.verbose
+                verbose=self.verbose,
+                reply_cid=reply_cid
             )
             
             # Check if the quest processing was successful

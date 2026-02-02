@@ -57,8 +57,9 @@ def hasnt_canon(thread_result: Dict, quest_config: Dict, canon_key: str) -> Dict
                 continue
             
             # Check if this user does NOT have a canon entry with this key
+            # Note: add_canon writes to the EVENTS table, not the canon table
             if not db.fetch_one(
-                "SELECT 1 FROM canon WHERE did = %s AND key = %s",
+                "SELECT 1 FROM events WHERE did = %s AND key = %s",
                 (author_did, canon_key)
             ):
                 # User does NOT have the canon entry - this is what we want

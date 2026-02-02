@@ -118,6 +118,9 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
                 cmd_result = disable_quest(replies, quest_config, verbose=verbose)
             elif cmd_name == 'reply_origin_spectrum':
                 cmd_result = reply_origin_spectrum(replies, quest_config, verbose=verbose)
+            elif cmd_name == 'declare_origin':
+                # Alias for reply_origin_spectrum - replies to user with their spectrum coordinates
+                cmd_result = reply_origin_spectrum(replies, quest_config, verbose=verbose)
             elif cmd_name == 'greet_newcomer':
                 from ops.commands.greet_newcomer import greet_newcomer
                 cmd_result = greet_newcomer(replies, quest_config, verbose=verbose)
@@ -1102,7 +1105,7 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
             author_did = reply['author']['did']
             author_handle = reply['author']['handle']
             reply_uri = reply['uri']
-            reply_cid = reply['cid']
+            reply_cid = reply.get('cid')
             
             # Get root post info for threading
             root_uri = reply.get('record', {}).get('reply', {}).get('root', {}).get('uri')

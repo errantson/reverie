@@ -35,7 +35,7 @@ def get_quest_uris() -> List[str]:
 
 def process_quest_reply(reply_uri: str, author_did: str, author_handle: str,
                        post_text: str, post_created_at: str, quest_uri: str,
-                       verbose: bool = False) -> Dict:
+                       verbose: bool = False, reply_cid: str = None) -> Dict:
     """
     Process a quest reply detected by the firehose.
     
@@ -47,6 +47,7 @@ def process_quest_reply(reply_uri: str, author_did: str, author_handle: str,
         post_created_at: ISO timestamp of post creation
         quest_uri: AT URI of the quest post being replied to
         verbose: Whether to print debug output
+        reply_cid: CID of the reply post (required for spectrum replies)
         
     Returns:
         Dictionary with processing results:
@@ -89,6 +90,7 @@ def process_quest_reply(reply_uri: str, author_did: str, author_handle: str,
         
         reply_obj = {
             'uri': reply_uri,
+            'cid': reply_cid,
             'author': {
                 'did': author_did,
                 'handle': author_handle
