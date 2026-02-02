@@ -114,6 +114,8 @@ class HomepageBubbles {
             const rawData = await response.json();
 
             const transformed = {};
+            const imageUrls = [];
+            
             for (const [key, souvenir] of Object.entries(rawData)) {
                 transformed[key] = {
                     forms: [{
@@ -122,11 +124,55 @@ class HomepageBubbles {
                         icon: souvenir.icon
                     }]
                 };
+                // Collect icon URLs for preloading
+                if (souvenir.icon) {
+                    imageUrls.push(souvenir.icon);
+                }
             }
+            
+            // Add special bubble icons for non-logged-in users
+            const specialIcons = [
+                '/souvenirs/residence/icon.png',
+                '/souvenirs/letter/invite/icon.png',
+                '/souvenirs/bell/icon.png',
+                '/souvenirs/dream/strange/icon.png',
+                '/assets/icon_face.png'  // First-click errantson bubble
+            ];
+            imageUrls.push(...specialIcons);
+            
+            // Preload all images BEFORE setting souvenirsData
+            // This ensures no bubbles can spawn until images are ready
+            await this.preloadImages(imageUrls);
+            console.log('🫧 [Bubbles] All souvenir images preloaded');
+            
+            // NOW set the data - this gates all bubble creation
             this.souvenirsData = transformed;
+            
         } catch (err) {
             console.error('Error loading souvenirs:', err);
         }
+    }
+    
+    /**
+     * Preload an array of image URLs
+     * Returns a promise that resolves when all images are loaded (or failed)
+     */
+    preloadImages(urls) {
+        const uniqueUrls = [...new Set(urls)]; // Remove duplicates
+        
+        const promises = uniqueUrls.map(url => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve({ url, success: true });
+                img.onerror = () => {
+                    console.warn('🫧 [Bubbles] Failed to preload:', url);
+                    resolve({ url, success: false });
+                };
+                img.src = url;
+            });
+        });
+        
+        return Promise.all(promises);
     }
 
     startBubbles() {
