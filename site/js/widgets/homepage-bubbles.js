@@ -113,73 +113,79 @@ class HomepageBubbles {
             const response = await fetch('/api/souvenirs');
             const rawData = await response.json();
 
-            const transformed = {};
-            const imageUrls = [];
+            // Build list of all icons we need
+            const iconsToLoad = [];
             
+            // Souvenir icons
             for (const [key, souvenir] of Object.entries(rawData)) {
-                transformed[key] = {
-                    forms: [{
-                        key: souvenir.key,
-                        name: souvenir.name,
-                        icon: souvenir.icon
-                    }]
-                };
-                // Collect icon URLs for preloading
                 if (souvenir.icon) {
-                    imageUrls.push(souvenir.icon);
+                    iconsToLoad.push({
+                        url: souvenir.icon,
+                        key: key,
+                        name: souvenir.name
+                    });
                 }
             }
             
-            // Add special bubble icons for non-logged-in users
+            // Special bubble icons for non-logged-in users
             const specialIcons = [
-                '/souvenirs/residence/icon.png',
-                '/souvenirs/letter/invite/icon.png',
-                '/souvenirs/bell/icon.png',
-                '/souvenirs/dream/strange/icon.png',
-                '/assets/icon_face.png'  // First-click errantson bubble
+                { url: '/souvenirs/residence/icon.png', key: '_residence', name: 'Residence', action: 'login' },
+                { url: '/souvenirs/letter/invite/icon.png', key: '_invite', name: 'Invite', action: 'login' },
+                { url: '/souvenirs/bell/icon.png', key: '_bell', name: 'Bell', action: 'dialogue' },
+                { url: '/souvenirs/dream/strange/icon.png', key: '_strange', name: 'Strange', action: 'dialogue' },
+                { url: '/assets/icon_face.png', key: '_errantson', name: 'Errantson', action: 'dialogue' }
             ];
-            imageUrls.push(...specialIcons);
+            iconsToLoad.push(...specialIcons);
             
-            // Preload all images BEFORE setting souvenirsData
-            // This ensures no bubbles can spawn until images are ready
-            await this.preloadImages(imageUrls);
-            console.log('🫧 [Bubbles] All souvenir images preloaded');
+            // Load all images and store in cache
+            this.imageCache = new Map();
             
-            // NOW set the data - this gates all bubble creation
-            this.souvenirsData = transformed;
+            await Promise.all(iconsToLoad.map(item => {
+                return new Promise(resolve => {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.imageCache.set(item.url, {
+                            img: img,
+                            key: item.key,
+                            name: item.name,
+                            action: item.action || 'souvenir'
+                        });
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        console.warn('🫧 [Bubbles] Failed to load:', item.url);
+                        resolve();
+                    };
+                    img.src = item.url;
+                });
+            }));
+            
+            console.log(`🫧 [Bubbles] Loaded ${this.imageCache.size} images`);
+            
+            // Build souvenir keys list (excluding special _ prefixed ones)
+            this.souvenirKeys = [...this.imageCache.keys()].filter(url => {
+                const data = this.imageCache.get(url);
+                return data && !data.key.startsWith('_');
+            });
+            
+            // Build special bubble list
+            this.specialBubbles = [...this.imageCache.entries()]
+                .filter(([url, data]) => data.key.startsWith('_') && data.key !== '_errantson')
+                .map(([url, data]) => ({ url, ...data }));
+            
+            // Mark as ready
+            this.souvenirsData = true;
             
         } catch (err) {
             console.error('Error loading souvenirs:', err);
         }
-    }
-    
-    /**
-     * Preload an array of image URLs
-     * Returns a promise that resolves when all images are loaded (or failed)
-     */
-    preloadImages(urls) {
-        const uniqueUrls = [...new Set(urls)]; // Remove duplicates
-        
-        const promises = uniqueUrls.map(url => {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => resolve({ url, success: true });
-                img.onerror = () => {
-                    console.warn('🫧 [Bubbles] Failed to preload:', url);
-                    resolve({ url, success: false });
-                };
-                img.src = url;
-            });
-        });
-        
-        return Promise.all(promises);
     }
 
     startBubbles() {
         if (this.autoBubbleInterval || !this.souvenirsData) return;
 
         const spawnBubble = () => {
-            if (!this.souvenirsData || !this.isPageVisible) return;
+            if (!this.souvenirsData || !this.isPageVisible || !this.imageCache) return;
             
             // Clean dead bubbles
             this.activeBubbles = this.activeBubbles.filter(b => b.element?.parentNode);
@@ -189,17 +195,14 @@ class HomepageBubbles {
             // Check if user is logged in
             const isLoggedIn = window.oauthManager?.getSession()?.did;
             
-            if (!isLoggedIn) {
+            if (!isLoggedIn && this.specialBubbles.length > 0) {
                 // For non-logged-in users, spawn special action bubbles
-                this.createSpecialBubble();
-            } else {
+                const special = this.specialBubbles[Math.floor(Math.random() * this.specialBubbles.length)];
+                this.createBubbleFromCache(special.url);
+            } else if (this.souvenirKeys.length > 0) {
                 // For logged-in users, spawn regular souvenir bubbles
-                const keys = Object.keys(this.souvenirsData);
-                const randomKey = keys[Math.floor(Math.random() * keys.length)];
-                const souvenir = this.souvenirsData[randomKey];
-                const form = souvenir.forms[souvenir.forms.length - 1];
-
-                this.createBubble(form.icon, randomKey, form.name);
+                const url = this.souvenirKeys[Math.floor(Math.random() * this.souvenirKeys.length)];
+                this.createBubbleFromCache(url);
             }
         };
 
@@ -213,29 +216,20 @@ class HomepageBubbles {
     }
 
     /**
-     * Create a special action bubble for non-logged-in users
-     * These bubbles have specific icons and trigger login or dialogue
+     * Create a bubble using a pre-loaded image from cache
+     * This is the ONLY way bubbles should be created - guarantees image is ready
      */
-    createSpecialBubble() {
-        if (!this.bubbleContainer) return;
-
-        // Define special bubbles with their actions
-        const specialBubbles = [
-            { icon: '/souvenirs/residence/icon.png', name: 'Residence', action: 'login' },
-            { icon: '/souvenirs/letter/invite/icon.png', name: 'Invite', action: 'login' },
-            { icon: '/souvenirs/bell/icon.png', name: 'Bell', action: 'dialogue' },
-            { icon: '/souvenirs/dream/strange/icon.png', name: 'Strange', action: 'dialogue' },
-        ];
-
-        // Pick a random special bubble
-        const bubble = specialBubbles[Math.floor(Math.random() * specialBubbles.length)];
+    createBubbleFromCache(iconUrl) {
+        if (!this.bubbleContainer || !this.imageCache) return;
         
-        this.createBubble(bubble.icon, null, bubble.name, bubble.action);
-    }
-
-    createBubble(iconUrl, key, name, actionType = 'souvenir') {
-        if (!this.bubbleContainer) return;
-
+        const cached = this.imageCache.get(iconUrl);
+        if (!cached || !cached.img) {
+            console.warn('🫧 [Bubbles] Image not in cache:', iconUrl);
+            return;
+        }
+        
+        const { img, key, name, action } = cached;
+        
         const size = 50 + Math.random() * 30;
         const bubble = document.createElement('div');
         
@@ -260,9 +254,8 @@ class HomepageBubbles {
             will-change: transform;
         `;
 
-        const icon = document.createElement('img');
-        icon.src = iconUrl;
-        icon.alt = name;
+        // Clone the cached image - this is instant, no network request
+        const icon = img.cloneNode(true);
         icon.style.cssText = `
             width: ${size * 0.80}px;
             height: ${size * 0.80}px;
@@ -280,27 +273,16 @@ class HomepageBubbles {
         bubble.addEventListener('click', async (e) => {
             e.stopPropagation();
             
-            if (actionType === 'login') {
-                // Open login popup
-                console.log('🫧 [Bubble] Opening login for:', name);
+            if (action === 'login') {
                 if (window.loginWidget) {
                     window.loginWidget.showLoginPopup();
-                } else {
-                    console.error('❌ [Bubble] Login widget not available');
                 }
-            } else if (actionType === 'dialogue') {
-                // Open errantson dialogue
-                console.log('🫧 [Bubble] Opening dialogue for:', name);
+            } else if (action === 'dialogue') {
                 if (window.Shadowbox) {
-                    const shadowbox = new window.Shadowbox({
-                        showCloseButton: false
-                    });
+                    const shadowbox = new window.Shadowbox({ showCloseButton: false });
                     await shadowbox.showDialogue('core:welcome');
-                } else {
-                    console.error('❌ [Bubble] Shadowbox not available');
                 }
-            } else if (actionType === 'souvenir' && key) {
-                // Navigate to souvenir (for logged-in users)
+            } else if (action === 'souvenir' && key && !key.startsWith('_')) {
                 const isLoggedIn = window.oauthManager?.getSession()?.did;
                 if (isLoggedIn) {
                     window.location.href = `/souvenirs?key=${key}`;
@@ -308,7 +290,7 @@ class HomepageBubbles {
             }
         });
 
-        // Hover effect - visual only, bubble keeps moving
+        // Hover effect
         bubble.addEventListener('mouseenter', () => {
             bubble.style.boxShadow = '0 6px 30px rgba(0,0,0,0.25), inset -4px -4px 20px rgba(0,0,0,0.12), inset 4px 4px 18px rgba(255,255,255,0.6)';
         });
@@ -322,33 +304,23 @@ class HomepageBubbles {
         const startX = -size - 20;
         const startY = 80 + Math.random() * (window.innerHeight - 200);
 
-        // Physics state - each bubble has unique characteristics
+        // Physics state
         const bubbleData = {
             element: bubble,
             size: size,
             radius: size / 2,
-            mass: size / 60, // Larger = more massive = slower to accelerate
-            
-            // Position
+            mass: size / 60,
             x: startX,
             y: startY,
-            
-            // Velocity - wide variance for more interesting collisions
-            vx: 10 + Math.random() * 60, // 10-70 px/s - some slow, some fast
-            vy: (Math.random() - 0.5) * 80, // Strong initial vertical variance
-            
-            // Rotation
+            vx: 10 + Math.random() * 60,
+            vy: (Math.random() - 0.5) * 80,
             rotation: Math.random() * 360,
             angularVel: (Math.random() - 0.5) * 50,
-            
-            // Individual characteristics for variance
-            windSensitivity: 0.5 + Math.random() * 1.0, // Wide range of wind response
-            turbulencePhase: Math.random() * Math.PI * 2, // Offset for turbulence
-            turbulenceFreq: 0.3 + Math.random() * 0.8,   // Personal turbulence frequency
-            verticalDrift: (Math.random() - 0.5) * 25,   // Each bubble has its own vertical tendency
-            buoyancyFactor: 0.5 + Math.random() * 1.0,   // Wide buoyancy variance
-            
-            // State
+            windSensitivity: 0.5 + Math.random() * 1.0,
+            turbulencePhase: Math.random() * Math.PI * 2,
+            turbulenceFreq: 0.3 + Math.random() * 0.8,
+            verticalDrift: (Math.random() - 0.5) * 25,
+            buoyancyFactor: 0.5 + Math.random() * 1.0,
             age: 0,
             opacity: 0,
         };
@@ -371,11 +343,15 @@ class HomepageBubbles {
      * @returns {boolean} - True if bubble was created successfully
      */
     createBubbleAt(x, y) {
-        if (!this.bubbleContainer) return false;
+        if (!this.bubbleContainer || !this.imageCache) return false;
         
-        // First bubble is always errantson face
+        // First bubble is always errantson face - get from cache
         const iconUrl = '/assets/icon_face.png';
-        const iconName = 'Errantson';
+        const cached = this.imageCache.get(iconUrl);
+        if (!cached || !cached.img) {
+            console.warn('🫧 [Bubbles] Errantson image not in cache');
+            return false;
+        }
         
         // Use the largest size (80px - the max of normal spawn range)
         const size = 80;
@@ -402,9 +378,8 @@ class HomepageBubbles {
             will-change: transform;
         `;
 
-        const icon = document.createElement('img');
-        icon.src = iconUrl;
-        icon.alt = iconName;
+        // Clone the cached image - instant, no network request
+        const icon = cached.img.cloneNode(true);
         icon.style.cssText = `
             width: ${size * 0.80}px;
             height: ${size * 0.80}px;
@@ -420,17 +395,10 @@ class HomepageBubbles {
         
         // Click to open errantson dialogue (same as header button)
         bubble.addEventListener('click', async (e) => {
-            e.stopPropagation(); // Prevent triggering other click handlers
-            
-            // Open errantson dialogue
-            console.log('🫧 [Bubble] Opening errantson dialogue');
+            e.stopPropagation();
             if (window.Shadowbox) {
-                const shadowbox = new window.Shadowbox({
-                    showCloseButton: false
-                });
+                const shadowbox = new window.Shadowbox({ showCloseButton: false });
                 await shadowbox.showDialogue('core:welcome');
-            } else {
-                console.error('❌ [Bubble] Shadowbox utility not loaded');
             }
         });
 
@@ -454,20 +422,12 @@ class HomepageBubbles {
             size: size,
             radius: size / 2,
             mass: size / 60,
-            
-            // Position at click point
             x: startX,
             y: startY,
-            
-            // Gentle initial velocity - slight push from the wind
-            vx: 15 + Math.random() * 25, // Gentle rightward drift
-            vy: (Math.random() - 0.5) * 30, // Mild vertical variance
-            
-            // Rotation
+            vx: 15 + Math.random() * 25,
+            vy: (Math.random() - 0.5) * 30,
             rotation: Math.random() * 360,
             angularVel: (Math.random() - 0.5) * 30,
-            
-            // Individual characteristics
             windSensitivity: 0.6 + Math.random() * 0.8,
             turbulencePhase: Math.random() * Math.PI * 2,
             turbulenceFreq: 0.3 + Math.random() * 0.8,
@@ -503,9 +463,8 @@ class HomepageBubbles {
     handleFirstClick(x, y) {
         this.clickCount++;
         
-        // Wait for souvenirs data to be loaded
-        if (!this.souvenirsData) {
-            console.log('🫧 Click - souvenirs data not loaded yet');
+        // Wait for images to be loaded
+        if (!this.imageCache || this.imageCache.size === 0) {
             return false;
         }
         
@@ -530,17 +489,16 @@ class HomepageBubbles {
      * @returns {boolean} - True if bubble was created successfully
      */
     createSmallBubbleAt(x, y) {
-        if (!this.bubbleContainer || !this.souvenirsData) return false;
+        if (!this.bubbleContainer || !this.imageCache || this.souvenirKeys.length === 0) return false;
         
-        // Pick a random souvenir
-        const keys = Object.keys(this.souvenirsData);
-        if (keys.length === 0) return false;
+        // Pick a random souvenir from cache
+        const url = this.souvenirKeys[Math.floor(Math.random() * this.souvenirKeys.length)];
+        const cached = this.imageCache.get(url);
+        if (!cached || !cached.img) return false;
         
-        const randomKey = keys[Math.floor(Math.random() * keys.length)];
-        const souvenir = this.souvenirsData[randomKey];
-        const form = souvenir.forms[souvenir.forms.length - 1];
+        const { img, key, name } = cached;
         
-        // Use the smallest size (50px - the min of normal spawn range)
+        // Use the smallest size (50px)
         const size = 50;
         const bubble = document.createElement('div');
         
@@ -565,9 +523,8 @@ class HomepageBubbles {
             will-change: transform;
         `;
 
-        const icon = document.createElement('img');
-        icon.src = form.icon;
-        icon.alt = form.name;
+        // Clone cached image
+        const icon = img.cloneNode(true);
         icon.style.cssText = `
             width: ${size * 0.80}px;
             height: ${size * 0.80}px;
@@ -584,7 +541,7 @@ class HomepageBubbles {
         // Click to navigate
         bubble.addEventListener('click', (e) => {
             e.stopPropagation();
-            window.location.href = `/souvenirs?key=${randomKey}`;
+            window.location.href = `/souvenirs?key=${key}`;
         });
 
         // Hover effect
@@ -601,7 +558,7 @@ class HomepageBubbles {
         const startX = x - size / 2;
         const startY = y - size / 2;
 
-        // Physics state - spawn with gentle velocity
+        // Physics state
         const bubbleData = {
             element: bubble,
             size: size,
@@ -630,7 +587,7 @@ class HomepageBubbles {
             bubbleData.opacity = 0.9;
         });
         
-        console.log(`🫧 Bonus bubble spawned: ${form.name} at (${x}, ${y})`);
+        console.log(`🫧 Bonus bubble spawned: ${name} at (${x}, ${y})`);
         return true;
     }
 
