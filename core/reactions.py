@@ -87,6 +87,13 @@ class ReactionsManager:
     def create_like(self, post_uri: str) -> bool:
         """Create a like for the specified post."""
         from config import Config
+        from core.account_rate_limiter import account_rate_limiter
+        
+        # LAST-LINE DEFENSE: Check global rate limit before ANY like
+        allowed, reason = account_rate_limiter.can_like()
+        if not allowed:
+            print(f"🛑 RATE LIMITED: {reason}")
+            return False
         
         if post_uri in self._liked_this_cycle:
             if Config.DEBUG:
@@ -206,6 +213,9 @@ class ReactionsManager:
                 
                 self._liked_this_cycle.add(post_uri)
                 
+                # Record action for rate limiting
+                account_rate_limiter.record_like(post_uri)
+                
                 if Config.DEBUG:
                     print(f"✅ Like created: {like_uri}")
                 else:
@@ -287,6 +297,14 @@ class ReactionsManager:
     
     def create_follow(self, target_did: str) -> bool:
         """Create a follow for the specified user DID."""
+        from core.account_rate_limiter import account_rate_limiter
+        
+        # LAST-LINE DEFENSE: Check global rate limit before ANY follow
+        allowed, reason = account_rate_limiter.can_follow()
+        if not allowed:
+            print(f"🛑 RATE LIMITED: {reason}")
+            return False
+        
         print("👥 === REACTIONS MANAGER FOLLOW START ===")
         print(f"📝 Target user DID: {target_did}")
         
@@ -376,6 +394,9 @@ class ReactionsManager:
             if response.status_code == 200:
                 result = response.json()
                 follow_uri = result.get('uri', 'N/A')
+                
+                # Record action for rate limiting
+                account_rate_limiter.record_follow(target_did)
                 
                 if Config.DEBUG:
                     print(f"✅ === FOLLOW OPERATION SUCCESS ===")
@@ -639,6 +660,15 @@ class ReactionsManager:
         Returns:
             Dict with 'uri' and 'cid' if successful, None if failed
         """
+        from core.account_rate_limiter import account_rate_limiter
+        
+        # LAST-LINE DEFENSE: Check global rate limit before ANY post/reply
+        action_type = 'reply' if reply_to else 'post'
+        allowed, reason = account_rate_limiter.check_limit(action_type)
+        if not allowed:
+            print(f"🛑 RATE LIMITED: {reason}")
+            return None
+        
         print(f"📝 === CREATE POST START ===")
         print(f"Text: {text[:100]}{'...' if len(text) > 100 else ''}")
         if reply_to:
@@ -747,6 +777,13 @@ class ReactionsManager:
                 result = response.json()
                 post_uri = result.get('uri')
                 post_cid = result.get('cid')
+                
+                # Record action for rate limiting
+                action_type = 'reply' if reply_to else 'post'
+                if action_type == 'reply':
+                    account_rate_limiter.record_reply(post_uri)
+                else:
+                    account_rate_limiter.record_post(post_uri)
                 
                 print(f"✅ === POST CREATED SUCCESSFULLY ===")
                 print(f"   • URI: {post_uri}")

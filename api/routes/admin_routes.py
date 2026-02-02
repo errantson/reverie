@@ -375,3 +375,32 @@ def verify_challenge_auth():
             
     except Exception as e:
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@bp.route('/account-rate-status', methods=['GET'])
+@require_auth
+def account_rate_status():
+    """
+    Get current rate limit status for @reverie.house account.
+    This shows how close we are to our conservative limits.
+    Also includes historical data for auditing.
+    """
+    try:
+        from core.account_rate_limiter import account_rate_limiter
+        
+        usage = account_rate_limiter.get_current_usage()
+        summary = account_rate_limiter.get_status_summary()
+        historical = account_rate_limiter.get_historical_stats(days=30)
+        totals = account_rate_limiter.get_total_actions_ever()
+        
+        return jsonify({
+            'success': True,
+            'summary': summary,
+            'usage': usage,
+            'limits': account_rate_limiter.LIMITS,
+            'historical_30d': historical,
+            'all_time_totals': totals
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
