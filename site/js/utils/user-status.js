@@ -6,6 +6,7 @@
  * Designation Hierarchy:
  * - Singular Overrides: House Patron, Keeper of Reverie House
  * - Exclusive Work Roles: Guardian, Greeter, Mapper, Cogitarian, Provisioner, Bursar
+ * - Community Roles: Herald of {Community} - represents their PDS community
  * - Affix Roles: Cheerful (prefix), Stylist (suffix) - can compound
  * - Base Identities: Resident > Dreamweaver > Ward/Charge/Dreamer
  *   - Ward/Charge replace Dreamer only (not Dreamweaver/Resident)
@@ -38,6 +39,9 @@ class UserStatus {
             isCogitarian: false,
             isProvisioner: false,
             isBursar: false,
+            // Community roles
+            isHerald: false,
+            heraldCommunity: null,  // e.g., "Bluesky", "Northsky", etc.
             // Affix roles (can compound)
             isCheerful: false,    // Prefix: "Cheerful X"
             isStylist: false,     // Suffix: "X Stylist" (was isDreamstyler)
@@ -59,10 +63,11 @@ class UserStatus {
             this._checkKeeperStatus(dreamer.did),
             this._checkCharacterStatus(dreamer.did),
             this._checkWorkerStatus(dreamer.did, options.authToken),
-            this._checkStewardshipStatus(dreamer.did, options.authToken)
+            this._checkStewardshipStatus(dreamer.did, options.authToken),
+            this._checkHeraldStatus(dreamer.did, dreamer.server)
         ];
         
-        const [keeperResult, characterResult, workerResult, stewardshipResult] = await Promise.allSettled(checks);
+        const [keeperResult, characterResult, workerResult, stewardshipResult, heraldResult] = await Promise.allSettled(checks);
         
         // Process results
         if (keeperResult.status === 'fulfilled' && keeperResult.value) {
@@ -93,6 +98,11 @@ class UserStatus {
             status.isWard = stewardshipResult.value.isWard || false;
             status.isCharge = stewardshipResult.value.isCharge || false;
             status.guardianDid = stewardshipResult.value.guardianDid || null;
+        }
+        
+        if (heraldResult.status === 'fulfilled' && heraldResult.value) {
+            status.isHerald = heraldResult.value.isHerald || false;
+            status.heraldCommunity = heraldResult.value.communityName || null;
         }
         
         return status;
@@ -433,6 +443,65 @@ class UserStatus {
     }
     
     /**
+     * Check if user is a Herald (representative for their PDS community)
+     * @private
+     */
+    static async _checkHeraldStatus(did, server) {
+        const result = {
+            isHerald: false,
+            communityName: null
+        };
+        
+        if (!did) return result;
+        
+        try {
+            // Get the PDS domain from the server URL
+            let pdsDomain = server ? server.replace(/^https?:\/\//, '').split('/')[0] : null;
+            
+            // If no server provided, try to resolve from DID doc
+            if (!pdsDomain) {
+                let didDocResponse;
+                if (did.startsWith('did:web:')) {
+                    const domain = did.replace('did:web:', '');
+                    didDocResponse = await fetch(`https://${domain}/.well-known/did.json`);
+                } else {
+                    didDocResponse = await fetch(`https://plc.directory/${did}`);
+                }
+                
+                if (didDocResponse.ok) {
+                    const didDoc = await didDocResponse.json();
+                    const service = didDoc.service?.find(s => s.id === '#atproto_pds');
+                    pdsDomain = service?.serviceEndpoint?.replace(/^https?:\/\//, '').split('/')[0];
+                }
+            }
+            
+            if (!pdsDomain) return result;
+            
+            // Normalize bsky.social variations
+            if (pdsDomain.includes('.host.bsky.network') || pdsDomain === 'bsky.social') {
+                pdsDomain = 'bsky.social';
+            }
+            
+            // Check heraldry API for this domain
+            const heraldryResponse = await fetch(`/api/heraldry/for-domain/${encodeURIComponent(pdsDomain)}`);
+            
+            if (heraldryResponse.ok) {
+                const heraldry = await heraldryResponse.json();
+                
+                // Check if this user is the herald
+                if (heraldry.ambassador_did === did) {
+                    result.isHerald = true;
+                    result.communityName = heraldry.name || pdsDomain;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to check herald status:', error);
+        }
+        
+        return result;
+    }
+    
+    /**
      * Get default status object
      * @private
      */
@@ -446,6 +515,9 @@ class UserStatus {
             isCogitarian: false,
             isProvisioner: false,
             isBursar: false,
+            // Community roles
+            isHerald: false,
+            heraldCommunity: null,
             // Affix roles
             isCheerful: false,
             isStylist: false,
@@ -466,6 +538,7 @@ class UserStatus {
      * Follows the new designation hierarchy:
      * - Singular overrides (Keeper)
      * - Exclusive work roles (Guardian, Greeter, etc.)
+     * - Community roles (Herald of {Community})
      * - Affix roles compound with base (Cheerful prefix, Stylist suffix)
      * - Ward/Charge replace Dreamer (not Dreamweaver/Resident)
      * 
@@ -504,6 +577,15 @@ class UserStatus {
             hasExclusiveRole = true;
         }
         
+        // Check for Herald (community role - lower priority than work roles)
+        // Herald overrides base identity but can compound with affixes
+        let isHerald = false;
+        let heraldRole = null;
+        if (!hasExclusiveRole && user.isHerald && user.heraldCommunity) {
+            isHerald = true;
+            heraldRole = `Herald of ${user.heraldCommunity}`;
+        }
+        
         // Build designation components
         const parts = [];
         
@@ -518,7 +600,7 @@ class UserStatus {
             if (prefix) parts.push(prefix);
         }
         
-        // Cheerful prefix affix (compounds with base identity or work role)
+        // Cheerful prefix affix (compounds with base identity, work role, or herald)
         if (user.isCheerful) {
             parts.push('Cheerful');
         }
@@ -568,6 +650,9 @@ class UserStatus {
                 parts.push('Resident');
             }
             parts.push(exclusiveRole);
+        } else if (isHerald) {
+            // Herald replaces base identity: "[Cheerful] Herald of {Community}"
+            parts.push(heraldRole);
         } else if (isDreamweaver || isWard || isCharge) {
             // These use PREFIX patronage: "[Character] [Patronage] [Base]"
             if (patronagePrefix && !isResident) {
@@ -579,8 +664,8 @@ class UserStatus {
             parts.push(baseIdentity);
         }
         
-        // Stylist affix (suffix) - only on base identities, not on work roles
-        if (user.isStylist && !hasExclusiveRole) {
+        // Stylist affix (suffix) - only on base identities, not on work roles or heralds
+        if (user.isStylist && !hasExclusiveRole && !isHerald) {
             parts.push('Stylist');
         }
         
@@ -677,6 +762,12 @@ class UserStatus {
                    label.includes('Provisioner') || label.includes('Bursar')) {
             tier = 'worker';
             description = 'Active worker at Reverie House';
+        } else if (label.includes('Herald of')) {
+            tier = 'herald';
+            // Extract community name from label
+            const match = label.match(/Herald of (.+)$/);
+            const community = match ? match[1] : 'their community';
+            description = `Ambassador representing ${community} to Reverie House`;
         } else if (label.includes('Resident')) {
             tier = 'resident';
             description = 'PDS hosted on reverie.house';
