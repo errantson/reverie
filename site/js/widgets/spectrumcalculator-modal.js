@@ -54,7 +54,7 @@ class SpectrumCalculatorModal {
         }
         
         this.isOpen = true;
-        this.render(isMapper, mapperInfo, showDeluxe);
+        await this.render(isMapper, mapperInfo, showDeluxe);
         
         // Animate in
         requestAnimationFrame(() => {
@@ -91,7 +91,7 @@ class SpectrumCalculatorModal {
         }
     }
     
-    render(isMapper, mapperInfo = null, showDeluxe = false) {
+    async render(isMapper, mapperInfo = null, showDeluxe = false) {
         // Create overlay
         this.overlay = document.createElement('div');
         this.overlay.className = 'spectrum-calculator-overlay';
@@ -158,36 +158,76 @@ class SpectrumCalculatorModal {
         document.body.appendChild(this.overlay);
         
         // Initialize spectrum widget inside modal
-        this.initSpectrumWidget(isMapper, showDeluxe);
+        await this.initSpectrumWidget(isMapper, showDeluxe);
         
         // Attach event listeners
         this.attachEventListeners();
     }
     
-    initSpectrumWidget(isMapper, showDeluxe = false) {
+    async initSpectrumWidget(isMapper, showDeluxe = false) {
         const container = document.getElementById('spectrum-calculator-modal-body');
         if (!container) return;
         
+        // Load required CSS
+        if (!document.querySelector('link[href*="css/widgets/spectrumpreview.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '/css/widgets/spectrumpreview.css';
+            document.head.appendChild(link);
+        }
+        
+        // Create the two-column mapper layout structure that SpectrumPreview expects
+        // The widget renders into the left column, and puts the origin preview into the right column
+        container.innerHTML = `
+            <div class="mapper-columns modal-mapper-columns">
+                <div class="mapper-column-left">
+                    <div id="spectrum-preview-modal-container"></div>
+                </div>
+                <div class="mapper-column-right">
+                    <div class="origin-preview-box placeholder">
+                        <div class="origin-preview-inner">
+                            <div class="origin-preview-media">
+                                <span class="origin-preview-empty">Origin preview will appear here after calculation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const widgetContainer = document.getElementById('spectrum-preview-modal-container');
+        if (!widgetContainer) return;
+        
         // Wait for SpectrumPreview to be available
         if (window.SpectrumPreview) {
-            this.spectrumWidget = new window.SpectrumPreview(container, {
+            this.spectrumWidget = new window.SpectrumPreview(widgetContainer, {
                 isMapper: isMapper,
                 showDeluxe: showDeluxe,  // Force show origin calculator and explainer
                 parentModal: this  // Pass reference to modal for closing
             });
         } else {
-            // Load the script if not available
-            console.log('⏳ Loading SpectrumPreview widget...');
-            const script = document.createElement('script');
-            script.src = '/js/widgets/spectrumpreview.js?v=' + Date.now();
-            script.onload = () => {
-                this.spectrumWidget = new window.SpectrumPreview(container, {
-                    isMapper: isMapper,
-                    showDeluxe: showDeluxe,  // Force show origin calculator and explainer
-                    parentModal: this  // Pass reference to modal for closing
-                });
-            };
-            document.head.appendChild(script);
+            // Load the script as a MODULE since spectrumpreview.js uses ES6 imports
+            console.log('⏳ Loading SpectrumPreview widget as module...');
+            try {
+                // Use dynamic import to load the ES6 module
+                const module = await import('/js/widgets/spectrumpreview.js?v=' + Date.now());
+                // The module also sets window.SpectrumPreview as a side effect
+                const SpectrumPreviewClass = module.default || window.SpectrumPreview;
+                
+                if (SpectrumPreviewClass) {
+                    this.spectrumWidget = new SpectrumPreviewClass(widgetContainer, {
+                        isMapper: isMapper,
+                        showDeluxe: showDeluxe,
+                        parentModal: this
+                    });
+                } else {
+                    console.error('SpectrumPreview class not found in module');
+                    widgetContainer.innerHTML = '<p style="padding: 1rem; color: #999;">Failed to load calculator. Please try again.</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load SpectrumPreview module:', error);
+                widgetContainer.innerHTML = '<p style="padding: 1rem; color: #999;">Failed to load calculator. Please try again.</p>';
+            }
         }
     }
     

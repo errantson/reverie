@@ -4140,13 +4140,71 @@ class Dashboard {
     }
     
     async openSpectrumCalculator() {
-        // Check if the modal is available
+        // Load CSS if not already loaded (with cache bust)
+        if (!document.querySelector('link[href*="spectrumcalculator-modal.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '/css/widgets/spectrumcalculator-modal.css?v=2026020203';
+            document.head.appendChild(link);
+        }
+        
+        // Load spectrumpreview CSS if not loaded
+        if (!document.querySelector('link[href*="spectrumpreview.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '/css/widgets/spectrumpreview.css?v=2026020202';
+            document.head.appendChild(link);
+        }
+        
+        // Load SpectrumPreview as a MODULE (it uses ES6 imports)
+        if (!window.SpectrumPreview) {
+            try {
+                const module = await import('/js/widgets/spectrumpreview.js');
+                // Module sets window.SpectrumPreview as side effect, but also grab from default export
+                if (!window.SpectrumPreview && module.default) {
+                    window.SpectrumPreview = module.default;
+                }
+            } catch (e) {
+                console.error('Failed to load SpectrumPreview module:', e);
+            }
+        }
+        
+        // Load the modal script if not available (regular script, not a module)
+        // Cache-bust to ensure latest version with two-column layout
+        if (!window.SpectrumCalculatorModal) {
+            await this.loadScript('/js/widgets/spectrumcalculator-modal.js?v=2026020203');
+        }
+        
+        // Create modal instance if needed
+        if (!window.spectrumCalculatorModal && window.SpectrumCalculatorModal) {
+            window.spectrumCalculatorModal = new SpectrumCalculatorModal();
+        }
+        
+        // Open the modal
         if (window.spectrumCalculatorModal) {
             await window.spectrumCalculatorModal.open();
         } else {
-            console.error('Spectrum Calculator modal not available');
-            alert('Spectrum Calculator is not available. Please refresh the page.');
+            console.error('Spectrum Calculator modal could not be loaded');
+            alert('Spectrum Calculator is not available. Please try again.');
         }
+    }
+    
+    /**
+     * Load a script dynamically and wait for it to complete
+     */
+    loadScript(src) {
+        return new Promise((resolve, reject) => {
+            // Check if already loaded
+            if (document.querySelector(`script[src*="${src.split('/').pop()}"]`)) {
+                resolve();
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
     }
     
     /**

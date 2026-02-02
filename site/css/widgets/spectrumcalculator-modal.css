@@ -26,7 +26,7 @@
     border: 2px solid var(--reverie-core-color, #734ba1);
     border-radius: 0; /* Square corners like rest of site */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-    max-width: 460px;
+    max-width: 900px; /* Wider to accommodate two-column layout */
     width: 100%;
     max-height: 85vh;
     overflow: hidden;
@@ -106,13 +106,13 @@
 }
 
 .spectrum-calculator-modal-body .spectrum-preview-helper-text {
-    padding: 1rem 1.5rem 0.5rem;
+    padding: 0.25rem 0 0.5rem;
     margin: 0;
     color: #6b7280;
     font-size: 0.8125rem;
     text-align: left;
     font-family: Georgia, 'Times New Roman', serif;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
 .spectrum-calculator-modal-body .spectrum-preview-body {
@@ -375,4 +375,91 @@
 
 .spectrum-calculator-modal-body::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+}
+/* Modal-specific mapper columns layout */
+.spectrum-calculator-modal-body .modal-mapper-columns {
+    display: flex;
+    gap: 1.25rem;
+    padding: 1rem 1.25rem;
+    align-items: flex-start;
+}
+
+.spectrum-calculator-modal-body .mapper-column-left {
+    flex: 0 0 38%;
+    min-width: 260px;
+}
+
+.spectrum-calculator-modal-body .mapper-column-right {
+    flex: 1 1 62%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Origin preview box styling for modal */
+.spectrum-calculator-modal-body .origin-preview-box {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 2px solid rgba(115, 75, 161, 0.15);
+    background: linear-gradient(180deg, #faf8fc, #f5f3f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    margin: 0;
+}
+
+.spectrum-calculator-modal-body .origin-preview-box.has-image {
+    border-color: rgba(115, 75, 161, 0.25);
+}
+
+.spectrum-calculator-modal-body .origin-preview-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spectrum-calculator-modal-body .origin-preview-media {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spectrum-calculator-modal-body .origin-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.spectrum-calculator-modal-body .origin-preview-empty {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 1.5rem;
+    line-height: 1.5;
+}
+
+/* Responsive: stack columns on narrow screens */
+@media (max-width: 700px) {
+    .spectrum-calculator-modal-body .modal-mapper-columns {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .spectrum-calculator-modal-body .mapper-column-left,
+    .spectrum-calculator-modal-body .mapper-column-right {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+    
+    .spectrum-calculator-modal-body .origin-preview-box {
+        max-height: 200px;
+    }
 }
