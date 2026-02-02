@@ -26,7 +26,6 @@
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/heraldry.css">
     <link rel="stylesheet" href="/css/pages/spectrum.css">
-    <link rel="stylesheet" href="/css/responsive.css">
     <link rel="stylesheet" href="/css/octants.css">
     <link rel="stylesheet" href="/css/widgets/login.css">
     <link rel="stylesheet" href="/css/widgets/createdreamer.css">
@@ -98,264 +97,52 @@
     <div id="footer-container"></div>
 
     <script>
-        // Debug logging for spectrum page
-        console.log('📊 [Spectrum] Script starting...');
-        console.log('📊 [Spectrum] Document readyState:', document.readyState);
-        
-        // Initialize the deluxe spectrum visualizer when the page loads
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('📊 [Spectrum] ===== DOM CONTENT LOADED =====');
-            console.log('📊 [Spectrum] Document readyState:', document.readyState);
-            console.log('📊 [Spectrum] Body element:', document.body);
-            console.log('📊 [Spectrum] Body classes:', document.body.className);
-            
-            // Check for ALL elements in the DOM
-            const allElements = document.querySelectorAll('*');
-            console.log('📊 [Spectrum] Total elements in DOM:', allElements.length);
-            
-            // Look for any octant-related elements
-            const octantElements = document.querySelectorAll('[class*="octant"], [id*="octant"]');
-            console.log('📊 [Spectrum] ⚠️ OCTANT-RELATED ELEMENTS FOUND:', octantElements.length);
-            if (octantElements.length > 0) {
-                octantElements.forEach((el, i) => {
-                    const rect = el.getBoundingClientRect();
-                    const styles = window.getComputedStyle(el);
-                    console.log(`📊 [Spectrum] 🔴 OCTANT ELEMENT ${i}:`, {
-                        tag: el.tagName,
-                        id: el.id,
-                        classes: el.className,
-                        display: styles.display,
-                        position: styles.position,
-                        visibility: styles.visibility,
-                        rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-                        element: el
-                    });
-                });
-            }
-            
-            // Look for any modality elements
-            const modalityElements = document.querySelectorAll('[class*="modality"]');
-            console.log('📊 [Spectrum] ⚠️ MODALITY ELEMENTS FOUND:', modalityElements.length);
-            if (modalityElements.length > 0) {
-                modalityElements.forEach((el, i) => {
-                    const rect = el.getBoundingClientRect();
-                    const styles = window.getComputedStyle(el);
-                    console.log(`📊 [Spectrum] 🔴 MODALITY ELEMENT ${i}:`, {
-                        tag: el.tagName,
-                        id: el.id,
-                        classes: el.className,
-                        display: styles.display,
-                        position: styles.position,
-                        rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-                        element: el
-                    });
-                });
-            }
-            
             const canvas = document.getElementById('spectrumCanvas');
             const loadingOverlay = document.getElementById('loadingOverlay');
-            const mainContent = document.querySelector('.main-content');
-            const spectrumVisualization = document.querySelector('.spectrum-visualization');
-            const spectrumContainer = document.querySelector('.spectrum-container');
-            const canvasContainer = document.querySelector('.canvas-container');
-            const header = document.getElementById('header-container');
-            const footer = document.getElementById('footer-container');
-            const background = document.querySelector('.fullscreen-background');
-            
-            console.log('📊 [Spectrum] Canvas element:', canvas);
-            console.log('📊 [Spectrum] Loading overlay:', loadingOverlay);
-            console.log('📊 [Spectrum] Main content:', mainContent);
-            console.log('📊 [Spectrum] Spectrum visualization:', spectrumVisualization);
-            console.log('📊 [Spectrum] Spectrum container:', spectrumContainer);
-            console.log('📊 [Spectrum] Canvas container:', canvasContainer);
-            console.log('📊 [Spectrum] Header:', header);
-            console.log('📊 [Spectrum] Footer:', footer);
-            console.log('📊 [Spectrum] Background:', background);
-            
-            // Calculate viewport and positions
-            const viewport = {
-                width: window.innerWidth,
-                height: window.innerHeight
+            if (!canvas) return;
+
+            const initDeluxe = async () => {
+                // Wait for header CSS to load (prevents layout race conditions)
+                let attempts = 0;
+                while (attempts++ < 20) {
+                    const headerCSS = document.querySelector('link[href*="css/widgets/header.css"]');
+                    if (headerCSS?.sheet) break;
+                    await new Promise(r => setTimeout(r, 50));
+                }
+                await new Promise(r => setTimeout(r, 50));
+
+                if (typeof SpectrumDeluxe !== 'undefined') {
+                    const visualizer = new SpectrumDeluxe(canvas, {
+                        showLabels: true,
+                        showAllNames: false,
+                        initialZoom: 1.2,
+                        liveUpdate: true,
+                        liveUpdateInterval: 120000,
+                    });
+                    
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => visualizer.resize());
+                    });
+
+                    setTimeout(() => loadingOverlay.classList.add('hidden'), 1500);
+                    window.spectrumVisualizer = visualizer;
+                } else {
+                    setTimeout(initDeluxe, 100);
+                }
             };
-            console.log('📊 [Spectrum] 📐 Viewport:', viewport);
             
-            if (header) {
-                const headerRect = header.getBoundingClientRect();
-                const headerStyles = window.getComputedStyle(header);
-                console.log('📊 [Spectrum] 📐 Header:', {
-                    rect: { top: headerRect.top, left: headerRect.left, width: headerRect.width, height: headerRect.height },
-                    bottom: headerRect.bottom,
-                    position: headerStyles.position,
-                    zIndex: headerStyles.zIndex
-                });
-            }
-            
-            if (footer) {
-                const footerRect = footer.getBoundingClientRect();
-                const footerStyles = window.getComputedStyle(footer);
-                console.log('📊 [Spectrum] 📐 Footer/Drawer:', {
-                    rect: { top: footerRect.top, left: footerRect.left, width: footerRect.width, height: footerRect.height },
-                    position: footerStyles.position,
-                    zIndex: footerStyles.zIndex
-                });
-            }
-            
-            if (background) {
-                const bgRect = background.getBoundingClientRect();
-                const bgStyles = window.getComputedStyle(background);
-                console.log('📊 [Spectrum] 📐 Background:', {
-                    rect: { top: bgRect.top, left: bgRect.left, width: bgRect.width, height: bgRect.height },
-                    position: bgStyles.position,
-                    zIndex: bgStyles.zIndex
-                });
-            }
-            
-            if (mainContent) {
-                const styles = window.getComputedStyle(mainContent);
-                const rect = mainContent.getBoundingClientRect();
-                const availableHeight = viewport.height - (header?.getBoundingClientRect().height || 0) - (footer?.getBoundingClientRect().height || 0);
-                console.log('📊 [Spectrum] 📐 Main content:', {
-                    display: styles.display,
-                    alignItems: styles.alignItems,
-                    justifyContent: styles.justifyContent,
-                    minHeight: styles.minHeight,
-                    padding: styles.padding,
-                    position: styles.position,
-                    zIndex: styles.zIndex,
-                    rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-                    availableHeight: availableHeight,
-                    centerY: rect.top + (rect.height / 2)
-                });
-            }
-            
-            if (spectrumVisualization) {
-                const styles = window.getComputedStyle(spectrumVisualization);
-                const rect = spectrumVisualization.getBoundingClientRect();
-                console.log('📊 [Spectrum] 📐 Spectrum visualization:', {
-                    display: styles.display,
-                    maxWidth: styles.maxWidth,
-                    width: styles.width,
-                    margin: styles.margin,
-                    padding: styles.padding,
-                    rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-                    centerX: rect.left + (rect.width / 2),
-                    centerY: rect.top + (rect.height / 2)
-                });
-            }
-            
-            if (spectrumContainer) {
-                const styles = window.getComputedStyle(spectrumContainer);
-                const rect = spectrumContainer.getBoundingClientRect();
-                const headerHeight = header?.getBoundingClientRect().height || 0;
-                const footerHeight = footer?.getBoundingClientRect().height || 0;
-                const viewportMidY = viewport.height / 2;
-                const availableSpaceMidY = headerHeight + ((viewport.height - headerHeight - footerHeight) / 2);
-                const containerMidY = rect.top + (rect.height / 2);
-                
-                console.log('📊 [Spectrum] 📐 Spectrum container:', {
-                    display: styles.display,
-                    minHeight: styles.minHeight,
-                    maxHeight: styles.maxHeight,
-                    width: styles.width,
-                    position: styles.position,
-                    overflow: styles.overflow,
-                    rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-                    centerX: rect.left + (rect.width / 2),
-                    centerY: containerMidY,
-                    viewportCenterX: viewport.width / 2,
-                    viewportCenterY: viewportMidY,
-                    availableSpaceCenterY: availableSpaceMidY,
-                    offsetFromViewportCenter: containerMidY - viewportMidY,
-                    offsetFromAvailableCenter: containerMidY - availableSpaceMidY
-                });
-            }
-            
-            if (canvasContainer) {
-                const rect = canvasContainer.getBoundingClientRect();
-                const styles = window.getComputedStyle(canvasContainer);
-                console.log('📊 [Spectrum] 📐 Canvas container:', {
-                    rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-                    display: styles.display,
-                    position: styles.position,
-                    flexGrow: styles.flexGrow,
-                    background: styles.background
-                });
-            }
-            
-            if (canvas) {
-                console.log('📊 [Spectrum] Canvas dimensions:', {
-                    width: canvas.width,
-                    height: canvas.height,
-                    clientWidth: canvas.clientWidth,
-                    clientHeight: canvas.clientHeight
-                });
-                
-                const canvasStyles = window.getComputedStyle(canvas);
-                console.log('📊 [Spectrum] Canvas styles:', {
-                    width: canvasStyles.width,
-                    height: canvasStyles.height,
-                    minHeight: canvasStyles.minHeight,
-                    cursor: canvasStyles.cursor,
-                    background: canvasStyles.background
-                });
-                
-                // Wait for SpectrumDeluxe to be available
-                const initDeluxe = () => {
-                    if (typeof SpectrumDeluxe !== 'undefined') {
-                        console.log('📊 [Spectrum] SpectrumDeluxe class found, creating instance...');
-                        // Create the deluxe visualizer
-                        const visualizer = new SpectrumDeluxe(canvas, {
-                            showLabels: true,
-                            showAllNames: false,
-                            initialZoom: 1.2,
-                            liveUpdate: true,
-                            liveUpdateInterval: 120000, // 2 minutes
-                        });
-                        console.log('📊 [Spectrum] SpectrumDeluxe instance created:', visualizer);
-
-                        // Hide loading overlay after a brief delay
-                        setTimeout(() => {
-                            console.log('📊 [Spectrum] Hiding loading overlay');
-                            loadingOverlay.classList.add('hidden');
-                        }, 1500);
-
-                        // Store visualizer globally for debugging
-                        window.spectrumVisualizer = visualizer;
-                        console.log('📊 [Spectrum] Visualizer stored in window.spectrumVisualizer');
-                    } else {
-                        console.log('📊 [Spectrum] SpectrumDeluxe not yet available, waiting...');
-                        // Wait a bit and try again
-                        setTimeout(initDeluxe, 100);
-                    }
-                };
-                
-                initDeluxe();
-            } else {
-                console.error('📊 [Spectrum] Canvas element not found!');
-            }
-            
-            console.log('📊 [Spectrum] ===== SETUP COMPLETE =====');
+            initDeluxe();
         });
 
-        // Handle window resize
+        // Resize handling
         let resizeTimeout;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                if (window.spectrumVisualizer) {
-                    window.spectrumVisualizer.resize();
-                }
-            }, 100);
+            resizeTimeout = setTimeout(() => window.spectrumVisualizer?.resize(), 100);
         });
 
-        // Handle orientation changes for mobile devices
-        if (window.orientationHandler) {
-            window.orientationHandler.subscribe((data) => {
-                if (window.spectrumVisualizer) {
-                    window.spectrumVisualizer.resize();
-                }
-            });
-        }
+        window.orientationHandler?.subscribe(() => window.spectrumVisualizer?.resize());
     </script>
 </body>
 </html>
