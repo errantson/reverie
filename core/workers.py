@@ -164,7 +164,7 @@ class WorkerNetworkClient:
             
             # Add reply structure if replying
             if reply_to:
-                # Fetch parent post to get CID
+                # Fetch parent post to get CID and check if it's a reply itself
                 parent_uri_parts = reply_to.replace('at://', '').split('/')
                 parent_did = parent_uri_parts[0]
                 parent_rkey = parent_uri_parts[-1]
@@ -183,12 +183,27 @@ class WorkerNetworkClient:
                     print(f"❌ Failed to fetch parent post: {parent_response.status_code}")
                     return None
                 
-                parent_cid = parent_response.json().get('cid')
+                parent_data = parent_response.json()
+                parent_cid = parent_data.get('cid')
+                parent_record = parent_data.get('value', {})
+                
+                # Check if parent is itself a reply - if so, use its root as our root
+                # This ensures we always point to the actual thread root, not just the parent
+                parent_reply = parent_record.get('reply')
+                if parent_reply and parent_reply.get('root'):
+                    # Parent is a reply - use its root as our root
+                    root_uri = parent_reply['root'].get('uri')
+                    root_cid = parent_reply['root'].get('cid')
+                    print(f"📎 Using thread root from parent: {root_uri}")
+                else:
+                    # Parent is NOT a reply - parent IS the root
+                    root_uri = reply_to
+                    root_cid = parent_cid
                 
                 post_record['reply'] = {
                     'root': {
-                        'uri': reply_to,
-                        'cid': parent_cid
+                        'uri': root_uri,
+                        'cid': root_cid
                     },
                     'parent': {
                         'uri': reply_to,
