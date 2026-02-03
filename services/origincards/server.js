@@ -6,9 +6,9 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 
-const SPECTRUM_DIR = '/srv/site/spectrum';
-const ASSETS_DIR = '/srv/site/assets';
-const SOUVENIRS_DIR = '/srv/site/souvenirs';
+const SPECTRUM_DIR = '/srv/reverie.house/site/spectrum';
+const ASSETS_DIR = '/srv/reverie.house/site/assets';
+const SOUVENIRS_DIR = '/srv/reverie.house/site/souvenirs';
 
 // Ensure directory exists
 async function ensureDir(dir) {
@@ -98,71 +98,8 @@ app.post('/generate', async (req, res) => {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
         
-        // Generate particles (80-120 particles)
-        const seed = hashCode(handle);
-        const rng = seededRandom(seed);
-        const particleCount = Math.floor(80 + rng() * 40);
-        
-        for (let i = 0; i < particleCount; i++) {
-            const x = rng() * canvas.width;
-            const y = rng() * canvas.height;
-            const size = rng() * 3 + 1;  // 1-4px
-            const opacity = rng() * 0.6 + 0.2;
-            
-            ctx.fillStyle = `rgba(212, 175, 55, ${opacity})`;  // Gold particles
-            ctx.beginPath();
-            ctx.arc(x, y, size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        console.log(`✅ Drew ${particleCount} particles`);
-        
-        // Generate souvenir bubbles (4-8 bubbles)
-        const bubbleCount = Math.floor(4 + rng() * 4);
-        const souvenirFiles = await fs.readdir(SOUVENIRS_DIR);
-        const svgFiles = souvenirFiles.filter(f => f.endsWith('.svg'));
-        
-        for (let i = 0; i < bubbleCount && i < svgFiles.length; i++) {
-            const x = rng() * canvas.width;
-            const y = rng() * canvas.height;
-            const size = 80 + rng() * 60;  // 80-140px
-            
-            // Draw bubble with gradient
-            const gradient = ctx.createRadialGradient(
-                x - size * 0.2, y - size * 0.2, 0,
-                x, y, size / 2
-            );
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-            gradient.addColorStop(1, 'rgba(200, 220, 255, 0.4)');
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Border
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // Inner shadow
-            ctx.save();
-            ctx.globalCompositeOperation = 'source-atop';
-            const innerShadow = ctx.createRadialGradient(
-                x + size * 0.15, y + size * 0.15, 0,
-                x, y, size / 2
-            );
-            innerShadow.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            innerShadow.addColorStop(0.7, 'rgba(0, 0, 0, 0.08)');
-            ctx.fillStyle = innerShadow;
-            ctx.beginPath();
-            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-            
-            // Try to load souvenir icon (SVG not supported by node-canvas, skip for now)
-            // Icons will be missing but bubbles will show
-        }
-        console.log(`✅ Drew ${bubbleCount} souvenir bubbles`);
+        // Particles and souvenir bubbles removed for faster generation
+        // The background image provides sufficient visual interest
         
         // Load logo
         let logo;

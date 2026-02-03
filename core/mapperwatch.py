@@ -2,24 +2,17 @@
 """
 Mapper Polling Service - Check origin quest replies every minute
 
-This service polls the origin quest post for new replies every 60 seconds.
-Unlike a firehose listener, this avoids ConsumerTooSlow errors by fetching
-only the replies we care about via the getPostThread API.
+Simple and reliable polling service that:
+1. Polls the origin quest post for new replies every 60 seconds
+2. Checks the events table for DIDs who already have key='origin'
+3. For new users: calculates spectrum, posts reply as mapper, adds origin event
+4. Uses the database as source of truth, not in-memory session tracking
 
-Processing:
-- Polls once per minute for new replies to origin quest
-- Processes only replies we haven't seen before
-- Checks hasnt_canon:origin condition
-- Executes declare_origin command for new declarations
-- Lightweight and reliable - no firehose parsing overhead
-
-This is the automated mapper machine that declares spectrum origins.
+This follows the same proven pattern as greeterwatch.
 """
 
-import json
 import sys
 import time
-import random
 from pathlib import Path
 from datetime import datetime
 from typing import Set, Optional
@@ -27,10 +20,9 @@ from typing import Set, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from atproto import Client
-from config import Config
 
 
-class MapperhoseMonitor:
+class MapperMonitor:
     """Poll the origin quest for new replies every minute."""
     
     def __init__(self, verbose: bool = False):
@@ -40,32 +32,45 @@ class MapperhoseMonitor:
             'total_checks': 0,
             'replies_found': 0,
             'origins_declared': 0,
-            'retry_requests_sent': 0,
             'start_time': datetime.now()
         }
         
-        # Track which reply URIs we've already processed
-        self.processed_uris: Set[str] = set()
-        self.processed_dids: Set[str] = set()
-        
-        # Track retry requests we've sent (user DID -> retry post URI)
-        self.retry_requests: dict = {}
-        
-        self._load_processed_dreamers()
-        self._load_retry_requests()
+        # Track DIDs who already have origin declared - loaded from database
+        self.declared_dids: Set[str] = set()
+        self._load_declared_origins()
         
         # The origin quest URI - loaded from database
         self.origin_uri: Optional[str] = None
         self._load_origin_quest()
         
-        # AT Protocol client for fetching threads
-        # Use public API endpoint - no auth needed for reading public posts
+        # AT Protocol client for fetching threads (public API, no auth needed)
         self.client = Client(base_url='https://public.api.bsky.app')
         
-        # Mapper client for posting retry requests
+        # Mapper client for posting replies - authenticated
         self.mapper_client = None
-        self.mapper_unavailable_logged = False
-        self._init_mapper_client()
+        self._authenticate_mapper()
+    
+    def _load_declared_origins(self):
+        """Load DIDs who already have origin declared from events table."""
+        try:
+            from core.database import DatabaseManager
+            db = DatabaseManager()
+            
+            # Get all DIDs who have key='origin' in events table
+            cursor = db.execute(
+                "SELECT DISTINCT did FROM events WHERE key = 'origin'"
+            )
+            rows = cursor.fetchall()
+            
+            for row in rows:
+                if row['did']:
+                    self.declared_dids.add(row['did'])
+            
+            if self.verbose:
+                print(f"📝 Loaded {len(self.declared_dids)} DIDs with origin already declared")
+                
+        except Exception as e:
+            print(f"⚠️  Error loading declared origins: {e}")
     
     def _load_origin_quest(self):
         """Load the origin quest URI from database."""
@@ -80,7 +85,7 @@ class MapperhoseMonitor:
             if result:
                 self.origin_uri = result['uri']
                 if self.verbose:
-                    print(f"🗺️  MAPPERHOSE - Automated Origin Quest Monitor")
+                    print(f"🗺️  MAPPERWATCH - Origin Quest Monitor")
                     print(f"=" * 70)
                     print(f"Quest URI: {self.origin_uri}")
                     print(f"Polling interval: 60 seconds")
@@ -94,442 +99,502 @@ class MapperhoseMonitor:
             import traceback
             traceback.print_exc()
     
-    def _load_processed_dreamers(self):
-        """Load dreamers who already have origin canon entries."""
+    def _authenticate_mapper(self):
+        """Authenticate the mapper client for posting replies."""
         try:
-            from core.database import DatabaseManager
-            db = DatabaseManager()
-            
-            # Load DIDs of dreamers who have already declared their origin
-            # Note: add_canon writes to the EVENTS table, not canon table
-            cursor = db.execute(
-                "SELECT DISTINCT did FROM events WHERE key = 'origin'"
-            )
-            results = cursor.fetchall()
-            
-            for row in results:
-                self.processed_dids.add(row['did'])
-            
-            if self.verbose:
-                print(f"📊 Loaded {len(self.processed_dids)} dreamers with origin canons")
-                
-        except Exception as e:
-            print(f"⚠️  Error loading processed dreamers: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def _load_retry_requests(self):
-        """Load any existing retry requests from database."""
-        try:
-            from core.database import DatabaseManager
-            db = DatabaseManager()
-            
-            # Create retry_requests table if it doesn't exist
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS quest_retry_requests (
-                    id SERIAL PRIMARY KEY,
-                    user_did TEXT NOT NULL,
-                    quest_title TEXT NOT NULL,
-                    retry_post_uri TEXT NOT NULL,
-                    original_reply_uri TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(user_did, quest_title)
-                )
-            """)
-            
-            # Load existing retry requests for origin quest
-            cursor = db.execute(
-                "SELECT user_did, retry_post_uri FROM quest_retry_requests WHERE quest_title = 'origin'"
-            )
-            results = cursor.fetchall()
-            
-            for row in results:
-                self.retry_requests[row['user_did']] = row['retry_post_uri']
-            
-            if self.verbose and self.retry_requests:
-                print(f"📨 Loaded {len(self.retry_requests)} pending retry requests")
-                
-        except Exception as e:
-            print(f"⚠️  Error loading retry requests: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def _init_mapper_client(self):
-        """Initialize authenticated Bluesky client for mapper account."""
-        try:
+            import json
             from core.database import DatabaseManager
             from core.encryption import decrypt_password
             
             db = DatabaseManager()
             
-            # Get the current mapper from the work table
-            cursor = db.execute("""
-                SELECT workers FROM work WHERE role = 'mapper'
-            """)
+            # Get mapper from work table
+            cursor = db.execute("SELECT workers FROM work WHERE role = 'mapper'")
             work_result = cursor.fetchone()
             
             if not work_result or not work_result['workers']:
-                print(f"ℹ️  No mapper assigned - retry messages disabled")
-                print(f"   To assign a mapper, have someone with credentials apply for the 'mapper' role")
+                print("⚠️  No mapper assigned in work table")
                 return
             
-            import json
             workers = json.loads(work_result['workers'])
             if not workers:
-                print(f"ℹ️  No mapper assigned - retry messages disabled")
+                print("⚠️  Empty workers list for mapper")
                 return
             
-            mapper_did = workers[0].get('did')  # Get first worker
+            mapper_did = workers[0].get('did')
             
-            # Get mapper DID and encrypted password
+            # Get mapper credentials
             cursor = db.execute("""
-                SELECT d.did, d.handle, c.app_password_hash
+                SELECT d.handle, c.app_password_hash, c.pds_url
                 FROM dreamers d
                 JOIN user_credentials c ON d.did = c.did
-                WHERE d.did = %s
+                WHERE d.did = %s AND c.is_valid = true
             """, (mapper_did,))
             result = cursor.fetchone()
             
             if not result or not result['app_password_hash']:
-                print(f"⚠️  No credentials found for mapper {result['handle'] if result else mapper_did} - retry messages disabled")
+                print(f"⚠️  No credentials found for mapper DID: {mapper_did}")
                 return
             
-            # Decrypt the password
             app_password = decrypt_password(result['app_password_hash'])
+            if not app_password:
+                print("⚠️  Failed to decrypt mapper password")
+                return
             
-            if app_password:
-                # mappy.reverie.house is hosted on reverie.house PDS
-                self.mapper_client = Client(base_url='https://reverie.house')
-                self.mapper_client.login('mappy.reverie.house', app_password)
-                if self.verbose:
-                    print(f"🔐 Mapper client authenticated as mappy.reverie.house via reverie.house PDS")
-            else:
-                print(f"⚠️  Failed to decrypt credentials for mappy.reverie.house - retry messages disabled")
+            pds_url = result.get('pds_url') or 'https://reverie.house'
+            
+            # Login as mapper
+            self.mapper_client = Client(base_url=pds_url)
+            self.mapper_client.login(result['handle'], app_password)
+            
+            if self.verbose:
+                print(f"🔐 Mapper authenticated as @{result['handle']} via {pds_url}")
                 
+        except FileNotFoundError:
+            print("⚠️  Encryption key not found - mapper cannot authenticate")
         except Exception as e:
-            print(f"⚠️  Error initializing mapper client: {e}")
+            print(f"⚠️  Could not authenticate mapper: {e}")
             import traceback
             traceback.print_exc()
     
-    def _fetch_thread_replies(self) -> list:
+    def _fetch_thread_replies(self):
         """Fetch all replies to the origin quest post."""
         if not self.origin_uri:
             return []
         
         try:
-            # Parse the AT URI to get thread parameters
-            # Format: at://did:plc:yauphjufk7phkwurn266ybx2/app.bsky.feed.post/3lvu664ajls2r
-            parts = self.origin_uri.replace('at://', '').split('/')
-            repo_did = parts[0]
-            rkey = parts[-1]
-            
-            # Fetch the thread
-            thread = self.client.app.bsky.feed.get_post_thread({
+            response = self.client.app.bsky.feed.get_post_thread({
                 'uri': self.origin_uri,
-                'depth': 1000  # Get all replies
+                'depth': 1000
             })
             
-            # Extract replies from the thread
-            replies = []
-            if hasattr(thread, 'thread') and hasattr(thread.thread, 'replies'):
-                for reply in thread.thread.replies:
-                    if hasattr(reply, 'post'):
-                        post = reply.post
-                        replies.append({
-                            'uri': post.uri,
-                            'cid': post.cid,
-                            'author': {
-                                'did': post.author.did,
-                                'handle': post.author.handle
-                            },
-                            'record': {
-                                'text': post.record.text,
-                                'createdAt': post.record.created_at
-                            }
-                        })
+            thread = response.thread
+            if not hasattr(thread, 'replies'):
+                return []
             
-            return replies
+            return thread.replies or []
             
         except Exception as e:
             print(f"⚠️  Error fetching thread: {e}")
             return []
     
-    def _process_reply(self, reply: dict) -> None:
-        """Process a single reply to check if it's a new origin declaration."""
-        author_did = reply['author']['did']
-        author_handle = reply['author']['handle']
-        reply_uri = reply['uri']
-        reply_cid = reply.get('cid')
-        post_text = reply['record']['text']
-        post_created_at = reply['record']['createdAt']
-        
-        # Skip if already processed
-        if author_did in self.processed_dids:
-            if self.verbose:
-                print(f"   ⏭️  Already declared: @{author_handle}")
-            return
-        
-        if reply_uri in self.processed_uris:
-            if self.verbose:
-                print(f"   ⏭️  Already processed: {reply_uri}")
-            return
-        
-        # Found a new origin declaration!
-        print(f"🆕 NEW ORIGIN DECLARATION: @{author_handle}")
-        print(f"   URI: {reply_uri}")
-        print(f"   Text: {post_text[:80]}...")
-        
-        # Process through quest system
-        success, skip_reason = self._process_origin_declaration(
-            reply_uri, author_did, author_handle,
-            post_text, post_created_at, reply_cid
-        )
-        
-        # Only mark as processed if declaration succeeds
-        if success:
-            self.processed_dids.add(author_did)
-            self.processed_uris.add(reply_uri)
-            self.stats['origins_declared'] += 1
-            print(f"   ✅ Origin declared successfully")
-            
-            # Remove from retry requests if they had one (legacy)
-            if author_did in self.retry_requests:
-                self._remove_retry_request(author_did)
-        else:
-            # Log the failure - with any_reply condition, failures indicate system errors
-            print(f"   ❌ Origin declaration failed: {skip_reason}")
-    
-    def _process_origin_declaration(self, reply_uri: str, author_did: str,
-                                    author_handle: str, post_text: str,
-                                    post_created_at: str, reply_cid: str = None) -> tuple:
-        """
-        Process an origin declaration through the quest system.
-        
-        Returns:
-            (success: bool, skip_reason: str or None)
-        """
+    def _process_reply(self, reply):
+        """Process a single reply to the origin quest."""
         try:
-            from ops.quest_hooks import process_quest_reply
+            post = reply.post
+            author_did = post.author.did
+            author_handle = post.author.handle
+            post_uri = post.uri
+            post_cid = post.cid
+            post_text = post.record.text
             
-            result = process_quest_reply(
-                reply_uri=reply_uri,
-                author_did=author_did,
-                author_handle=author_handle,
-                post_text=post_text,
-                post_created_at=post_created_at,
-                quest_uri=self.origin_uri,
-                verbose=self.verbose,
-                reply_cid=reply_cid
-            )
-            
-            # Check if the quest processing was successful
-            if not result.get('success'):
-                return False, result.get('skip_reason', 'Processing failed')
-            
-            # Check if it was skipped (conditions not met)
-            if result.get('skipped'):
-                return False, result.get('skip_reason', 'Conditions not met')
-            
-            # Success!
-            return True, None
-            
-        except Exception as e:
-            print(f"   ❌ Error processing origin declaration: {e}")
-            import traceback
-            traceback.print_exc()
-            return False, str(e)
-    
-    def _send_retry_request(self, reply_uri: str, user_did: str, user_handle: str, skip_reason: str):
-        """Send a retry request reply asking the user to clarify."""
-        if not self.mapper_client:
-            if not self.mapper_unavailable_logged:
-                print(f"   ℹ️  Skipping retry requests - no mapper assigned")
-                self.mapper_unavailable_logged = True
-            return
-        
-        try:
-            # Pick a random retry message
-            message = random.choice(self.RETRY_MESSAGES)
-            
-            # Fetch the actual post to get the CID (required for replies)
-            parent_post = self.client.app.bsky.feed.get_posts({'uris': [reply_uri]})
-            if not parent_post or not parent_post.posts:
-                print(f"   ❌ Could not fetch parent post for CID")
+            # Skip mapper's own posts (mapper replies to users, not itself)
+            if self.mapper_client and author_did == self.mapper_client.me.did:
                 return
-            parent_cid = parent_post.posts[0].cid
             
-            # Fetch the origin quest post CID
-            root_post = self.client.app.bsky.feed.get_posts({'uris': [self.origin_uri]})
-            if not root_post or not root_post.posts:
-                print(f"   ❌ Could not fetch root post for CID")
-                return
-            root_cid = root_post.posts[0].cid
-            
-            # Create the reply with proper CIDs
-            from atproto import models
-            
-            # Post the retry request as a reply to the user's post
-            response = self.mapper_client.send_post(
-                text=message,
-                reply_to=models.AppBskyFeedPost.ReplyRef(
-                    parent=models.ComAtprotoRepoStrongRef.Main(uri=reply_uri, cid=parent_cid),
-                    root=models.ComAtprotoRepoStrongRef.Main(uri=self.origin_uri, cid=root_cid)
-                )
-            )
-            
-            retry_post_uri = response.uri
-            
-            # Save retry request to database
-            from core.database import DatabaseManager
-            db = DatabaseManager()
-            db.execute(
-                """INSERT INTO quest_retry_requests 
-                   (user_did, quest_title, retry_post_uri, original_reply_uri)
-                   VALUES (%s, %s, %s, %s)
-                   ON CONFLICT (user_did, quest_title) 
-                   DO UPDATE SET retry_post_uri = EXCLUDED.retry_post_uri,
-                                 original_reply_uri = EXCLUDED.original_reply_uri""",
-                (user_did, 'origin', retry_post_uri, reply_uri)
-            )
-            
-            # Track in memory
-            self.retry_requests[user_did] = retry_post_uri
-            self.stats['retry_requests_sent'] += 1
-            
-            print(f"   📨 Sent retry request to @{user_handle}")
-            print(f"   Reason: {skip_reason}")
-            
-        except Exception as e:
-            print(f"   ❌ Failed to send retry request: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def _remove_retry_request(self, user_did: str):
-        """Remove a retry request after successful declaration."""
-        try:
-            from core.database import DatabaseManager
-            db = DatabaseManager()
-            db.execute(
-                "DELETE FROM quest_retry_requests WHERE user_did = %s AND quest_title = %s",
-                (user_did, 'origin')
-            )
-            
-            if user_did in self.retry_requests:
-                del self.retry_requests[user_did]
-            
-            if self.verbose:
-                print(f"   🗑️  Removed retry request")
-                
-        except Exception as e:
-            print(f"   ⚠️  Error removing retry request: {e}")
-    
-    def _check_retry_responses(self):
-        """Check if any users have replied to our retry requests."""
-        if not self.retry_requests:
-            return
-        
-        for user_did, retry_post_uri in list(self.retry_requests.items()):
-            try:
-                # Fetch the thread for this retry post
-                thread = self.client.app.bsky.feed.get_post_thread({
-                    'uri': retry_post_uri,
-                    'depth': 10
-                })
-                
-                # Check for replies
-                if hasattr(thread, 'thread') and hasattr(thread.thread, 'replies'):
-                    for reply in thread.thread.replies:
-                        if hasattr(reply, 'post'):
-                            post = reply.post
-                            
-                            # Only process replies from the user we're waiting for
-                            if post.author.did == user_did:
-                                if self.verbose:
-                                    print(f"💬 Retry response from @{post.author.handle}")
-                                
-                                # Process this as a new origin declaration
-                                success, skip_reason = self._process_origin_declaration(
-                                    post.uri,
-                                    post.author.did,
-                                    post.author.handle,
-                                    post.record.text,
-                                    post.record.created_at
-                                )
-                                
-                                if success:
-                                    self.processed_dids.add(user_did)
-                                    self.processed_uris.add(post.uri)
-                                    self.stats['origins_declared'] += 1
-                                    print(f"   ✅ Origin declared successfully (via retry)")
-                                    self._remove_retry_request(user_did)
-                                else:
-                                    print(f"   ⚠️  Still doesn't meet conditions: {skip_reason}")
-                                    # They'll get another retry message on next cycle
-                                
-                                break  # Only process first reply
-                            
-            except Exception as e:
+            # Skip if this DID already has origin declared (database is source of truth)
+            if author_did in self.declared_dids:
                 if self.verbose:
-                    print(f"   ⚠️  Error checking retry response: {e}")
+                    print(f"   ⏭️  Skipping @{author_handle} - already has origin")
+                return
+            
+            # Skip if this is a reply to a reply (not direct to origin quest)
+            if hasattr(post.record, 'reply'):
+                parent_uri = post.record.reply.parent.uri
+                if parent_uri != self.origin_uri:
+                    return
+            
+            print(f"\n🗺️  NEW ORIGIN REPLY!")
+            print(f"   Author: @{author_handle} ({author_did})")
+            print(f"   Text: {post_text[:60]}...")
+            
+            # Process the origin declaration
+            success = self._declare_origin(author_did, author_handle, post_uri, post_cid)
+            
+            if success:
+                # Add to our in-memory set so we don't process again this session
+                self.declared_dids.add(author_did)
+                self.stats['origins_declared'] += 1
+                print(f"   ✅ Origin declared! Total: {self.stats['origins_declared']}")
+            
+        except Exception as e:
+            print(f"⚠️  Error processing reply: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _declare_origin(self, author_did: str, author_handle: str, 
+                        reply_uri: str, reply_cid: str) -> bool:
+        """
+        Declare a dreamer's origin:
+        1. Register if needed
+        2. Get dreamer's name for event text
+        3. Calculate spectrum
+        4. Generate origin image via origincards service
+        5. Upload image as blob to PDS
+        6. Post reply as mapper with image embed
+        7. Add origin event to database
+        8. Like the post
+        
+        Returns True if successful.
+        """
+        try:
+            from core.database import DatabaseManager
+            from utils.registration import register_dreamer
+            import requests
+            import hashlib
+            
+            db = DatabaseManager()
+            
+            # 1. Register dreamer if needed
+            cursor = db.execute("SELECT did FROM dreamers WHERE did = %s", (author_did,))
+            if not cursor.fetchone():
+                print(f"   📝 Registering new dreamer...")
+                register_dreamer(author_did, author_handle)
+            
+            # 2. Get dreamer's name and avatar for event text and image
+            cursor = db.execute("SELECT name, display_name, avatar FROM dreamers WHERE did = %s", (author_did,))
+            dreamer_row = cursor.fetchone()
+            dreamer_name = dreamer_row['name'] if dreamer_row else author_handle.split('.')[0]
+            display_name = dreamer_row.get('display_name') or dreamer_name if dreamer_row else dreamer_name
+            avatar_url = dreamer_row.get('avatar') if dreamer_row else None
+            
+            # 3. Calculate spectrum
+            print(f"   🌟 Calculating spectrum...")
+            spectrum_text, spectrum_values = self._calculate_spectrum(author_did, db)
+            print(f"   📊 Spectrum: {spectrum_text}")
+            
+            # 6. Post reply as mapper
+            if not self.mapper_client:
+                print("   ❌ No mapper client - cannot post reply")
+                return False
+            
+            origin_url = f"reverie.house/origin/{author_handle}"
+            full_text = f"@{author_handle} origin located:\n\n{spectrum_text}\n\n{origin_url}"
+            
+            # Build facets for mention and link
+            facets = []
+            
+            # Mention facet
+            mention_end = len(f"@{author_handle}")
+            facets.append({
+                "index": {"byteStart": 0, "byteEnd": mention_end},
+                "features": [{"$type": "app.bsky.richtext.facet#mention", "did": author_did}]
+            })
+            
+            # Link facet
+            link_start = full_text.find(origin_url)
+            link_end = link_start + len(origin_url)
+            facets.append({
+                "index": {"byteStart": link_start, "byteEnd": link_end},
+                "features": [{"$type": "app.bsky.richtext.facet#link", "uri": f"https://{origin_url}"}]
+            })
+            
+            # Get CIDs for proper reply threading
+            parent_cid = reply_cid
+            root_uri = self.origin_uri
+            root_cid = None
+            
+            try:
+                resp = requests.get(
+                    f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris={root_uri}",
+                    timeout=10
+                )
+                if resp.status_code == 200:
+                    posts = resp.json().get('posts', [])
+                    if posts:
+                        root_cid = posts[0].get('cid')
+            except:
+                pass
+            
+            # 4. Generate origin image via origincards service
+            thumb_blob = None
+            try:
+                print(f"   🎨 Generating origin image...")
+                gen_response = requests.post(
+                    'http://localhost:3050/generate',
+                    json={
+                        'handle': author_handle,
+                        'displayName': display_name,
+                        'spectrum': spectrum_values,
+                        'avatar': avatar_url
+                    },
+                    timeout=30
+                )
+                
+                if gen_response.status_code == 200:
+                    result = gen_response.json()
+                    image_url = result.get('url')
+                    print(f"   ✅ Image generated: {image_url}")
+                    
+                    # 5. Fetch image and upload as blob
+                    if image_url:
+                        img_response = requests.get(image_url, timeout=15)
+                        if img_response.status_code == 200:
+                            # Upload the image to get a blob reference
+                            upload_result = self.mapper_client.com.atproto.repo.upload_blob(
+                                img_response.content
+                            )
+                            thumb_blob = upload_result.blob
+                            print(f"   📤 Uploaded image as blob")
+                        else:
+                            print(f"   ⚠️  Could not fetch image: {img_response.status_code}")
+                else:
+                    print(f"   ⚠️  Image generation failed: {gen_response.status_code}")
+            except Exception as e:
+                print(f"   ⚠️  Image generation error: {e}")
+            
+            # Build external embed for rich link preview
+            external_data = {
+                "uri": f"https://{origin_url}",
+                "title": f"{author_handle} origin",
+                "description": f"Spectrum coordinates: {spectrum_text}"
+            }
+            
+            # Add thumb if we got it
+            if thumb_blob:
+                external_data["thumb"] = thumb_blob
+            
+            embed = {
+                "$type": "app.bsky.embed.external",
+                "external": external_data
+            }
+            
+            # Build reply record
+            reply_record = {
+                "$type": "app.bsky.feed.post",
+                "text": full_text,
+                "facets": facets,
+                "embed": embed,
+                "createdAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                "reply": {
+                    "root": {"uri": root_uri, "cid": root_cid} if root_cid else {"uri": root_uri},
+                    "parent": {"uri": reply_uri, "cid": parent_cid} if parent_cid else {"uri": reply_uri}
+                }
+            }
+            
+            # Post as mapper
+            post_result = self.mapper_client.com.atproto.repo.create_record({
+                "repo": self.mapper_client.me.did,
+                "collection": "app.bsky.feed.post",
+                "record": reply_record
+            })
+            
+            if not post_result:
+                print(f"   ❌ Failed to post reply")
+                return False
+            
+            mapper_post_uri = post_result.uri
+            print(f"   💬 Posted origin reply as mapper: {mapper_post_uri}")
+            
+            # Helper to convert AT URI to bsky.app URL
+            def at_uri_to_bsky_url(uri):
+                if not uri or not uri.startswith('at://'):
+                    return None
+                parts = uri.replace('at://', '').split('/')
+                if len(parts) >= 3:
+                    did = parts[0]
+                    rkey = parts[-1]
+                    return f'https://bsky.app/profile/{did}/post/{rkey}'
+                return None
+            
+            # 7. Add origin event for the USER (their origin declaration)
+            # Use color_source='octant' for the user's origin event (styled by their octant)
+            epoch = int(time.time())
+            user_post_url = at_uri_to_bsky_url(reply_uri)
+            cursor = db.execute("""
+                INSERT INTO events (did, key, event, type, uri, url, epoch, created_at, color_source, color_intensity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (author_did, 'origin', 'knows their origin', 'spectrum', reply_uri, user_post_url, epoch, epoch, 'octant', 'highlight'))
+            user_origin_event_id = cursor.fetchone()['id']
+            print(f"   📝 Added user origin event (id={user_origin_event_id})")
+            
+            # 8. Add mapper event (mappy's work, linked to user's origin)
+            # Use color_source='role' for mapper events (styled by mapper role)
+            mapper_did = self.mapper_client.me.did
+            mapper_post_url = at_uri_to_bsky_url(mapper_post_uri)
+            db.execute("""
+                INSERT INTO events (did, key, event, type, uri, url, epoch, created_at, reaction_to, color_source, color_intensity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (mapper_did, 'mapper', f"mapped {dreamer_name}'s coordinates", 'spectrum', 
+                  mapper_post_uri, mapper_post_url, epoch, epoch, user_origin_event_id, 'role', 'highlight'))
+            print(f"   📝 Added mapper event (reaction_to={user_origin_event_id})")
+            
+            # 9. Like the user's post (as mapper)
+            try:
+                self.mapper_client.like(reply_uri, reply_cid)
+                print(f"   ❤️  Liked the post")
+            except Exception as e:
+                print(f"   ⚠️  Could not like post: {e}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"   ❌ Error declaring origin: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _calculate_spectrum(self, author_did: str, db) -> tuple:
+        """
+        Calculate spectrum values for a DID.
+        Returns (formatted_text, values_dict)
+        """
+        import hashlib
+        
+        # Constants from spectrum.json algorithm
+        keeper_did = "did:plc:yauphjufk7phkwurn266ybx2"
+        primes = [2, 3, 5, 7, 11, 13]
+        prime_mod_1 = 100000019
+        prime_mod_2 = 99999989
+        offset_prime = 7919
+        variance_multiplier = 31
+        
+        # Get server for weighting
+        cursor = db.execute("SELECT server FROM dreamers WHERE did = %s", (author_did,))
+        dreamer_row = cursor.fetchone()
+        server = dreamer_row['server'] if dreamer_row else None
+        server_weight = 0.7 if server and 'reverie.house' in server else 1.0
+        
+        # Hash DIDs
+        user_hash = hashlib.sha256(author_did.encode()).digest()
+        keeper_hash = hashlib.sha256(keeper_did.encode()).digest()
+        
+        user_seed = int.from_bytes(user_hash[:8], 'big', signed=False)
+        keeper_seed = int.from_bytes(keeper_hash[:8], 'big', signed=False)
+        
+        relative_seed = abs(user_seed - keeper_seed)
+        
+        # Calculate all 6 axes in EOLARS order
+        spectrum_eolars = []
+        
+        if relative_seed == 0:
+            spectrum_eolars = [0, 0, 0, 0, 0, 0]
+        else:
+            for axis in range(6):
+                combined = relative_seed * primes[axis] + (axis * offset_prime)
+                raw_value = (combined % prime_mod_1) / prime_mod_1
+                
+                variance_seed = (combined * variance_multiplier) % prime_mod_2
+                variance = (variance_seed % prime_mod_1) / prime_mod_1
+                
+                if raw_value < 0.5:
+                    adjusted = raw_value + (variance * 0.3)
+                else:
+                    adjusted = raw_value - (variance * 0.2)
+                
+                adjusted = max(0.0, min(1.0, adjusted))
+                
+                base_value = int(adjusted * 100)
+                distance_from_center = base_value - 50
+                weighted_distance = distance_from_center * server_weight
+                final_value = 50 + weighted_distance
+                final_value = max(0, min(100, int(final_value)))
+                
+                spectrum_eolars.append(final_value)
+        
+        # Reorder for display as OASRLE: [O, A, S, R, L, E]
+        display_values = [
+            spectrum_eolars[1],  # Oblivion
+            spectrum_eolars[3],  # Authority
+            spectrum_eolars[5],  # Skeptic
+            spectrum_eolars[4],  # Receptive
+            spectrum_eolars[2],  # Liberty
+            spectrum_eolars[0]   # Entropy
+        ]
+        
+        labels = ['O', 'A', 'S', 'R', 'L', 'E']
+        spectrum_text = " ".join(f"{label}{v:02d}" for label, v in zip(labels, display_values))
+        
+        # Build full spectrum dict with proper keys for image generation
+        values_dict = {
+            'oblivion': spectrum_eolars[1],
+            'authority': spectrum_eolars[3],
+            'skeptic': spectrum_eolars[5],
+            'receptive': spectrum_eolars[4],
+            'liberty': spectrum_eolars[2],
+            'entropy': spectrum_eolars[0]
+        }
+        
+        # Calculate octant
+        from utils.octant import calculate_octant_code
+        octant = calculate_octant_code(values_dict)
+        values_dict['octant'] = octant or 'equilibrium'
+        
+        return spectrum_text, values_dict
+    
+    def check_for_new_replies(self):
+        """Check the origin post for new replies."""
+        self.stats['total_checks'] += 1
+        
+        if self.verbose:
+            now = datetime.now().strftime('%H:%M:%S')
+            print(f"\n🔍 [{now}] Checking for origin replies... (check #{self.stats['total_checks']})")
+        
+        replies = self._fetch_thread_replies()
+        
+        if replies:
+            new_count = sum(1 for r in replies if r.post.author.did not in self.declared_dids)
+            self.stats['replies_found'] = len(replies)
+            
+            if self.verbose:
+                print(f"   Found {len(replies)} total replies ({new_count} new)")
+            
+            for reply in replies:
+                self._process_reply(reply)
+        else:
+            if self.verbose:
+                print(f"   No replies found")
     
     def run(self):
-        """Start the polling loop - check for new replies every 60 seconds."""
+        """Start the polling loop."""
         if not self.origin_uri:
-            print("❌ No origin quest URI configured - cannot start")
+            print("❌ Cannot start: origin quest not loaded")
             return
         
-        print(f"\n🗺️  Mapperhose started - monitoring origin quest")
-        print(f"Checking every 60 seconds for new origin declarations...\n")
+        if not self.mapper_client:
+            print("⚠️  Warning: No mapper client - will only track, not post")
         
-        try:
-            while True:
-                self.stats['total_checks'] += 1
-                
-                if self.verbose:
-                    print(f"📊 Mapperhose poll #{self.stats['total_checks']} at {datetime.now().strftime('%H:%M:%S')}")
-                
-                # Fetch all replies
-                replies = self._fetch_thread_replies()
-                self.stats['replies_found'] = len(replies)
-                
-                if self.verbose:
-                    print(f"📬 Found {len(replies)} replies to origin quest")
-                
-                # Process each reply
-                for reply in replies:
-                    self._process_reply(reply)
-                
-                # Also check for replies to our retry requests
-                self._check_retry_responses()
-                
-                # Wait 60 seconds before next poll
+        print(f"\n🔁 Starting polling loop (60 second interval)...\n")
+        
+        while True:
+            try:
+                self.check_for_new_replies()
                 time.sleep(60)
                 
-        except KeyboardInterrupt:
-            print("\n\n⚠️  Stopping mapperhose...")
-        finally:
-            elapsed = (datetime.now() - self.stats['start_time']).total_seconds()
-            print("\n📊 MAPPERHOSE STATS")
-            print("=" * 70)
-            print(f"Runtime: {elapsed:.0f} seconds ({elapsed/3600:.1f} hours)")
-            print(f"Total checks: {self.stats['total_checks']}")
-            print(f"Replies found (last check): {self.stats['replies_found']}")
-            print(f"Origins declared: {self.stats['origins_declared']}")
-            print(f"Retry requests sent: {self.stats['retry_requests_sent']}")
-            print(f"Pending retry requests: {len(self.retry_requests)}")
-            print("=" * 70)
+            except KeyboardInterrupt:
+                raise
+            except Exception as e:
+                print(f"⚠️  Error in polling loop: {e}")
+                import traceback
+                traceback.print_exc()
+                time.sleep(60)
 
 
 def main():
-    """Main entry point."""
     import argparse
     
-    parser = argparse.ArgumentParser(description='Mapperhose - Origin Quest Monitor')
-    parser.add_argument('--verbose', action='store_true', help='Verbose output')
+    parser = argparse.ArgumentParser(description='Mapperwatch - Poll origin quest for new replies')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     args = parser.parse_args()
     
-    monitor = MapperhoseMonitor(verbose=args.verbose)
-    monitor.run()
+    monitor = MapperMonitor(verbose=args.verbose or True)
+    
+    try:
+        monitor.run()
+    except KeyboardInterrupt:
+        print(f"\n\n🗺️  MAPPERWATCH STATS")
+        print(f"=" * 70)
+        elapsed = (datetime.now() - monitor.stats['start_time']).total_seconds()
+        print(f"Runtime: {int(elapsed)} seconds")
+        print(f"Total checks: {monitor.stats['total_checks']}")
+        print(f"Replies found: {monitor.stats['replies_found']}")
+        print(f"Origins declared: {monitor.stats['origins_declared']}")
+        print(f"=" * 70)
+    except Exception as e:
+        print(f"\n❌ Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == '__main__':

@@ -7,12 +7,83 @@ Executes commands when quest conditions are met.
 """
 
 import time
+import json
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Optional
 from core.database import DatabaseManager
 from core.network import NetworkClient
 from utils.names import NameManager
 from utils.registration import register_dreamer
+
+
+# Cache for mapper client to avoid repeated auth
+_mapper_client_cache = None
+
+
+def _get_mapper_client(verbose: bool = False) -> Optional[object]:
+    """
+    Get authenticated Bluesky client for the mapper account (mappy.reverie.house).
+    
+    The mapper is the account that posts origin declarations, not reverie.house.
+    """
+    global _mapper_client_cache
+    
+    if _mapper_client_cache is not None:
+        return _mapper_client_cache
+    
+    try:
+        from atproto import Client
+        from core.encryption import decrypt_password
+        
+        db = DatabaseManager()
+        
+        # Get mapper from work table
+        cursor = db.execute("SELECT workers FROM work WHERE role = 'mapper'")
+        work_result = cursor.fetchone()
+        
+        if not work_result or not work_result['workers']:
+            if verbose:
+                print("   ⚠️  No mapper assigned in work table")
+            return None
+        
+        workers = json.loads(work_result['workers'])
+        if not workers:
+            return None
+        
+        mapper_did = workers[0].get('did')
+        
+        # Get mapper credentials
+        cursor = db.execute("""
+            SELECT d.handle, c.app_password_hash
+            FROM dreamers d
+            JOIN user_credentials c ON d.did = c.did
+            WHERE d.did = %s AND c.is_valid = true
+        """, (mapper_did,))
+        result = cursor.fetchone()
+        
+        if not result or not result['app_password_hash']:
+            if verbose:
+                print(f"   ⚠️  No credentials found for mapper")
+            return None
+        
+        app_password = decrypt_password(result['app_password_hash'])
+        if not app_password:
+            return None
+        
+        # Login as mapper
+        client = Client(base_url='https://reverie.house')
+        client.login(result['handle'], app_password)
+        
+        if verbose:
+            print(f"   🔐 Mapper client authenticated as @{result['handle']}")
+        
+        _mapper_client_cache = client
+        return client
+        
+    except Exception as e:
+        if verbose:
+            print(f"   ❌ Error getting mapper client: {e}")
+        return None
 
 
 def iso_to_unix(iso_timestamp: str) -> int:
@@ -1093,12 +1164,24 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
     Reply to origin memory post with dreamer's origin spectrum values.
     Calculates spectrum using the local algorithm from site/algo/spectrum.json.
     
-    Format: "02 33 19 22 68 97" (Oblivion Authority Skeptic Receptive Liberty Entropy)
+    Posts as the MAPPER (mappy.reverie.house), not reverie.house.
+    
+    Format:
+        @handle origin located:
+        
+        O61 A33 S54 R70 L47 E69
+        
+        reverie.house/origin/handle
     """
     result = {'success': False, 'errors': []}
     
     db = DatabaseManager()
-    network = NetworkClient()
+    
+    # Get mapper client - MUST post as mapper, not reverie.house
+    mapper_client = _get_mapper_client(verbose=verbose)
+    if not mapper_client:
+        result['errors'].append("No mapper client available - cannot post origin declaration")
+        return result
     
     for reply in replies:
         try:
@@ -1106,20 +1189,6 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
             author_handle = reply['author']['handle']
             reply_uri = reply['uri']
             reply_cid = reply.get('cid')
-            
-            # Get root post info for threading
-            root_uri = reply.get('record', {}).get('reply', {}).get('root', {}).get('uri')
-            root_cid = reply.get('record', {}).get('reply', {}).get('root', {}).get('cid')
-            
-            if not root_uri:
-                # This reply IS the root (direct reply to quest post)
-                root_uri = quest_config.get('uri')
-                # Try to get root CID from quest post
-                try:
-                    root_post = network.get_post_thread(root_uri)
-                    root_cid = root_post['thread']['post']['cid']
-                except:
-                    root_cid = None
             
             if verbose:
                 print(f"   🌟 Calculating origin spectrum for {author_handle}...")
@@ -1204,16 +1273,84 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
             if verbose:
                 print(f"   📊 Origin spectrum: {spectrum_text}")
             
-            # Post reply
+            # Build the full post with mention, spectrum, and origin link
+            # Format like: "@handle origin located:\n\nO61 A33 S54 R70 L47 E69\n\nreverie.house/origin/handle"
+            origin_url = f"reverie.house/origin/{author_handle}"
+            full_text = f"@{author_handle} origin located:\n\n{spectrum_text}\n\n{origin_url}"
+            
+            # Build facets for the mention and link
+            facets = []
+            
+            # Mention facet - starts at position 0, ends after @handle
+            mention_end = len(f"@{author_handle}")
+            facets.append({
+                "index": {"byteStart": 0, "byteEnd": mention_end},
+                "features": [{"$type": "app.bsky.richtext.facet#mention", "did": author_did}]
+            })
+            
+            # Link facet - for the origin URL at the end
+            link_start = full_text.find(origin_url)
+            link_end = link_start + len(origin_url)
+            facets.append({
+                "index": {"byteStart": link_start, "byteEnd": link_end},
+                "features": [{"$type": "app.bsky.richtext.facet#link", "uri": f"https://{origin_url}"}]
+            })
+            
+            # Post reply using mapper client
             try:
-                reply_result = network.create_post(
-                    text=spectrum_text,
-                    reply_to=reply_uri
-                )
+                # Get parent post CID for proper reply threading
+                import requests
+                parent_cid = None
+                try:
+                    resp = requests.get(
+                        f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris={reply_uri}",
+                        timeout=10
+                    )
+                    if resp.status_code == 200:
+                        posts = resp.json().get('posts', [])
+                        if posts:
+                            parent_cid = posts[0].get('cid')
+                except:
+                    pass
+                
+                # Get root post info for threading
+                root_uri = quest_config.get('uri')
+                root_cid = None
+                try:
+                    resp = requests.get(
+                        f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris={root_uri}",
+                        timeout=10
+                    )
+                    if resp.status_code == 200:
+                        posts = resp.json().get('posts', [])
+                        if posts:
+                            root_cid = posts[0].get('cid')
+                except:
+                    pass
+                
+                # Build the reply record
+                reply_record = {
+                    "$type": "app.bsky.feed.post",
+                    "text": full_text,
+                    "facets": facets,
+                    "createdAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    "reply": {
+                        "root": {"uri": root_uri, "cid": root_cid} if root_cid else {"uri": root_uri},
+                        "parent": {"uri": reply_uri, "cid": parent_cid} if parent_cid else {"uri": reply_uri}
+                    }
+                }
+                
+                # Post using mapper client
+                reply_result = mapper_client.com.atproto.repo.create_record({
+                    "repo": mapper_client.me.did,
+                    "collection": "app.bsky.feed.post",
+                    "record": reply_record
+                })
                 
                 if reply_result:
                     if verbose:
-                        print(f"   💬 Posted spectrum reply to {author_handle}")
+                        print(f"   💬 Mapper posted origin declaration for {author_handle}")
+                        print(f"   🔗 {origin_url}")
                     result['success'] = True
                 else:
                     result['errors'].append(f"Failed to post reply for {author_handle}")

@@ -1,0 +1,21 @@
+[Unit]
+Description=Origin Cards Image Generator Service
+After=network.target
+
+[Service]
+Type=simple
+User=errantson
+Group=errantson
+WorkingDirectory=/srv/reverie.house/services/origincards
+ExecStart=/usr/local/bin/node server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=origincards
+
+[Install]
+WantedBy=multi-user.target
