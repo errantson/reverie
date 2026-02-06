@@ -63,7 +63,7 @@ Assume only that which cannot be tracked (yet):
 1. Change handle away from `.reverie.house`
 2. Email books@reverie.house with your DID
 3. We purge within 7 days
-4. *(Complain to mappy@reverie.house this isn't automated yet)
+4. For assistance with automated deletion, contact mappy@reverie.house
 
 ---
 

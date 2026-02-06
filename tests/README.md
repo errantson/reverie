@@ -98,7 +98,7 @@ For database tests to work, you need:
 
 2. Or use a password file:
    ```bash
-   export POSTGRES_PASSWORD_FILE=/srv/secrets/reverie_db_password.txt
+   export POSTGRES_PASSWORD_FILE=/srv/secrets/reverie.postgres.password
    ```
 
 3. Test data will be cleaned up automatically

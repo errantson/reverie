@@ -108,7 +108,7 @@ class TestEnvironment:
     
     def test_stripe_secrets_exist(self):
         """Verify Stripe secrets file exists with required keys."""
-        secrets_path = '/srv/secrets/stripe.env'
+        secrets_path = '/srv/secrets/reverie.stripe.env'
         assert os.path.exists(secrets_path), f"Missing {secrets_path}"
         
         from dotenv import load_dotenv

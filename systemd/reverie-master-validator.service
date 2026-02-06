@@ -1,0 +1,15 @@
+[Unit]
+Description=Reverie House Master Validator - Sync actor.rpg.master records
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/reverie.house
+ExecStart=/usr/bin/python3 /srv/reverie.house/services/mastervalidator/master_validator.py
+User=root
+StandardOutput=append:/srv/reverie.house/logs/master_validator.log
+StandardError=append:/srv/reverie.house/logs/master_validator.log
+Environment="PYTHONPATH=/srv/reverie.house"
+
+[Install]
+WantedBy=multi-user.target

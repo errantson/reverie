@@ -2483,56 +2483,39 @@ def apply_lore_label():
         lorefarm_key = os.environ.get('LOREFARM_KEY')
         if not lorefarm_key:
             # Try loading from file
-            lorefarm_key_file = os.environ.get('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm_key.txt')
-            print(f"🔍 [Lore Label] No LOREFARM_KEY env var, trying file: {lorefarm_key_file}")
+            lorefarm_key_file = os.environ.get('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm.api.key')
             try:
                 with open(lorefarm_key_file, 'r') as f:
                     lorefarm_key = f.read().strip()
-                print(f"[Lore Label] LOREFARM_KEY loaded from file")
             except FileNotFoundError:
-                print(f"[Lore Label] LOREFARM_KEY file not found: {lorefarm_key_file}")
                 return jsonify({
                     'success': False,
                     'error': 'Server configuration error: LOREFARM_KEY missing'
                 }), 500
             except Exception as e:
-                print(f"[Lore Label] Error reading LOREFARM_KEY file: {e}")
                 return jsonify({
                     'success': False,
                     'error': 'Server configuration error: Could not read LOREFARM_KEY'
                 }), 500
         
         if not lorefarm_key:
-            print(f"[Lore Label] LOREFARM_KEY is empty")
             return jsonify({
                 'success': False,
                 'error': 'Server configuration error: LOREFARM_KEY empty'
             }), 500
         
-        print(f"[Lore Label] LOREFARM_KEY present (length: {len(lorefarm_key)} chars)")
-        print(f"🔑 [Lore Label] LOREFARM_KEY preview: {lorefarm_key[:15]}...")
-        
         # Test LOREFARM_KEY against lore.farm API
-        print(f"🔍 [Lore Label] Verifying LOREFARM_KEY with lore.farm API...")
         try:
             verify_response = requests.get(
                 'https://lore.farm/api/health',
                 headers={'Authorization': f'Bearer {lorefarm_key}'},
                 timeout=5
             )
-            print(f"[Lore Label] lore.farm health check: {verify_response.status_code}")
-            if verify_response.status_code == 200:
-                print(f"[Lore Label] LOREFARM_KEY validated successfully")
-            else:
-                print(f"⚠️  [Lore Label] Health check returned status {verify_response.status_code}")
-                print(f"   Response: {verify_response.text[:200]}")
         except Exception as verify_error:
-            print(f"⚠️  [Lore Label] Could not verify LOREFARM_KEY: {verify_error}")
-            # Continue anyway - the actual label API call will fail if key is invalid
+            pass  # Continue anyway - the actual label API call will fail if key is invalid
         
         # Get request data
         data = request.get_json()
-        print(f"📦 [Lore Label] Request data received: {data}")
         
         if not data:
             print(f"[Lore Label] No JSON data in request")
@@ -2594,7 +2577,7 @@ def apply_lore_label():
         
         # Get the lorekey for reverie.house from file or environment
         lorekey = None
-        key_file = os.getenv('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm_key.txt')
+        key_file = os.getenv('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm.api.key')
         if os.path.exists(key_file):
             try:
                 with open(key_file, 'r') as f:
@@ -2606,13 +2589,10 @@ def apply_lore_label():
             lorekey = os.getenv('LOREFARM_KEY')
         
         if not lorekey:
-            print("[Lore Label] LOREFARM_KEY not configured")
             return jsonify({
                 'success': False,
                 'error': 'Server configuration error: LOREFARM_KEY not configured'
             }), 500
-        
-        print(f"[Lore Label] LOREFARM_KEY configured")
         
         # Prepare request to lore.farm API
         # Try modern endpoint first, fall back to legacy if needed
@@ -2628,11 +2608,6 @@ def apply_lore_label():
             'label_value': label,
             'world_domain': 'reverie.house'
         }
-        
-        print(f"📤 [Lore Label] Sending request to lore.farm...")
-        print(f"   URL: {lorefarm_url}")
-        print(f"   Payload: {payload}")
-        print(f"   Auth header: Bearer {lorekey[:10]}...")
         
         # Log the label application attempt to audit log
         try:
@@ -2650,9 +2625,8 @@ def apply_lore_label():
                     'authenticated_did': authenticated_did
                 })
             )
-            print(f"[Lore Label] Audit log entry created")
         except Exception as e:
-            print(f"[Lore Label] Failed to log audit entry: {e}")
+            pass  # Non-critical audit logging
         
         # Make request to lore.farm
         response = requests.post(
@@ -2662,52 +2636,30 @@ def apply_lore_label():
             timeout=15  # Increased timeout for reliability
         )
         
-        print(f"📥 [Lore Label] Response from lore.farm:")
-        print(f"   Status code: {response.status_code}")
-        print(f"   Headers: {dict(response.headers)}")
-        
-        # Try to parse response body
-        try:
-            response_text = response.text
-            print(f"   Body preview: {response_text[:500]}")
-        except Exception:
-            print(f"   Body: <unable to read>")
-        
         # Handle success
         if response.status_code == 200:
             try:
                 result = response.json()
-                print(f"[Lore Label] Success! Label applied.")
-                print(f"   Result: {result}")
-                print("=" * 80)
                 return jsonify({
                     'success': True,
                     'label': result.get('label'),
                     'message': 'Your dream has been added to the shared lore!'
                 })
             except Exception as e:
-                print(f"[Lore Label] Success but failed to parse response JSON: {e}")
-                print("=" * 80)
                 return jsonify({
                     'success': True,
                     'message': 'Your dream has been added to the shared lore!'
                 })
         
         # Handle errors with user-friendly messages
-        print(f"[Lore Label] lore.farm returned error status: {response.status_code}")
         
         # Try to parse error response
         error_data = {}
         try:
             error_data = response.json()
-            print(f"   Error data (JSON): {error_data}")
         except Exception as e:
-            print(f"   Could not parse JSON response: {e}")
             # Use raw text as error
             error_data = {'error': response.text[:200] if response.text else 'Unknown error'}
-            print(f"   Raw response: {response.text[:500]}")
-        
-        print("=" * 80)
         
         # Provide user-friendly error messages based on status code
         if response.status_code == 400:

@@ -16,7 +16,7 @@ Since its release, others have begun contributing to the structures of **[Reveri
 
 - **[@lucy.reverie.house](https://bsky.app/profile/lucy.reverie.house)** — illustrator and [book maker](https://reverie.house/order)
 
-- **[@vagabond.quest](https://bsky.app/profile/vagabond.quest)** — privacy front and [sovereign host](http://76.10.130.3)
+- **[@vagabond.quest](https://bsky.app/profile/vagabond.quest)** — privacy front and sovereign host
 
 - **[@donatella.food](https://bsky.app/profile/donatella.food)** — a generous soul of [charitable mind](https://donatella.food)
 
@@ -38,7 +38,7 @@ Start at **[reverie.house](https://reverie.house)** or follow **[@reverie.house]
 
 **3. Declare Your Origin Dream**
 
-[PLEASE TELL [@MAPPY.REVERIE.HOUSE](https://bsky.app/profile/mappy.reverie.house) TO FINISH WRITING THIS]
+*Coming soon: Share the dream that inspired your journey to Reverie House.*
 
 **4. Meet Other Dreamweavers**
 

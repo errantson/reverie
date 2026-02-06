@@ -3,7 +3,7 @@
 Encryption utilities for sensitive data
 
 Provides Fernet-based encryption for app passwords and other sensitive strings.
-Uses a key stored in /srv/secrets/app_password_key.
+Uses a key stored in /srv/secrets/reverie.encryption.key.
 
 SECURITY NOTES:
 
@@ -14,7 +14,7 @@ Algorithm: Fernet (symmetric encryption)
 - Safe against tampering
 
 Key Storage:
-- Location: /srv/secrets/app_password_key
+- Location: /srv/secrets/reverie.encryption.key
 - Permissions: 600 (owner read/write only)
 - Format: Base64-encoded 32-byte key
 - Generation: Fernet.generate_key()
@@ -34,7 +34,7 @@ Security Measures:
 
 Key Rotation Procedure:
 1. Generate new key: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-2. Save to /srv/secrets/app_password_key.new
+2. Save to /srv/secrets/reverie.encryption.key.new
 3. Run migration script to re-encrypt all credentials
 4. Rename .new to replace old key
 5. Restart services
@@ -58,12 +58,12 @@ from cryptography.fernet import Fernet
 class PasswordEncryption:
     """Encrypt and decrypt app passwords using Fernet (symmetric encryption)"""
     
-    def __init__(self, key_path='/srv/secrets/app_password_key'):
+    def __init__(self, key_path='/srv/secrets/reverie.encryption.key'):
         """
         Initialize encryption with key from file.
         
         Args:
-            key_path: Path to file containing Fernet key (default: /srv/secrets/app_password_key)
+            key_path: Path to file containing Fernet key (default: /srv/secrets/reverie.encryption.key)
         """
         self.key_path = key_path
         self._load_key()

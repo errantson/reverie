@@ -1,0 +1,14 @@
+[Unit]
+Description=Reverie House Master Validator Timer (Every 15 minutes)
+Requires=reverie-master-validator.service
+
+[Timer]
+# Run every 15 minutes
+OnCalendar=*:0/15
+# Persist across reboots
+Persistent=true
+# Randomize start within 2 minutes to avoid thundering herd
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

@@ -53,7 +53,7 @@ class DatabaseManager:
             password = os.getenv('POSTGRES_PASSWORD')
             if not password:
                 # Try to read from password file
-                password_file = os.getenv('POSTGRES_PASSWORD_FILE', '/srv/secrets/reverie_db_password.txt')
+                password_file = os.getenv('POSTGRES_PASSWORD_FILE', '/srv/secrets/reverie.postgres.password')
                 try:
                     with open(password_file, 'r') as f:
                         password = f.read().strip()

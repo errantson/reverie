@@ -73,7 +73,7 @@ def did_document():
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
         import base58
         
-        key_file = os.getenv('LABELER_SIGNING_KEY_FILE', '/srv/secrets/labeler_signing_key.pem')
+        key_file = os.getenv('LABELER_SIGNING_KEY_FILE', '/srv/secrets/reverie.labeler.pem')
         if os.path.exists(key_file):
             with open(key_file, 'rb') as f:
                 private_key = serialization.load_pem_private_key(f.read(), password=None)

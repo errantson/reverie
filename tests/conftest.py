@@ -25,7 +25,7 @@ os.environ.setdefault('POSTGRES_USER', 'reverie')
 
 # Read password from secrets file
 try:
-    with open('/srv/secrets/reverie_db_password.txt', 'r') as f:
+    with open('/srv/secrets/reverie.postgres.password', 'r') as f:
         os.environ.setdefault('POSTGRES_PASSWORD', f.read().strip())
 except FileNotFoundError:
     os.environ.setdefault('POSTGRES_PASSWORD', 'reverie_temp_password_change_me')
