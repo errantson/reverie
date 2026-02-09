@@ -149,7 +149,11 @@ def execute_quest_commands(commands: List[str], replies: List[Dict],
                 forced_name = param if param else None
                 cmd_result = name_dreamer(replies, quest_config, forced_name=forced_name, verbose=verbose)
             elif cmd_name == 'add_kindred':
-                cmd_result = add_kindred(replies, quest_config, verbose=verbose)
+                # DEPRECATED: Kindred is now detected automatically via mutual follows in jetstream_hub.py
+                # Keeping this as a no-op for backward compatibility with existing quests
+                cmd_result = {'success': True, 'deprecated': True}
+                if verbose:
+                    print(f"   ℹ️ add_kindred is deprecated - kindred now detected via mutual follows")
             elif cmd_name == 'mod_spectrum':
                 multiplier = float(param) if param else 1.0
                 cmd_result = mod_spectrum(replies, quest_config, multiplier=multiplier, verbose=verbose)

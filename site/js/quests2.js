@@ -631,10 +631,9 @@
                         hasParam: false 
                     },
                     'add_kindred': { 
-                        desc: 'Adds another user as kindred', 
-                        hasParam: true,
-                        paramLabel: 'Kindred Handle',
-                        paramPlaceholder: '@handle.bsky.social'
+                        desc: 'DEPRECATED - Kindred now auto-detected via mutual follows', 
+                        hasParam: false,
+                        deprecated: true
                     },
                     'like_post': { 
                         desc: 'Likes the triggering post', 
@@ -724,7 +723,7 @@
                     category = 'bluesky';
                 } else if (commandType === 'add_canon') {
                     category = 'heading';
-                } else if (['name_dreamer', 'register_if_needed', 'registration_check', 'paired', 'add_kindred'].includes(commandType)) {
+                } else if (['name_dreamer', 'register_if_needed', 'registration_check', 'paired'].includes(commandType)) {
                     category = 'registration';
                 } else if (['add_name', 'calculate_origin', 'mod_spectrum'].includes(commandType)) {
                     category = 'lore';
@@ -744,7 +743,6 @@
                                 <option value="name_dreamer" ${commandType === 'name_dreamer' ? 'selected' : ''}>Name Dreamer</option>
                                 <option value="registration_check" ${commandType === 'registration_check' ? 'selected' : ''}>Registration Check</option>
                                 <option value="register_if_needed" ${commandType === 'register_if_needed' ? 'selected' : ''}>Register If Needed (legacy)</option>
-                                <option value="add_kindred" ${commandType === 'add_kindred' ? 'selected' : ''}>Add Kindred</option>
                                 <option value="like_post" ${commandType === 'like_post' ? 'selected' : ''}>Like Post</option>
                                 <option value="add_canon" ${commandType === 'add_canon' ? 'selected' : ''}>Add Canon</option>
                                 <option value="add_name" ${commandType === 'add_name' ? 'selected' : ''}>Add Name</option>

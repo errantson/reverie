@@ -178,6 +178,54 @@ const RowStyleRegistry = {
     },
     
     // =========================================================================
+    // KINDRED GRADIENT - Two-user color blend for mutual follow events
+    // =========================================================================
+    
+    "kindred-gradient": {
+        name: "kindred-gradient",
+        description: "Gradient blend between two users' colors for kindred events",
+        category: "special",
+        rendering: {
+            cssClasses: ['row-entry', 'color-kindred-gradient', 'intensity-special'],
+            cssFiles: ['color-rows.css'],
+            cssVariables: ['--kindred-color-a', '--kindred-color-b'],  // Colors from event quantities JSON
+            effects: [],
+            appearance: {
+                background: 'Left-to-right gradient blending both users\' colors',
+                border: 'Vertical gradient border from user A to user B color',
+                color: 'Blended color of both users',
+                animation: 'None',
+                special: 'Uses inline CSS variables from event.quantities.color_a/color_b'
+            }
+        },
+        matches: (event) => {
+            return event.color_source === 'kindred-gradient' || event.type === 'kindred';
+        }
+    },
+    
+    "kindred-parted": {
+        name: "kindred-parted",
+        description: "Faded gradient for parted kindred (unfollowed)",
+        category: "special",
+        rendering: {
+            cssClasses: ['row-entry', 'color-kindred-gradient', 'kindred-parted'],
+            cssFiles: ['color-rows.css'],
+            cssVariables: ['--kindred-color-a', '--kindred-color-b'],
+            effects: [],
+            appearance: {
+                background: 'Desaturated gradient blend',
+                border: 'Faded gradient border',
+                color: 'Muted blended color',
+                animation: 'None',
+                special: 'Desaturated and slightly dimmed to indicate parting'
+            }
+        },
+        matches: (event) => {
+            return event.type === 'kindred' && event.key === 'parted';
+        }
+    },
+    
+    // =========================================================================
     // SOUVENIR STYLES - STRANGE DREAM
     // =========================================================================
     
@@ -590,6 +638,8 @@ function computeRowStyle(event) {
         'nightmare',
         // Faded (departures)
         'faded',
+        // Kindred gradient styles (mutual follow events)
+        'kindred-parted', 'kindred-gradient',
         // Unfinished dreams (blurry)
         'unfinished',
         // User special (canon, order)

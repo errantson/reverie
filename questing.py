@@ -255,7 +255,7 @@ class QuestDiagnostics:
                 'name_dreamer',
                 'registration_check',
                 'register_if_needed',  # Backward compatibility
-                'add_kindred',
+                # 'add_kindred',  # DEPRECATED: Now auto-detected via mutual follows
                 'like_post',
                 'add_canon',
                 'add_name',

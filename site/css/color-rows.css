@@ -195,6 +195,88 @@
 }
 
 /* ============================================================================
+   KINDRED GRADIENT - Two-user color blend for mutual follow events
+   Uses CSS custom properties set via inline styles from event data
+   ============================================================================ */
+
+/* Keyframes for flowing gradient animation - seamless loop */
+@keyframes kindred-flow {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: -200% 50%;
+    }
+}
+
+.row-entry.color-kindred-gradient {
+    /* Default colors if not set */
+    --kindred-color-a: #8b7355;
+    --kindred-color-b: #5588aa;
+    
+    /* Seamless looping gradient: A → B → A (ends where it starts) */
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--kindred-color-a) 22%, transparent) 0%,
+        color-mix(in srgb, var(--kindred-color-b) 22%, transparent) 50%,
+        color-mix(in srgb, var(--kindred-color-a) 22%, transparent) 100%
+    );
+    background-size: 200% 100%;
+    animation: kindred-flow 6s linear infinite;
+    
+    /* Simple left border stub with gradient */
+    border-left: 3px solid;
+    border-image: linear-gradient(
+        to bottom,
+        var(--kindred-color-a) 0%,
+        var(--kindred-color-b) 100%
+    ) 1;
+    border-top: none;
+    border-bottom: none;
+    border-right: none;
+}
+
+/* Kindred gradient with special intensity (for paired events) */
+.row-entry.color-kindred-gradient.intensity-special {
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--kindred-color-a) 26%, transparent) 0%,
+        color-mix(in srgb, var(--kindred-color-b) 26%, transparent) 50%,
+        color-mix(in srgb, var(--kindred-color-a) 26%, transparent) 100%
+    );
+    background-size: 200% 100%;
+    animation: kindred-flow 6s linear infinite;
+    border-left: 3px solid;
+    border-image: linear-gradient(
+        to bottom,
+        var(--kindred-color-a) 0%,
+        var(--kindred-color-b) 100%
+    ) 1;
+    border-top: none;
+    border-bottom: none;
+    border-right: none;
+}
+
+/* Kindred rows - all text is a soft dark gray */
+.row-entry.color-kindred-gradient .cell,
+.row-entry.color-kindred-gradient .cell *,
+.row-entry.color-kindred-gradient .cell span[style*="color: var(--text-secondary)"],
+.row-entry.color-kindred-gradient .cell.canon a.dreamer-link {
+    color: #3a3a3a !important;
+}
+
+/* Kindred parted (unfollowed) - faded gradient */
+.row-entry.color-kindred-gradient.kindred-parted {
+    filter: saturate(0.3) brightness(0.9);
+    opacity: 0.8;
+}
+
+/* Hover effect for kindred rows */
+.row-entry.color-kindred-gradient:hover {
+    filter: brightness(0.97) saturate(1.1);
+}
+
+/* ============================================================================
    DREAM EVENT - Like canon but with #454545, blurred until hovered
    Matches canon intensity-special style but forces grey and adds blur
    ============================================================================ */

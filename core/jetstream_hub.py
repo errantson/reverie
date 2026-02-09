@@ -221,6 +221,448 @@ class DreamerHandler(EventHandler):
 
 
 # ============================================================================
+# Kindred Handler - Mutual Follow Detection
+# ============================================================================
+
+class KindredHandler(EventHandler):
+    """
+    Detects mutual follows between tracked dreamers to create kindred relationships.
+    
+    When a dreamer follows another dreamer:
+    1. Check if the follow target is also a dreamer
+    2. Check if the target already follows back
+    3. If mutual, create a kindred relationship
+    
+    This replaces the old quest-based add_kindred command.
+    """
+    
+    def __init__(self, verbose: bool = False):
+        super().__init__('kindred', verbose)
+        self.tracked_dids: Set[str] = set()
+        self.dreamer_by_did: Dict[str, Dict] = {}
+        self._load_dreamers()
+    
+    def _load_dreamers(self):
+        """Load tracked dreamers from database."""
+        try:
+            from core.database import DatabaseManager
+            db = DatabaseManager()
+            cursor = db.execute("SELECT did, handle, name, server FROM dreamers")
+            dreamers = cursor.fetchall()
+            
+            self.tracked_dids = {d['did'] for d in dreamers}
+            self.dreamer_by_did = {d['did']: dict(d) for d in dreamers}
+            
+            self.log(f"📊 Tracking {len(self.tracked_dids)} dreamers for kindred detection")
+        except Exception as e:
+            print(f"[kindred] ❌ Error loading dreamers: {e}")
+            self.tracked_dids = set()
+    
+    def get_wanted_dids(self) -> Set[str]:
+        return self.tracked_dids
+    
+    def get_wanted_collections(self) -> Set[str]:
+        return {'app.bsky.graph.follow'}
+    
+    async def handle_event(self, event: Dict[str, Any]) -> None:
+        """Handle follow events to detect mutual follows."""
+        self.stats['events_received'] += 1
+        
+        kind = event.get('kind')
+        if kind != 'commit':
+            return
+        
+        commit = event.get('commit', {})
+        collection = commit.get('collection', '')
+        operation = commit.get('operation', '')
+        
+        if collection != 'app.bsky.graph.follow':
+            return
+        
+        follower_did = event.get('did', '')
+        if follower_did not in self.tracked_dids:
+            return
+        
+        if operation == 'create':
+            # Someone we track is following someone
+            record = commit.get('record', {})
+            subject_did = record.get('subject', '')
+            rkey = commit.get('rkey', '')
+            
+            # Build the AT-URI for this follow record
+            follow_uri = f"at://{follower_did}/app.bsky.graph.follow/{rkey}" if rkey else None
+            
+            # Only care if they're following another dreamer
+            if subject_did not in self.tracked_dids:
+                return
+            
+            self.stats['events_processed'] += 1
+            
+            follower_handle = self.dreamer_by_did.get(follower_did, {}).get('handle', follower_did[:20])
+            subject_handle = self.dreamer_by_did.get(subject_did, {}).get('handle', subject_did[:20])
+            
+            self.log(f"👀 @{follower_handle} followed @{subject_handle}")
+            
+            # Check for mutual follow in background (pass the follow URI in case this completes a mutual)
+            self.executor.submit(self._check_mutual_follow, follower_did, subject_did, follow_uri)
+        
+        elif operation == 'delete':
+            # Someone we track unfollowed someone
+            # Re-verify all their kindred relationships
+            self.stats['events_processed'] += 1
+            follower_handle = self.dreamer_by_did.get(follower_did, {}).get('handle', follower_did[:20])
+            self.log(f"👋 @{follower_handle} unfollowed someone - checking kindred...")
+            
+            # Re-check all kindred relationships for this user
+            self.executor.submit(self._verify_user_kindred, follower_did)
+    
+    def _verify_user_kindred(self, user_did: str):
+        """Background: verify all kindred relationships for a user after an unfollow."""
+        try:
+            from core.database import DatabaseManager
+            import requests
+            import time
+            
+            db = DatabaseManager()
+            user_handle = self.dreamer_by_did.get(user_did, {}).get('handle', user_did[:20])
+            
+            # Get all kindred relationships for this user
+            cursor = db.execute("""
+                SELECT did_a, did_b, paired FROM kindred 
+                WHERE (did_a = %s OR did_b = %s) AND paired = 1
+            """, (user_did, user_did))
+            kindred_rows = cursor.fetchall()
+            
+            if not kindred_rows:
+                return
+            
+            # Get who this user currently follows
+            user_follows: set = set()
+            url = "https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows"
+            params = {'actor': user_did, 'limit': 100}
+            api_cursor = None
+            
+            for _ in range(10):  # Max 10 pages
+                if api_cursor:
+                    params['cursor'] = api_cursor
+                
+                response = requests.get(url, params=params, timeout=10)
+                if response.status_code != 200:
+                    self.log(f"   ⚠️ API error checking follows: {response.status_code}")
+                    return
+                
+                data = response.json()
+                for follow in data.get('follows', []):
+                    user_follows.add(follow.get('did', ''))
+                
+                api_cursor = data.get('cursor')
+                if not api_cursor:
+                    break
+            
+            # Check each kindred relationship
+            for row in kindred_rows:
+                other_did = row['did_b'] if row['did_a'] == user_did else row['did_a']
+                other_handle = self.dreamer_by_did.get(other_did, {}).get('handle', other_did[:20])
+                
+                # Check if still mutual
+                if other_did not in user_follows:
+                    # User no longer follows their kindred - unpair
+                    self._unpair_kindred(row['did_a'], row['did_b'], user_handle, other_handle)
+                else:
+                    # Check if other still follows user
+                    other_follows_user = self._check_follows(other_did, user_did)
+                    if not other_follows_user:
+                        self._unpair_kindred(row['did_a'], row['did_b'], user_handle, other_handle)
+                        
+        except Exception as e:
+            self.log(f"   ❌ Error verifying kindred: {e}")
+    
+    def _check_follows(self, actor_did: str, target_did: str) -> bool:
+        """Check if actor follows target."""
+        try:
+            import requests
+            
+            url = "https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows"
+            params = {'actor': actor_did, 'limit': 100}
+            cursor = None
+            
+            for _ in range(10):
+                if cursor:
+                    params['cursor'] = cursor
+                
+                response = requests.get(url, params=params, timeout=10)
+                if response.status_code != 200:
+                    return False
+                
+                data = response.json()
+                for follow in data.get('follows', []):
+                    if follow.get('did') == target_did:
+                        return True
+                
+                cursor = data.get('cursor')
+                if not cursor:
+                    break
+            
+            return False
+        except:
+            return False
+    
+    def _unpair_kindred(self, did_a: str, did_b: str, unfollower_handle: str, other_handle: str):
+        """Mark kindred as unpaired when mutual follow is lost.
+        
+        Creates a parted event attributed to the unfollower.
+        """
+        try:
+            from core.database import DatabaseManager
+            import time
+            
+            db = DatabaseManager()
+            epoch = int(time.time())
+            
+            # Get unfollower's full info
+            unfollower = db.execute(
+                "SELECT did, handle, name FROM dreamers WHERE handle = %s", (unfollower_handle,)
+            ).fetchone()
+            other = db.execute(
+                "SELECT did, handle, name FROM dreamers WHERE handle = %s", (other_handle,)
+            ).fetchone()
+            
+            unfollower_did = unfollower['did'] if unfollower else did_a
+            unfollower_name = (unfollower['name'] if unfollower and unfollower['name'] else unfollower_handle)
+            other_did = other['did'] if other else did_b
+            other_name = (other['name'] if other and other['name'] else other_handle)
+            
+            # Update paired status to 0 (unpaired)
+            db.execute("""
+                UPDATE kindred SET paired = 0
+                WHERE did_a = %s AND did_b = %s
+            """, (did_a, did_b))
+            
+            # Create a "parted" event for the unfollower
+            # Profile URL for unfollower
+            profile_url = f"https://bsky.app/profile/{unfollower_handle}"
+            
+            self._create_kindred_event(
+                unfollower_did, other_did, unfollower_handle, other_handle, 
+                first_name=unfollower_name, second_name=other_name,
+                event_type='parted', epoch=epoch,
+                uri=None, url=profile_url
+            )
+            
+            self.log(f"   💔 KINDRED PARTED: @{unfollower_handle} ↔ @{other_handle}")
+            
+        except Exception as e:
+            self.log(f"   ❌ Error unparing kindred: {e}")
+    
+    def _check_mutual_follow(self, follower_did: str, subject_did: str, follow_uri: str = None):
+        """Background: check if this creates a mutual follow and create kindred."""
+        try:
+            import requests
+            
+            follower_info = self.dreamer_by_did.get(follower_did, {})
+            subject_info = self.dreamer_by_did.get(subject_did, {})
+            follower_handle = follower_info.get('handle', follower_did[:20])
+            follower_name = follower_info.get('name') or follower_handle
+            subject_handle = subject_info.get('handle', subject_did[:20])
+            subject_name = subject_info.get('name') or subject_handle
+            
+            # Check if subject follows back the follower
+            # Use getFollows API to check if subject follows follower
+            url = "https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows"
+            params = {
+                'actor': subject_did,
+                'limit': 100
+            }
+            
+            # Paginate through follows to find if subject follows follower
+            cursor = None
+            mutual = False
+            
+            while True:
+                if cursor:
+                    params['cursor'] = cursor
+                
+                response = requests.get(url, params=params, timeout=10)
+                if response.status_code != 200:
+                    self.log(f"   ⚠️ API error checking follows: {response.status_code}")
+                    return
+                
+                data = response.json()
+                follows = data.get('follows', [])
+                
+                for follow in follows:
+                    if follow.get('did') == follower_did:
+                        mutual = True
+                        break
+                
+                if mutual:
+                    break
+                
+                cursor = data.get('cursor')
+                if not cursor:
+                    break
+            
+            if mutual:
+                # mutual=True means subject was already following follower
+                # So: subject followed first, follower completed the mutual (= follower just followed)
+                # The follow_uri is from the follower (who just completed it)
+                self._create_kindred(
+                    first_did=subject_did, 
+                    second_did=follower_did, 
+                    first_handle=subject_handle, 
+                    second_handle=follower_handle,
+                    first_name=subject_name,
+                    second_name=follower_name,
+                    completing_follow_uri=follow_uri
+                )
+            else:
+                self.log(f"   ℹ️ One-way follow: @{follower_handle} → @{subject_handle}")
+                
+        except Exception as e:
+            self.log(f"   ❌ Error checking mutual follow: {e}")
+    
+    def _create_kindred(self, first_did: str, second_did: str, first_handle: str, second_handle: str,
+                        first_name: str = None, second_name: str = None, completing_follow_uri: str = None):
+        """Create kindred relationship if it doesn't exist.
+        
+        Args:
+            first_did: DID of the first follower
+            second_did: DID of the second follower (who completed the mutual)
+            first_handle: Handle of the first follower
+            second_handle: Handle of the second follower
+            first_name: Display name of the first follower
+            second_name: Display name of the second follower  
+            completing_follow_uri: AT-URI of the follow record that completed the mutual
+        """
+        try:
+            from core.database import DatabaseManager
+            import time
+            
+            # Use handle as fallback for name
+            first_name = first_name or first_handle
+            second_name = second_name or second_handle
+            
+            # Canonical ordering for database (did_a < did_b)
+            if first_did < second_did:
+                did_a, did_b = first_did, second_did
+            else:
+                did_a, did_b = second_did, first_did
+            
+            db = DatabaseManager()
+            epoch = int(time.time())
+            
+            # Check if already exists and paired
+            existing = db.execute("""
+                SELECT paired FROM kindred WHERE did_a = %s AND did_b = %s
+            """, (did_a, did_b)).fetchone()
+            
+            if existing and existing['paired'] == 1:
+                self.log(f"   ✓ Kindred already exists: @{first_handle} ↔ @{second_handle}")
+                return
+            
+            # Insert with paired=1 since we detected mutual follow
+            result = db.execute("""
+                INSERT INTO kindred (did_a, did_b, discovered_epoch, paired, paired_epoch)
+                VALUES (%s, %s, %s, 1, %s)
+                ON CONFLICT (did_a, did_b) DO UPDATE SET
+                    paired = 1,
+                    paired_epoch = EXCLUDED.paired_epoch
+                RETURNING (xmax = 0) AS inserted
+            """, (did_a, did_b, epoch, epoch))
+            
+            row = result.fetchone()
+            is_new = row and row['inserted']
+            
+            # Profile URL for first follower (inciting user)
+            profile_url = f"https://bsky.app/profile/{first_handle}"
+            
+            # Create ONE kindred event (first_follower is kindred with second_follower)
+            self._create_kindred_event(
+                first_did, second_did, first_handle, second_handle, 
+                first_name=first_name, second_name=second_name,
+                event_type='paired', epoch=epoch,
+                uri=completing_follow_uri, url=profile_url
+            )
+            
+            if is_new:
+                self.log(f"   🤝 NEW KINDRED: @{first_handle} ↔ @{second_handle}")
+            else:
+                self.log(f"   🔄 Kindred RE-PAIRED: @{first_handle} ↔ @{second_handle}")
+                
+        except Exception as e:
+            self.log(f"   ❌ Error creating kindred: {e}")
+    
+    def _create_kindred_event(self, first_did: str, second_did: str, first_handle: str, second_handle: str, 
+                               first_name: str = None, second_name: str = None,
+                               event_type: str = 'paired', epoch: int = None,
+                               uri: str = None, url: str = None):
+        """Create a single event record for kindred pairing/parting.
+        
+        Creates ONE event attributed to first_follower about second_follower.
+        
+        Args:
+            first_name: Display name of first user (for event text)
+            second_name: Display name of second user (for event text)
+            uri: AT-URI of the completing follow record
+            url: Profile URL of the first follower
+        """
+        try:
+            from core.database import DatabaseManager
+            import time
+            import json
+            
+            if epoch is None:
+                epoch = int(time.time())
+            
+            # Use handle as fallback for name
+            first_name = first_name or first_handle
+            second_name = second_name or second_handle
+            
+            db = DatabaseManager()
+            
+            # Get colors for both users
+            color_a = db.execute(
+                "SELECT color_hex FROM dreamers WHERE did = %s", (first_did,)
+            ).fetchone()
+            color_b = db.execute(
+                "SELECT color_hex FROM dreamers WHERE did = %s", (second_did,)
+            ).fetchone()
+            
+            color_hex_a = color_a['color_hex'] if color_a and color_a['color_hex'] else '#888888'
+            color_hex_b = color_b['color_hex'] if color_b and color_b['color_hex'] else '#888888'
+            
+            # Create event text using display names, not handles
+            if event_type == 'paired':
+                event_text = f"is kindred with {second_name}"
+            else:
+                event_text = f"parted ways with {second_name}"
+            
+            # Store both DIDs, handles, names and colors in quantities JSON for gradient rendering
+            quantities = json.dumps({
+                'kindred_did': second_did,
+                'kindred_handle': second_handle,
+                'kindred_name': second_name,
+                'color_a': color_hex_a,
+                'color_b': color_hex_b
+            })
+            
+            # Create ONE event for first_follower (who initiated the kindred)
+            db.execute("""
+                INSERT INTO events (did, event, type, key, epoch, created_at, uri, url, quantities, color_source, color_intensity)
+                VALUES (%s, %s, 'kindred', %s, %s, %s, %s, %s, %s, 'kindred-gradient', 'special')
+            """, (first_did, event_text, event_type, epoch, epoch, uri, url, quantities))
+            
+            self.log(f"   📝 Created kindred event: {first_name} {event_type} {second_name}")
+            
+        except Exception as e:
+            self.log(f"   ⚠️ Error creating kindred event: {e}")
+    
+    def refresh_dreamers(self):
+        """Reload dreamer list (call when community changes)."""
+        self._load_dreamers()
+
+
+# ============================================================================
 # Quest Handler - Quest Reply Detection
 # ============================================================================
 
@@ -941,8 +1383,8 @@ def main():
     
     parser = argparse.ArgumentParser(description='Jetstream Hub - Unified ATProto Event Consumer')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
-    parser.add_argument('--handlers', nargs='+', default=['dreamer', 'quest', 'biblio', 'feed'],
-                        choices=['dreamer', 'quest', 'biblio', 'feed'],
+    parser.add_argument('--handlers', nargs='+', default=['dreamer', 'quest', 'biblio', 'feed', 'kindred'],
+                        choices=['dreamer', 'quest', 'biblio', 'feed', 'kindred'],
                         help='Which handlers to enable')
     args = parser.parse_args()
     
@@ -961,6 +1403,9 @@ def main():
     
     if 'feed' in args.handlers:
         hub.register(FeedHandler(verbose=args.verbose))
+    
+    if 'kindred' in args.handlers:
+        hub.register(KindredHandler(verbose=args.verbose))
     
     # Handle signals
     def signal_handler(sig, frame):
