@@ -3228,7 +3228,9 @@ def set_heading():
                     f'set heading toward {direction}',
                     'heading_change',
                     None,
-                    None
+                    None,
+                    'octant',
+                    'highlight'
                 ))
                 print(f"📔 Canon: {name} set heading toward {direction}")
             except Exception as canon_error:
@@ -11006,12 +11008,20 @@ def guardian_become_ward_or_charge():
         event_key = role_type  # 'ward' or 'charge'
         event_url = '/guardian'
         
-        db_manager.execute("""
-            INSERT INTO events (did, epoch, type, event, key, url, color_source, color_intensity)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (user_did, epoch, 'guardian', event_text, event_key, event_url, 'role', 'none'))
+        # Find the guardian's parent event to link as reaction
+        guardian_parent = db_manager.fetch_one("""
+            SELECT id FROM events 
+            WHERE did = %s AND type = 'work' AND key = 'guardian'
+            ORDER BY epoch DESC LIMIT 1
+        """, (guardian_did,))
+        parent_event_id = guardian_parent['id'] if guardian_parent else None
         
-        print(f"  ✨ Created guardian event: {event_text}")
+        db_manager.execute("""
+            INSERT INTO events (did, epoch, type, event, key, url, color_source, color_intensity, reaction_to, others)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, ARRAY[%s])
+        """, (user_did, epoch, 'guardian', event_text, event_key, event_url, 'role', 'none', parent_event_id, guardian_did))
+        
+        print(f"  ✨ Created guardian event: {event_text} (reaction_to={parent_event_id}, others=[{guardian_did}])")
         
         response = {
             'success': True,

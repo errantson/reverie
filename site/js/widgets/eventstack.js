@@ -335,8 +335,6 @@ class EventStack {
             const otherDid = other.did || '';
             const otherLink = otherDid ? `/dreamer?did=${encodeURIComponent(otherDid)}` : '#';
             
-            console.log(`[EventStack:DualAvatar] Event #${event.id} (${type}/${key}): rendering dual avatars`);
-            
             html += `<div class="cell avatar avatar-dual" style="margin-left: ${avatarMargin}px;">`;
             if (did) {
                 html += `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()"><img src="${avatar}" class="avatar-img avatar-dual-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>`;

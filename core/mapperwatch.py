@@ -414,11 +414,11 @@ class MapperMonitor:
             mapper_did = self.mapper_client.me.did
             mapper_post_url = at_uri_to_bsky_url(mapper_post_uri)
             db.execute("""
-                INSERT INTO events (did, key, event, type, uri, url, epoch, created_at, reaction_to, color_source, color_intensity)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO events (did, key, event, type, uri, url, epoch, created_at, reaction_to, color_source, color_intensity, others)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ARRAY[%s])
             """, (mapper_did, 'mapper', f"mapped {dreamer_name}'s coordinates", 'spectrum', 
-                  mapper_post_uri, mapper_post_url, epoch, epoch, user_origin_event_id, 'role', 'highlight'))
-            print(f"   📝 Added mapper event (reaction_to={user_origin_event_id})")
+                  mapper_post_uri, mapper_post_url, epoch, epoch, user_origin_event_id, 'role', 'highlight', author_did))
+            print(f"   📝 Added mapper event (reaction_to={user_origin_event_id}, others=[{author_did}])")
             
             # 9. Like the user's post (as mapper)
             try:
