@@ -295,18 +295,16 @@ class QuestHandler(EventHandler):
         if not reply:
             return
         
-        # Check if reply is to a quest
+        # Check if reply is DIRECTLY to a quest post (not a nested reply in the thread)
+        # We only match on parent_uri, NOT root_uri, to prevent triggering on
+        # replies-to-replies within a quest thread (e.g., mapper replying to a user
+        # should not trigger the quest again for the mapper)
         parent_uri = reply.get('parent', {}).get('uri', '')
-        root_uri = reply.get('root', {}).get('uri', '')
         
-        quest_uri = None
-        if parent_uri in self.quest_uris:
-            quest_uri = parent_uri
-        elif root_uri in self.quest_uris:
-            quest_uri = root_uri
-        
-        if not quest_uri:
+        if parent_uri not in self.quest_uris:
             return
+        
+        quest_uri = parent_uri
         
         # Quest reply detected!
         self.stats['events_processed'] += 1
