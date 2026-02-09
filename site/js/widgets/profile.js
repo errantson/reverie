@@ -873,7 +873,7 @@ class Profile {
             if (!canonResponse.ok) throw new Error('Failed to load canon');
             const allCanon = await canonResponse.json();
             
-            // Filter to this dreamer's events AND events they reacted to
+            // Filter to this dreamer's events AND events they reacted to AND events where they appear in others[]
             const dreamerEvents = allCanon.filter(entry => {
                 // Include events created by this dreamer
                 const isOwnEvent = entry.did?.toLowerCase() === dreamer.did.toLowerCase();
@@ -881,7 +881,11 @@ class Profile {
                 // Include events that this dreamer reacted to (events where reaction_did matches)
                 const isReactedTo = entry.reaction_did?.toLowerCase() === dreamer.did.toLowerCase();
                 
-                return isOwnEvent || isReactedTo;
+                // Include events where this dreamer appears as a secondary participant
+                const isInOthers = entry.others && Array.isArray(entry.others) && 
+                    entry.others.some(d => d?.toLowerCase() === dreamer.did.toLowerCase());
+                
+                return isOwnEvent || isReactedTo || isInOthers;
             });
             
             // Remove duplicates (in case an event has multiple reactions from the same user)

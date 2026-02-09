@@ -46,21 +46,17 @@ class RowStyleEngine {
             styles.push(`--user-color: ${userColor}`);
         }
         
-        // Kindred gradient - set both user colors from quantities JSON
+        // Kindred gradient - set both user colors from JOINed dreamer data
         if (event.color_source === 'kindred-gradient' || event.type === 'kindred') {
-            // Parse quantities if it's a string
-            let quantities = event.quantities;
-            if (typeof quantities === 'string') {
-                try {
-                    quantities = JSON.parse(quantities);
-                } catch (e) {
-                    quantities = {};
-                }
+            // Primary user color from the event's own color_hex
+            const colorA = event.color_hex || '#888888';
+            
+            // Secondary user color from others_data (resolved by API JOIN)
+            let colorB = '#888888';
+            if (event.others_data && event.others_data.length > 0) {
+                colorB = event.others_data[0].color_hex || '#888888';
             }
             
-            // Extract colors from quantities
-            const colorA = quantities?.color_a || event.color_hex || '#888888';
-            const colorB = quantities?.color_b || '#888888';
             styles.push(`--kindred-color-a: ${colorA}`);
             styles.push(`--kindred-color-b: ${colorB}`);
         }

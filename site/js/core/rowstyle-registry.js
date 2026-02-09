@@ -188,14 +188,14 @@ const RowStyleRegistry = {
         rendering: {
             cssClasses: ['row-entry', 'color-kindred-gradient', 'intensity-special'],
             cssFiles: ['color-rows.css'],
-            cssVariables: ['--kindred-color-a', '--kindred-color-b'],  // Colors from event quantities JSON
+            cssVariables: ['--kindred-color-a', '--kindred-color-b'],  // Colors from JOINed dreamer data
             effects: [],
             appearance: {
                 background: 'Left-to-right gradient blending both users\' colors',
                 border: 'Vertical gradient border from user A to user B color',
                 color: 'Blended color of both users',
-                animation: 'None',
-                special: 'Uses inline CSS variables from event.quantities.color_a/color_b'
+                animation: 'Flowing gradient (kindred-flow, 6s)',
+                special: 'Colors from event.color_hex + event.others_data[0].color_hex via DB JOIN'
             }
         },
         matches: (event) => {
@@ -210,13 +210,13 @@ const RowStyleRegistry = {
         rendering: {
             cssClasses: ['row-entry', 'color-kindred-gradient', 'kindred-parted'],
             cssFiles: ['color-rows.css'],
-            cssVariables: ['--kindred-color-a', '--kindred-color-b'],
+            cssVariables: ['--kindred-color-a', '--kindred-color-b'],  // Colors from JOINed dreamer data
             effects: [],
             appearance: {
                 background: 'Desaturated gradient blend',
                 border: 'Faded gradient border',
                 color: 'Muted blended color',
-                animation: 'None',
+                animation: 'Flowing gradient (kindred-flow, 6s), desaturated',
                 special: 'Desaturated and slightly dimmed to indicate parting'
             }
         },
@@ -563,6 +563,50 @@ const RowStyleRegistry = {
             return (event.color_source === 'role' && event.key === 'guardian') || (event.type === 'work' && event.key === 'guardian');
         }
     },
+
+    ward: {
+        name: "ward",
+        description: "White-stumped style for guardian ward events",
+        category: "role",
+        rendering: {
+            cssClasses: ['row-entry', 'color-role', 'role-ward', 'intensity-highlight'],
+            cssFiles: ['color-rows.css'],
+            cssVariables: ['--role-guardian', '--role-guardian-light', '--role-guardian-medium', '--role-guardian-dark'],
+            effects: [],
+            appearance: {
+                background: 'Light protective shield gradient',
+                border: '3px solid white',
+                color: 'Soft guardian brown',
+                animation: 'None',
+                special: 'White stump border for warded/protected dreamers'
+            }
+        },
+        matches: (event) => {
+            return event.type === 'guardian' && event.key === 'ward';
+        }
+    },
+
+    charge: {
+        name: "charge",
+        description: "Black-stumped style for guardian charge events",
+        category: "role",
+        rendering: {
+            cssClasses: ['row-entry', 'color-role', 'role-charge', 'intensity-highlight'],
+            cssFiles: ['color-rows.css'],
+            cssVariables: ['--role-guardian', '--role-guardian-light', '--role-guardian-medium', '--role-guardian-dark'],
+            effects: [],
+            appearance: {
+                background: 'Dark authoritative guardian gradient',
+                border: '3px solid black/dark',
+                color: 'Deep guardian brown',
+                animation: 'None',
+                special: 'Black stump border for charged/overseen dreamers'
+            }
+        },
+        matches: (event) => {
+            return event.type === 'guardian' && event.key === 'charge';
+        }
+    },
     
     // =========================================================================
     // OCTANT STYLES (Generated dynamically)
@@ -651,7 +695,7 @@ function computeRowStyle(event) {
         // User color variations
         'user-highlight', 'user',
         // Role styles
-        'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful', 'guardian',
+        'greeter', 'mapper', 'cogitarian', 'provisioner', 'dreamstyler', 'bursar', 'cheerful', 'ward', 'charge', 'guardian',
         // Octant styles (checked dynamically)
         ...['adaptive', 'chaotic', 'intended', 'prepared', 'contented', 'assertive', 'ordered', 'guarded', 'equilibrium', 'confused', 'singling', 'uncertain']
     ];

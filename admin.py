@@ -1244,29 +1244,58 @@ def get_all_database_data():
                             d.avatar,
                             d.color_hex,
                             s.octant,
-                            s.origin_octant,
-                            r.id as reaction_id,
-                            r.did as reaction_did,
-                            r.event as reaction_event,
-                            r.type as reaction_type,
-                            r.key as reaction_key,
-                            r.uri as reaction_uri,
-                            r.url as reaction_url,
-                            r.epoch as reaction_epoch,
-                            r.color_source as reaction_color_source,
-                            r.color_intensity as reaction_color_intensity,
-                            rd.name as reaction_name,
-                            rd.avatar as reaction_avatar,
-                            rs.octant as reaction_octant,
-                            rs.origin_octant as reaction_origin_octant
+                            s.origin_octant
                         FROM events c
                         LEFT JOIN dreamers d ON c.did = d.did
                         LEFT JOIN spectrum s ON c.did = s.did
-                        LEFT JOIN events r ON r.reaction_to = c.id
-                        LEFT JOIN dreamers rd ON r.did = rd.did
-                        LEFT JOIN spectrum rs ON r.did = rs.did
                         ORDER BY c.epoch DESC
                     """)
+                    rows = cursor.fetchall()
+                    
+                    # Resolve others[] arrays into full dreamer data
+                    all_other_dids = set()
+                    for row in rows:
+                        if row.get('others'):
+                            for other_did in row['others']:
+                                if other_did:
+                                    all_other_dids.add(other_did)
+                    
+                    others_lookup = {}
+                    if all_other_dids:
+                        others_cursor = db.execute("""
+                            SELECT did, name, handle, avatar, color_hex FROM dreamers WHERE did = ANY(%s)
+                        """, (list(all_other_dids),))
+                        for orow in others_cursor.fetchall():
+                            others_lookup[orow['did']] = {
+                                'did': orow['did'],
+                                'name': orow['name'] or 'unknown',
+                                'handle': orow['handle'] or '',
+                                'avatar': orow['avatar'] or '',
+                                'color_hex': orow['color_hex'] or '#888888'
+                            }
+                    
+                    event_rows = []
+                    for row in rows:
+                        row_dict = dict(row)
+                        # Resolve others
+                        others_data = []
+                        if row_dict.get('others'):
+                            for other_did in row_dict['others']:
+                                if other_did and other_did in others_lookup:
+                                    others_data.append(others_lookup[other_did])
+                                elif other_did:
+                                    others_data.append({
+                                        'did': other_did,
+                                        'name': 'unknown',
+                                        'handle': '',
+                                        'avatar': '',
+                                        'color_hex': '#888888'
+                                    })
+                        row_dict['others_data'] = others_data
+                        event_rows.append(row_dict)
+                    
+                    tables[table_name] = event_rows
+                    continue
                 # Special handling for souvenirs - add keeper count
                 elif table_name == 'souvenirs':
                     cursor = db.execute("""
@@ -1427,37 +1456,56 @@ def get_canon():
         # Get all canon entries with dreamer names and avatars, plus reactions (like /api/database/all)
         cursor = db.execute("""
             SELECT c.id, c.epoch, c.did, c.event, c.url, c.uri, c.type, c.key, c.created_at, 
-                   c.color_source, c.color_intensity, c.reaction_to,
+                   c.color_source, c.color_intensity, c.reaction_to, c.others,
                    d.name, d.avatar, d.color_hex,
-                   s.octant, s.origin_octant,
-                   r.id as reaction_id,
-                   r.did as reaction_did,
-                   r.event as reaction_event,
-                   r.type as reaction_type,
-                   r.key as reaction_key,
-                   r.uri as reaction_uri,
-                   r.url as reaction_url,
-                   r.epoch as reaction_epoch,
-                   r.color_source as reaction_color_source,
-                   r.color_intensity as reaction_color_intensity,
-                   rd.name as reaction_name,
-                   rd.avatar as reaction_avatar,
-                   rd.color_hex as reaction_color_hex,
-                   rs.octant as reaction_octant,
-                   rs.origin_octant as reaction_origin_octant
+                   s.octant, s.origin_octant
             FROM events c
             LEFT JOIN dreamers d ON c.did = d.did
             LEFT JOIN spectrum s ON c.did = s.did
-            LEFT JOIN events r ON r.reaction_to = c.id
-            LEFT JOIN dreamers rd ON r.did = rd.did
-            LEFT JOIN spectrum rs ON r.did = rs.did
             ORDER BY c.epoch DESC
         """)
         canon_entries = cursor.fetchall()
         
+        # Build a lookup for others' dreamer data (batch-fetch all unique DIDs from others arrays)
+        all_other_dids = set()
+        for entry in canon_entries:
+            if entry.get('others'):
+                for other_did in entry['others']:
+                    if other_did:
+                        all_other_dids.add(other_did)
+        
+        others_lookup = {}
+        if all_other_dids:
+            others_cursor = db.execute("""
+                SELECT did, name, handle, avatar, color_hex FROM dreamers WHERE did = ANY(%s)
+            """, (list(all_other_dids),))
+            for row in others_cursor.fetchall():
+                others_lookup[row['did']] = {
+                    'did': row['did'],
+                    'name': row['name'] or 'unknown',
+                    'handle': row['handle'] or '',
+                    'avatar': row['avatar'] or '',
+                    'color_hex': row['color_hex'] or '#888888'
+                }
+        
         # Convert to list of dicts
         result = []
         for entry in canon_entries:
+            # Resolve others[] array into full dreamer data
+            others_data = []
+            if entry.get('others'):
+                for other_did in entry['others']:
+                    if other_did and other_did in others_lookup:
+                        others_data.append(others_lookup[other_did])
+                    elif other_did:
+                        others_data.append({
+                            'did': other_did,
+                            'name': 'unknown',
+                            'handle': '',
+                            'avatar': '',
+                            'color_hex': '#888888'
+                        })
+            
             canon_dict = {
                 'id': entry['id'],
                 'epoch': entry['epoch'],
@@ -1475,22 +1523,8 @@ def get_canon():
                 'octant': entry['octant'] or '',
                 'origin_octant': entry['origin_octant'] or '',
                 'reaction_to': entry['reaction_to'],
-                # Include reaction data if present
-                'reaction_id': entry['reaction_id'],
-                'reaction_did': entry['reaction_did'],
-                'reaction_event': entry['reaction_event'],
-                'reaction_type': entry['reaction_type'],
-                'reaction_key': entry['reaction_key'],
-                'reaction_uri': entry['reaction_uri'],
-                'reaction_url': entry['reaction_url'],
-                'reaction_epoch': entry['reaction_epoch'],
-                'reaction_color_source': entry['reaction_color_source'],
-                'reaction_color_intensity': entry['reaction_color_intensity'],
-                'reaction_name': entry['reaction_name'],
-                'reaction_avatar': entry['reaction_avatar'],
-                'reaction_color_hex': entry['reaction_color_hex'],
-                'reaction_octant': entry['reaction_octant'],
-                'reaction_origin_octant': entry['reaction_origin_octant']
+                'others': entry.get('others') or [],
+                'others_data': others_data,
             }
             result.append(canon_dict)
         

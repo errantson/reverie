@@ -598,59 +598,41 @@ class KindredHandler(EventHandler):
                                uri: str = None, url: str = None):
         """Create a single event record for kindred pairing/parting.
         
-        Creates ONE event attributed to first_follower about second_follower.
+        Creates ONE event attributed to first_follower, with second_follower in others[].
+        Event text is non-nominal — names are resolved from JOINed dreamer data at display time.
+        Colors for the gradient come from JOINing both DIDs to the dreamers table.
         
         Args:
-            first_name: Display name of first user (for event text)
-            second_name: Display name of second user (for event text)
+            first_name: Display name of first user (for logging only)
+            second_name: Display name of second user (for logging only)
             uri: AT-URI of the completing follow record
             url: Profile URL of the first follower
         """
         try:
             from core.database import DatabaseManager
             import time
-            import json
             
             if epoch is None:
                 epoch = int(time.time())
             
-            # Use handle as fallback for name
+            # Use handle as fallback for name (logging only)
             first_name = first_name or first_handle
             second_name = second_name or second_handle
             
             db = DatabaseManager()
             
-            # Get colors for both users
-            color_a = db.execute(
-                "SELECT color_hex FROM dreamers WHERE did = %s", (first_did,)
-            ).fetchone()
-            color_b = db.execute(
-                "SELECT color_hex FROM dreamers WHERE did = %s", (second_did,)
-            ).fetchone()
-            
-            color_hex_a = color_a['color_hex'] if color_a and color_a['color_hex'] else '#888888'
-            color_hex_b = color_b['color_hex'] if color_b and color_b['color_hex'] else '#888888'
-            
-            # Create event text using display names, not handles
+            # Event text is non-nominal: names come from JOINed data at display time
             if event_type == 'paired':
-                event_text = f"is kindred with {second_name}"
+                event_text = "are kindred"
             else:
-                event_text = f"parted ways with {second_name}"
+                event_text = "parted ways"
             
-            # Store both DIDs, handles, names and colors in quantities JSON for gradient rendering
-            quantities = json.dumps({
-                'kindred_did': second_did,
-                'kindred_handle': second_handle,
-                'kindred_name': second_name,
-                'color_a': color_hex_a,
-                'color_b': color_hex_b
-            })
-            
-            # Create ONE event for first_follower (who initiated the kindred)
+            # Create event with others[] array for secondary participant
+            # Colors are resolved via JOIN at query time, not stored in quantities
             db.execute("""
-                INSERT INTO events (did, event, type, key, epoch, created_at, uri, url, quantities, color_source, color_intensity)
-                VALUES (%s, %s, 'kindred', %s, %s, %s, %s, %s, %s, 'kindred-gradient', 'special')
-            """, (first_did, event_text, event_type, epoch, epoch, uri, url, quantities))
+                INSERT INTO events (did, event, type, key, epoch, created_at, uri, url, others, color_source, color_intensity)
+                VALUES (%s, %s, 'kindred', %s, %s, %s, %s, %s, ARRAY[%s], 'kindred-gradient', 'special')
+            """, (first_did, event_text, event_type, epoch, epoch, uri, url, second_did))
             
             self.log(f"   📝 Created kindred event: {first_name} {event_type} {second_name}")
             

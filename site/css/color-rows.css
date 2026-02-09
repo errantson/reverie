@@ -118,7 +118,7 @@
 
 /* Thread arrow styling for reactions */
 .row-entry .cell.thread-arrow .thread-arrow-icon {
-    color: var(--primary);
+    color: inherit;
     font-size: 1.4em;
     opacity: 0.8;
     position: relative;
@@ -263,6 +263,36 @@
 .row-entry.color-kindred-gradient .cell span[style*="color: var(--text-secondary)"],
 .row-entry.color-kindred-gradient .cell.canon a.dreamer-link {
     color: #3a3a3a !important;
+}
+
+/* Dual avatar cell - two avatars side by side for multi-user events */
+.cell.avatar.avatar-dual {
+    display: flex !important;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    padding: 2px 1px;
+    margin-left: 10px;
+}
+
+.cell.avatar.avatar-dual .avatar-dual-img {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    /* Override base .avatar-img display:block/margin:auto that fights flex */
+    display: inline-block !important;
+    margin: 0 !important;
+}
+
+/* Links in dual avatar should not affect flex sizing */
+.cell.avatar.avatar-dual a.dreamer-link {
+    display: flex;
+    flex-shrink: 0;
+    line-height: 0;
 }
 
 /* Kindred parted (unfollowed) - faded gradient */
@@ -938,41 +968,79 @@
     color: inherit !important;
 }
 
-/* Ward/Charge - Subtle guarded style (lighter guardian brown, understated) */
-.row-entry.color-role.role-ward.intensity-none,
-.row-entry.color-role.role-charge.intensity-none {
+/* Ward - White-stumped protective style (light shield aesthetic) */
+.row-entry.color-role.role-ward.intensity-none {
     background: linear-gradient(
         to right,
-        color-mix(in srgb, var(--role-guardian-light) 18%, #f8f5f0) 0%,
-        color-mix(in srgb, var(--role-guardian-light) 8%, #faf8f5) 40%,
-        transparent 80%
+        rgba(255, 255, 255, 0.7) 0%,
+        color-mix(in srgb, var(--role-guardian-light) 20%, rgba(250, 248, 245, 0.8)) 40%,
+        transparent 85%
     );
-    border-left: 2px solid color-mix(in srgb, var(--role-guardian) 45%, #d4c8b8);
+    border-left: 3px solid #e8e4e0;
     color: color-mix(in srgb, var(--role-guardian) 55%, #5a4d40);
 }
 
-.row-entry.color-role.role-ward.intensity-highlight,
+.row-entry.color-role.role-ward.intensity-highlight {
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.8) 0%,
+        color-mix(in srgb, var(--role-guardian-light) 25%, rgba(248, 245, 240, 0.85)) 35%,
+        color-mix(in srgb, var(--role-guardian-light) 10%, rgba(252, 250, 248, 0.5)) 70%,
+        transparent 100%
+    );
+    border-left: 3px solid #f0ece8;
+    color: color-mix(in srgb, var(--role-guardian-dark) 60%, #6b5e50);
+}
+
+.row-entry.color-role.role-ward.intensity-special {
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.85) 0%,
+        color-mix(in srgb, var(--role-guardian-light) 30%, rgba(245, 240, 232, 0.9)) 40%,
+        color-mix(in srgb, var(--role-guardian-light) 15%, rgba(250, 248, 245, 0.6)) 80%,
+        transparent 100%
+    );
+    border-left: 4px solid #f5f1ed;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    color: color-mix(in srgb, var(--role-guardian-dark) 70%, #5a4d40);
+}
+
+/* Charge - Black-stumped authoritative style (dark oversight aesthetic) */
+.row-entry.color-role.role-charge.intensity-none {
+    background: linear-gradient(
+        to right,
+        rgba(40, 35, 30, 0.08) 0%,
+        color-mix(in srgb, var(--role-guardian-medium) 18%, rgba(245, 240, 235, 0.6)) 40%,
+        transparent 85%
+    );
+    border-left: 3px solid #3a3530;
+    color: color-mix(in srgb, var(--role-guardian) 55%, #3a3530);
+}
+
 .row-entry.color-role.role-charge.intensity-highlight {
     background: linear-gradient(
         to right,
-        color-mix(in srgb, var(--role-guardian-light) 28%, #f5f0e8) 0%,
-        color-mix(in srgb, var(--role-guardian-light) 14%, #f8f5f0) 40%,
-        transparent 85%
+        rgba(40, 35, 30, 0.12) 0%,
+        color-mix(in srgb, var(--role-guardian-medium) 22%, rgba(242, 237, 230, 0.7)) 35%,
+        color-mix(in srgb, var(--role-guardian-light) 10%, rgba(248, 245, 240, 0.4)) 70%,
+        transparent 100%
     );
-    border-left: 2px solid color-mix(in srgb, var(--role-guardian) 50%, #d0c4b4);
-    color: color-mix(in srgb, var(--role-guardian-dark) 60%, #5a4d40);
+    border-left: 3px solid #2e2a25;
+    color: color-mix(in srgb, var(--role-guardian-dark) 65%, #2e2a25);
 }
 
-.row-entry.color-role.role-ward.intensity-special,
 .row-entry.color-role.role-charge.intensity-special {
     background: linear-gradient(
         to right,
-        color-mix(in srgb, var(--role-guardian-light) 38%, #f0e8dd) 0%,
-        color-mix(in srgb, var(--role-guardian-light) 20%, #f5f0e8) 50%,
+        rgba(40, 35, 30, 0.16) 0%,
+        color-mix(in srgb, var(--role-guardian-medium) 28%, rgba(238, 232, 224, 0.8)) 40%,
+        color-mix(in srgb, var(--role-guardian-light) 14%, rgba(245, 240, 235, 0.5)) 80%,
         transparent 100%
     );
-    border-left: 3px solid color-mix(in srgb, var(--role-guardian) 55%, #c8bca8);
-    color: color-mix(in srgb, var(--role-guardian-dark) 70%, #4a4035);
+    border-left: 4px solid #252220;
+    box-shadow: inset 0 0 0 1px rgba(40, 35, 30, 0.1);
+    color: color-mix(in srgb, var(--role-guardian-dark) 75%, #252220);
+    font-weight: 500;
 }
 
 /* Apply guarded color uniformly to all cells */
@@ -1115,20 +1183,30 @@
 
 /* Thread level 1 (reactions) */
 .thread-level-1 {
+    opacity: 0.9;
+}
+
+/* Thread level 1 - default border for rows without their own role border */
+.thread-level-1:not(.color-role) {
     background: rgba(0, 0, 0, 0.03);
     border-left: 4px solid rgba(0, 123, 255, 0.3);
-    opacity: 0.9;
 }
 
 /* Thread level 2+ (nested reactions) */
 .thread-level-2 {
-    background: rgba(0, 0, 0, 0.02);
-    border-left: 4px solid rgba(0, 123, 255, 0.2);
     opacity: 0.8;
 }
 
+.thread-level-2:not(.color-role) {
+    background: rgba(0, 0, 0, 0.02);
+    border-left: 4px solid rgba(0, 123, 255, 0.2);
+}
+
 .thread-level-3 {
+    opacity: 0.7;
+}
+
+.thread-level-3:not(.color-role) {
     background: rgba(0, 0, 0, 0.01);
     border-left: 4px solid rgba(0, 123, 255, 0.1);
-    opacity: 0.7;
 }

@@ -320,25 +320,90 @@ class EventStack {
             html += `<div class="cell thread-arrow"${threadArrowStyle}></div>`; // Empty spacer for alignment
         }
         
-        // Avatar cell (no margin for threaded items to group with arrow)
+        // Avatar cell - dual avatars for multi-user events, single for normal
+        const hasOthers = event.others_data && event.others_data.length > 0;
         const avatarMargin = level > 0 ? 0 : 2;
-        const avatarStyle = ` style="margin-left: ${avatarMargin}px;"`;
         const dreamerLink = did ? `/dreamer?did=${encodeURIComponent(did)}` : '#';
-        html += `<div class="cell avatar"${avatarStyle}>`;
-        if (did) {
-            html += `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()"><img src="${avatar}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>`;
-        } else {
-            html += `<img src="${avatar}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
-        }
-        html += `</div>`;
         
-        // Canon cell (keep normal padding, indent is handled by thread-arrow)
+        // Dual avatars only for kindred events
+        const isDualAvatar = hasOthers && type === 'kindred';
+        
+        if (isDualAvatar) {
+            // Dual avatar cell for kindred events
+            const other = event.others_data[0];
+            const otherAvatar = other.avatar || '/assets/icon_face.png';
+            const otherDid = other.did || '';
+            const otherLink = otherDid ? `/dreamer?did=${encodeURIComponent(otherDid)}` : '#';
+            
+            console.log(`[EventStack:DualAvatar] Event #${event.id} (${type}/${key}): rendering dual avatars`);
+            
+            html += `<div class="cell avatar avatar-dual" style="margin-left: ${avatarMargin}px;">`;
+            if (did) {
+                html += `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()"><img src="${avatar}" class="avatar-img avatar-dual-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>`;
+            } else {
+                html += `<img src="${avatar}" class="avatar-img avatar-dual-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
+            }
+            if (otherDid) {
+                html += `<a href="${otherLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(otherDid)}" onclick="event.stopPropagation()"><img src="${otherAvatar}" class="avatar-img avatar-dual-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>`;
+            } else {
+                html += `<img src="${otherAvatar}" class="avatar-img avatar-dual-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
+            }
+            html += `</div>`;
+        } else {
+            // Standard single avatar
+            const avatarStyle = ` style="margin-left: ${avatarMargin}px;"`;
+            html += `<div class="cell avatar"${avatarStyle}>`;
+            if (did) {
+                html += `<a href="${dreamerLink}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()"><img src="${avatar}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'" style="cursor: pointer;"></a>`;
+            } else {
+                html += `<img src="${avatar}" class="avatar-img" alt="avatar" onerror="this.src='/assets/icon_face.png'">`;
+            }
+            html += `</div>`;
+        }
+        
+        // Canon cell - composed text for multi-user events, standard for single
         if (this.options.columns.canon) {
             const canonPadding = level > 0 ? 8 : 12;
             const canonStyle = ` style="padding-left: ${canonPadding}px;"`;
             const nameLink = did ? `<a href="/dreamer?did=${encodeURIComponent(did)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(did)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${name}</a>` : `<span style="font-weight: 500;">${name}</span>`;
-            const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
-            html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} ${eventSpan}</span></div>`;
+            
+            if (hasOthers && type === 'kindred') {
+                // Kindred event: "Name1 and Name2 are kindred"
+                const other = event.others_data[0];
+                const otherName = other.name || 'unknown';
+                const otherDid = other.did || '';
+                const otherNameLink = otherDid 
+                    ? `<a href="/dreamer?did=${encodeURIComponent(otherDid)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(otherDid)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${otherName}</a>` 
+                    : `<span style="font-weight: 500;">${otherName}</span>`;
+                const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
+                html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} <span style="font-style: italic; color: var(--text-secondary);">and</span> ${otherNameLink} ${eventSpan}</span></div>`;
+            } else if (hasOthers) {
+                // Name-mention event (welcome, guardian, mapper): find name in text and link it
+                const other = event.others_data[0];
+                const otherName = other.name || '';
+                const otherDid = other.did || '';
+                
+                // Try to find and replace the other user's name in the event text with a link
+                let enrichedText = eventText;
+                if (otherName) {
+                    const nameIdx = eventText.toLowerCase().indexOf(otherName.toLowerCase());
+                    if (nameIdx !== -1) {
+                        const before = eventText.substring(0, nameIdx);
+                        const matchedName = eventText.substring(nameIdx, nameIdx + otherName.length);
+                        const after = eventText.substring(nameIdx + otherName.length);
+                        const otherLink = otherDid 
+                            ? `<a href="/dreamer?did=${encodeURIComponent(otherDid)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(otherDid)}" onclick="event.stopPropagation()" style="font-weight: 500; font-style: normal; color: inherit; text-decoration: none;">${matchedName}</a>` 
+                            : `<span style="font-weight: 500; font-style: normal;">${matchedName}</span>`;
+                        enrichedText = `${before}${otherLink}${after}`;
+                    }
+                }
+                const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${enrichedText}</span>`;
+                html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} ${eventSpan}</span></div>`;
+            } else {
+                // Standard single-user event
+                const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
+                html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} ${eventSpan}</span></div>`;
+            }
         }
         
         // Key cell
