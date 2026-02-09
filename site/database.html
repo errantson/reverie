@@ -85,6 +85,10 @@
                 </div>
                 <div class="stat-divider"></div>
                 <div class="stat-item">
+                    <span class="stat-label">Kindred</span>
+                    <span class="stat-value" id="stat-kindred">0</span>
+                </div>
+                <div class="stat-item">
                     <span class="stat-label">Souvenirs</span>
                     <span class="stat-value" id="stat-souvenirs">0</span>
                 </div>
@@ -96,6 +100,11 @@
                     <span class="stat-label">Workers</span>
                     <span class="stat-value" id="stat-workers">0</span>
                 </div>
+                <div class="stat-item">
+                    <span class="stat-label">Readers</span>
+                    <span class="stat-value" id="stat-readers">0</span>
+                </div>
+                <div class="stat-divider"></div>
             </section>
             
             <section class="left-column-section">
@@ -126,33 +135,39 @@
         <!-- Main Content: Event History -->
         <main class="database-main-content">
             <header class="page-header-fixed">
-                <button class="db-btn" onclick="resetFilters()" title="Reset filters and refresh" style="padding:6px 8px;">
-                    <svg class="db-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px;">
-                        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                    </svg>
-                </button>
-                <select id="filter-type" onchange="applyFilters()" class="db-filter-dropdown">
-                    <option value="all">All Events</option>
-                    <optgroup label="Arrivals & Departures">
+                <div class="filter-group">
+                    <button class="db-btn db-btn-icon" onclick="resetFilters()" title="Reset filters and refresh">
+                        <svg class="db-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                    </button>
+                    <select id="filter-type" onchange="applyFilters()" class="db-filter-dropdown">
+                        <option value="all">All Events</option>
                         <option value="type:arrival">Arrivals</option>
                         <option value="key:dissipate">Departed</option>
-                    </optgroup>
-                    <optgroup label="Canon Events">
+                        <option disabled>──────────</option>
                         <option value="key:canon">Canon Events</option>
+                        <option value="type:lore">Lore</option>
                         <option value="type:dream">Dreams</option>
                         <option value="type:nightmare">Nightmares</option>
-                    </optgroup>
-                    <optgroup label="Achievements">
+                        <option disabled>──────────</option>
                         <option value="type:souvenir">Souvenirs</option>
                         <option value="type:order">Orders</option>
-                    </optgroup>
-                    <optgroup label="Other">
                         <option value="type:work">Workers</option>
+                        <option disabled>──────────</option>
                         <option value="type:name">Name Changes</option>
-                    </optgroup>
-                </select>
-                <input type="text" id="search" placeholder="Search database..." class="db-search-input" oninput="applyFilters()">
-                <div id="current-epoch" style="margin-left: auto; font-family: monospace; font-size: 0.95em; font-weight: 700; color: #9ca3af; letter-spacing: -1px; white-space: nowrap;">---</div>
+                        <option value="type:spectrum">Spectrum Shifts</option>
+                        <option value="type:guardian">Guardian</option>
+                    </select>
+                </div>
+                <div class="search-group">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" id="search" placeholder="Search events..." class="db-search-input" oninput="applyFilters()">
+                </div>
+                <div class="header-epoch" id="current-epoch">---</div>
             </header>
             
             <div id="rows-container">
@@ -318,6 +333,22 @@
             }
         }
 
+        // Fetch active workers count from work table
+        async function fetchActiveWorkers() {
+            try {
+                const response = await fetch('/api/work/active-roles');
+                const workers = await response.json();
+                const workersEl = document.getElementById('stat-workers');
+                if (workersEl) {
+                    workersEl.textContent = workers.length.toLocaleString();
+                }
+            } catch (error) {
+                console.warn('Could not fetch active workers:', error);
+                const workersEl = document.getElementById('stat-workers');
+                if (workersEl) workersEl.textContent = '?';
+            }
+        }
+
         // Load all data from API
         async function loadAllData() {
             try {
@@ -353,19 +384,24 @@
                 document.getElementById('stat-events').textContent = (stats.events || 0).toLocaleString();
                 document.getElementById('stat-canon').textContent = events.filter(e => e.canon === 1 || e.key === 'canon').length.toLocaleString();
                 document.getElementById('stat-lore').textContent = events.filter(e => e.type === 'lore').length.toLocaleString();
+                
+                // Count kindred connections (reciprocal bonds)
+                document.getElementById('stat-kindred').textContent = (stats.kindred || 0).toLocaleString();
+                
+                // Count souvenir events (awards given)
                 document.getElementById('stat-souvenirs').textContent = events.filter(e => e.type === 'souvenir').length.toLocaleString();
                 
-                // Count unique dreams
-                const uniqueDreams = new Set(events.filter(e => e.type === 'dream' && e.key).map(e => e.key));
-                document.getElementById('stat-dreams').textContent = uniqueDreams.size.toLocaleString();
+                // Count dream events (times dreamers have dreamed)
+                const dreamEvents = events.filter(e => e.type === 'dream' || e.type === 'nightmare');
+                document.getElementById('stat-dreams').textContent = dreamEvents.length.toLocaleString();
                 
-                // Count active workers
-                if (allData.dreamers) {
-                    const workers = allData.dreamers.filter(d => 
-                        d.status === 'working' || d.status === 'retiring'
-                    ).length;
-                    document.getElementById('stat-workers').textContent = workers.toLocaleString();
-                }
+                // Fetch active workers from work table
+                fetchActiveWorkers();
+                
+                // Count unique readers (unique DIDs with order events)
+                const orderEvents = events.filter(e => e.type === 'order');
+                const uniqueReaders = new Set(orderEvents.map(e => e.did).filter(Boolean));
+                document.getElementById('stat-readers').textContent = uniqueReaders.size.toLocaleString();
                 
                 // Fetch operations status
                 fetchOperationsStatus();
@@ -425,14 +461,41 @@
                 }
             }
             
-            // Apply search filter
+            // Apply search filter - include base events and reactions when either matches
             if (searchQuery) {
-                events = events.filter(row => {
-                    return searchFields.some(field => {
+                // Build a set of event IDs to include
+                const matchingIds = new Set();
+                const reactionFields = ['reaction_name', 'reaction_event', 'reaction_type', 'reaction_key'];
+                
+                events.forEach(row => {
+                    // Check if base event matches
+                    const baseMatches = searchFields.some(field => {
                         const value = row[field];
                         return value && String(value).toLowerCase().includes(searchQuery);
                     });
+                    
+                    // Check if reaction matches
+                    const reactionMatches = reactionFields.some(field => {
+                        const value = row[field];
+                        return value && String(value).toLowerCase().includes(searchQuery);
+                    });
+                    
+                    if (baseMatches || reactionMatches) {
+                        matchingIds.add(row.id);
+                    }
                 });
+                
+                // Also include parent events if their reaction matched
+                events.forEach(row => {
+                    if (row.reaction_to && matchingIds.has(row.id)) {
+                        matchingIds.add(row.reaction_to);
+                    }
+                    if (row.reaction_id && matchingIds.has(row.id)) {
+                        matchingIds.add(row.reaction_id);
+                    }
+                });
+                
+                events = events.filter(row => matchingIds.has(row.id));
             }
             
             // Apply guardian filtering for logged-in wards/charges
