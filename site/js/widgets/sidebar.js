@@ -582,9 +582,9 @@ class Sidebar {
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
                                 <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
+                            <div class="sidebar-handle-container" style="display: flex; align-items: center; gap: 4px;">
+                                <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle; flex-shrink: 0;${serverIconStyle}">
+                                <a class="sidebar-handle" href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none;">@${dreamer.handle}</a>
                             </div>
                         </div>
                     </div>
@@ -747,9 +747,9 @@ class Sidebar {
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
                                 <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
+                            <div class="sidebar-handle-container" style="display: flex; align-items: center; gap: 4px;">
+                                <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle; flex-shrink: 0;${serverIconStyle}">
+                                <a class="sidebar-handle" href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none;">@${dreamer.handle}</a>
                             </div>
                         </div>
                     </div>
@@ -835,9 +835,9 @@ class Sidebar {
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
                                 <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
+                            <div class="sidebar-handle-container" style="display: flex; align-items: center; gap: 4px;">
+                                <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle; flex-shrink: 0;${serverIconStyle}">
+                                <a class="sidebar-handle" href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none;">@${dreamer.handle}</a>
                             </div>
                         </div>
                     </div>
@@ -1010,9 +1010,9 @@ class Sidebar {
                                 <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'">
                                 <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(dreamer.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${dreamer.name}</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                                <a href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${dreamer.handle}</a>
+                            <div class="sidebar-handle-container" style="display: flex; align-items: center; gap: 4px;">
+                                <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle; flex-shrink: 0;${serverIconStyle}">
+                                <a class="sidebar-handle" href="https://bsky.app/profile/${dreamer.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none;">@${dreamer.handle}</a>
                             </div>
                         </div>
                     </div>
@@ -1240,9 +1240,9 @@ class Sidebar {
                     <img src="${avatarUrl}" alt="avatar" style="width:20px; height:20px; border-radius: 50%; object-fit: cover; vertical-align:middle;" onerror="this.src='/assets/icon_face.png'"> 
                     <span class="dreamer-link" data-dreamer-did="${encodeURIComponent(match.did)}" style="text-align: left; cursor: pointer; color: ${userColor};">${match.name}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle;${serverIconStyle}">
-                    <a href="https://bsky.app/profile/${match.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none; text-align: right;">@${match.handle}</a>
+                <div class="sidebar-handle-container" style="display: flex; align-items: center; gap: 4px;">
+                    <img src="${serverIconSrc}" alt="server" style="width:12px; height:12px; vertical-align:middle; flex-shrink: 0;${serverIconStyle}">
+                    <a class="sidebar-handle" href="https://bsky.app/profile/${match.did}" target="_blank" onclick="event.stopPropagation();" style="font-size: 10px; color: ${userColor}; text-decoration: none;">@${match.handle}</a>
                 </div>
             </div>`;
             item.addEventListener('click', () => {

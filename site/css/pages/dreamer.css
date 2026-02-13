@@ -1032,6 +1032,22 @@ body.dreamer-page {
     font-weight: 500;
 }
 
+/* Truncate long handles in sidebar items */
+.sidebar-handle-container {
+    min-width: 0;
+    overflow: hidden;
+    flex-shrink: 1;
+}
+
+.sidebar-handle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 120px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .search-bar {
     display: flex;
     align-items: center;
