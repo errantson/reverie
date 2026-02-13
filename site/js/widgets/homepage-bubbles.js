@@ -130,7 +130,7 @@ class HomepageBubbles {
             // Special bubble icons for non-logged-in users
             const specialIcons = [
                 { url: '/souvenirs/residence/icon.png', key: '_residence', name: 'Residence', action: 'login' },
-                { url: '/souvenirs/letter/invite/icon.png', key: '_invite', name: 'Invite', action: 'login' },
+                { url: '/souvenirs/invite/icon.png', key: '_invite', name: 'Invite', action: 'login' },
                 { url: '/souvenirs/bell/icon.png', key: '_bell', name: 'Bell', action: 'dialogue' },
                 { url: '/souvenirs/dream/strange/icon.png', key: '_strange', name: 'Strange', action: 'dialogue' },
                 { url: '/assets/icon_face.png', key: '_errantson', name: 'Errantson', action: 'dialogue' }

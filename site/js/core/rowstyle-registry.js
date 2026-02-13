@@ -331,6 +331,58 @@ const RowStyleRegistry = {
     },
     
     // =========================================================================
+    // SOUVENIR STYLES - INVITATION (paired, like kindred)
+    // =========================================================================
+    
+    invite: {
+        name: "invite",
+        description: "Amethyst-purple gradient with silver text, paired avatar display",
+        category: "souvenir",
+        rendering: {
+            cssClasses: ['row-entry', 'color-souvenir', 'souvenir-invite', 'intensity-highlight'],
+            cssFiles: ['souvenirs.css'],
+            cssVariables: ['--invite-deep', '--invite-purple', '--invite-bright', '--invite-silver'],
+            effects: [],
+            appearance: {
+                background: 'Amethyst-to-violet animated gradient with rolling shimmer',
+                border: '3px solid deep purple (#6B46C1)',
+                color: 'Silver-lavender (#E9D8FD)',
+                animation: 'Gradient shift (8s infinite) + rolling shimmer wave (5s infinite)',
+                special: 'Paired avatar layout showing inviter and invitee, silver text with subtle text-shadow'
+            }
+        },
+        matches: (event) => {
+            return event.color_source === 'souvenir' && event.key === 'invite';
+        }
+    },
+    
+    // =========================================================================
+    // SOUVENIR STYLES - LETTER
+    // =========================================================================
+    
+    letter: {
+        name: "letter",
+        description: "Parchment/sepia gradient with ink text, solo discovery event",
+        category: "souvenir",
+        rendering: {
+            cssClasses: ['row-entry', 'color-souvenir', 'souvenir-letter', 'intensity-highlight'],
+            cssFiles: ['souvenirs.css'],
+            cssVariables: ['--letter-deep', '--letter-warm', '--letter-bright', '--letter-ink'],
+            effects: [],
+            appearance: {
+                background: 'Amber-to-parchment animated gradient with rolling shimmer',
+                border: '3px solid dark amber (#8B6914)',
+                color: 'Parchment cream (#F5E6C8)',
+                animation: 'Gradient shift (8s infinite) + rolling shimmer wave (6s infinite)',
+                special: 'Solo event — a lost letter discovered by the dreamer'
+            }
+        },
+        matches: (event) => {
+            return event.color_source === 'souvenir' && event.key === 'letter';
+        }
+    },
+    
+    // =========================================================================
     // SOUVENIR STYLES - RESIDENCE
     // =========================================================================
     
@@ -691,7 +743,7 @@ function computeRowStyle(event) {
         // Souvenir styles (specific keys)
         'strange-special', 'strange',
         'residence-special', 'residence',
-        'arrival', 'bell',
+        'arrival', 'bell', 'invite', 'letter',
         // User color variations
         'user-highlight', 'user',
         // Role styles

@@ -4112,7 +4112,7 @@
                                         ${(() => {
                                             const parts = commandParams ? commandParams.split(':') : [];
                                             const currentKey = parts[0] || '';
-                                            const knownKeys = ['bell', 'origin', 'prepare', 'invite', 'ansible', 'watson', 'name'];
+                                            const knownKeys = ['bell', 'origin', 'prepare', 'invite', 'letter', 'ansible', 'watson', 'name'];
                                             const isCustomKey = currentKey && !knownKeys.includes(currentKey);
                                             
                                             let options = '<option value="">Select a key...</option>';

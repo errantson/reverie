@@ -668,37 +668,37 @@
 /* No line animations applied to `souvenir-bell` now. */
 
 /* ============================================================================
-   INVITATION SOUVENIR - Purple gradient for "was invited by" events
+   INVITE SOUVENIR - Purple gradient for "was invited by" events
    Amethyst/violet animated gradient with silver text
    ============================================================================ */
 
-.souvenir-invitation {
-    --invitation-deep: #6B46C1;
-    --invitation-purple: #805AD5;
-    --invitation-bright: #9F7AEA;
-    --invitation-silver: #E9D8FD;
+.souvenir-invite {
+    --invite-deep: #6B46C1;
+    --invite-purple: #805AD5;
+    --invite-bright: #9F7AEA;
+    --invite-silver: #E9D8FD;
 }
 
 /* Highlight intensity - animated purple gradient with silver text */
-.row-entry.color-souvenir.souvenir-invitation.intensity-highlight {
+.row-entry.color-souvenir.souvenir-invite.intensity-highlight {
     background:
         linear-gradient(135deg,
-            var(--invitation-deep) 0%,
-            var(--invitation-purple) 50%,
-            var(--invitation-bright) 100%
+            var(--invite-deep) 0%,
+            var(--invite-purple) 50%,
+            var(--invite-bright) 100%
         );
     background-size: 200% 200%;
     position: relative;
-    border-left: 3px solid var(--invitation-deep);
+    border-left: 3px solid var(--invite-deep);
     border-right: 1px solid rgba(107, 70, 193, 0.3);
-    animation: invitationGradientShift 8s ease-in-out infinite;
+    animation: inviteGradientShift 8s ease-in-out infinite;
     overflow: hidden;
-    color: var(--invitation-silver);
+    color: var(--invite-silver);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Rolling shimmer wave in background */
-.row-entry.color-souvenir.souvenir-invitation.intensity-highlight::before {
+.row-entry.color-souvenir.souvenir-invite.intensity-highlight::before {
     content: '';
     position: absolute;
     left: 0;
@@ -713,16 +713,16 @@
     );
     background-size: 50% 100%;
     pointer-events: none;
-    animation: invitationRollingLight 5s linear infinite;
+    animation: inviteRollingLight 5s linear infinite;
     z-index: 0;
 }
 
-.row-entry.color-souvenir.souvenir-invitation.intensity-highlight .cell {
+.row-entry.color-souvenir.souvenir-invite.intensity-highlight .cell {
     position: relative;
     z-index: 1;
 }
 
-@keyframes invitationRollingLight {
+@keyframes inviteRollingLight {
     0% {
         transform: translateX(-100%);
     }
@@ -732,13 +732,13 @@
 }
 
 /* Ensure cell content appears above effects */
-.color-souvenir.souvenir-invitation .cell {
+.color-souvenir.souvenir-invite .cell {
     position: relative;
     z-index: 1;
 }
 
 /* Gradient shifting animation */
-@keyframes invitationGradientShift {
+@keyframes inviteGradientShift {
     0% {
         background-position: 0% 50%;
     }
@@ -757,25 +757,145 @@
 }
 
 /* Special intensity - more dramatic gradient with sparkle */
-.color-souvenir.souvenir-invitation.intensity-special {
+.color-souvenir.souvenir-invite.intensity-special {
     background:
         linear-gradient(135deg,
-            var(--invitation-deep) 0%,
-            var(--invitation-purple) 50%,
-            var(--invitation-bright) 100%
+            var(--invite-deep) 0%,
+            var(--invite-purple) 50%,
+            var(--invite-bright) 100%
         );
     background-size: 250% 250%;
     position: relative;
-    border-left: 4px solid var(--invitation-deep);
+    border-left: 4px solid var(--invite-deep);
     border-right: 2px solid rgba(107, 70, 193, 0.4);
     font-weight: 500;
-    animation: invitationGradientShiftIntense 6s ease-in-out infinite;
+    animation: inviteGradientShiftIntense 6s ease-in-out infinite;
     overflow: hidden;
-    color: var(--invitation-silver);
+    color: var(--invite-silver);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
-@keyframes invitationGradientShiftIntense {
+@keyframes inviteGradientShiftIntense {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* ============================================================================
+   LETTER SOUVENIR - Parchment/sepia gradient for "found a lost letter" events
+   Warm amber-to-parchment animated gradient with ink-dark text
+   ============================================================================ */
+
+.souvenir-letter {
+    --letter-deep: #8B6914;
+    --letter-warm: #B8860B;
+    --letter-bright: #DAA520;
+    --letter-ink: #F5E6C8;
+}
+
+/* Highlight intensity - animated parchment gradient with ink text */
+.row-entry.color-souvenir.souvenir-letter.intensity-highlight {
+    background:
+        linear-gradient(135deg,
+            var(--letter-deep) 0%,
+            var(--letter-warm) 50%,
+            var(--letter-bright) 100%
+        );
+    background-size: 200% 200%;
+    position: relative;
+    border-left: 3px solid var(--letter-deep);
+    border-right: 1px solid rgba(139, 105, 20, 0.3);
+    animation: letterGradientShift 8s ease-in-out infinite;
+    overflow: hidden;
+    color: var(--letter-ink);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Rolling shimmer wave in background */
+.row-entry.color-souvenir.souvenir-letter.intensity-highlight::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.10) 50%,
+        transparent 100%
+    );
+    background-size: 50% 100%;
+    pointer-events: none;
+    animation: letterRollingLight 6s linear infinite;
+    z-index: 0;
+}
+
+.row-entry.color-souvenir.souvenir-letter.intensity-highlight .cell {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes letterRollingLight {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+/* Ensure cell content appears above effects */
+.color-souvenir.souvenir-letter .cell {
+    position: relative;
+    z-index: 1;
+}
+
+/* Gradient shifting animation */
+@keyframes letterGradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    25% {
+        background-position: 50% 100%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    75% {
+        background-position: 50% 0%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Special intensity - more dramatic gradient */
+.color-souvenir.souvenir-letter.intensity-special {
+    background:
+        linear-gradient(135deg,
+            var(--letter-deep) 0%,
+            var(--letter-warm) 50%,
+            var(--letter-bright) 100%
+        );
+    background-size: 250% 250%;
+    position: relative;
+    border-left: 4px solid var(--letter-deep);
+    border-right: 2px solid rgba(139, 105, 20, 0.4);
+    font-weight: 500;
+    animation: letterGradientShiftIntense 6s ease-in-out infinite;
+    overflow: hidden;
+    color: var(--letter-ink);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes letterGradientShiftIntense {
     0% {
         background-position: 0% 50%;
     }
@@ -798,7 +918,7 @@
 }
 
 /* Generic souvenir highlight (if no specific class) */
-.color-souvenir.intensity-highlight:not(.souvenir-strange):not(.souvenir-residence):not(.souvenir-arrival):not(.souvenir-bell):not(.souvenir-invitation) {
+.color-souvenir.intensity-highlight:not(.souvenir-strange):not(.souvenir-residence):not(.souvenir-arrival):not(.souvenir-bell):not(.souvenir-invite):not(.souvenir-letter) {
     background: linear-gradient(
         to right,
         rgba(120, 100, 140, 0.08) 0%,
@@ -809,7 +929,7 @@
 }
 
 /* Generic souvenir special (if no specific class) */
-.color-souvenir.intensity-special:not(.souvenir-strange):not(.souvenir-residence):not(.souvenir-arrival):not(.souvenir-bell):not(.souvenir-invitation) {
+.color-souvenir.intensity-special:not(.souvenir-strange):not(.souvenir-residence):not(.souvenir-arrival):not(.souvenir-bell):not(.souvenir-invite):not(.souvenir-letter) {
     background: linear-gradient(
         to right,
         rgba(120, 100, 140, 0.15) 0%,

@@ -447,6 +447,33 @@ body.dreamer-page {
     margin-left: 8px;
 }
 
+/* Dual avatar override for paired events (kindred, invite) */
+.profile-canon-log .row-entry .cell.avatar.avatar-dual {
+    flex: 0 0 40px;
+    max-width: 40px;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 1px;
+}
+
+.profile-canon-log .cell.avatar.avatar-dual .avatar-dual-img {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: inline-block;
+    margin: 0;
+}
+
+.profile-canon-log .cell.avatar.avatar-dual a.dreamer-link {
+    display: flex;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
 .profile-canon-log .row-entry .cell.canon {
     flex: 1 1 300px;
     max-width: none;
@@ -1176,7 +1203,7 @@ body.dreamer-page {
     background: #e8e6f5;
     transform: scale(1.1);
 }
-.invitation-text {
+.invite-text {
     text-align: center;
     padding: 12px;
     background: #f8f6ff;
@@ -1187,12 +1214,12 @@ body.dreamer-page {
     line-height: 1.6;
     flex-shrink: 0;
 }
-.invitation-text a {
+.invite-text a {
     color: var(--user-color, #734ba1);
     font-weight: 600;
     text-decoration: none;
 }
-.invitation-text a:hover {
+.invite-text a:hover {
     text-decoration: underline;
 }
 
