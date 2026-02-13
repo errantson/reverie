@@ -668,8 +668,9 @@ def validate_user_token(token, allow_deactivated=False):
             else:
                 logger.warning(f"   ⚠️  Account not found in dreamers table")
         except Exception as e:
-            # If query fails, allow access (fail open for now)
-            logger.error(f"   ⚠️  Deactivation check failed: {e}")
+            # If query fails, deny access (fail closed — don't risk serving deactivated accounts)
+            logger.error(f"   ⚠️  Deactivation check failed, denying access: {e}")
+            return False, None, None
     
     logger.info(f"✅ [validate_user_token] Final result: valid={valid}, did={user_did}, handle={handle}")
     logger.info(f"{'─'*80}\n")

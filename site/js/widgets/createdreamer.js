@@ -418,45 +418,34 @@ class CreateDreamer {
         takeKeyBtn.style.cursor = 'not-allowed';
         
         try {
-            // Fetch a random available invite code
-            const response = await fetch('/api/invite-codes/available');
+            // Take a single random code from the server
+            // (server picks randomly, we never see the full pool)
+            const response = await fetch('/api/invite-codes/take', { method: 'POST' });
             
             if (!response.ok) {
-                throw new Error('Failed to fetch available codes');
+                if (response.status === 404) {
+                    alert('No residencies available at this time. Please contact support.');
+                    takeKeyBtn.disabled = false;
+                    takeKeyBtn.style.opacity = '1';
+                    takeKeyBtn.style.cursor = 'pointer';
+                    return;
+                }
+                throw new Error('Failed to fetch available code');
             }
             
             const data = await response.json();
+            const code = data.code;
             
-            if (data.count === 0) {
+            if (!code) {
                 alert('No residencies available at this time. Please contact support.');
                 takeKeyBtn.disabled = false;
                 takeKeyBtn.style.opacity = '1';
                 takeKeyBtn.style.cursor = 'pointer';
                 return;
             }
-            
-            // Get all available codes
-            const codesResponse = await fetch('/api/invite-codes/list-available');
-            if (!codesResponse.ok) {
-                throw new Error('Failed to fetch code list');
-            }
-            
-            const codesData = await codesResponse.json();
-            const availableCodes = codesData.codes || [];
-            
-            if (availableCodes.length === 0) {
-                alert('No residencies available at this time. Please contact support.');
-                takeKeyBtn.disabled = false;
-                takeKeyBtn.style.opacity = '1';
-                takeKeyBtn.style.cursor = 'pointer';
-                return;
-            }
-            
-            // Pick a random code
-            const randomCode = availableCodes[Math.floor(Math.random() * availableCodes.length)];
             
             // Fill in the invite code (without the prefix)
-            const codeWithoutPrefix = randomCode.replace('reverie-house-', '');
+            const codeWithoutPrefix = code.replace('reverie-house-', '');
             inviteInput.value = codeWithoutPrefix;
             inviteInput.dispatchEvent(new Event('input', { bubbles: true }));
             
@@ -771,62 +760,41 @@ class CreateDreamer {
             return result;
             
         } catch (error) {
-            // If backend is down, try direct PDS
+            // If backend is temporarily unavailable, retry with backoff
+            // Never call PDS directly — that creates ghost accounts with no DB records
             if (error.message === 'BACKEND_DOWN' || error.message.includes('fetch')) {
-                try {
-                    const pdsResponse = await fetch(`${this.PDS_URL}/xrpc/com.atproto.server.createAccount`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            handle: accountData.handle,
-                            email: accountData.email,
-                            password: accountData.password,
-                            ...(accountData.inviteCode && { inviteCode: accountData.inviteCode })
-                        })
-                    });
+                const retryDelays = [2000, 4000, 8000];
+                
+                for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+                    console.log(`⏳ Backend unavailable, retry ${attempt + 1}/${retryDelays.length} in ${retryDelays[attempt]}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
                     
-                    if (!pdsResponse.ok) {
-                        const contentType = pdsResponse.headers.get('content-type');
-                        let pdsError;
+                    try {
+                        const retryResponse = await fetch('/api/create-account', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(accountData)
+                        });
                         
-                        if (contentType && contentType.includes('application/json')) {
-                            pdsError = await pdsResponse.json();
-                        } else {
-                            const text = await pdsResponse.text();
-                            pdsError = { message: text || 'Account creation failed' };
+                        if (retryResponse.status === 502) continue; // Still down, try again
+                        
+                        if (!retryResponse.ok) {
+                            const retryError = await retryResponse.json().catch(() => ({ message: 'Account creation failed' }));
+                            throw new Error(retryError.message || retryError.error || 'Account creation failed');
                         }
                         
-                        let errorMessage = pdsError.message || pdsError.error || 'Account creation failed';
-                        
-                        // Handle specific PDS error cases with better messages
-                        if (errorMessage.toLowerCase().includes('invalid') && errorMessage.toLowerCase().includes('invite')) {
-                            errorMessage = 'Invalid invite code. Please check the code and try again.';
-                        } else if (errorMessage.toLowerCase().includes('invite')) {
-                            errorMessage = 'This invite code has already been used or has expired. Please obtain a new code.';
-                        } else if (errorMessage.toLowerCase().includes('handle')) {
-                            errorMessage = 'This username is already taken. Please choose another.';
-                        } else if (errorMessage.toLowerCase().includes('email')) {
-                            errorMessage = 'This email is already registered. Please use another email address.';
+                        const retryResult = await retryResponse.json();
+                        console.log('✅ Backend recovered, account created on retry');
+                        return retryResult;
+                    } catch (retryError) {
+                        if (retryError.message && !retryError.message.includes('fetch') && retryError.message !== 'BACKEND_DOWN') {
+                            throw retryError; // Real error from server, stop retrying
                         }
-                        
-                        throw new Error(errorMessage);
+                        // Network error — continue to next retry
                     }
-                    
-                    const pdsResult = await pdsResponse.json();
-                    return pdsResult;
-                } catch (pdsError) {
-                    // If it's already a formatted error with a good message, re-throw it
-                    if (pdsError.message && 
-                        !pdsError.message.includes('fetch') && 
-                        !pdsError.message.includes('BACKEND_DOWN')) {
-                        throw pdsError;
-                    }
-                    
-                    // Generic fallback for network errors
-                    throw new Error('Unable to create account. The service may be temporarily unavailable. Please try again in a moment.');
                 }
+                
+                throw new Error('The service is temporarily unavailable. Please try again in a few minutes.');
             }
             
             // Re-throw already formatted errors

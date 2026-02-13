@@ -62,11 +62,13 @@ def refresh_profile(did: str, handle: str, verbose: bool = True, refresh_designa
             # Description can legitimately be empty, so always update
             updates['description'] = profile['description']
         
+        from utils.identity import normalize_avatar_url
+        
         if 'avatar' in profile and profile['avatar']:
-            updates['avatar'] = profile['avatar']
+            updates['avatar'] = normalize_avatar_url(profile['avatar'], did, 'avatar')
         
         if 'banner' in profile and profile['banner']:
-            updates['banner'] = profile['banner']
+            updates['banner'] = normalize_avatar_url(profile['banner'], did, 'banner')
         
         if 'followersCount' in profile:
             updates['followers_count'] = profile['followersCount']

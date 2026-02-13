@@ -234,7 +234,7 @@ class Sidebar {
                 </div>
             </div>
             <!-- Invitation box temporarily hidden
-            <div class="invitation-text">
+            <div class="invite-text">
                 Are you a dreamweaver?<br>
                 <a href="https://bsky.app/profile/reverie.house/post/3lljjzcydwc25" target="_blank">Introduce Yourself</a>
             </div>

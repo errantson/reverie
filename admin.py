@@ -5446,8 +5446,11 @@ def get_recent_messages():
             if not avatar_url or avatar_url.startswith('blob:'):
                 # No avatar or old blob reference - use default
                 avatar_url = '/static/images/default-avatar.png'
+            elif avatar_url.startswith('/'):
+                # Local asset path (e.g., /assets/avatars/avatar001.png) - keep as-is
+                pass
             elif not avatar_url.startswith('http'):
-                # Relative path, make it absolute to CDN
+                # Bare CID - construct CDN URL
                 avatar_url = f"https://cdn.bsky.app/img/avatar/plain/{row['user_did']}/{avatar_url}"
             # Otherwise it's already a full HTTP URL, use as-is
             

@@ -1,7 +1,69 @@
 import requests
+import re
 from typing import Optional, Dict, Tuple
 from urllib.parse import quote
 from config import Config
+
+# Valid CID pattern: bafkrei followed by 52 base32 chars, optionally @jpeg suffix
+_CID_PATTERN = re.compile(r'^bafkrei[a-z2-7]{52}(@jpeg)?$')
+_MAX_AVATAR_URL_LENGTH = 2048
+
+
+def normalize_avatar_url(avatar_data, did: str, image_type: str = 'avatar') -> str:
+    """
+    Normalize avatar/banner data to a full CDN URL string.
+    
+    Handles all formats found in the codebase:
+    - Full CDN URL string (from app.bsky.actor.getProfile): pass through
+    - Blob ref dict (from com.atproto.repo.getRecord): extract CID and build URL
+    - Local path (e.g., /assets/avatars/avatar001.png): pass through as-is
+    - Bare CID string (legacy): build CDN URL
+    - None/empty: return empty string
+    
+    Args:
+        avatar_data: The raw avatar value (str, dict, or None)
+        did: The user's DID (needed to construct CDN URLs)
+        image_type: 'avatar' or 'banner' (for CDN path construction)
+    
+    Returns:
+        A resolved URL string, or empty string if no valid avatar
+    """
+    if not avatar_data:
+        return ''
+    
+    # Validate image_type to prevent injection
+    if image_type not in ('avatar', 'banner'):
+        image_type = 'avatar'
+    
+    if isinstance(avatar_data, dict):
+        # Blob ref from com.atproto.repo.getRecord
+        cid = avatar_data.get('ref', {}).get('$link', '')
+        if cid and _CID_PATTERN.match(cid):
+            return f"https://cdn.bsky.app/img/{image_type}/plain/{did}/{cid}@jpeg"
+        # Might have a direct .url field
+        url = avatar_data.get('url', '')
+        if isinstance(url, str) and len(url) <= _MAX_AVATAR_URL_LENGTH:
+            return url
+        return ''
+    
+    if isinstance(avatar_data, str):
+        # Reject excessively long strings
+        if len(avatar_data) > _MAX_AVATAR_URL_LENGTH:
+            return ''
+        # Already a full URL
+        if avatar_data.startswith('http'):
+            return avatar_data
+        # Local asset path — keep as-is
+        if avatar_data.startswith('/'):
+            return avatar_data
+        # Bare CID (legacy format like "bafkrei..." or "bafkrei...@jpeg") — validate and build CDN URL
+        if avatar_data.startswith('bafkrei') and _CID_PATTERN.match(avatar_data):
+            return f"https://cdn.bsky.app/img/{image_type}/plain/{did}/{avatar_data}"
+        # Invalid CID format or unknown — reject
+        return ''
+    
+    return ''
+
 
 class IdentityManager:
     """Handles identity resolution including handle/DID conversion and profile fetching."""

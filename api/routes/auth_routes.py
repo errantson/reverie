@@ -389,38 +389,6 @@ def reverie_login():
         
         return jsonify({'error': error_detail}), response.status_code
         
-        print(f"Authentication successful")
-        
-        session_data = response.json()
-        
-        # Fetch profile from Bluesky public API
-        did = session_data['did']
-        profile_url = f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor={did}"
-        
-        profile = {}
-        try:
-            profile_response = requests.get(profile_url, timeout=30)
-            if profile_response.status_code == 200:
-                profile = profile_response.json()
-        except Exception as e:
-            print(f"Could not fetch profile: {e}")
-        
-        # Return session in OAuth-compatible format
-        return jsonify({
-            'success': True,
-            'session': {
-                'did': session_data['did'],
-                'sub': session_data['did'],  # OAuth compatibility
-                'handle': session_data['handle'],
-                'accessJwt': session_data['accessJwt'],
-                'refreshJwt': session_data.get('refreshJwt'),
-                'expiresAt': session_data.get('accessJwtExpiresAt'),
-                'displayName': profile.get('displayName', session_data['handle']),
-                'avatar': profile.get('avatar'),
-                'profile': profile if profile else None
-            }
-        })
-        
     except requests.exceptions.Timeout:
         return jsonify({'error': 'Connection timeout'}), 504
     except requests.exceptions.RequestException as e:
@@ -582,24 +550,36 @@ def create_account():
         if not invite_code.startswith('reverie-house-'):
             return jsonify({'error': 'Invalid invite code format'}), 400
         
-        # Check if invite code exists and is available in our database
+        # Atomically claim the invite code in our database BEFORE calling PDS.
+        # This prevents TOCTOU race conditions where two concurrent requests
+        # both validate the same code and both call PDS createAccount.
+        # We use use_count as a claim marker (increment it; if rowcount is 0,
+        # another request already claimed it).
         from core.database import DatabaseManager
+        import time as time_module
         db = DatabaseManager()
+        now = int(time_module.time())
+        
         cursor = db.execute("""
-            SELECT code, used_by, used_at 
-            FROM invites 
-            WHERE code = %s
-        """, (invite_code,))
-        invite_record = cursor.fetchone()
+            UPDATE invites
+            SET use_count = use_count + 1, used_at = %s
+            WHERE code = %s AND used_by IS NULL
+            RETURNING code
+        """, (now, invite_code))
+        claimed = cursor.fetchone()
         
-        if not invite_record:
-            return jsonify({'error': 'Invalid invite code'}), 400
-        
-        if invite_record['used_by']:
-            return jsonify({'error': 'This invite code has already been used'}), 400
+        if not claimed:
+            # Either code doesn't exist or was already claimed/used
+            # Check which case for a better error message
+            check = db.execute("SELECT used_by FROM invites WHERE code = %s", (invite_code,))
+            existing = check.fetchone()
+            if not existing:
+                return jsonify({'error': 'Invalid invite code'}), 400
+            else:
+                return jsonify({'error': 'This invite code has already been used'}), 400
         
         print(f"\n🎫 Creating account: {handle}")
-        print(f"   Invite code: {invite_code} (verified available in database)")
+        print(f"   Invite code: {invite_code} (atomically claimed in database)")
         
         # Call PDS createAccount endpoint with the real invite code
         import requests
@@ -627,6 +607,18 @@ def create_account():
             
             error_msg = error_data.get('message') or error_data.get('error') or 'Account creation failed'
             print(f"   ❌ PDS error: {error_msg}")
+            
+            # Roll back our atomic claim since PDS rejected the account
+            try:
+                db.execute("""
+                    UPDATE invites
+                    SET use_count = GREATEST(use_count - 1, 0), used_at = NULL
+                    WHERE code = %s AND used_by IS NULL
+                """, (invite_code,))
+                print(f"   ↩️  Invite code claim rolled back: {invite_code}")
+            except Exception as rollback_err:
+                print(f"   ⚠️  Failed to roll back invite claim: {rollback_err}")
+            
             return jsonify({'error': error_msg}), response.status_code
         
         result = response.json()
@@ -684,6 +676,7 @@ def create_account():
                 password_hash = base64.b64encode(actual_app_password.encode()).decode()
                 
                 # First ensure dreamer exists (minimal record)
+                # Name is stored lowercase to match suggest_unique_name convention
                 import time as time_module
                 now = int(time_module.time())
                 db.execute("""
@@ -692,7 +685,7 @@ def create_account():
                     ON CONFLICT (did) DO UPDATE SET
                         handle = EXCLUDED.handle,
                         updated_at = EXCLUDED.updated_at
-                """, (did, handle, handle.split('.')[0].capitalize(), pds, now, f"{now}", now))
+                """, (did, handle, handle.split('.')[0].lower(), pds, now, f"{now}", now))
                 
                 # Now insert credentials
                 db.execute("""
@@ -722,24 +715,20 @@ def create_account():
         except Exception as plc_err:
             print(f"   ⚠️  PLC registration queue failed (non-fatal): {plc_err}")
         
-        # Mark invite code as used - do this at the very end after all potential failpoints
+        # Finalize invite code as used — the code was already atomically claimed above
+        # (use_count incremented, used_at set). Now just record who used it.
         try:
-            from core.database import DatabaseManager
-            import time
-            db = DatabaseManager()
-            now = int(time.time())
             db.execute("""
                 UPDATE invites
-                SET used_by = %s, used_at = %s, use_count = use_count + 1
+                SET used_by = %s
                 WHERE code = %s AND used_by IS NULL
-            """, (did, now, invite_code))
-        # Auto-committed by DatabaseManager
-            print(f"   ✅ Invite code marked as used: {invite_code}")
+            """, (did, invite_code))
+            print(f"   ✅ Invite code finalized as used: {invite_code} by {did}")
             
             # Track invitation relationship if this is a personal invite code
             # Look up who generated this code in user_invites
             cursor = db.execute("""
-                SELECT ui.owner_did, d.handle
+                SELECT ui.owner_did, d.handle, d.name
                 FROM user_invites ui
                 JOIN dreamers d ON d.did = ui.owner_did
                 WHERE ui.code = %s
@@ -748,7 +737,7 @@ def create_account():
             
             if inviter_row:
                 inviter_did = inviter_row['owner_did']
-                inviter_handle = inviter_row['handle'] or 'a dreamer'
+                inviter_name = inviter_row['name'] or inviter_row['handle'] or 'a dreamer'
                 
                 # Update user_invites to track who redeemed
                 db.execute("""
@@ -758,19 +747,33 @@ def create_account():
                 """, (did, now, invite_code))
                 
                 # Create invitation event for the new user
-                db.execute("""
-                    INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
-                    VALUES (%s, %s, 'souvenir', 'invitation', %s, %s, %s, %s, 'souvenir', 'highlight')
-                """, (
-                    did,
-                    f'was invited by {inviter_handle}',
-                    inviter_did,  # uri stores inviter's DID for linking
-                    f'/dreamer?did={inviter_did}',  # url links to inviter's profile
-                    now,
-                    now
-                ))
+                # others[] stores inviter DID so API can JOIN dreamer data for paired display
+                existing_invite_event = db.execute(
+                    "SELECT id FROM events WHERE did = %s AND type = 'souvenir' AND key = 'invite' LIMIT 1",
+                    (did,)
+                ).fetchone()
+                if not existing_invite_event:
+                    db.execute("""
+                        INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity, others)
+                        VALUES (%s, %s, 'souvenir', 'invite', %s, %s, %s, %s, 'souvenir', 'highlight', ARRAY[%s])
+                    """, (
+                        did,
+                        f'was invited by {inviter_name}',
+                        inviter_did,  # uri stores inviter's DID for linking
+                        f'/dreamer?did={inviter_did}',  # url links to inviter's profile
+                        now,
+                        now,
+                        inviter_did   # others[] for paired avatar/name display
+                    ))
                 
-                print(f"   🎫 Invitation tracked: {handle} was invited by {inviter_handle}")
+                # Award the invitation souvenir
+                db.execute("""
+                    INSERT INTO awards (did, souvenir_key, earned_epoch)
+                    VALUES (%s, 'invite', %s)
+                    ON CONFLICT (did, souvenir_key) DO NOTHING
+                """, (did, now))
+                
+                print(f"   🎫 Invitation tracked: {handle} was invited by {inviter_name}")
             
         except Exception as invite_err:
             print(f"   ⚠️  Failed to mark invite code as used (non-fatal): {invite_err}")
@@ -816,6 +819,12 @@ def register():
         if profile:
             print(f"Using profile data from frontend")
             handle = profile.get('handle', '')
+        
+        # Also check for top-level handle (sent by createdreamer.js)
+        if not handle:
+            handle = data.get('handle', '').strip() or None
+            if handle:
+                print(f"Using top-level handle from request: {handle}")
         
         # If no handle yet, resolve it from DID before registration
         if not handle:
@@ -935,6 +944,19 @@ def auto_register():
         profile = data.get('profile')
         handle = profile.get('handle', '') if profile else None
         
+        # If no handle from profile, resolve from DID (never pass a DID as handle)
+        if not handle:
+            try:
+                from utils.identity import IdentityManager
+                identity = IdentityManager()
+                resolved_handle, _ = identity.get_handle_from_did(did)
+                if resolved_handle:
+                    handle = resolved_handle
+                    print(f"   ✅ auto-register resolved handle from DID: {handle}")
+            except Exception as resolve_err:
+                print(f"   ⚠️  auto-register handle resolution failed: {resolve_err}")
+                # register_dreamer will fetch the profile and extract handle
+        
         # Prepare canon entries for OAuth registration
         canon_entries = [{
             'event': 'found our wild mindscape',
@@ -945,7 +967,7 @@ def auto_register():
         # Register dreamer using shared utility
         reg_result = register_dreamer(
             did=did,
-            handle=handle or did,  # Use DID as fallback, will be resolved
+            handle=handle,  # Pass None if unresolved — register_dreamer will fetch profile
             profile=profile,
             proposed_name=None,  # Will generate from handle
             canon_entries=canon_entries,

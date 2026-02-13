@@ -166,17 +166,41 @@ def register_dreamer(
                         }
                         return result
             
-            if verbose:
-                print(f"   ℹ️  Dreamer already registered: {existing['name']} (@{existing['handle']})")
-            result['success'] = True
-            result['dreamer'] = {
-                'did': existing['did'],
-                'name': existing['name'],
-                'handle': existing['handle'],
-                'alts': existing['alts'],
-                'already_registered': True
-            }
-            return result
+            # Check if this is an incomplete stub record (created by /api/create-account
+            # for the FK constraint, but never fully set up with events/spectrum/caddy).
+            # If so, complete the setup instead of short-circuiting.
+            events_cursor = db.execute("SELECT COUNT(*) as count FROM events WHERE did = %s", (did,))
+            events_count = events_cursor.fetchone()['count']
+            spectrum_cursor = db.execute("SELECT COUNT(*) as count FROM spectrum WHERE did = %s", (did,))
+            spectrum_exists = spectrum_cursor.fetchone()['count'] > 0
+            
+            is_incomplete_stub = (events_count == 0 and not spectrum_exists) or \
+                                 (not spectrum_exists and existing['handle'] and existing['handle'].endswith('.reverie.house'))
+            
+            if is_incomplete_stub:
+                if verbose:
+                    print(f"   🔧 Incomplete dreamer stub detected for {existing['name']} — completing setup...")
+                    print(f"      Events: {events_count}, Spectrum: {spectrum_exists}")
+                # Fall through to full registration logic below.
+                # Update the existing record rather than INSERT a new one.
+                # We'll use a flag to indicate we're completing a stub.
+                _completing_stub = True
+                _stub_name = existing['name']
+            else:
+                if verbose:
+                    print(f"   ℹ️  Dreamer already registered: {existing['name']} (@{existing['handle']})")
+                result['success'] = True
+                result['dreamer'] = {
+                    'did': existing['did'],
+                    'name': existing['name'],
+                    'handle': existing['handle'],
+                    'alts': existing['alts'],
+                    'already_registered': True
+                }
+                return result
+        else:
+            _completing_stub = False
+            _stub_name = None
         
         if not profile:
             if verbose:
@@ -221,7 +245,7 @@ def register_dreamer(
                                 avatar_cid = avatar_data.get('ref', {}).get('$link', '')
                                 if avatar_cid:
                                     profile['avatar'] = f"https://cdn.bsky.app/img/avatar/plain/{did}/{avatar_cid}@jpeg"
-                                    profile['displayName'] = pds_profile.get('displayName', display_name)
+                                    profile['displayName'] = pds_profile.get('displayName', '')
                                     if verbose:
                                         print(f"   ✅ Profile fetched from PDS (attempt {attempt + 1}) - Avatar: Yes")
                                     break
@@ -267,19 +291,8 @@ def register_dreamer(
         
         description = profile.get('description', '')
         
-        avatar_data = profile.get('avatar', '')
-        if isinstance(avatar_data, dict):
-            # Extract CID and build full CDN URL (from repo.getRecord)
-            avatar_cid = avatar_data.get('ref', {}).get('$link', '')
-            if avatar_cid:
-                avatar = f"https://cdn.bsky.app/img/avatar/plain/{did}/{avatar_cid}@jpeg"
-            else:
-                avatar = avatar_data.get('url', '')
-        elif isinstance(avatar_data, str):
-            # Already a URL string (from app.bsky.actor.getProfile)
-            avatar = avatar_data
-        else:
-            avatar = ''
+        from utils.identity import normalize_avatar_url
+        avatar = normalize_avatar_url(profile.get('avatar', ''), did, 'avatar')
         
         # Set default avatar for reverie.house accounts if none available
         if not avatar and handle and handle.endswith('.reverie.house'):
@@ -287,26 +300,20 @@ def register_dreamer(
             if verbose:
                 print(f"   🎨 Using default avatar for reverie.house account")
         
-        banner_data = profile.get('banner', '')
-        if isinstance(banner_data, dict):
-            # Extract CID and build full CDN URL (from repo.getRecord)
-            banner_cid = banner_data.get('ref', {}).get('$link', '')
-            if banner_cid:
-                banner = f"https://cdn.bsky.app/img/banner/plain/{did}/{banner_cid}@jpeg"
-            else:
-                banner = banner_data.get('url', '')
-        elif isinstance(banner_data, str):
-            # Already a URL string (from app.bsky.actor.getProfile)
-            banner = banner_data
-        else:
-            banner = ''
+        banner = normalize_avatar_url(profile.get('banner', ''), did, 'banner')
         
         followers_count = profile.get('followersCount') or profile.get('followers_count', 0)
         follows_count = profile.get('followsCount') or profile.get('follows_count', 0)
         posts_count = profile.get('postsCount') or profile.get('posts_count', 0)
         created_at_str = profile.get('createdAt') or profile.get('created_at')
         
-        if proposed_name:
+        if _completing_stub and _stub_name:
+            # Keep the existing name from the stub (but normalize case)
+            dreamer_name = _stub_name.lower() if _stub_name else None
+            if not dreamer_name:
+                handle_prefix = handle.split('.')[0] if '.' in handle else handle
+                dreamer_name = names.suggest_unique_name(handle_prefix)
+        elif proposed_name:
             dreamer_name = names.suggest_unique_name(proposed_name)
         else:
             handle_prefix = handle.split('.')[0] if '.' in handle else handle
@@ -359,11 +366,27 @@ def register_dreamer(
             (did, handle, name, display_name, description, avatar, banner, color_hex,
              followers_count, follows_count, posts_count, server, arrival, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (did) DO UPDATE SET
+                handle = EXCLUDED.handle,
+                name = EXCLUDED.name,
+                display_name = EXCLUDED.display_name,
+                description = EXCLUDED.description,
+                avatar = EXCLUDED.avatar,
+                banner = EXCLUDED.banner,
+                color_hex = COALESCE(dreamers.color_hex, EXCLUDED.color_hex),
+                followers_count = EXCLUDED.followers_count,
+                follows_count = EXCLUDED.follows_count,
+                posts_count = EXCLUDED.posts_count,
+                server = EXCLUDED.server,
+                arrival = EXCLUDED.arrival,
+                created_at = EXCLUDED.created_at,
+                updated_at = EXCLUDED.updated_at
         """, (did, handle, dreamer_name, display_name, description, avatar, banner, default_color,
               followers_count, follows_count, posts_count, server, arrival_timestamp, created_at_str, now))
         
         if verbose:
-            print(f"   ✅ DREAMER RECORD CREATED: {dreamer_name} (@{handle})")
+            action = "UPDATED (stub completed)" if _completing_stub else "CREATED"
+            print(f"   ✅ DREAMER RECORD {action}: {dreamer_name} (@{handle})")
             print(f"      DID: {did}")
             # Handle negative/invalid timestamps (year 0)
             try:
@@ -371,6 +394,36 @@ def register_dreamer(
             except (ValueError, OSError):
                 arrival_date = 'invalid'
             print(f"      Arrival: {arrival_timestamp} ({arrival_date})")
+        
+        # Create user invite slots
+        # PDS residents and users who used a free pool invite code get 3 slots (core audience).
+        # Everyone else (general OAuth logins, personally invited) gets 1 slot.
+        try:
+            # Check if PDS resident
+            pds_resident = db.execute(
+                "SELECT 1 FROM dreamers WHERE did = %s AND server = 'https://reverie.house' LIMIT 1",
+                (did,)
+            ).fetchone()
+            if pds_resident:
+                max_slots = 3
+            else:
+                free_pool_check = db.execute(
+                    "SELECT 1 FROM invites WHERE used_by = %s AND is_personal = FALSE LIMIT 1",
+                    (did,)
+                ).fetchone()
+                max_slots = 3 if free_pool_check else 1
+
+            for slot in range(1, max_slots + 1):
+                db.execute("""
+                    INSERT INTO user_invites (owner_did, slot)
+                    VALUES (%s, %s)
+                    ON CONFLICT (owner_did, slot) DO NOTHING
+                """, (did, slot))
+            if verbose:
+                print(f"   🎫 User invite slots ensured for {dreamer_name} ({max_slots} slot{'s' if max_slots > 1 else ''})")
+        except Exception as e:
+            if verbose:
+                print(f"   ⚠️  Failed to create invite slots (non-fatal): {e}")
         
         if not canon_entries:
             canon_entries = [{
@@ -387,6 +440,17 @@ def register_dreamer(
             url = canon_entry.get('url') or f"https://bsky.app/profile/{did}"
             # Use epoch from canon_entry if provided, otherwise use arrival_timestamp
             epoch = canon_entry.get('epoch', arrival_timestamp)
+            
+            # Skip if this event type+key already exists (e.g. invitation souvenir
+            # created by /api/create-account before register_dreamer runs)
+            existing_event = db.execute(
+                "SELECT id FROM events WHERE did = %s AND type = %s AND key = %s LIMIT 1",
+                (did, entry_type, key)
+            ).fetchone()
+            if existing_event:
+                if verbose:
+                    print(f"   ℹ️  Event already exists: '{event}' (type={entry_type}, key={key}) — skipping")
+                continue
             
             db.execute("""
                 INSERT INTO events (did, event, epoch, uri, url, type, key, created_at, color_source, color_intensity)
@@ -426,14 +490,21 @@ def register_dreamer(
                     ON CONFLICT (did, souvenir_key) DO NOTHING
                 """, (did, 'residence', residence_timestamp))
                 
-                # Create timeline event for residence souvenir
-                db.execute("""
-                    INSERT INTO events (did, event, epoch, uri, url, type, key, created_at, color_source, color_intensity)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (did, 'stayed at Reverie House', residence_timestamp, 
-                      'self', 
-                      'https://reverie.house/souvenirs?key=residence',
-                      'souvenir', 'residence', now, 'souvenir', 'highlight'))
+                # Create timeline event for residence souvenir (with duplicate guard)
+                existing_residence_event = db.execute(
+                    "SELECT id FROM events WHERE did = %s AND type = %s AND key = %s LIMIT 1",
+                    (did, 'souvenir', 'residence')
+                ).fetchone()
+                if not existing_residence_event:
+                    db.execute("""
+                        INSERT INTO events (did, event, epoch, uri, url, type, key, created_at, color_source, color_intensity)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (did, 'stayed at Reverie House', residence_timestamp, 
+                          'self', 
+                          'https://reverie.house/souvenirs?key=residence',
+                          'souvenir', 'residence', now, 'souvenir', 'highlight'))
+                elif verbose:
+                    print(f"   ℹ️  Residence event already exists — skipping")
                 
                 if verbose:
                     print(f"   🏡 Assigned residence souvenir to {dreamer_name}")

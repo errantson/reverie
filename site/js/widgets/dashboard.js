@@ -3517,7 +3517,7 @@ class Dashboard {
             html += `
                 <div class="tool-row invites-tool ${isSideDoor ? 'disabled-tool' : ''}">
                     <span class="tool-label">Create Invites</span>
-                    <span class="invites-counter" id="invitesCounter">—/3 redeemed</span>
+                    <span class="invites-counter" id="invitesCounter">—/— redeemed</span>
                     <button class="tool-btn ${isSideDoor ? 'unavailable' : ''}" 
                             onclick="window.dashboardWidget.openInvitesPopup()">
                         GET CODE
@@ -4237,7 +4237,7 @@ class Dashboard {
     }
     
     /**
-     * Show the invites modal with the user's 3 invite codes
+     * Show the invites modal with the user's invite codes
      */
     async showInvitesModal() {
         // Remove existing modal if present

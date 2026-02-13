@@ -325,8 +325,8 @@ class EventStack {
         const avatarMargin = level > 0 ? 0 : 2;
         const dreamerLink = did ? `/dreamer?did=${encodeURIComponent(did)}` : '#';
         
-        // Dual avatars only for kindred events
-        const isDualAvatar = hasOthers && type === 'kindred';
+        // Dual avatars for kindred events and invite events (paired display)
+        const isDualAvatar = hasOthers && (type === 'kindred' || key === 'invite');
         
         if (isDualAvatar) {
             // Dual avatar cell for kindred events
@@ -375,6 +375,15 @@ class EventStack {
                     : `<span style="font-weight: 500;">${otherName}</span>`;
                 const eventSpan = `<span style="font-style: italic; color: var(--text-secondary);">${eventText}</span>`;
                 html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} <span style="font-style: italic; color: var(--text-secondary);">and</span> ${otherNameLink} ${eventSpan}</span></div>`;
+            } else if (hasOthers && key === 'invite') {
+                // Invite event: "Name1 was invited by Name2" (paired display)
+                const other = event.others_data[0];
+                const otherName = other.name || 'unknown';
+                const otherDid = other.did || '';
+                const otherNameLink = otherDid 
+                    ? `<a href="/dreamer?did=${encodeURIComponent(otherDid)}" class="dreamer-link" data-dreamer-did="${encodeURIComponent(otherDid)}" onclick="event.stopPropagation()" style="font-weight: 500; color: inherit; text-decoration: none;">${otherName}</a>` 
+                    : `<span style="font-weight: 500;">${otherName}</span>`;
+                html += `<div class="cell canon"${canonStyle}><span style="white-space: normal;">${nameLink} <span style="font-style: italic; color: var(--text-secondary);">was invited by</span> ${otherNameLink}</span></div>`;
             } else if (hasOthers) {
                 // Name-mention event (welcome, guardian, mapper): find name in text and link it
                 const other = event.others_data[0];

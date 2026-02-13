@@ -175,6 +175,7 @@ class DreamerHandler(EventHandler):
         try:
             from core.network import NetworkClient
             from core.database import DatabaseManager
+            from utils.identity import normalize_avatar_url
             
             network = NetworkClient()
             profile = network.get_profile(did)
@@ -188,9 +189,9 @@ class DreamerHandler(EventHandler):
             if 'description' in profile:
                 updates['description'] = profile['description']
             if 'avatar' in profile:
-                updates['avatar'] = profile['avatar']
+                updates['avatar'] = normalize_avatar_url(profile['avatar'], did, 'avatar')
             if 'banner' in profile:
-                updates['banner'] = profile['banner']
+                updates['banner'] = normalize_avatar_url(profile['banner'], did, 'banner')
             if 'followersCount' in profile:
                 updates['followers_count'] = profile['followersCount']
             

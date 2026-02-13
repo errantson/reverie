@@ -84,7 +84,7 @@ class Directory {
                     <div class="tcg-card tcg-card-rare" data-destination="story.html">
                         <div class="tcg-card-banner">CREATE</div>
                         <div class="tcg-card-art">
-                            <img src="/souvenirs/letter/phanera.png" alt="Letter Souvenir">
+                            <img src="/souvenirs/invite/phanera.png" alt="Invite Souvenir">
                         </div>
                         <div class="tcg-card-body">
                             <div class="tcg-card-title">Share Your Story</div>
