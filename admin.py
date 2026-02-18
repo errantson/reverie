@@ -5358,64 +5358,6 @@ def get_messages_analytics():
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
-@app.route('/api/test/create-message', methods=['POST'])
-def create_test_message_for_user():
-    """Create a test message for the current user (development only)"""
-    try:
-        from core.messages import create_message
-        import time
-        
-        # Get user from cookie or request
-        data = request.get_json() or {}
-        user_did = data.get('user_did') or request.cookies.get('user_did')
-        
-        if not user_did:
-            return jsonify({'status': 'error', 'error': 'No user_did found'}), 400
-        
-        # Create test message
-        messages_data = [
-            {
-                'sequence': 0,
-                'speaker': 'errantson',
-                'avatar': '/souvenirs/dream/strange/icon.png',
-                'text': 'Hello! This is a test message from the inbox system.\n\nClick through to see how it works!'
-            },
-            {
-                'sequence': 1,
-                'speaker': 'errantson',
-                'avatar': '/souvenirs/dream/strange/icon.png',
-                'text': 'You can send messages to users programmatically.\n\nThey will see a notification badge and can read them in their inbox.',
-                'buttons': [
-                    {'text': 'Cool!', 'callback': 'end'}
-                ]
-            }
-        ]
-        
-        message_id = create_message(
-            user_did=user_did,
-            dialogue_key='test_inbox_widget',
-            messages_data=messages_data,
-            source='test',
-            priority=75
-        )
-        
-        print(f"Created test message {message_id} for {user_did}")
-        
-        return jsonify({
-            'status': 'success',
-            'data': {
-                'message_id': message_id,
-                'user_did': user_did
-            }
-        })
-        
-    except Exception as e:
-        print(f"Error creating test message: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
-
-
 @app.route('/api/messages/recent')
 @require_auth()
 def get_recent_messages():
@@ -5693,47 +5635,6 @@ def get_dialogue_templates():
         
     except Exception as e:
         print(f"Error getting dialogue templates: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
-
-
-@app.route('/api/test/set-user-cookie')
-def set_user_cookie_for_testing():
-    """Development helper: Set user_did cookie based on handle"""
-    try:
-        from core.database import DatabaseManager
-        
-        handle = request.args.get('handle', '').lower()
-        
-        if not handle:
-            return jsonify({'status': 'error', 'error': 'Provide ?handle=your.handle'})
-        
-        db = DatabaseManager()
-        
-        # Look up user by handle
-        cursor = db.execute('SELECT did, handle FROM dreamers WHERE LOWER(handle) = %s', (handle,))
-        row = cursor.fetchone()
-        
-        if not row:
-            return jsonify({'status': 'error', 'error': f'User not found: {handle}'})
-        
-        # Set cookie
-        resp = jsonify({
-            'status': 'success',
-            'data': {
-                'did': row['did'],
-                'handle': row['handle']
-            }
-        })
-        resp.set_cookie('user_did', row['did'], max_age=30*24*60*60, samesite='Lax')
-        
-        print(f"Set user_did cookie for {row['handle']} ({row['did']})")
-        
-        return resp
-        
-    except Exception as e:
-        print(f"Error setting user cookie: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500

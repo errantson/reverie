@@ -11,11 +11,16 @@ ExecStart=/usr/local/bin/node server.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
-
-# Logging
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=origincards
+
+# Security hardening
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+ReadWritePaths=/srv/reverie.house/services/origincards
 
 [Install]
 WantedBy=multi-user.target

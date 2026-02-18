@@ -646,7 +646,6 @@ def create_account():
         # Auto-generate and store app password for reverie.house accounts
         try:
             import secrets
-            import base64
             from core.database import DatabaseManager
             
             # Generate app password (format: xxxx-xxxx-xxxx-xxxx)
@@ -669,11 +668,12 @@ def create_account():
                 app_pass_data = app_password_response.json()
                 actual_app_password = app_pass_data.get('password')
                 
-                # Store app password hash in database
+                # Store encrypted app password in database
                 # Note: We can't insert into user_credentials until user is in dreamers table
                 # due to FK constraint. Store temporarily and let jetstream handler insert later.
                 db = DatabaseManager()
-                password_hash = base64.b64encode(actual_app_password.encode()).decode()
+                from core.encryption import encrypt_password
+                password_hash = encrypt_password(actual_app_password)
                 
                 # First ensure dreamer exists (minimal record)
                 # Name is stored lowercase to match suggest_unique_name convention

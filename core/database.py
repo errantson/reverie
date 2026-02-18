@@ -60,8 +60,7 @@ class DatabaseManager:
                     logger.info(f"Loaded database password from {password_file}")
                 except Exception as e:
                     logger.error(f"❌ CRITICAL: Could not read password file {password_file}: {e}")
-                    logger.error("Using fallback password - THIS WILL LIKELY FAIL!")
-                    password = 'reverie_temp_password_change_me'
+                    raise ValueError(f"Could not read database password file {password_file}: {e}")
             
             if not password:
                 logger.error("❌ CRITICAL: Database password is empty!")

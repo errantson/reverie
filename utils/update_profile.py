@@ -24,8 +24,8 @@ def _get_user_credentials(did: str):
     Returns:
         tuple: (handle, app_password, pds_url) or (None, None, None) if not found
     """
-    import base64
     import json
+    from core.encryption import decrypt_password
     
     db = get_db_connection()
     
@@ -46,8 +46,7 @@ def _get_user_credentials(did: str):
     )
     
     if cred:
-        # Decode base64 password
-        app_password = base64.b64decode(cred['app_password_hash']).decode('utf-8')
+        app_password = decrypt_password(cred['app_password_hash'])
         # Use PDS from credentials if available
         if cred['pds_url']:
             pds_url = cred['pds_url']
@@ -59,7 +58,7 @@ def _get_user_credentials(did: str):
             workers = json.loads(row['workers'])
             for worker in workers:
                 if worker.get('did') == did and worker.get('passhash'):
-                    app_password = base64.b64decode(worker['passhash']).decode('utf-8')
+                    app_password = decrypt_password(worker['passhash'])
                     break
             if app_password:
                 break
