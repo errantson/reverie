@@ -27,7 +27,7 @@ def list_pigeons():
         print(f"[PIGEONS_API] Listing all pigeons")
         db = DatabaseManager()
         
-        cursor = db.execute('''
+        rows = db.fetch_all('''
             SELECT 
                 id, name, status, trigger_type, trigger_config,
                 dialogue_key, conditions, condition_operator,
@@ -38,7 +38,7 @@ def list_pigeons():
         ''')
         
         pigeons = []
-        for row in cursor.fetchall():
+        for row in rows:
             # Parse JSON fields
             trigger_config = None
             if row['trigger_config']:
@@ -115,13 +115,14 @@ def create_pigeon():
         trigger_config_json = json.dumps(trigger_config) if trigger_config else None
         conditions_json = json.dumps(conditions)
         
-        cursor = db.execute('''
+        result = db.fetch_one('''
             INSERT INTO pigeons (
                 name, status, trigger_type, trigger_config,
                 dialogue_key, conditions, condition_operator,
                 priority, repeating, max_deliveries,
                 created_at, updated_at, created_by
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
         ''', (
             name, status, trigger_type, trigger_config_json,
             dialogue_key, conditions_json, condition_operator,
@@ -129,8 +130,7 @@ def create_pigeon():
             now, now, request.admin_did
         ))
         
-        # Auto-committed by DatabaseManager
-        pigeon_id = cursor.lastrowid
+        pigeon_id = result['id'] if result else None
         
         return jsonify({
             'status': 'success',
@@ -224,15 +224,13 @@ def test_pigeon(pigeon_id):
         db = DatabaseManager()
         
         # Get pigeon
-        cursor = db.execute('''
+        row = db.fetch_one('''
             SELECT 
                 name, trigger_type, trigger_config, dialogue_key,
                 conditions, condition_operator
             FROM pigeons
             WHERE id = %s
         ''', (pigeon_id,))
-        
-        row = cursor.fetchone()
         if not row:
             return jsonify({'status': 'error', 'error': 'Pigeon not found'}), 404
         
@@ -249,8 +247,8 @@ def test_pigeon(pigeon_id):
         
         # Count users who would match
         # This is a simplified version - full implementation in aviary.py
-        cursor = db.execute('SELECT COUNT(*) as count FROM dreamers')
-        total_users = cursor.fetchone()['count']
+        count_row = db.fetch_one('SELECT COUNT(*) as count FROM dreamers')
+        total_users = count_row['count']
         
         # Estimate matches (in real implementation, evaluate conditions)
         estimated_matches = total_users if not conditions else max(1, total_users // 2)
@@ -282,10 +280,9 @@ def delete_pigeon(pigeon_id):
     try:
         db = DatabaseManager()
         
-        cursor = db.execute('DELETE FROM pigeons WHERE id = %s', (pigeon_id,))
-        # Auto-committed by DatabaseManager
+        rows_deleted = db.delete('DELETE FROM pigeons WHERE id = %s', (pigeon_id,))
         
-        if cursor.rowcount == 0:
+        if rows_deleted == 0:
             return jsonify({'status': 'error', 'error': 'Pigeon not found'}), 404
         
         return jsonify({'status': 'success'})
@@ -302,18 +299,16 @@ def get_pigeon_stats(pigeon_id):
         db = DatabaseManager()
         
         # Get pigeon info
-        cursor = db.execute('''
+        row = db.fetch_one('''
             SELECT name, created_at
             FROM pigeons
             WHERE id = %s
         ''', (pigeon_id,))
-        
-        row = cursor.fetchone()
         if not row:
             return jsonify({'status': 'error', 'error': 'Pigeon not found'}), 404
         
         # Get delivery stats
-        cursor = db.execute('''
+        stats_row = db.fetch_one('''
             SELECT 
                 COUNT(*) as total_deliveries,
                 COUNT(DISTINCT user_did) as unique_users,
@@ -323,10 +318,10 @@ def get_pigeon_stats(pigeon_id):
             WHERE pigeon_id = %s
         ''', (pigeon_id,))
         
-        stats = dict(cursor.fetchone())
+        stats = dict(stats_row)
         
         # Get recent deliveries
-        cursor = db.execute('''
+        recent_rows = db.fetch_all('''
             SELECT 
                 user_did, message_id, delivered_at, trigger_data
             FROM pigeon_deliveries
@@ -336,7 +331,7 @@ def get_pigeon_stats(pigeon_id):
         ''', (pigeon_id,))
         
         recent = []
-        for delivery in cursor.fetchall():
+        for delivery in recent_rows:
             recent.append({
                 'user_did': delivery['user_did'],
                 'message_id': delivery['message_id'],

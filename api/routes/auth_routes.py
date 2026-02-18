@@ -166,12 +166,11 @@ def reverie_login():
             pass
         
         # Check deactivation for reverie.house accounts
-        cursor = db.execute("""
+        dreamer = db.fetch_one("""
             SELECT deactivated 
             FROM dreamers 
             WHERE did = %s
         """, (did,))
-        dreamer = cursor.fetchone()
         try:
             with open('/tmp/reverie_login_debug.log', 'a') as f:
                 f.write(f"dreamer_row={dreamer}\n")
@@ -182,20 +181,18 @@ def reverie_login():
             print(f"❌ Login blocked: Account {handle} is deactivated")
             # Try to include archived "formers" record and recent canon (events)
             try:
-                former_cursor = db.execute(
+                former_row = db.fetch_one(
                     "SELECT did, handle, name, display_name, avatar_archived, avatar_url, profile_data FROM formers WHERE did = %s",
                     (did,)
                 )
-                former_row = former_cursor.fetchone()
                 former = None
                 if not former_row and handle:
                     # Try lookup by handle if DID lookup didn't return a formers record
                     try:
-                        alt_cursor = db.execute(
+                        former_row = db.fetch_one(
                             "SELECT did, handle, name, display_name, avatar_archived, avatar_url, profile_data FROM formers WHERE LOWER(handle) = LOWER(%s)",
                             (handle,)
                         )
-                        former_row = alt_cursor.fetchone()
                         if former_row:
                             print(f"  ℹ️ Found formers record by handle lookup for {handle}")
                     except Exception as alt_e:
@@ -224,11 +221,11 @@ def reverie_login():
                 # Fetch recent events (canon) for this did
                 events = []
                 try:
-                    ev_cursor = db.execute(
+                    event_rows = db.fetch_all(
                         "SELECT id, epoch, event, type, key FROM events WHERE did = %s ORDER BY epoch DESC LIMIT 10",
                         (did,)
                     )
-                    for er in ev_cursor.fetchall():
+                    for er in event_rows:
                         events.append({
                             'id': er.get('id'),
                             'epoch': er.get('epoch'),
@@ -288,12 +285,11 @@ def reverie_login():
             print(f"✅ PDS auth successful for {handle} (DID: {session_data['did']})")
             
             # Get dreamer info from database if available
-            cursor = db.execute("""
+            dreamer = db.fetch_one("""
                 SELECT name, avatar, display_name 
                 FROM dreamers 
                 WHERE did = %s
             """, (session_data['did'],))
-            dreamer = cursor.fetchone()
             
             # Create backend session token for authenticated requests
             backend_token = auth.create_session(
@@ -460,7 +456,7 @@ def check_handle():
                     # Check if username is taken by any dreamer's primary name OR alternate names
                     # This protects {name}.reverie.house subdomains that route via Caddy
                     # alts can be: "altname" or "alt1,alt2,alt3"
-                    cursor = db.execute("""
+                    count_row = db.fetch_one("""
                         SELECT COUNT(*) as count 
                         FROM dreamers 
                         WHERE LOWER(name) = %s
@@ -470,7 +466,7 @@ def check_handle():
                            OR LOWER(alts) LIKE %s
                     """, (username, username, f"{username},%", f"%,{username},%", f"%,{username}"))
                     
-                    count = cursor.fetchone()['count']
+                    count = count_row['count']
                     
                     if count > 0:
                         return jsonify({
@@ -560,19 +556,17 @@ def create_account():
         db = DatabaseManager()
         now = int(time_module.time())
         
-        cursor = db.execute("""
+        claimed = db.fetch_one("""
             UPDATE invites
             SET use_count = use_count + 1, used_at = %s
             WHERE code = %s AND used_by IS NULL
             RETURNING code
         """, (now, invite_code))
-        claimed = cursor.fetchone()
         
         if not claimed:
             # Either code doesn't exist or was already claimed/used
             # Check which case for a better error message
-            check = db.execute("SELECT used_by FROM invites WHERE code = %s", (invite_code,))
-            existing = check.fetchone()
+            existing = db.fetch_one("SELECT used_by FROM invites WHERE code = %s", (invite_code,))
             if not existing:
                 return jsonify({'error': 'Invalid invite code'}), 400
             else:
@@ -727,13 +721,12 @@ def create_account():
             
             # Track invitation relationship if this is a personal invite code
             # Look up who generated this code in user_invites
-            cursor = db.execute("""
+            inviter_row = db.fetch_one("""
                 SELECT ui.owner_did, d.handle, d.name
                 FROM user_invites ui
                 JOIN dreamers d ON d.did = ui.owner_did
                 WHERE ui.code = %s
             """, (invite_code,))
-            inviter_row = cursor.fetchone()
             
             if inviter_row:
                 inviter_did = inviter_row['owner_did']
@@ -748,10 +741,10 @@ def create_account():
                 
                 # Create invitation event for the new user
                 # others[] stores inviter DID so API can JOIN dreamer data for paired display
-                existing_invite_event = db.execute(
+                existing_invite_event = db.fetch_one(
                     "SELECT id FROM events WHERE did = %s AND type = 'souvenir' AND key = 'invite' LIMIT 1",
                     (did,)
-                ).fetchone()
+                )
                 if not existing_invite_event:
                     db.execute("""
                         INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity, others)
@@ -1055,8 +1048,7 @@ def post_registration():
         # Check if user already registered
         from core.database import DatabaseManager
         db = DatabaseManager()
-        cursor = db.execute("SELECT did, name, handle FROM dreamers WHERE did = %s", (did,))
-        existing = cursor.fetchone()
+        existing = db.fetch_one("SELECT did, name, handle FROM dreamers WHERE did = %s", (did,))
         
         if existing:
             return jsonify({
@@ -1153,8 +1145,7 @@ def get_user_color():
         from core.database import DatabaseManager
         db = DatabaseManager()
         
-        cursor = db.execute("SELECT color_hex FROM dreamers WHERE did = %s", (did,))
-        dreamer = cursor.fetchone()
+        dreamer = db.fetch_one("SELECT color_hex FROM dreamers WHERE did = %s", (did,))
         
         if not dreamer or not dreamer['color_hex']:
             return jsonify({'color': None}), 200
@@ -1188,18 +1179,18 @@ def check_auth_status():
         db = DatabaseManager()
         
         # Check credential validity and last failure time
-        creds = db.execute('''
+        creds = db.fetch_one('''
             SELECT is_valid, last_failure_at 
             FROM user_credentials 
-            WHERE did = ?
-        ''', (user_did,)).fetchone()
+            WHERE did = %s
+        ''', (user_did,))
         
         # Count auth-failed posts
-        failed_count = db.execute('''
+        failed_count = db.fetch_one('''
             SELECT COUNT(*) as count
             FROM courier
-            WHERE did = ? AND status = 'auth_failed'
-        ''', (user_did,)).fetchone()
+            WHERE did = %s AND status = 'auth_failed'
+        ''', (user_did,))
         
         count = failed_count['count'] if failed_count else 0
         

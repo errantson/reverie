@@ -43,12 +43,13 @@ def create_message(
     if expires_in_hours:
         expires_at = now + (expires_in_hours * 3600)
     
-    cursor = db.execute('''
+    row = db.fetch_one('''
         INSERT INTO messages (
             user_did, dialogue_key, messages_json,
             source, priority, status,
             created_at, expires_at
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
     ''', (
         user_did,
         dialogue_key,
@@ -60,8 +61,7 @@ def create_message(
         expires_at
     ))
     
-    # DatabaseManager auto-commits
-    message_id = cursor.lastrowid
+    message_id = row['id'] if row else None
     
     print(f"✉️ [Messages] Created message {message_id} for {user_did[:20]}... (key: {dialogue_key})")
     

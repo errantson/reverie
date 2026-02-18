@@ -25,28 +25,25 @@ def get_user_credentials(user_did):
     db = DatabaseManager()
     
     # First try user_credentials table (new structure)
-    cursor = db.execute('''
+    row = db.fetch_one('''
         SELECT password_hash, pds 
         FROM user_credentials 
         WHERE did = %s AND valid = TRUE
     ''', (user_did,))
-    row = cursor.fetchone()
     
     if row and row['password_hash']:
         # Get handle from dreamers table
-        cursor2 = db.execute('SELECT handle FROM dreamers WHERE did = %s', (user_did,))
-        dreamer = cursor2.fetchone()
+        dreamer = db.fetch_one('SELECT handle FROM dreamers WHERE did = %s', (user_did,))
         handle = dreamer['handle'] if dreamer else None
         return row['password_hash'], handle, row['pds']
     
     # Fallback to old dreamers table structure (if it exists)
     try:
-        cursor = db.execute('''
+        row = db.fetch_one('''
             SELECT app_password_encrypted, handle 
             FROM dreamers 
             WHERE did = %s
         ''', (user_did,))
-        row = cursor.fetchone()
         
         if row and row.get('app_password_encrypted'):
             return row['app_password_encrypted'], row['handle'], None
@@ -173,8 +170,7 @@ def apply_lore_label(post_uri, user_did, lore_type='observation', canon_id=None)
             
             # Get user handle
             db = DatabaseManager()
-            cursor = db.execute("SELECT handle FROM dreamers WHERE did = %s", (user_did,))
-            dreamer = cursor.fetchone()
+            dreamer = db.fetch_one("SELECT handle FROM dreamers WHERE did = %s", (user_did,))
             handle = dreamer['handle'] if dreamer else ''
             
             if canon_id:
@@ -245,8 +241,7 @@ def create_immediate_post():
         pds = stored_pds or 'https://bsky.social'
         if not stored_pds:
             db = DatabaseManager()
-            cursor = db.execute('SELECT server FROM dreamers WHERE did = %s', (user_did,))
-            row = cursor.fetchone()
+            row = db.fetch_one('SELECT server FROM dreamers WHERE did = %s', (user_did,))
             if row and row['server']:
                 server = row['server']
                 pds = server if server.startswith('http') else f'https://{server}'
@@ -353,8 +348,7 @@ def create_post_with_record():
         pds = stored_pds or 'https://bsky.social'
         if not stored_pds:
             db = DatabaseManager()
-            cursor = db.execute('SELECT server FROM dreamers WHERE did = %s', (user_did,))
-            row = cursor.fetchone()
+            row = db.fetch_one('SELECT server FROM dreamers WHERE did = %s', (user_did,))
             if row and row['server']:
                 server = row['server']
                 pds = server if server.startswith('http') else f'https://{server}'

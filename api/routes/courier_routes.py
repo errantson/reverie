@@ -389,10 +389,10 @@ def retry_auth_failed_posts():
         db = DatabaseManager()
         
         # Verify user has valid credentials now (password hash exists)
-        cred = db.execute('''
+        cred = db.fetch_one('''
             SELECT app_password_hash FROM user_credentials 
-            WHERE did = ? AND app_password_hash IS NOT NULL AND app_password_hash != ''
-        ''', (user_did,)).fetchone()
+            WHERE did = %s AND app_password_hash IS NOT NULL AND app_password_hash != ''
+        ''', (user_did,))
         
         if not cred:
             return jsonify({
@@ -405,15 +405,15 @@ def retry_auth_failed_posts():
             UPDATE courier
             SET status = 'pending',
                 error_message = NULL
-            WHERE did = ? AND status = 'auth_failed'
+            WHERE did = %s AND status = 'auth_failed'
         ''', (user_did,))
         
         # Count how many posts were reset
-        reset_count = db.execute('''
+        reset_count = db.fetch_one('''
             SELECT COUNT(*) as count
             FROM courier
-            WHERE did = ? AND status = 'pending' AND error_message IS NULL
-        ''', (user_did,)).fetchone()
+            WHERE did = %s AND status = 'pending' AND error_message IS NULL
+        ''', (user_did,))
         
         count = reset_count['count'] if reset_count else 0
         

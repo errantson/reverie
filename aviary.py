@@ -103,7 +103,7 @@ class AviaryRunner:
         since = self.last_checks['quest_events']
         
         # Get active pigeons watching quest events
-        cursor = self.db.execute('''
+        pigeons = self.db.fetch_all('''
             SELECT id, name, trigger_type, trigger_config, dialogue_key,
                    conditions, condition_operator, priority, repeating
             FROM pigeons
@@ -111,7 +111,6 @@ class AviaryRunner:
               AND trigger_type IN ('quest_started', 'quest_completed', 'quest_abandoned')
         ''')
         
-        pigeons = list(cursor.fetchall())
         if not pigeons:
             return
         
@@ -129,7 +128,7 @@ class AviaryRunner:
         self.debug("CANON_CHECK", "Starting canon trigger check")
         
         # Get active pigeons watching canon changes
-        cursor = self.db.execute('''
+        pigeons = self.db.fetch_all('''
             SELECT id, name, trigger_type, trigger_config, dialogue_key,
                    conditions, condition_operator, priority, repeating
             FROM pigeons
@@ -137,15 +136,14 @@ class AviaryRunner:
               AND trigger_type IN ('canon_set', 'canon_equals', 'canon_changed')
         ''')
         
-        pigeons = list(cursor.fetchall())
         self.debug("CANON_CHECK", f"Found {len(pigeons)} active canon-watching pigeons")
         
         if not pigeons:
             return
         
         # Get all users to check their canon values
-        users_cursor = self.db.execute('SELECT did FROM users')
-        users = [row['did'] for row in users_cursor.fetchall()]
+        user_rows = self.db.fetch_all('SELECT did FROM users')
+        users = [row['did'] for row in user_rows]
         
         self.debug("CANON_CHECK", f"Checking canon triggers for {len(users)} users")
         
@@ -165,19 +163,19 @@ class AviaryRunner:
             for user_did in users:
                 # Check if already delivered (if non-repeating)
                 if not pigeon['repeating']:
-                    delivered = self.db.execute('''
+                    delivered = self.db.fetch_one('''
                         SELECT 1 FROM pigeon_deliveries 
                         WHERE pigeon_id = %s AND user_did = %s
-                    ''', (pigeon_id, user_did)).fetchone()
+                    ''', (pigeon_id, user_did))
                     
                     if delivered:
                         continue
                 
                 # Get user's canon value
-                canon_row = self.db.execute('''
+                canon_row = self.db.fetch_one('''
                     SELECT value FROM canon 
                     WHERE user_did = %s AND key = %s
-                ''', (user_did, canon_key)).fetchone()
+                ''', (user_did, canon_key))
                 
                 triggered = False
                 trigger_data = {"canon_key": canon_key}
@@ -215,7 +213,7 @@ class AviaryRunner:
         
         self.debug("ROLE_CHECK", "Starting role trigger check")
         
-        cursor = self.db.execute('''
+        pigeons = self.db.fetch_all('''
             SELECT id, name, trigger_type, trigger_config, dialogue_key,
                    conditions, condition_operator, priority, repeating
             FROM pigeons
@@ -223,15 +221,14 @@ class AviaryRunner:
               AND trigger_type IN ('role_granted', 'role_revoked')
         ''')
         
-        pigeons = list(cursor.fetchall())
         self.debug("ROLE_CHECK", f"Found {len(pigeons)} active role-watching pigeons")
         
         if not pigeons:
             return
         
         # Get all users with roles from user_roles table
-        users_cursor = self.db.execute('SELECT DISTINCT did FROM user_roles')
-        users = [row['did'] for row in users_cursor.fetchall()]
+        user_rows = self.db.fetch_all('SELECT DISTINCT did FROM user_roles')
+        users = [row['did'] for row in user_rows]
         
         self.debug("ROLE_CHECK", f"Checking role triggers for {len(users)} users with roles")
         
@@ -250,10 +247,10 @@ class AviaryRunner:
             
             for user_did in users:
                 # Get user's roles from user_roles table
-                roles_rows = self.db.execute('''
+                roles_rows = self.db.fetch_all('''
                     SELECT role FROM user_roles 
                     WHERE did = %s AND status = 'active'
-                ''', (user_did,)).fetchall()
+                ''', (user_did,))
                 
                 user_roles = [row['role'] for row in roles_rows] if roles_rows else []
                 has_role = target_role in user_roles
@@ -286,7 +283,7 @@ class AviaryRunner:
         
         self.debug("ACTIVITY_CHECK", "Starting user activity trigger check")
         
-        cursor = self.db.execute('''
+        pigeons = self.db.fetch_all('''
             SELECT id, name, trigger_type, trigger_config, dialogue_key,
                    conditions, condition_operator, priority, repeating
             FROM pigeons
@@ -294,7 +291,6 @@ class AviaryRunner:
               AND trigger_type IN ('return_visit', 'idle_duration')
         ''')
         
-        pigeons = list(cursor.fetchall())
         self.debug("ACTIVITY_CHECK", f"Found {len(pigeons)} active activity-watching pigeons")
         
         if not pigeons:
@@ -318,7 +314,7 @@ class AviaryRunner:
         """Check for scheduled/cron-like triggers"""
         now = int(time.time())
         
-        cursor = self.db.execute('''
+        pigeons = self.db.fetch_all('''
             SELECT id, name, trigger_type, trigger_config, dialogue_key,
                    conditions, condition_operator, priority, repeating
             FROM pigeons
@@ -326,7 +322,6 @@ class AviaryRunner:
               AND trigger_type = 'time_based'
         ''')
         
-        pigeons = list(cursor.fetchall())
         if not pigeons:
             return
         
@@ -366,13 +361,13 @@ class AviaryRunner:
         self.log(f"🔑 Processing user_login trigger for {user_did}")
         
         # Get all active user_login pigeons
-        cursor = self.db.execute('''
+        rows = self.db.fetch_all('''
             SELECT * FROM pigeons
             WHERE trigger_type = 'user_login'
             AND status = 'active'
         ''')
         
-        pigeons = [dict(row) for row in cursor.fetchall()]
+        pigeons = [dict(row) for row in rows]
         
         for pigeon in pigeons:
             self.debug("USER_LOGIN", f"Checking pigeon '{pigeon['name']}'",
@@ -404,13 +399,13 @@ class AviaryRunner:
             cutoff_start = int(time.time()) - (days_away * 86400)
             cutoff_end = int(time.time()) - ((days_away - 1) * 86400)
             
-            cursor = self.db.execute('''
+            cursor = self.db.fetch_all('''
                 SELECT did, last_active
                 FROM dreamers
                 WHERE last_active BETWEEN %s AND %s
             ''', (cutoff_start, cutoff_end))
             
-            for row in cursor.fetchall():
+            for row in cursor:
                 user_did = row['did']
                 
                 self.debug("RETURN_VISIT", f"User returned after {days_away} days",
@@ -436,13 +431,13 @@ class AviaryRunner:
             # Find users inactive for N days
             cutoff = int(time.time()) - (idle_days * 86400)
             
-            cursor = self.db.execute('''
+            rows = self.db.fetch_all('''
                 SELECT did, last_active
                 FROM dreamers
                 WHERE last_active < %s
             ''', (cutoff,))
             
-            for row in cursor.fetchall():
+            for row in rows:
                 user_did = row['did']
                 
                 self.debug("IDLE_DURATION", f"User idle for {idle_days}+ days",
@@ -555,26 +550,25 @@ class AviaryRunner:
     
     def user_has_canon(self, user_did: str, key: str) -> bool:
         """Check if user has canon key set"""
-        cursor = self.db.execute('''
+        row = self.db.fetch_one('''
             SELECT value FROM canon WHERE did = %s AND key = %s
         ''', (user_did, key))
-        return cursor.fetchone() is not None
+        return row is not None
     
     def user_canon_equals(self, user_did: str, key: str, value: str) -> bool:
         """Check if user's canon key equals specific value"""
-        cursor = self.db.execute('''
+        row = self.db.fetch_one('''
             SELECT value FROM canon WHERE did = %s AND key = %s
         ''', (user_did, key))
-        row = cursor.fetchone()
         return row and row['value'] == value
     
     def user_has_role(self, user_did: str, role: str) -> bool:
         """Check if user has specific role"""
-        cursor = self.db.execute('''
+        row = self.db.fetch_one('''
             SELECT role FROM user_roles 
             WHERE did = %s AND role = %s AND status = 'active'
         ''', (user_did, role))
-        return cursor.fetchone() is not None
+        return row is not None
     
     def user_completed_quest(self, user_did: str, quest_key: str) -> bool:
         """Check if user completed specific quest"""
@@ -585,11 +579,10 @@ class AviaryRunner:
     def user_stat_threshold(self, user_did: str, stat: str, threshold: float, operator: str) -> bool:
         """Check if user's stat meets threshold"""
         # Get stat value (followers, posts, etc.)
-        cursor = self.db.execute('''
+        row = self.db.fetch_one('''
             SELECT {} FROM dreamers WHERE did = %s
         '''.format(stat), (user_did,))
         
-        row = cursor.fetchone()
         if not row:
             return False
         
@@ -616,8 +609,8 @@ class AviaryRunner:
             List of user DIDs
         """
         # Get all users
-        cursor = self.db.execute('SELECT did FROM dreamers')
-        all_users = [row['did'] for row in cursor.fetchall()]
+        all_rows = self.db.fetch_all('SELECT did FROM dreamers')
+        all_users = [row['did'] for row in all_rows]
         
         # Filter by conditions
         matching = []
@@ -639,13 +632,12 @@ class AviaryRunner:
         Checks max_deliveries cap.
         """
         # Get pigeon settings
-        cursor = self.db.execute('''
+        row = self.db.fetch_one('''
             SELECT repeating, max_deliveries
             FROM pigeons
             WHERE id = %s
         ''', (pigeon_id,))
         
-        row = cursor.fetchone()
         if not row:
             return False
         
@@ -653,13 +645,13 @@ class AviaryRunner:
         max_deliveries = row['max_deliveries']
         
         # Check if already delivered to this user
-        cursor = self.db.execute('''
+        count_row = self.db.fetch_one('''
             SELECT COUNT(*) as count
             FROM pigeon_deliveries
             WHERE pigeon_id = %s AND user_did = %s
         ''', (pigeon_id, user_did))
         
-        delivery_count = cursor.fetchone()['count']
+        delivery_count = count_row['count']
         
         # Non-repeating pigeons only send once
         if not repeating and delivery_count > 0:
@@ -667,13 +659,13 @@ class AviaryRunner:
         
         # Check max deliveries (total across all users)
         if max_deliveries:
-            cursor = self.db.execute('''
+            total_row = self.db.fetch_one('''
                 SELECT COUNT(*) as total
                 FROM pigeon_deliveries
                 WHERE pigeon_id = %s
             ''', (pigeon_id,))
             
-            total_deliveries = cursor.fetchone()['total']
+            total_deliveries = total_row['total']
             if total_deliveries >= max_deliveries:
                 # Delete pigeon (reached max deliveries)
                 self.db.execute('''
@@ -709,14 +701,12 @@ class AviaryRunner:
         
         try:
             # Load dialogue template
-            cursor = self.db.execute('''
+            dialogue_messages = self.db.fetch_all('''
                 SELECT sequence, speaker, avatar, text, buttons_json
                 FROM dialogues
                 WHERE key = %s AND enabled = true
                 ORDER BY sequence
             ''', (dialogue_key,))
-            
-            dialogue_messages = list(cursor.fetchall())
             
             if not dialogue_messages:
                 self.debug("DELIVER_ERROR", f"No dialogue messages found for key '{dialogue_key}'",
@@ -832,13 +822,12 @@ class AviaryRunner:
         }
         
         # Get user data from dreamers table
-        cursor = self.db.execute('''
+        user_row = self.db.fetch_one('''
             SELECT display_name, handle
             FROM dreamers
             WHERE did = %s
         ''', (user_did,))
         
-        user_row = cursor.fetchone()
         if user_row:
             if user_row['display_name']:
                 context['name'] = user_row['display_name']

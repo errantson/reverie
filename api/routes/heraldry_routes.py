@@ -152,14 +152,13 @@ def verify_ambassador_auth():
         pds_domain = pds_endpoint.replace('https://', '').replace('http://', '').split('/')[0]
         
         db = get_db()
-        cursor = db.execute("""
+        row = db.fetch_one("""
             SELECT h.id, h.name, h.ambassador_did
             FROM heraldry h
             JOIN heraldry_domains hd ON h.id = hd.heraldry_id
             WHERE hd.domain = %s AND h.ambassador_did = %s
         """, (pds_domain, verified_did))
         
-        row = cursor.fetchone()
         if not row:
             return jsonify({'error': 'You are not an ambassador for any PDS community'}), 403
         
@@ -196,7 +195,7 @@ def list_heraldry():
     """Get all heraldry entries"""
     try:
         db = get_db()
-        cursor = db.execute("""
+        rows = db.fetch_all("""
             SELECT h.id, h.name, h.description, h.color_primary, h.color_secondary,
                    h.icon_path, h.ambassador_did, h.created_at, h.updated_at,
                    array_agg(hd.domain) FILTER (WHERE hd.domain IS NOT NULL) as domains
@@ -206,7 +205,6 @@ def list_heraldry():
             ORDER BY h.name
         """)
         
-        rows = cursor.fetchall()
         heraldry_list = []
         
         for row in rows:
@@ -238,7 +236,7 @@ def get_heraldry(heraldry_id):
     """Get a specific heraldry entry"""
     try:
         db = get_db()
-        cursor = db.execute("""
+        row = db.fetch_one("""
             SELECT h.id, h.name, h.description, h.color_primary, h.color_secondary,
                    h.icon_path, h.ambassador_did, h.created_at, h.updated_at,
                    array_agg(hd.domain) FILTER (WHERE hd.domain IS NOT NULL) as domains
@@ -247,8 +245,6 @@ def get_heraldry(heraldry_id):
             WHERE h.id = %s
             GROUP BY h.id
         """, (heraldry_id,))
-        
-        row = cursor.fetchone()
         if not row:
             return jsonify({'error': 'Heraldry not found'}), 404
         
@@ -280,7 +276,7 @@ def get_heraldry_for_domain(domain):
         db = get_db()
         
         # First try exact match
-        cursor = db.execute("""
+        row = db.fetch_one("""
             SELECT h.id, h.name, h.description, h.color_primary, h.color_secondary,
                    h.icon_path, h.ambassador_did, h.created_at, h.updated_at
             FROM heraldry h
@@ -288,11 +284,9 @@ def get_heraldry_for_domain(domain):
             WHERE hd.domain = %s
         """, (domain.lower(),))
         
-        row = cursor.fetchone()
-        
         # If no exact match, try wildcard pattern match
         if not row:
-            cursor = db.execute("""
+            row = db.fetch_one("""
                 SELECT h.id, h.name, h.description, h.color_primary, h.color_secondary,
                        h.icon_path, h.ambassador_did, h.created_at, h.updated_at
                 FROM heraldry h
@@ -300,7 +294,6 @@ def get_heraldry_for_domain(domain):
                 WHERE hd.is_pattern = true 
                   AND %s LIKE REPLACE(hd.domain, '*.', '%%.')
             """, (domain.lower(),))
-            row = cursor.fetchone()
         
         if not row:
             return jsonify({'error': f'No heraldry found for domain {domain}'}), 404
@@ -308,10 +301,10 @@ def get_heraldry_for_domain(domain):
         heraldry_id = row['id']
         
         # Get all domains for this heraldry
-        cursor = db.execute("""
+        domain_rows = db.fetch_all("""
             SELECT domain FROM heraldry_domains WHERE heraldry_id = %s
         """, (heraldry_id,))
-        domains = [r['domain'] for r in cursor.fetchall()]
+        domains = [r['domain'] for r in domain_rows]
         
         created_at = row['created_at']
         updated_at = row['updated_at']
@@ -341,10 +334,9 @@ def get_coterie(heraldry_id):
         db = get_db()
         
         # Get domains for this heraldry
-        cursor = db.execute("""
+        domains = db.fetch_all("""
             SELECT domain, is_pattern FROM heraldry_domains WHERE heraldry_id = %s
         """, (heraldry_id,))
-        domains = cursor.fetchall()
         
         if not domains:
             return jsonify([])
@@ -368,7 +360,7 @@ def get_coterie(heraldry_id):
         where_clause = " OR ".join(domain_conditions)
         
         # Exclude dissipated accounts (those in the formers table)
-        cursor = db.execute(f"""
+        rows = db.fetch_all(f"""
             SELECT d.did, d.handle, d.name, d.display_name, d.avatar, d.server,
                    d.updated_at, d.arrival,
                    COALESCE(d.canon_score, 0) + COALESCE(d.lore_score, 0) as activity_score
@@ -380,7 +372,7 @@ def get_coterie(heraldry_id):
         """, params)
         
         coterie = []
-        for row in cursor.fetchall():
+        for row in rows:
             updated_at = row['updated_at']
             arrival = row['arrival']
             coterie.append({
@@ -414,10 +406,9 @@ def update_heraldry(heraldry_id, ambassador_did):
         db = get_db()
         
         # Verify ambassador owns this heraldry
-        cursor = db.execute("""
+        row = db.fetch_one("""
             SELECT ambassador_did FROM heraldry WHERE id = %s
         """, (heraldry_id,))
-        row = cursor.fetchone()
         
         if not row:
             return jsonify({'error': 'Heraldry not found'}), 404
@@ -489,10 +480,9 @@ def upload_icon(heraldry_id, ambassador_did):
         db = get_db()
         
         # Verify ambassador owns this heraldry
-        cursor = db.execute("""
+        row = db.fetch_one("""
             SELECT ambassador_did, name FROM heraldry WHERE id = %s
         """, (heraldry_id,))
-        row = cursor.fetchone()
         
         if not row:
             return jsonify({'error': 'Heraldry not found'}), 404
@@ -587,10 +577,9 @@ def delete_icon(heraldry_id, ambassador_did):
         db = get_db()
         
         # Verify ambassador owns this heraldry
-        cursor = db.execute("""
+        row = db.fetch_one("""
             SELECT ambassador_did, icon_path FROM heraldry WHERE id = %s
         """, (heraldry_id,))
-        row = cursor.fetchone()
         
         if not row:
             return jsonify({'error': 'Heraldry not found'}), 404
@@ -640,10 +629,9 @@ def transfer_ambassador(heraldry_id, ambassador_did):
         db = get_db()
         
         # Verify current ambassador
-        cursor = db.execute("""
+        row = db.fetch_one("""
             SELECT ambassador_did FROM heraldry WHERE id = %s
         """, (heraldry_id,))
-        row = cursor.fetchone()
         
         if not row:
             return jsonify({'error': 'Heraldry not found'}), 404
@@ -658,10 +646,9 @@ def transfer_ambassador(heraldry_id, ambassador_did):
             return jsonify({'error': 'New ambassador DID required'}), 400
         
         # Verify new ambassador exists
-        cursor = db.execute("""
+        new_ambassador = db.fetch_one("""
             SELECT handle, name FROM dreamers WHERE did = %s
         """, (new_ambassador_did,))
-        new_ambassador = cursor.fetchone()
         
         if not new_ambassador:
             return jsonify({'error': 'New ambassador not found in dreamers'}), 404
@@ -698,10 +685,9 @@ def step_down(heraldry_id, ambassador_did):
         db = get_db()
         
         # Verify current ambassador
-        cursor = db.execute("""
+        row = db.fetch_one("""
             SELECT ambassador_did FROM heraldry WHERE id = %s
         """, (heraldry_id,))
-        row = cursor.fetchone()
         
         if not row:
             return jsonify({'error': 'Heraldry not found'}), 404
@@ -710,10 +696,9 @@ def step_down(heraldry_id, ambassador_did):
             return jsonify({'error': 'You are not the ambassador for this heraldry'}), 403
         
         # Get domains for this heraldry
-        cursor = db.execute("""
+        domains = db.fetch_all("""
             SELECT domain, is_pattern FROM heraldry_domains WHERE heraldry_id = %s
         """, (heraldry_id,))
-        domains = cursor.fetchall()
         
         if not domains:
             # No domains means no coterie - set ambassador to NULL
@@ -746,7 +731,7 @@ def step_down(heraldry_id, ambassador_did):
         params.append(ambassador_did)
         
         # Exclude dissipated accounts (those in the formers table)
-        cursor = db.execute(f"""
+        new_ambassador = db.fetch_one(f"""
             SELECT d.did, d.handle, d.name,
                    COALESCE(d.canon_score, 0) + COALESCE(d.lore_score, 0) as activity_score
             FROM dreamers d
@@ -755,8 +740,6 @@ def step_down(heraldry_id, ambassador_did):
             ORDER BY activity_score DESC, d.updated_at DESC NULLS LAST
             LIMIT 1
         """, params)
-        
-        new_ambassador = cursor.fetchone()
         
         if new_ambassador:
             # Assign new ambassador
