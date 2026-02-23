@@ -13,6 +13,9 @@ class Drawer {
     }
 
     async deferredInit() {
+        // Mobile uses the tab-nav + /me page instead of the drawer
+        if (window.innerWidth <= 768) return;
+
         // Wait for DOM to be ready
         if (document.readyState === 'loading') {
             await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
@@ -904,22 +907,27 @@ class Drawer {
         const session = window.oauthManager?.getSession();
 
         if (session) {
-            // Fetch avatar from database (same as dashboard)
+            // Fetch avatar — use shared AvatarCache when available, otherwise single-dreamer endpoint
             let avatar = '/assets/icon_face.png';
             let displayName = session.displayName || session.handle;
             
             try {
-                const response = await fetch('/api/dreamers');
-                if (response.ok) {
-                    const dreamers = await response.json();
-                    const dreamer = dreamers.find(d => d.did === session.did);
-                    if (dreamer) {
-                        avatar = dreamer.avatar || avatar;
-                        displayName = dreamer.display_name || dreamer.name || displayName;
+                const cached = window.AvatarCache?.get(session.did);
+                if (cached) {
+                    avatar = cached;
+                } else {
+                    const response = await fetch(`/api/dreamers/${encodeURIComponent(session.did)}`);
+                    if (response.ok) {
+                        const dreamer = await response.json();
+                        if (dreamer) {
+                            avatar = dreamer.avatar || avatar;
+                            displayName = dreamer.display_name || dreamer.name || displayName;
+                            window.AvatarCache?.set(session.did, avatar);
+                        }
                     }
                 }
             } catch (error) {
-                console.warn('Failed to fetch dreamer avatar from database:', error);
+                console.warn('Failed to fetch dreamer avatar:', error);
             }
 
             avatarBtn.innerHTML = `

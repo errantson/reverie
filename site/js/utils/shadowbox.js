@@ -191,19 +191,9 @@ class Shadowbox {
             this.create();
         }
 
-        // Ensure dialogue.js is loaded (should be in HTML now)
+        // Ensure dialogue.js is loaded — dynamically inject if missing
         if (!window.Dialogue) {
-            console.warn('⚠️ [Shadowbox] Dialogue widget not loaded yet, waiting...');
-            await new Promise(resolve => {
-                const checkDialogue = () => {
-                    if (window.Dialogue) {
-                        resolve();
-                    } else {
-                        setTimeout(checkDialogue, 50);
-                    }
-                };
-                checkDialogue();
-            });
+            await this.loadDialogueScript();
         }
 
         // Create dialogue widget
@@ -246,6 +236,35 @@ class Shadowbox {
         // Start the dialogue
         console.log(`🎭 [Shadowbox] Starting dialogue: ${key}`);
         await this.dialogue.startFromKey(key);
+    }
+
+    /**
+     * Dynamically load dialogue.js if not already present
+     */
+    async loadDialogueScript() {
+        // Inject dialogue.css if not present
+        if (!document.querySelector('link[href*="dialogue.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '/css/widgets/dialogue.css';
+            document.head.appendChild(link);
+        }
+        if (window.Dialogue) return;
+        if (!document.querySelector('script[src*="dialogue.js"]')) {
+            const script = document.createElement('script');
+            script.src = '/js/widgets/dialogue.js';
+            document.head.appendChild(script);
+        }
+        // Wait for it to be available
+        await new Promise((resolve, reject) => {
+            const start = Date.now();
+            const check = () => {
+                if (window.Dialogue) return resolve();
+                if (Date.now() - start > 5000) return reject(new Error('Dialogue script load timeout'));
+                setTimeout(check, 50);
+            };
+            check();
+        });
     }
 
     /**

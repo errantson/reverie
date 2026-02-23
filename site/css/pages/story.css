@@ -27,15 +27,8 @@
 }
 
 .story-logo-container img {
-    height: 70px;
+    height: 90px;
     width: auto;
-}
-
-.story-logo-label {
-    font-size: 0.95em;
-    font-weight: 700;
-    color: #87408d;
-    letter-spacing: 0.12em;
 }
 
 .story-header-info {
@@ -56,6 +49,11 @@
 
 .desktop-text {
     display: inline;
+}
+
+.second-line {
+    display: block;
+    margin-top: 12px;
 }
 
 .story-header-description .badge {
@@ -144,18 +142,21 @@
 
 @media (max-width: 768px) {
     .story-header-top {
-        flex-direction: row;
-        padding: 16px;
-        gap: 16px;
+        flex-direction: column;
+        padding: 14px 16px 12px 16px;
+        gap: 8px;
         align-items: center;
     }
     
-    .story-logo-container img {
-        height: 50px;
+    .story-logo-container {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
     }
     
-    .story-logo-label {
-        font-size: 0.75em;
+    .story-logo-container img {
+        height: 72px;
     }
     
     .story-header-info {
@@ -164,7 +165,18 @@
     }
     
     .story-header-description {
-        font-size: 0.7em;
+        font-size: 0.72em;
+        line-height: 1.55;
+        color: #555;
+    }
+    
+    .story-header-description br {
+        display: none;
+    }
+    
+    .story-header-description .second-line {
+        display: block;
+        margin-top: 4px;
     }
     
     .desktop-text {
@@ -176,7 +188,11 @@
     }
     
     .learn-more-btn {
-        display: none;
+        align-self: center;
+        margin-top: 2px;
+        padding: 4px 14px;
+        font-size: 0.6em;
+        border-color: #e0d8f0;
     }
 }
 
@@ -343,742 +359,7 @@ body.story-page {
     }
 }
 
-/* Share Story Modal */
-/* ========================================
-   Share Modal - Professional Redesign
-   ======================================== */
-
-.share-modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
-    z-index: 10600;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    overflow-y: auto;
-    padding: 20px;
-    align-items: center;
-    justify-content: center;
-}
-
-.share-modal-overlay.active {
-    display: flex;
-}
-
-.share-modal {
-    background: #ffffff;
-    border-radius: 4px;
-    max-width: 600px;
-    width: 100%;
-    margin: auto;
-    position: relative;
-    box-shadow: 
-        0 4px 6px rgba(0, 0, 0, 0.07),
-        0 10px 20px rgba(0, 0, 0, 0.1),
-        0 20px 40px rgba(115, 75, 161, 0.15);
-    animation: modalSlideIn 0.3s ease-out;
-    
-    /* User color theming */
-    --user-color: #734ba1; /* Default purple, overridden by JS */
-    --user-color-light: color-mix(in srgb, var(--user-color) 15%, white);
-    --user-color-hover: color-mix(in srgb, var(--user-color) 90%, black);
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Close Button */
-.share-modal-close {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: #f5f5f5;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    color: #666;
-    z-index: 1;
-}
-
-.share-modal-close:hover {
-    background: var(--user-color);
-    color: white;
-}
-
-.share-modal-close svg {
-    display: block;
-}
-
-/* Header Section */
-.share-modal-header {
-    padding: 32px 32px 24px;
-    text-align: center;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.share-modal-title {
-    margin: 0 0 8px 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--user-color) 0%, var(--user-color-hover) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -0.02em;
-}
-
-.share-modal-subtitle {
-    margin: 0;
-    font-size: 0.95rem;
-    color: #666;
-    line-height: 1.5;
-}
-
-.share-modal-subtitle strong {
-    color: var(--user-color);
-    font-weight: 600;
-}
-
-/* Stage System */
-.share-stage {
-    min-height: 320px;
-}
-
-.share-stage-input {
-    display: block;
-}
-
-.share-stage-preview {
-    display: none;
-}
-
-/* Section Styling */
-.share-section {
-    padding: 0 32px;
-    margin-top: 24px;
-}
-
-.share-section-label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 8px;
-    letter-spacing: 0.01em;
-}
-
-/* Input Section */
-.share-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.share-input-icon {
-    position: absolute;
-    left: 14px;
-    color: #999;
-    pointer-events: none;
-    transition: color 0.2s ease;
-}
-
-.share-modal-input {
-    width: 100%;
-    padding: 12px 14px 12px 44px;
-    border: 2px solid #e5e5e5;
-    border-radius: 3px;
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-    background: #fafafa;
-}
-
-.share-modal-input:hover {
-    border-color: #d0d0d0;
-    background: #ffffff;
-}
-
-.share-modal-input:focus {
-    outline: none;
-    border-color: var(--user-color);
-    background: #ffffff;
-    box-shadow: 0 0 0 3px var(--user-color-light);
-}
-
-.share-modal-input:focus + .share-input-icon {
-    color: var(--user-color);
-}
-
-/* Recent Posts Section */
-.share-recent-section {
-    margin-top: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.share-recent-posts-scroll {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 12px 0;
-    margin: 0 -32px;
-    padding-left: 32px;
-    padding-right: 32px;
-    scrollbar-width: thin;
-    scrollbar-color: #d0c7f0 transparent;
-}
-
-.share-recent-posts-scroll::-webkit-scrollbar {
-    height: 4px;
-}
-
-.share-recent-posts-scroll::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.share-recent-posts-scroll::-webkit-scrollbar-thumb {
-    background: #d0c7f0;
-    border-radius: 2px;
-}
-
-.share-recent-posts-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--user-color);
-}
-
-.share-recent-post-card {
-    flex: 0 0 160px;
-    min-height: 110px;
-    max-height: 200px;
-    padding: 12px;
-    background: linear-gradient(135deg, #faf9fc 0%, #f5f3f9 100%);
-    border: 1.5px solid #e8e4f0;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    font-size: 0.8125rem;
-}
-
-.share-recent-post-card:hover {
-    background: linear-gradient(135deg, #f0ebff 0%, #e8e0f7 100%);
-    border-color: var(--user-color);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(115, 75, 161, 0.15);
-}
-
-.share-recent-post-date {
-    font-size: 0.75rem;
-    color: #999;
-    font-family: monospace;
-    margin-bottom: 8px;
-    flex-shrink: 0;
-}
-
-.share-recent-post-image {
-    width: 100%;
-    height: 90px;
-    object-fit: cover;
-    border-radius: 2px;
-    margin-bottom: 8px;
-    flex-shrink: 0;
-}
-
-.share-recent-post-text {
-    font-family: system-ui, -apple-system, sans-serif;
-    line-height: 1.4;
-    color: #333;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    flex: 1;
-    font-size: 0.8125rem;
-}
-
-.share-recent-post-image-large {
-    width: 100%;
-    height: 130px;
-    object-fit: cover;
-    border-radius: 2px;
-    flex: 1;
-    margin-bottom: 10px;
-}
-
-.share-recent-post-author-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(115, 75, 161, 0.15);
-    margin-top: auto;
-    flex-shrink: 0;
-}
-
-.share-recent-post-avatar {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1.5px solid rgba(115, 75, 161, 0.2);
-    flex-shrink: 0;
-}
-
-.share-recent-post-author-text {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.share-recent-post-author-name {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #333;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.share-recent-post-author-handle {
-    font-size: 0.75rem;
-    color: #666;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Preview Section */
-.share-modal-preview {
-    padding: 0 32px;
-    margin-top: 24px;
-    display: none;
-}
-
-.share-modal-preview.active {
-    display: block;
-}
-
-.share-preview-card {
-    background: linear-gradient(135deg, #faf9fc 0%, #f5f3f9 100%);
-    border: 1.5px solid #e8e4f0;
-    border-radius: 3px;
-    padding: 16px;
-    margin-top: 8px;
-}
-
-.share-preview-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid rgba(115, 75, 161, 0.1);
-}
-
-.share-preview-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid color-mix(in srgb, var(--user-color) 20%, transparent);
-    flex-shrink: 0;
-}
-
-.share-preview-author {
-    flex: 1;
-    min-width: 0;
-}
-
-.share-preview-name {
-    font-weight: 600;
-    font-size: 0.9375rem;
-    color: #222;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.share-preview-handle {
-    font-size: 0.8125rem;
-    color: #666;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.share-preview-content {
-    /* Container for text and image */
-}
-
-.share-preview-text {
-    font-size: 0.9375rem;
-    line-height: 1.6;
-    color: #333;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-.share-preview-image {
-    width: 100%;
-    margin-top: 12px;
-    border-radius: 2px;
-    border: 1px solid color-mix(in srgb, var(--user-color) 15%, transparent);
-}
-
-/* Status Messages */
-.share-modal-status {
-    margin: 16px 32px 0;
-    padding: 12px 16px;
-    border-radius: 3px;
-    text-align: center;
-    font-size: 0.875rem;
-    font-weight: 500;
-    display: none;
-    line-height: 1.5;
-}
-
-.share-modal-status.success {
-    background: #e8f5e9;
-    color: #2e7d32;
-    border: 1px solid #a5d6a7;
-    display: block;
-}
-
-.share-modal-status.error {
-    background: #ffebee;
-    color: #c62828;
-    border: 1px solid #ef9a9a;
-    display: block;
-}
-
-.share-modal-status.info {
-    background: #e3f2fd;
-    color: #1565c0;
-    border: 1px solid #90caf9;
-    display: block;
-}
-
-/* Action Buttons */
-.share-modal-actions {
-    padding: 20px 32px;
-    display: flex;
-    gap: 10px;
-    align-items: stretch;
-}
-
-.share-back-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 14px;
-    background: transparent;
-    border: 1px solid #e5e5e5;
-    border-radius: 3px;
-    color: #666;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-.share-back-btn:hover {
-    background: #f5f5f5;
-    border-color: #d0d0d0;
-    color: #333;
-}
-
-.share-back-btn svg {
-    display: block;
-}
-
-.share-modal-btn {
-    flex: 1;
-    padding: 14px 24px;
-    border: none;
-    border-radius: 3px;
-    font-weight: 600;
-    font-size: 0.9375rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.share-modal-btn-primary {
-    background: linear-gradient(135deg, var(--user-color) 0%, var(--user-color-hover) 100%);
-    color: white;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--user-color) 30%, transparent);
-}
-
-.share-modal-btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--user-color) 85%, white) 0%, var(--user-color) 100%);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--user-color) 40%, transparent);
-    transform: translateY(-1px);
-}
-
-.share-modal-btn-primary:active:not(:disabled) {
-    transform: translateY(0);
-}
-
-.share-modal-btn:disabled {
-    background: #e0e0e0;
-    color: #999;
-    cursor: not-allowed;
-    box-shadow: none;
-    opacity: 0.6;
-}
-
-.share-btn-icon {
-    flex-shrink: 0;
-}
-
-/* Character Application Section */
-.share-character-section {
-    padding: 0 32px 20px;
-    margin-top: 8px;
-}
-
-.share-character-card {
-    background: linear-gradient(135deg, #faf9fc 0%, #f5f3f9 100%);
-    border: 1.5px solid #e8e4f0;
-    border-radius: 3px;
-    padding: 16px;
-}
-
-.share-character-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-}
-
-.share-character-info {
-    flex: 1;
-}
-
-.share-character-label {
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: #333;
-    margin-bottom: 4px;
-}
-
-.share-character-description {
-    font-size: 0.8125rem;
-    color: #666;
-}
-
-.share-character-card .share-modal-status {
-    margin: 12px 0 0 0;
-    font-size: 0.8125rem;
-    padding: 8px 12px;
-}
-
-/* Footer */
-.share-modal-footer {
-    padding: 20px 32px 28px;
-    text-align: center;
-    border-top: 1px solid #f0f0f0;
-}
-
-.learn-more-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--user-color);
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    padding: 6px 12px;
-    border-radius: 6px;
-}
-
-.learn-more-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--user-color);
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    padding: 6px 12px;
-    border-radius: 3px;
-}
-
-.learn-more-link:hover {
-    background: rgba(115, 75, 161, 0.08);
-    color: #5a3a7a;
-}
-
-.learn-more-link svg {
-    flex-shrink: 0;
-}
-
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-    .share-modal-overlay {
-        padding: 12px;
-    }
-    
-    .share-modal {
-        border-radius: 4px;
-    }
-    
-    .share-modal-close {
-        top: 12px;
-        right: 12px;
-        width: 36px;
-        height: 36px;
-    }
-    
-    .share-modal-header {
-        padding: 28px 20px 20px;
-    }
-    
-    .share-modal-title {
-        font-size: 1.5rem;
-    }
-    
-    .share-modal-subtitle {
-        font-size: 0.875rem;
-    }
-    
-    .share-section {
-        padding: 0 20px;
-        margin-top: 20px;
-    }
-    
-    .share-modal-input {
-        font-size: 0.8125rem;
-        padding: 10px 12px 10px 40px;
-    }
-    
-    .share-recent-section {
-        margin-top: 16px;
-    }
-    
-    .share-recent-posts-scroll {
-        margin: 0 -20px;
-        padding-left: 20px;
-        padding-right: 20px;
-    }
-    
-    .share-recent-post-card {
-        flex: 0 0 140px;
-        min-height: 100px;
-        max-height: 180px;
-        padding: 10px;
-        font-size: 0.75rem;
-    }
-    
-    .share-recent-post-image {
-        height: 75px;
-    }
-    
-    .share-recent-post-image-large {
-        height: 110px;
-    }
-    
-    .share-recent-post-avatar {
-        width: 22px;
-        height: 22px;
-    }
-    
-    .share-modal-preview {
-        padding: 0 20px;
-        margin-top: 20px;
-    }
-    
-    .share-preview-card {
-        padding: 14px;
-    }
-    
-    .share-preview-avatar {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .share-modal-status {
-        margin: 14px 20px 0;
-        padding: 10px 14px;
-        font-size: 0.8125rem;
-    }
-    
-    .share-modal-actions {
-        padding: 16px 20px;
-    }
-    
-    .share-back-btn {
-        padding: 0 12px;
-    }
-    
-    .share-modal-btn {
-        padding: 12px 20px;
-        font-size: 0.875rem;
-    }
-    
-    .share-character-section {
-        padding: 0 20px 20px;
-    }
-    
-    .share-character-card {
-        padding: 14px;
-    }
-    
-    .share-character-content {
-        gap: 12px;
-    }
-    
-    .share-character-label {
-        font-size: 0.8125rem;
-    }
-    
-    .share-character-description {
-        font-size: 0.75rem;
-    }
-    
-    .share-modal-footer {
-        padding: 16px 20px 24px;
-    }
-    
-    .learn-more-link {
-        font-size: 0.8125rem;
-    }
-    
-    .share-stage {
-        min-height: 280px;
-    }
-    
-    .share-character-section {
-        padding: 0 20px 16px;
-        margin-top: 6px;
-    }
-}
+/* Share Story Modal — styles now in /css/widgets/sharelore.css */
 
 /* Explanation Modal */
 .explanation-modal-overlay {
@@ -1267,7 +548,7 @@ body.story-page {
 @media (max-width: 768px) {
     .main-content {
         padding-bottom: 70px;
-        padding-top: var(--content-top-spacing-mobile); /* Standard mobile spacing */
+        padding-top: 62px; /* Tight to header */
     }
 }
 
@@ -1590,11 +871,11 @@ body.story-page {
 @media (max-width: 768px) {
     .story-text {
         padding: 10px 12px;
-        line-height: 1.4;
+        line-height: 1.45;
         max-width: 100%;
         width: 100%;
         box-sizing: border-box;
-        font-size: 13px;
+        font-size: 14.5px;
     }
 }
 
@@ -1981,25 +1262,25 @@ body.story-page {
     
     .story-header-top {
         padding: 12px;
-        gap: 10px;
+        gap: 8px;
     }
     
     .story-logo-container {
-        gap: 4px;
+        gap: 3px;
     }
     
     .story-logo-container img {
-        height: 40px;
-    }
-    
-    .story-logo-label {
-        font-size: 0.65em;
-        letter-spacing: 0.08em;
+        height: 56px;
     }
     
     .story-header-description {
         font-size: 0.65em;
         line-height: 1.5;
+    }
+    
+    .learn-more-btn {
+        font-size: 0.55em;
+        padding: 3px 10px;
     }
     
     .story-container {
@@ -2055,9 +1336,9 @@ body.story-page {
     }
     
     .story-text {
-        padding: 6px;
-        font-size: 10px;
-        line-height: 1.4;
+        padding: 6px 8px;
+        font-size: 12.5px;
+        line-height: 1.45;
     }
     
     .story-image {

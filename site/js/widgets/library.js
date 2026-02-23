@@ -233,6 +233,29 @@ class LibraryWidget {
             const bookEl = this.createBookSpine(book);
             container.appendChild(bookEl);
         });
+
+        // On mobile, add CC0 link after the last book
+        if (window.innerWidth <= 768) {
+            const existing = container.parentElement.querySelector('.mobile-cc0-footer');
+            if (existing) existing.remove();
+            const cc0 = document.createElement('a');
+            cc0.className = 'mobile-cc0-footer';
+            cc0.href = 'https://creativecommons.org/publicdomain/zero/1.0/';
+            cc0.target = '_blank';
+            cc0.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 4c-2.761 0-5 2.686-5 6s2.239 6 5 6 5-2.686 5-6-2.239-6-5-6zm2.325 3.472c.422.69.675 1.57.675 2.528 0 2.21-1.343 4-3 4-.378 0-.74-.093-1.073-.263l-.164-.092 3.562-6.173zM12 8c.378 0 .74.093 1.073.263l.164.092-3.562 6.173C9.253 13.838 9 12.958 9 12c0-2.21 1.343-4 3-4z"/></svg> CC0 License Info';
+            container.parentElement.appendChild(cc0);
+
+            // Make entire sidebar-links box navigate to /order
+            const sidebarLinks = document.querySelector('.sidebar-links');
+            if (sidebarLinks && !sidebarLinks.dataset.clickBound) {
+                sidebarLinks.dataset.clickBound = 'true';
+                sidebarLinks.addEventListener('click', (e) => {
+                    // Don't intercept if they clicked the actual link inside
+                    if (e.target.closest('a')) return;
+                    window.location.href = '/order';
+                });
+            }
+        }
     }
 
     renderList() {
@@ -256,17 +279,68 @@ class LibraryWidget {
 
         const statusClass = book.available ? 'available' : 'coming-soon';
         const statusText = book.available ? 'Available Now' : 'Coming Soon';
+        const isMobile = window.innerWidth <= 768;
 
-        spine.innerHTML = `
-            <img src="${book.cover}" alt="${book.title}" class="book-spine-cover">
-            <div class="book-spine-info">
-                <h3 class="book-spine-title" style="color: ${book.color};">${book.title}</h3>
-                <p class="book-spine-author">by ${book.author}</p>
-                <div class="book-spine-status ${statusClass}">${statusText}</div>
-            </div>
-        `;
+        if (isMobile) {
+            // ── Mobile: horizontal card (cover left, info+buttons right) ──
+            const stats = book.stats;
+            let chapterCount = 0;
+            if (book.chapters) chapterCount = book.chapters.length;
+            else if (book.parts) chapterCount = book.parts.reduce((s, p) => s + p.chapters.length, 0);
 
-        spine.addEventListener('click', () => this.showBookDetails(book));
+            // Check resume state
+            const lastChapter = typeof ReaderWidget !== 'undefined' ? ReaderWidget.getLastChapter(book.id) : null;
+            const readLabel = lastChapter ? 'Continue Reading' : 'Begin Reading';
+
+            spine.innerHTML = `
+                <img src="${book.cover}" alt="${book.title}" class="book-spine-cover">
+                <div class="book-spine-info">
+                    <h3 class="book-spine-title" style="color: ${book.color};">${book.title}</h3>
+                    <p class="book-spine-author">by ${book.author}</p>
+                    <div class="book-spine-status ${statusClass}">${statusText}</div>
+                    <div class="mobile-book-actions"></div>
+                </div>
+            `;
+
+            // Cover tap → start reading
+            const cover = spine.querySelector('.book-spine-cover');
+            cover.style.cursor = 'pointer';
+            cover.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.navigateToBook(book.id);
+            });
+
+            // Build stacked action buttons
+            const actions = spine.querySelector('.mobile-book-actions');
+            const buttons = [
+                { label: readLabel, icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>', action: () => this.navigateToBook(book.id), disabled: false },
+                { label: 'Chapters', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>', action: () => this.showMobileTOC(book), disabled: false },
+                { label: 'Read on Kindle', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>', action: () => this.handleKindleClick(book.kindleAsin), disabled: !book.kindleAsin || book.kindleAsin === 'TBD' },
+                { label: 'Download ePub', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>', action: () => { if (book.epubUrl) window.location.href = book.epubUrl; }, disabled: !book.epubUrl },
+                { label: 'Order Print Editions', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>', action: () => { window.location.href = '/order'; }, disabled: !book.available },
+            ];
+
+            buttons.forEach(b => {
+                const btn = document.createElement('button');
+                btn.className = 'mobile-action-btn';
+                btn.innerHTML = `${b.icon} ${b.label}`;
+                btn.disabled = b.disabled;
+                btn.addEventListener('click', (e) => { e.stopPropagation(); b.action(); });
+                actions.appendChild(btn);
+            });
+
+        } else {
+            // ── Desktop: vertical card ──
+            spine.innerHTML = `
+                <img src="${book.cover}" alt="${book.title}" class="book-spine-cover">
+                <div class="book-spine-info">
+                    <h3 class="book-spine-title" style="color: ${book.color};">${book.title}</h3>
+                    <p class="book-spine-author">by ${book.author}</p>
+                    <div class="book-spine-status ${statusClass}">${statusText}</div>
+                </div>
+            `;
+            spine.addEventListener('click', () => this.showBookDetails(book));
+        }
 
         return spine;
     }
@@ -425,7 +499,7 @@ class LibraryWidget {
             book.parts.forEach((part, partIndex) => {
                 const partHeader = document.createElement('div');
                 partHeader.className = 'toc-part-header';
-                partHeader.innerHTML = `<span class="arrow">${partIndex === 0 ? '⮟' : '⮞'}</span> ${part.name}`;
+                partHeader.innerHTML = `<span class="arrow">${partIndex === 0 ? '▾' : '▸'}</span> ${part.name}`;
                 tocContainer.appendChild(partHeader);
 
                 const partContent = document.createElement('div');
@@ -459,11 +533,11 @@ class LibraryWidget {
                             pc.style.display = 'none';
                         });
                         tocContainer.querySelectorAll('.arrow').forEach(arrow => {
-                            arrow.textContent = '⮞';
+                            arrow.textContent = '▸';
                         });
                         // Open this part
                         partContent.style.display = 'flex';
-                        partHeader.querySelector('.arrow').textContent = '⮟';
+                        partHeader.querySelector('.arrow').textContent = '▾';
                     }
                 });
             });
@@ -490,6 +564,104 @@ class LibraryWidget {
             window.location.href = `/books/${book.folderName}/${chapter.id}`;
         });
         return chapterEl;
+    }
+
+    /**
+     * Mobile-only: bottom-sheet TOC with format buttons in the footer
+     */
+    showMobileTOC(book) {
+        // Remove any existing overlay
+        document.querySelector('.mobile-toc-overlay')?.remove();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'mobile-toc-overlay';
+
+        // Tap backdrop to close
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.remove();
+        });
+
+        // Count chapters
+        let chapterCount = 0;
+        if (book.chapters) chapterCount = book.chapters.length;
+        else if (book.parts) chapterCount = book.parts.reduce((s, p) => s + p.chapters.length, 0);
+
+        const sheet = document.createElement('div');
+        sheet.className = 'mobile-toc-sheet';
+        sheet.setAttribute('data-book', book.id);
+        sheet.innerHTML = `
+            <div class="mobile-toc-header">
+                <h3>${book.title} · ${chapterCount} Chapters</h3>
+                <button class="mobile-toc-close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="mobile-toc-chapters"></div>
+            <div class="mobile-toc-footer">
+                <div class="cc0-notice-full">
+                    All texts by errantson are dedicated to you through
+                    <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0 1.0</a>.
+                    You may freely adapt or utilize these texts.
+                    Attribution to <a href="https://reverie.house">reverie.house</a> is appreciated.
+                </div>
+            </div>
+        `;
+
+        // Close button
+        sheet.querySelector('.mobile-toc-close').addEventListener('click', () => overlay.remove());
+
+        // Build chapters
+        const chaptersEl = sheet.querySelector('.mobile-toc-chapters');
+
+        if (book.parts) {
+            book.parts.forEach((part, partIndex) => {
+                const partHeader = document.createElement('div');
+                partHeader.className = 'toc-part-header';
+                partHeader.innerHTML = `<span class="arrow">${partIndex === 0 ? '▾' : '▸'}</span> ${part.name}`;
+                chaptersEl.appendChild(partHeader);
+
+                const partContent = document.createElement('div');
+                partContent.className = 'toc-part-content';
+                partContent.style.display = partIndex === 0 ? 'flex' : 'none';
+
+                part.chapters.forEach(chapter => {
+                    if (chapter.available) {
+                        partContent.appendChild(this.createTOCChapter(chapter, book));
+                    } else {
+                        const el = document.createElement('div');
+                        el.className = 'toc-chapter toc-chapter-unreleased';
+                        el.innerHTML = `
+                            <span class="toc-chapter-number">Ch. ${chapter.id}</span>
+                            <span class="toc-chapter-title">${chapter.title}</span>
+                        `;
+                        partContent.appendChild(el);
+                    }
+                });
+
+                chaptersEl.appendChild(partContent);
+
+                partHeader.addEventListener('click', () => {
+                    const isOpen = partContent.style.display !== 'none';
+                    if (!isOpen) {
+                        chaptersEl.querySelectorAll('.toc-part-content').forEach(pc => pc.style.display = 'none');
+                        chaptersEl.querySelectorAll('.arrow').forEach(a => a.textContent = '▸');
+                        partContent.style.display = 'flex';
+                        partHeader.querySelector('.arrow').textContent = '▾';
+                    }
+                });
+            });
+        } else if (book.chapters) {
+            book.chapters.forEach(chapter => {
+                if (chapter.available) {
+                    chaptersEl.appendChild(this.createTOCChapter(chapter, book));
+                }
+            });
+        }
+
+        overlay.appendChild(sheet);
+        document.body.appendChild(overlay);
     }
 
     setupFormatButtons(book) {

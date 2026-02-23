@@ -212,15 +212,6 @@ body {
         height: 14px;
     }
     
-    .role-tools-compartment {
-        padding: 0.85rem 1rem;
-    }
-    
-    .role-card-actions {
-        padding: 0.7rem 1rem;
-        min-height: 50px;
-    }
-    
     .action-button {
         padding: 0.5rem 1.25rem;
         font-size: 0.8rem;
@@ -887,16 +878,6 @@ body {
     letter-spacing: 0.5px;
 }
 
-@media (max-width: 768px) {
-    .role-tabs {
-        display: none;
-    }
-    
-    .role-selector-mobile {
-        display: block;
-    }
-}
-
 /* Role Card */
 .role-card {
     background: white;
@@ -923,6 +904,22 @@ body[data-current-role="cogitarian"] .role-card {
 
 body[data-current-role="bursar"] .role-card {
     border-color: var(--role-bursar-medium);
+}
+
+body[data-current-role="provisioner"] .role-card {
+    border-color: var(--role-provisioner-medium);
+}
+
+body[data-current-role="dreamstyler"] .role-card {
+    border-color: var(--role-dreamstyler-medium);
+}
+
+body[data-current-role="cheerful"] .role-card {
+    border-color: var(--role-cheerful-medium);
+}
+
+body[data-current-role="guardian"] .role-card {
+    border-color: var(--role-guardian-medium);
 }
 
 /* Role Card Body - Two Column Layout (Fixed Height) */
@@ -1553,146 +1550,6 @@ body[data-current-role="cogitarian"] .example-nav-btn {
    END GREETER GUESTBOOK
    ============================================================================= */
 
-/* Greeter Showcase */
-.greeter-showcase {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.greeter-events {
-    border: 2px solid #e0e0e0;
-    padding: 0.75rem;
-    background: #fafafa;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.greeter-examples {
-    border: 2px solid #e0e0e0;
-    padding: 0.75rem;
-    background: white;
-}
-
-body[data-current-role="greeter"] .greeter-examples {
-    border-color: var(--role-greeter-medium);
-}
-
-body[data-current-role="mapper"] .greeter-examples {
-    border-color: var(--role-mapper-medium);
-}
-
-body[data-current-role="cogitarian"] .greeter-examples {
-    border-color: var(--role-cogitarian-medium);
-}
-
-.example-carousel {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.example-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.example-label {
-    font-family: 'Courier New', monospace;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #999;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-body[data-current-role="greeter"] .example-header .example-label {
-    color: var(--role-greeter);
-}
-
-body[data-current-role="mapper"] .example-header .example-label {
-    color: var(--role-mapper);
-}
-
-body[data-current-role="cogitarian"] .example-header .example-label {
-    color: var(--role-cogitarian);
-}
-
-.example-nav-btn {
-    background: none;
-    border: none;
-    font-size: 1.25rem;
-    cursor: pointer;
-    color: #999;
-    padding: 0.25rem 0.5rem;
-    transition: opacity 0.2s ease;
-}
-
-body[data-current-role="greeter"] .example-header .example-nav-btn {
-    color: var(--role-greeter);
-}
-
-body[data-current-role="mapper"] .example-header .example-nav-btn {
-    color: var(--role-mapper);
-}
-
-body[data-current-role="cogitarian"] .example-header .example-nav-btn {
-    color: var(--role-cogitarian);
-}
-
-.example-nav-btn:hover {
-    opacity: 0.6;
-}
-
-.example-post {
-    font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: #2c1810;
-    padding: 0.75rem;
-    background: #f9f9f9;
-    border-left: 3px solid #999;
-    min-height: 200px;
-}
-
-body[data-current-role="greeter"] .example-post {
-    border-color: var(--role-greeter);
-}
-
-body[data-current-role="mapper"] .example-post {
-    border-color: var(--role-mapper);
-}
-
-body[data-current-role="cogitarian"] .example-post {
-    border-color: var(--role-cogitarian);
-}
-
-/* Role Tools/Examples Compartment */
-.role-tools-compartment {
-    border-top: 2px solid #f0f0f0;
-    background: #fafafa;
-    padding: 1rem 1.5rem;
-    min-height: 0;
-    max-height: none;
-}
-
-.role-tools-content {
-    display: none;
-}
-
-.role-tools-content.active {
-    display: block;
-}
-
-.role-tools-content .example-preview-box:first-child {
-    margin-top: 0;
-}
-
 .role-desc-content {
     display: block;
 }
@@ -1850,48 +1707,7 @@ body[data-current-role="guardian"] .role-description u {
     font-size: 1.1rem;
 }
 
-/* Role Card Actions */
-/* Role Card Actions - Balanced Layout */
-.role-card-actions {
-    padding: 0.85rem 1.5rem;
-    border-top: 2px solid #f0f0f0;
-    background: #fafafa;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 60px;
-}
-
-.actions-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-
-.action-buttons-group {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.action-loading-spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid rgba(139, 115, 85, 0.3);
-    border-top: 3px solid #8b7355;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-.action-loading-text {
-    color: #666;
-    font-size: 0.85rem;
-    font-style: italic;
-}
-
+/* Action Buttons */
 .action-button {
     padding: 0.6rem 1.5rem;
     font-size: 0.85rem;
@@ -2135,43 +1951,6 @@ body[data-current-role="cogitarian"] .action-button.primary {
 .loading-content .loading-text {
     font-size: 1.1rem;
     color: white;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .role-card-body {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-        gap: 1rem;
-    }
-    
-    .role-worker-card {
-        position: relative;
-        padding: 0.85rem;
-    }
-    
-    .role-title {
-        font-size: 1.2rem;
-    }
-    
-    .action-button {
-        width: 100%;
-        min-width: auto;
-    }
-    
-    .action-buttons-group {
-        width: 100%;
-        flex-direction: column;
-    }
-    
-    .greeter-showcase {
-        grid-template-columns: 1fr;
-    }
-    
-    .greeter-events,
-    .greeter-examples {
-        max-height: 200px;
-    }
 }
 
 /* Cogitarian Content */
@@ -2561,11 +2340,6 @@ body[data-current-role="cogitarian"] .action-button.primary {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
 .provisioner-tools-container {
     max-width: 800px;
     margin: 0 auto;
@@ -2587,6 +2361,21 @@ body[data-current-role="cogitarian"] .action-button.primary {
     max-width: 800px;
     margin: 0 auto;
     justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .dreamstyler-content-container {
+        padding: 10px;
+    }
+
+    .dreamstyler-content-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .dreamstyler-list-card {
+        height: 220px;
+    }
 }
 
 .dreamstyler-list-card {
@@ -3181,121 +2970,169 @@ body[data-current-role="cogitarian"] .action-button.primary {
     margin-top: 0.5rem;
 }
 
-/* Extra small screens (< 480px) - Overridden by mobile renovation below */
-@media (max-width: 480px) {
-    /* Container styles moved to mobile renovation section */
-    
-    .work-sidebar {
-        padding: 0.6rem;
-        gap: 0.5rem;
-        border-width: 1px;
-    }
-    
-    .sidebar-logo {
-        max-width: 80px;
-    }
-    
-    .sidebar-title h1 {
-        font-size: 1rem;
-    }
-    
-    .sidebar-subtitle {
-        font-size: 0.65rem;
-    }
-    
-    .sidebar-philosophy {
-        font-size: 0.65rem;
-        line-height: 1.3;
-        padding: 0.4rem 0.5rem;
-    }
-    
-    .sidebar-philosophy p {
-        margin: 0 0 0.2rem 0;
-    }
-    
-    .sidebar-user-section {
-        min-height: 130px;
-        padding: 0.5rem;
-    }
-    
-    .sidebar-avatar {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .sidebar-user-name {
-        font-size: 0.85rem;
-    }
-    
-    .sidebar-user-handle {
-        font-size: 0.7rem;
-    }
-    
-    .status-label {
-        font-size: 0.55rem;
-    }
-    
-    .status-badge {
-        font-size: 0.65rem;
-        padding: 3px 6px;
-    }
-    
-    .sidebar-login-btn {
-        font-size: 0.8rem;
-        padding: 8px 12px;
-    }
-    
-    .role-selector-mobile {
-        padding: 0.75rem 1rem;
-    }
-    
-    .role-selector-mobile select {
-        font-size: 0.8rem;
-        padding: 0.6rem 0.8rem;
-    }
-    
-    .role-card {
-        border-width: 1px;
-    }
-    
-    .role-card-body {
-        padding: 0.75rem;
-        gap: 0.75rem;
-    }
-    
-    .role-title {
-        font-size: 1rem;
-        padding-bottom: 0.5rem;
-        margin-bottom: 0.75rem;
-    }
-    
-    .role-description {
-        font-size: 0.8rem;
-    }
-    
-    .bursar-box {
-        padding: 0.85rem;
-    }
-    
-    .bursar-box-title {
-        font-size: 0.95rem;
-    }
-    
-    .bursar-box-text {
-        font-size: 0.8rem;
-    }
-}
-
 /* ==========================================================================
    MOBILE WORKSHOP RENOVATION
    A complete mobile-first redesign for phone screens
    - Role tabs flush at top beneath header
-   - Sidebar moves to bottom as footer bar
+   - Mobile user section above role tabs
+   - Sidebar hidden on mobile (was obscured by drawer)
    - Worker card centered with "Current:" title above
    - Full page scrolling enabled
    ========================================================================== */
 
+/* Mobile user section - hidden on desktop */
+.work-mobile-user-section {
+    display: none;
+}
+
 @media (max-width: 768px) {
+    /* ----------------------------------------
+       MOBILE USER SECTION: Above role tabs
+       ---------------------------------------- */
+    .work-mobile-user-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        background: linear-gradient(180deg, rgba(253,252,254,1) 0%, rgba(248,247,252,1) 100%);
+        border-bottom: 2px solid var(--user-color, #d0c7f0);
+        min-height: 48px;
+        gap: 12px;
+    }
+
+    .mobile-user-loading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .mobile-user-loading .loading-spinner {
+        width: 18px;
+        height: 18px;
+        border-width: 2px;
+    }
+
+    .mobile-user-loading .loading-text {
+        font-size: 0.72rem;
+        color: #888;
+        font-style: italic;
+    }
+
+    .mobile-user-guest {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .mobile-guest-philosophy {
+        text-align: center;
+    }
+
+    .mobile-guest-philosophy p {
+        margin: 0;
+        font-size: 0.72rem;
+        color: #666;
+        font-style: italic;
+        line-height: 1.4;
+    }
+
+    .mobile-user-login-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--user-color, #734ba1);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-radius: 0;
+        transition: all 0.2s ease;
+    }
+
+    .mobile-user-login-btn:hover {
+        filter: brightness(1.1);
+    }
+
+    .mobile-user-login-btn svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    .mobile-user-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .mobile-user-identity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .mobile-user-avatar-wrap {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        aspect-ratio: 1;
+        flex-shrink: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid var(--user-color, #734ba1);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    }
+
+    .mobile-user-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .mobile-user-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .mobile-user-name {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #2c1810;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mobile-user-handle {
+        font-size: 0.65rem;
+        color: #888;
+        font-family: 'Courier New', monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mobile-user-role-status {
+        flex-shrink: 0;
+    }
+
+    .mobile-user-status-content .status-badge {
+        font-size: 0.65rem;
+        padding: 4px 10px;
+    }
+
     /* ----------------------------------------
        CONTAINER: Flush sections, no floating
        ---------------------------------------- */
@@ -3326,121 +3163,10 @@ body[data-current-role="cogitarian"] .action-button.primary {
     }
 
     /* ----------------------------------------
-       SIDEBAR: Moves to BOTTOM as footer bar
+       SIDEBAR: Hidden on mobile (replaced by mobile user section above tabs)
        ---------------------------------------- */
     .work-sidebar {
-        order: 99;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 14px 16px;
-        width: 100%;
-        height: auto;
-        border: none;
-        border-top: 2px solid var(--user-color, #d0c7f0);
-        background: linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(253,252,254,1) 100%);
-        overflow: visible;
-        margin-top: auto;
-    }
-
-    /* Hide decorative elements on mobile */
-    .sidebar-header,
-    .sidebar-philosophy {
-        display: none;
-    }
-
-    /* User section becomes compact inline */
-    .sidebar-user-section {
-        flex: 1;
-        min-height: auto;
-        padding: 0;
-        border: none;
-        background: none;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-    }
-
-    .sidebar-loading {
-        flex-direction: row;
-        gap: 8px;
-    }
-
-    .loading-spinner {
-        width: 20px;
-        height: 20px;
-        border-width: 2px;
-    }
-
-    .loading-text {
-        font-size: 0.75rem;
-    }
-
-    .sidebar-guest {
-        flex-direction: row;
-        gap: 12px;
-        text-align: left;
-    }
-
-    .guest-message {
-        display: none;
-    }
-
-    .sidebar-login-btn {
-        padding: 10px 20px;
-        font-size: 0.8rem;
-        width: auto;
-    }
-
-    .sidebar-user {
-        flex-direction: row;
-        gap: 10px;
-        align-items: center;
-    }
-
-    .sidebar-avatar-container {
-        width: 40px;
-        height: 40px;
-        flex-shrink: 0;
-    }
-
-    .sidebar-user-info {
-        text-align: left;
-        flex: 1;
-        min-width: 0;
-    }
-
-    .sidebar-user-name {
-        font-size: 0.85rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .sidebar-user-handle {
-        font-size: 0.65rem;
-    }
-
-    .sidebar-work-status {
-        padding: 0;
-        border: none;
-        text-align: right;
-        flex-shrink: 0;
-    }
-
-    .status-label {
-        display: none;
-    }
-
-    .status-badge {
-        font-size: 0.65rem;
-        padding: 4px 10px;
-    }
-
-    .sidebar-work-actions {
-        display: none;
+        display: none !important;
     }
 
     /* ----------------------------------------
@@ -3489,8 +3215,8 @@ body[data-current-role="cogitarian"] .action-button.primary {
     .role-tab {
         flex: 1;
         min-width: 0;
-        padding: 14px 8px;
-        gap: 6px;
+        padding: 10px 6px;
+        gap: 0;
         border-radius: 0;
         border: none;
         border-right: 1px solid rgba(255,255,255,0.4);
@@ -3504,15 +3230,12 @@ body[data-current-role="cogitarian"] .action-button.primary {
     }
 
     .role-tab-icon {
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
     }
 
     .role-tab-name {
-        font-size: 0.65rem;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
+        display: none;
     }
 
     .role-tab.active {
@@ -3525,65 +3248,70 @@ body[data-current-role="cogitarian"] .action-button.primary {
     }
 
     /* ----------------------------------------
-       ROLE CARD BODY: Stacked, scrollable
+       ROLE CARD BODY: Side-by-side grid on mobile
        ---------------------------------------- */
     .role-card-body {
-        display: flex;
-        flex-direction: column;
-        padding: 12px 16px;
-        gap: 14px;
+        display: grid;
+        grid-template-columns: 1fr minmax(0, 175px);
+        padding: 10px 12px;
+        gap: 10px;
         overflow: visible;
-        padding-bottom: 100px; /* Room for bottom bar */
+        align-items: start;
+        box-sizing: border-box;
     }
 
     .role-main-section {
         order: 1;
+        min-width: 0;
     }
 
     .role-title {
-        font-size: 1.15rem;
-        margin-bottom: 10px;
-        padding-bottom: 10px;
+        font-size: 1.05rem;
+        margin-bottom: 6px;
+        padding-bottom: 6px;
         text-align: center;
     }
 
     .role-description {
-        font-size: 0.85rem;
-        line-height: 1.55;
+        font-size: 0.8rem;
+        line-height: 1.45;
         text-align: center;
     }
 
     /* ----------------------------------------
-       WORKER CARD: Centered with "Current:" above
+       WORKER CARD: Beside role title/description
        ---------------------------------------- */
     .role-worker-card {
         order: 2;
-        padding: 12px 16px;
-        min-height: auto;
+        padding: 8px;
+        min-height: 150px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
         box-shadow: none;
         border-width: 1px;
-        max-width: 280px;
-        margin: 0 auto;
+        width: 100%;
+        min-width: 0;
+        max-width: 175px;
+        overflow: visible;
+        box-sizing: border-box;
     }
 
     .worker-card-header {
-        border-bottom: none;
-        padding: 0;
-        margin: 0;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 0 0 4px 0;
+        margin: 0 0 4px 0;
         width: 100%;
         text-align: center;
     }
 
     .worker-card-header .worker-label {
-        font-size: 0.65rem;
+        font-size: 0.55rem;
         writing-mode: horizontal-tb;
         text-orientation: unset;
         transform: none;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
     }
 
@@ -3593,16 +3321,87 @@ body[data-current-role="cogitarian"] .action-button.primary {
         align-items: center;
         gap: 8px;
         text-align: center;
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    /* Truncate long names and handles inside worker card */
+    .worker-details a,
+    .worker-details .worker-name,
+    .worker-details .worker-handle {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
+    }
+
+    /* Force compact font sizes inside worker card (overrides inline styles) */
+    .role-worker-card .worker-details .worker-name {
+        font-size: 0.8rem !important;
+    }
+
+    .role-worker-card .worker-details .worker-handle {
+        font-size: 0.6rem !important;
+    }
+
+    .role-worker-card .worker-details > div {
+        max-width: 100%;
+        overflow: hidden;
     }
 
     .worker-details img.greeter-avatar {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
+    }
+
+    /* Carousel slides text truncation */
+    .dreamstyler-slide a {
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .dreamstyler-slide a div {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Become/Join buttons inside worker card */
+    .become-role-btn {
+        font-size: 0.65rem !important;
+        padding: 0.35rem 0.5rem !important;
+        letter-spacing: 0.3px !important;
+        max-width: 100%;
+        word-break: break-word;
+        white-space: normal;
+        line-height: 1.3;
+        box-sizing: border-box;
+    }
+
+    /* Challenge button compact */
+    .challenge-btn {
+        font-size: 0.6rem !important;
+        padding: 0.2rem 0.4rem !important;
+        letter-spacing: 0.3px !important;
+        max-width: 100%;
+        word-break: break-word;
+        white-space: normal;
+        line-height: 1.25;
+    }
+
+    /* Carousel arrows smaller on mobile */
+    .carousel-arrow {
+        font-size: 0.9rem !important;
+        padding: 0.15rem !important;
+        flex-shrink: 0;
     }
 
     /* Role separator */
     .role-separator {
-        margin: 8px 0;
+        margin: 2px 0;
     }
 
     /* ----------------------------------------
@@ -3612,19 +3411,34 @@ body[data-current-role="cogitarian"] .action-button.primary {
         overflow: visible;
     }
 
+    /* Bottom padding for drawer footer — applied to each content section */
+    .mapper-content-container,
+    .cogitarian-content-container,
+    .provisioner-content-container,
+    .dreamstyler-content-container,
+    .bursar-content-container,
+    .cheerful-content-container,
+    .guardian-content-container {
+        padding-bottom: 80px;
+    }
+
+    .role-content-area {
+        padding-bottom: 80px;
+    }
+
     /* Greeter Content */
     .greeter-eventstack-container {
-        padding: 12px;
+        padding: 10px;
     }
 
     .greeter-content-grid {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
     }
 
     .greeter-eventstack-section {
-        padding: 12px;
+        padding: 10px;
     }
 
     .eventstack-title {
@@ -3677,12 +3491,12 @@ body[data-current-role="cogitarian"] .action-button.primary {
 
     /* Mapper Content */
     .mapper-content-container {
-        padding: 12px;
+        padding: 10px;
     }
 
     .mapper-columns {
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
     }
 
     .mapper-column-left,
@@ -3692,14 +3506,19 @@ body[data-current-role="cogitarian"] .action-button.primary {
 
     /* Cogitarian Content */
     .cogitarian-content-container {
-        padding: 12px;
+        padding: 10px;
     }
 
     .cogitarian-content-grid {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
         margin: 0;
+    }
+
+    /* History of Improvement above Keeper's Repository on mobile */
+    .cogitarian-content-grid > .repo-data-box {
+        order: -1;
     }
 
     .repo-card {
@@ -3707,94 +3526,98 @@ body[data-current-role="cogitarian"] .action-button.primary {
     }
 
     .repo-card-header {
-        padding: 12px 14px;
+        padding: 10px 14px;
     }
 
     .repo-card-title {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
 
     .repo-card-actions {
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 8px;
-        padding: 12px;
+        gap: 6px;
+        padding: 10px;
     }
 
     .repo-action-btn {
         flex: 1;
-        min-width: calc(50% - 8px);
-        padding: 10px 12px;
-        font-size: 0.75rem;
+        min-width: calc(50% - 6px);
+        padding: 8px 10px;
+        font-size: 0.72rem;
         justify-content: center;
     }
 
     .repo-info {
-        padding: 12px;
+        padding: 10px;
+        font-size: 0.78rem;
     }
 
     .repo-data-box {
-        max-height: 220px;
+        max-height: 200px;
+        max-width: 100%;
     }
 
     .repo-data-header {
-        font-size: 0.9rem;
-        padding: 10px 14px;
+        font-size: 0.85rem;
+        padding: 8px 12px;
     }
 
     /* Provisioner Content */
     .provisioner-content-container {
-        padding: 12px;
+        padding: 10px;
     }
 
     .provisioner-content-grid {
-        gap: 12px;
+        gap: 10px;
     }
 
     .provisioner-box {
-        padding: 14px;
+        padding: 12px;
     }
 
     .provisioner-box-title {
-        font-size: 1rem;
-        margin-bottom: 10px;
+        font-size: 0.95rem;
+        margin-bottom: 8px;
     }
 
     .provisioner-box-text {
-        font-size: 0.85rem;
-        margin-bottom: 10px;
+        font-size: 0.82rem;
+        margin-bottom: 8px;
+        line-height: 1.5;
     }
 
     .provisioner-box-button {
-        padding: 12px 18px;
-        font-size: 0.8rem;
+        padding: 10px 14px;
+        font-size: 0.78rem;
     }
 
     /* Bursar Content */
     .bursar-content-container {
-        padding: 12px;
+        padding: 10px;
     }
 
     .bursar-box {
-        padding: 14px;
+        padding: 12px;
     }
 
     .bursar-box-title {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 
     .bursar-box-text {
-        font-size: 0.85rem;
+        font-size: 0.82rem;
+        line-height: 1.5;
     }
 
     .bursar-box-actions {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
 
     .bursar-box-button {
-        padding: 12px 18px;
-        font-size: 0.8rem;
+        padding: 10px 14px;
+        font-size: 0.78rem;
     }
 }
 
@@ -3806,34 +3629,6 @@ body[data-current-role="cogitarian"] .action-button.primary {
         top: 60px !important;
     }
 
-    .work-sidebar {
-        padding: 12px 14px;
-        gap: 10px;
-    }
-
-    .sidebar-avatar-container {
-        width: 36px;
-        height: 36px;
-    }
-
-    .sidebar-user-name {
-        font-size: 0.8rem;
-    }
-
-    .sidebar-user-handle {
-        font-size: 0.6rem;
-    }
-
-    .status-badge {
-        font-size: 0.6rem;
-        padding: 3px 8px;
-    }
-
-    .sidebar-login-btn {
-        padding: 8px 16px;
-        font-size: 0.75rem;
-    }
-
     .role-tab {
         padding: 10px 5px;
     }
@@ -3843,31 +3638,30 @@ body[data-current-role="cogitarian"] .action-button.primary {
         height: 18px;
     }
 
-    .role-tab-name {
-        font-size: 0.55rem;
-    }
-
     .role-card-body {
-        padding: 14px;
-        gap: 14px;
+        padding: 8px 10px;
+        gap: 8px;
+        grid-template-columns: 1fr minmax(0, 150px);
     }
 
     .role-title {
-        font-size: 1.05rem;
+        font-size: 1rem;
     }
 
     .role-description {
-        font-size: 0.8rem;
+        font-size: 0.78rem;
     }
 
     .role-worker-card {
-        padding: 10px 14px;
-        max-width: 240px;
+        padding: 6px;
+        max-width: 150px;
+        min-height: 135px;
+        box-sizing: border-box;
     }
 
     .worker-details img.greeter-avatar {
-        width: 42px;
-        height: 42px;
+        width: 36px;
+        height: 36px;
     }
 
     /* Content areas */
@@ -3875,8 +3669,11 @@ body[data-current-role="cogitarian"] .action-button.primary {
     .mapper-content-container,
     .cogitarian-content-container,
     .provisioner-content-container,
-    .bursar-content-container {
-        padding: 10px;
+    .dreamstyler-content-container,
+    .bursar-content-container,
+    .cheerful-content-container,
+    .guardian-content-container {
+        padding: 8px;
     }
 
     .greeter-eventstack {
@@ -3914,47 +3711,34 @@ body[data-current-role="cogitarian"] .action-button.primary {
    TINY MOBILE (360px) - Minimum viable
    ============================================ */
 @media (max-width: 360px) {
-    .work-sidebar {
-        padding: 10px 12px;
-        gap: 8px;
-    }
-
-    .sidebar-avatar-container {
-        width: 32px;
-        height: 32px;
-    }
-
-    .sidebar-user-name {
-        font-size: 0.75rem;
-    }
-
     .role-tab {
         padding: 8px 4px;
     }
 
-    .role-tab-name {
-        display: none;
-    }
-
     .role-tab-icon {
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
     }
 
     .role-card-body {
-        padding: 12px;
+        padding: 6px 8px;
+        gap: 6px;
+        grid-template-columns: 1fr minmax(0, 130px);
     }
 
     .role-title {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
 
     .role-description {
-        font-size: 0.75rem;
+        font-size: 0.72rem;
     }
 
     .role-worker-card {
-        max-width: 200px;
+        max-width: 130px;
+        min-height: 120px;
+        padding: 5px;
+        box-sizing: border-box;
     }
 
     .greeter-right-section {
@@ -3991,8 +3775,21 @@ body[data-current-role="cogitarian"] .action-button.primary {
 }
 
 @media (max-width: 768px) {
+    .cheerful-content-container {
+        padding: 10px;
+    }
+
     .cheerful-content-grid {
         grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .cheerful-list-card {
+        height: 220px;
+    }
+
+    .cheerful-right-column {
+        order: -1;
     }
 }
 
@@ -4190,8 +3987,17 @@ body[data-current-role="cogitarian"] .action-button.primary {
 }
 
 @media (max-width: 768px) {
+    .guardian-content-container {
+        padding: 10px;
+    }
+
     .guardian-content-grid {
         grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .guardian-list-card {
+        height: 220px;
     }
 }
 

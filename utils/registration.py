@@ -467,6 +467,14 @@ def register_dreamer(
                     epoch_date = 'invalid'
                 print(f"      Epoch: {epoch} ({epoch_date})")
                 print(f"      URI: {uri}")
+
+            # Invalidate guestbook cache if this is a name event
+            if key == 'name':
+                try:
+                    from admin import invalidate_guestbook_cache
+                    invalidate_guestbook_cache()
+                except Exception:
+                    pass  # cache will expire naturally
         
         try:
             spectrum = spectrum_mgr.generate_spectrum(did, server)

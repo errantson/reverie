@@ -164,10 +164,10 @@ class ReaderWidget {
     }
 
     showReaderView() {
-        // Hide entire library page container
+        // Hide entire library page container (use class to beat !important)
         const libraryContainer = document.querySelector('.library-page-container');
         if (libraryContainer) {
-            libraryContainer.style.display = 'none';
+            libraryContainer.classList.add('library-hidden');
         }
 
         // Show main-content wrapper and reader
@@ -195,10 +195,10 @@ class ReaderWidget {
             mainContent.style.display = 'none';
         }
 
-        // Show library page container
+        // Show library page container (remove class-based hiding)
         const libraryContainer = document.querySelector('.library-page-container');
         if (libraryContainer) {
-            libraryContainer.style.display = 'grid';
+            libraryContainer.classList.remove('library-hidden');
         }
 
         document.body.classList.remove('reading-mode');

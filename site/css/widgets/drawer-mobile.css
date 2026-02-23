@@ -7,6 +7,19 @@
    ============================================================================ */
 
 /* ============================================================================
+   MOBILE: DRAWER SUPPRESSED — replaced by tab-nav + /me page
+   ============================================================================ */
+@media (max-width: 768px) {
+    .drawer-container,
+    .drawer-widget,
+    .drawer-tab-bar,
+    .drawer-overlay {
+        display: none !important;
+        pointer-events: none !important;
+    }
+}
+
+/* ============================================================================
    MOBILE DRAWER CONTAINER
    ============================================================================ */
 @media (max-width: 768px) and (orientation: portrait),

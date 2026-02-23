@@ -68,6 +68,15 @@
         if (loadingEl) loadingEl.style.display = 'flex';
         if (guestEl) guestEl.style.display = 'none';
         if (userEl) userEl.style.display = 'none';
+        
+        // Mobile user section
+        const mobileLoadingEl = document.getElementById('mobile-user-loading');
+        const mobileGuestEl = document.getElementById('mobile-user-guest');
+        const mobileUserEl = document.getElementById('mobile-user-info');
+        
+        if (mobileLoadingEl) mobileLoadingEl.style.display = 'flex';
+        if (mobileGuestEl) mobileGuestEl.style.display = 'none';
+        if (mobileUserEl) mobileUserEl.style.display = 'none';
     }
     
     function showSidebarGuest() {
@@ -78,12 +87,26 @@
         if (loadingEl) loadingEl.style.display = 'none';
         if (guestEl) guestEl.style.display = 'flex';
         if (userEl) userEl.style.display = 'none';
+        
+        // Mobile user section
+        const mobileLoadingEl = document.getElementById('mobile-user-loading');
+        const mobileGuestEl = document.getElementById('mobile-user-guest');
+        const mobileUserEl = document.getElementById('mobile-user-info');
+        
+        if (mobileLoadingEl) mobileLoadingEl.style.display = 'none';
+        if (mobileGuestEl) mobileGuestEl.style.display = 'flex';
+        if (mobileUserEl) mobileUserEl.style.display = 'none';
     }
     
     async function updateSidebarUser(session) {
         const loadingEl = document.getElementById('sidebar-loading');
         const guestEl = document.getElementById('sidebar-guest');
         const userEl = document.getElementById('sidebar-user');
+        
+        // Mobile user section elements
+        const mobileLoadingEl = document.getElementById('mobile-user-loading');
+        const mobileGuestEl = document.getElementById('mobile-user-guest');
+        const mobileUserEl = document.getElementById('mobile-user-info');
         
         if (!session || !session.profile) {
             showSidebarGuest();
@@ -96,16 +119,25 @@
         const avatar = profile.avatar || '/assets/icon_face.png';
         const did = session.sub || session.did;
         
-        // Update avatar
+        // Update desktop sidebar avatar
         const avatarEl = document.getElementById('sidebar-avatar');
         if (avatarEl) {
             avatarEl.src = avatar;
             avatarEl.alt = displayName;
         }
         
+        // Update mobile user avatar
+        const mobileAvatarEl = document.getElementById('mobile-user-avatar');
+        if (mobileAvatarEl) {
+            mobileAvatarEl.src = avatar;
+            mobileAvatarEl.alt = displayName;
+        }
+        
         // Update name and handle with user color
         const nameEl = document.getElementById('sidebar-user-name');
         const handleEl = document.getElementById('sidebar-user-handle');
+        const mobileNameEl = document.getElementById('mobile-user-name');
+        const mobileHandleEl = document.getElementById('mobile-user-handle');
         
         // Fetch user color from database
         let userColor = '#8b7355'; // Default color
@@ -120,16 +152,29 @@
             console.warn('Failed to fetch user color:', error);
         }
         
+        // Desktop sidebar
         if (nameEl) {
             nameEl.textContent = displayName;
             nameEl.style.color = userColor;
         }
         if (handleEl) handleEl.textContent = `@${handle}`;
         
-        // Show user section
+        // Mobile user section
+        if (mobileNameEl) {
+            mobileNameEl.textContent = displayName;
+            mobileNameEl.style.color = userColor;
+        }
+        if (mobileHandleEl) mobileHandleEl.textContent = `@${handle}`;
+        
+        // Show user section (desktop)
         if (loadingEl) loadingEl.style.display = 'none';
         if (guestEl) guestEl.style.display = 'none';
         if (userEl) userEl.style.display = 'flex';
+        
+        // Show user section (mobile)
+        if (mobileLoadingEl) mobileLoadingEl.style.display = 'none';
+        if (mobileGuestEl) mobileGuestEl.style.display = 'none';
+        if (mobileUserEl) mobileUserEl.style.display = 'flex';
         
         console.log('🎨 [Work] Sidebar user updated:', displayName, 'color:', userColor);
     }
@@ -142,7 +187,10 @@
         }
         
         const statusContentEl = document.getElementById('sidebar-status-content');
-        if (!statusContentEl) return;
+        const mobileStatusContentEl = document.getElementById('mobile-user-status-content');
+        
+        // Need at least one target element
+        if (!statusContentEl && !mobileStatusContentEl) return;
         
         console.log('🎨 [Work] updateSidebarWorkStatus called, checking roleStatuses...');
         console.log('🎨 [Work] roleStatuses.cheerful:', roleStatuses.cheerful);
@@ -181,9 +229,9 @@
         
         if (!userRole) {
             // Not working - show as DREAMWEAVER
-            statusContentEl.innerHTML = `
-                <span class="status-badge not-working">DREAMWEAVER</span>
-            `;
+            const badgeHtml = `<span class="status-badge not-working">DREAMWEAVER</span>`;
+            if (statusContentEl) statusContentEl.innerHTML = badgeHtml;
+            if (mobileStatusContentEl) mobileStatusContentEl.innerHTML = badgeHtml;
             console.log('🎨 [Work] Sidebar status: Dreamweaver');
             return;
         }
@@ -247,7 +295,12 @@
             `;
         }
         
-        statusContentEl.innerHTML = statusHtml;        console.log('🎨 [Work] Sidebar status updated:', statusText, roleTitle);
+        statusContentEl.innerHTML = statusHtml;
+        // Also update mobile status (badge only, no action buttons)
+        if (mobileStatusContentEl) {
+            mobileStatusContentEl.innerHTML = `<span class="status-badge ${statusClass} role-${userRole}">${roleTitle}</span>`;
+        }
+        console.log('🎨 [Work] Sidebar status updated:', statusText, roleTitle);
     }
     
     // Listen for custom work status update events

@@ -12,13 +12,13 @@ class UploadAvatar {
     async initiate() {
         console.log('🖼️ [UploadAvatar] Initiate called');
         
-        // Get PDS session from login
+        // Get PDS session from login (try multiple sources)
         const pdsSessionStr = localStorage.getItem('pds_session');
         if (pdsSessionStr) {
             try {
                 const pdsSession = JSON.parse(pdsSessionStr);
                 if (pdsSession.accessJwt && pdsSession.did) {
-                    console.log('🔑 [UploadAvatar] Using session for avatar upload');
+                    console.log('🔑 [UploadAvatar] Using pds_session for avatar upload');
                     this.pdsSession = pdsSession;
                     this.showAvatarUpload();
                     return;
@@ -26,6 +26,31 @@ class UploadAvatar {
             } catch (e) {
                 console.warn('[UploadAvatar] Failed to parse pds_session:', e);
             }
+        }
+
+        // Try OAuth session
+        const oauthSession = window.oauthManager?.getSession?.() || window.oauthManager?.currentSession;
+        if (oauthSession?.accessJwt && (oauthSession.did || oauthSession.sub)) {
+            console.log('🔑 [UploadAvatar] Using OAuth session for avatar upload');
+            this.pdsSession = {
+                accessJwt: oauthSession.accessJwt,
+                did: oauthSession.did || oauthSession.sub,
+                serviceEndpoint: oauthSession.serviceEndpoint || oauthSession.pdsEndpoint,
+            };
+            this.showAvatarUpload();
+            return;
+        }
+
+        // Try MePage session
+        if (window.MePage?.session && window.MePage?.getToken?.()) {
+            console.log('🔑 [UploadAvatar] Using MePage session for avatar upload');
+            this.pdsSession = {
+                accessJwt: window.MePage.getToken(),
+                did: window.MePage.session.did,
+                serviceEndpoint: window.MePage.session.serviceEndpoint || window.MePage.session.pdsEndpoint,
+            };
+            this.showAvatarUpload();
+            return;
         }
         
         // No valid session - show error
@@ -45,9 +70,17 @@ class UploadAvatar {
             </div>
         `;
         document.body.appendChild(this.modal);
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) this.cancel();
+        });
     }
 
     showAvatarUpload() {
+        // Get current avatar from MePage dreamer data or profile strip
+        const currentAvatar = window.MePage?.dreamer?.avatar
+            || document.getElementById('meAvatarImg')?.src
+            || '/assets/icon_face.png';
+
         this.modal = document.createElement('div');
         this.modal.className = 'avatar-upload-modal';
         this.modal.innerHTML = `
@@ -56,7 +89,7 @@ class UploadAvatar {
                 <p>Choose a new avatar image for your profile.</p>
                 
                 <div class="avatar-preview-area">
-                    <img id="avatarPreview" src="/assets/icon_face.png" alt="Avatar preview">
+                    <img id="avatarPreview" src="${currentAvatar}" alt="Avatar preview">
                 </div>
                 
                 <div class="avatar-file-input-group">
@@ -78,6 +111,11 @@ class UploadAvatar {
             </div>
         `;
         document.body.appendChild(this.modal);
+
+        // Close modal when clicking outside the content
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) this.cancel();
+        });
     }
 
     previewImage(input) {

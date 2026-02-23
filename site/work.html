@@ -283,6 +283,7 @@
     <script src="/js/widgets/eventstack.js?v=1765642847"></script>
     
     <!-- Header and drawer widgets -->
+    <script src="/js/core/avatar-cache.js" defer></script>
     <script src="/js/widgets/header.js" defer></script>
     <script type="module" src="/js/widgets/oauth-manager.js"></script>
     <script src="/js/widgets/login.js" defer></script>
@@ -372,6 +373,45 @@
         <div class="work-content">
             <!-- Role Content Card -->
             <div class="role-card">
+                <!-- Mobile User Section (hidden on desktop, shown above role tabs on mobile) -->
+                <div class="work-mobile-user-section" id="work-mobile-user-section">
+                    <!-- Loading State -->
+                    <div id="mobile-user-loading" class="mobile-user-loading">
+                        <div class="loading-spinner"></div>
+                        <span class="loading-text">Checking session...</span>
+                    </div>
+                    <!-- Guest State -->
+                    <div id="mobile-user-guest" class="mobile-user-guest" style="display: none;">
+                        <div class="mobile-guest-philosophy">
+                            <p>Work is self-assigned and voluntary.</p>
+                        </div>
+                        <button class="mobile-user-login-btn" onclick="triggerLogin()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Dreamweaver Login
+                        </button>
+                    </div>
+                    <!-- User Logged In -->
+                    <div id="mobile-user-info" class="mobile-user-info" style="display: none;">
+                        <div class="mobile-user-identity">
+                            <div class="mobile-user-avatar-wrap">
+                                <img id="mobile-user-avatar" src="/assets/icon_face.png" alt="Avatar" class="mobile-user-avatar">
+                            </div>
+                            <div class="mobile-user-details">
+                                <div id="mobile-user-name" class="mobile-user-name">Loading...</div>
+                                <div id="mobile-user-handle" class="mobile-user-handle">@...</div>
+                            </div>
+                        </div>
+                        <div class="mobile-user-role-status">
+                            <div id="mobile-user-status-content" class="mobile-user-status-content">
+                                <span class="status-badge not-working">DREAMWEAVER</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Role Tabs Container -->
                 <div class="role-tabs-carousel">
                     <div id="core-roles-panel" class="role-panel active" data-panel="core">
@@ -1289,27 +1329,15 @@
             const dreamstylerMobile = document.getElementById('mobile-option-dreamstyler');
             const cheerfulMobile = document.getElementById('mobile-option-cheerful');
             
-            console.log('🎨 [Visibility] Checking tabs:', {
-                bursarTab: !!bursarTab,
-                dreamstylerTab: !!dreamstylerTab,
-                cheerfulTab: !!cheerfulTab,
-                bursarMobile: !!bursarMobile,
-                dreamstylerMobile: !!dreamstylerMobile,
-                cheerfulMobile: !!cheerfulMobile,
-                isAdminUser: isAdminUser
-            });
-            
             // Bursar is always visible (public)
             if (bursarTab) {
                 bursarTab.style.display = 'flex';
-                console.log('💰 [Visibility] Bursar tab shown (public)');
             }
             if (bursarMobile) bursarMobile.style.display = '';
             
             // Dreamstyler is always visible (public)
             if (dreamstylerTab) {
                 dreamstylerTab.style.display = 'flex';
-                console.log('✨ [Visibility] Dreamstyler tab shown (public)');
             } else {
                 console.error('❌ [Visibility] Dreamstyler tab not found in DOM!');
             }
@@ -1332,12 +1360,6 @@
             }
         }
         
-        // Legacy function name for backward compatibility
-        function enforceProvisionerVisibility() {
-            // Now handled by updateAdminRoleVisibility
-            updateAdminRoleVisibility();
-        }
-
         // Role selection function
         function selectRole(role, options = {}) {
             const skipPushState = options.skipPushState || false;
@@ -1398,85 +1420,43 @@
             
             // Update current worker display based on role
             if (role === 'cogitarian') {
-                // Load role status for cogitarian
                 loadRoleStatus(role);
-                // Hide spectrum preview widget for cogitarian
                 hideSpectrumPreview();
-                // Hide eventstack for cogitarian
                 hideEventStack();
-                // Hide mapper content for cogitarian
                 hideMapperContent();
-                // Hide provisioner content for cogitarian
                 hideProvisionerContent();
-                // Hide dreamstyler content for cogitarian
                 hideDreamstylerContent();
-                // Hide bursar content for cogitarian
                 hideBursarContent();
-                // Hide cheerful content for cogitarian
                 hideCheerfulContent();
-                // Hide guardian content for cogitarian
                 hideGuardianContent();
-                // Show cogitarian content
                 showCogitarianContent();
             } else if (role === 'mapper') {
-                // Load role status for mapper and THEN update spectrum preview
                 loadRoleStatus(role).then(() => {
-                    // After role status is loaded, update spectrum preview with correct mapper status
                     updateSpectrumPreview(role);
                 });
-                // Generate random origin coordinates
                 updateOriginCoordinateExample();
-                // Hide eventstack for mapper
                 hideEventStack();
-                // Hide cogitarian content for mapper
                 hideCogitarianContent();
-                // Hide provisioner content for mapper
                 hideProvisionerContent();
-                // Hide dreamstyler content for mapper
                 hideDreamstylerContent();
-                // Hide bursar content for mapper
                 hideBursarContent();
-                // Hide cheerful content for mapper
                 hideCheerfulContent();
-                // Hide guardian content for mapper
                 hideGuardianContent();
-                // Hide provisioner content for mapper
-                hideProvisionerContent();
-                // Hide dreamstyler content for mapper
-                hideDreamstylerContent();
-                // Hide bursar content for mapper
-                hideBursarContent();
-                // Hide cheerful content for mapper
-                hideCheerfulContent();
-                // Show mapper content
                 showMapperContent();
             } else if (role === 'greeter') {
-                // Load role status for greeter
                 loadRoleStatus(role);
-                // Load greeting events for eventstack
                 loadGreetingEvents();
-                // Show eventstack for greeter
                 showEventStack();
-                // Hide spectrum preview widget for greeter
                 hideSpectrumPreview();
-                // Hide mapper content for greeter
                 hideMapperContent();
-                // Hide cogitarian content for greeter
                 hideCogitarianContent();
-                // Hide provisioner content for greeter
                 hideProvisionerContent();
-                // Hide dreamstyler content for greeter
                 hideDreamstylerContent();
-                // Hide bursar content for greeter
                 hideBursarContent();
-                // Hide cheerful content for greeter
                 hideCheerfulContent();
-                // Hide guardian content for greeter
                 hideGuardianContent();
             } else if (role === 'provisioner') {
-                // Load role status for provisioner
                 loadRoleStatus(role);
-                // Hide all role-specific content for provisioner
                 hideEventStack();
                 hideSpectrumPreview();
                 hideMapperContent();
@@ -1490,9 +1470,7 @@
                 // Populate food request form with user data
                 populateFoodRequestForm();
             } else if (role === 'dreamstyler') {
-                // Load role status for dreamstyler
                 loadRoleStatus(role);
-                // Hide all other content
                 hideEventStack();
                 hideSpectrumPreview();
                 hideMapperContent();
@@ -1504,9 +1482,7 @@
                 // Show dreamstyler content
                 showDreamstylerContent();
             } else if (role === 'bursar') {
-                // Load role status for bursar
                 loadRoleStatus(role);
-                // Hide all other content
                 hideEventStack();
                 hideSpectrumPreview();
                 hideMapperContent();
@@ -1518,9 +1494,7 @@
                 // Show bursar content
                 showBursarContent();
             } else if (role === 'cheerful') {
-                // Load role status for cheerful
                 loadRoleStatus(role);
-                // Hide all other content
                 hideEventStack();
                 hideSpectrumPreview();
                 hideMapperContent();
@@ -1532,9 +1506,7 @@
                 // Show cheerful content
                 showCheerfulContent();
             } else if (role === 'guardian') {
-                // Load role status for guardian (admin only)
                 loadRoleStatus(role);
-                // Hide all other content
                 hideEventStack();
                 hideSpectrumPreview();
                 hideMapperContent();
@@ -1591,9 +1563,6 @@
             // Always enable the calculator (removed mapper check)
             const hasActiveMapper = true;
             
-            console.log('🔍 [SPECTRUM] updateSpectrumPreview called');
-            console.log('🔍 [SPECTRUM] hasActiveMapper:', hasActiveMapper);
-            
             // Get the current mapper's handle for the preview image
             let mapperHandle = null;
             const mapperStatus = roleStatuses.mapper;
@@ -1637,17 +1606,17 @@
         }
         
         function showEventStack() {
-            const container = document.getElementById('greeter-eventstack-section');
-            if (container) {
-                container.style.display = 'block';
-            }
+            const section = document.getElementById('greeter-eventstack-section');
+            const wrapper = document.querySelector('.role-content-area');
+            if (section) section.style.display = 'block';
+            if (wrapper) wrapper.style.display = '';
         }
         
         function hideEventStack() {
-            const container = document.getElementById('greeter-eventstack-section');
-            if (container) {
-                container.style.display = 'none';
-            }
+            const section = document.getElementById('greeter-eventstack-section');
+            const wrapper = document.querySelector('.role-content-area');
+            if (section) section.style.display = 'none';
+            if (wrapper) wrapper.style.display = 'none';
         }
         
         function showMapperContent() {
@@ -2382,7 +2351,6 @@ We'd be endebted to your help.`;
                     // Create the post using oauthManager
                     await window.oauthManager.createPost(postText, record);
                     
-                    console.log('Entreat posted successfully');
                     closePopup();
                     showCelebration(`Request sent to @${dreamstylerHandle}`, 'success');
                     
@@ -2465,22 +2433,15 @@ We'd be endebted to your help.`;
         }
         
         function showCheerfulContent() {
-            console.log('🌸 [Cheerful] showCheerfulContent() called');
             const container = document.getElementById('cheerful-content-section');
-            console.log('🌸 [Cheerful] Container element:', container);
             if (container) {
                 container.style.display = 'block';
-                console.log('🌸 [Cheerful] Container shown, loading data...');
-                // Load cheerful data when showing
                 loadCheerfulList();
                 loadCheerfulStats();
-            } else {
-                console.log('🌸 [Cheerful] Container NOT FOUND!');
             }
         }
         
         function hideCheerfulContent() {
-            console.log('🌸 [Cheerful] hideCheerfulContent() called');
             const container = document.getElementById('cheerful-content-section');
             if (container) {
                 container.style.display = 'none';
@@ -2958,7 +2919,6 @@ We'd be endebted to your help.`;
                                        currentSession.serviceEndpoint || 
                                        'https://bsky.social';
                     requestBody.pds_endpoint = pdsEndpoint;
-                    console.log('🛡️ Including info to remove labeler subscription');
                 }
                 
                 const response = await fetch('/api/guardian/leave', {
@@ -3114,7 +3074,6 @@ We'd be endebted to your help.`;
                                        currentSession.serviceEndpoint || 
                                        'https://bsky.social';
                     requestBody.pds_endpoint = pdsEndpoint;
-                    console.log('🛡️ Including labeler subscription info for', type);
                 }
                 
                 const response = await fetch('/api/guardian/become', {
@@ -3154,30 +3113,21 @@ We'd be endebted to your help.`;
         // Load cheerful members list
         async function loadCheerfulList() {
             const listContainer = document.getElementById('cheerful-list');
-            console.log('🌸 [Cheerful List] Starting to load cheerful list...');
-            console.log('🌸 [Cheerful List] List container element:', listContainer);
             if (!listContainer) {
-                console.log('🌸 [Cheerful List] No list container found, returning');
                 return;
             }
             
             try {
-                console.log('🌸 [Cheerful List] Fetching /api/work/cheerful/status...');
                 const response = await fetch('/api/work/cheerful/status');
-                console.log('🌸 [Cheerful List] Response status:', response.status);
                 if (!response.ok) throw new Error('Failed to fetch cheerful status');
                 
                 const data = await response.json();
-                console.log('🌸 [Cheerful List] Response data:', data);
                 let workers = data.role_info?.workers || [];
-                console.log('🌸 [Cheerful List] Workers found:', workers.length, workers);
                 
                 // Apply guardian filtering
                 workers = filterWorkersByGuardian(workers);
-                console.log('🌸 [Cheerful List] After filtering:', workers.length);
                 
                 if (workers.length === 0) {
-                    console.log('🌸 [Cheerful List] No workers, showing empty message');
                     listContainer.innerHTML = `
                         <div class="cheerful-empty">
                             <div class="cheerful-empty-text">None among The Cheerful yet</div>
@@ -3187,7 +3137,6 @@ We'd be endebted to your help.`;
                 }
                 
                 // Fetch all worker details in parallel
-                console.log('🌸 [Cheerful List] Fetching worker details...');
                 const workerPromises = workers.map(async (worker) => {
                     try {
                         const dreamerRes = await fetch(`/api/dreamers/${worker.did}`);
@@ -3249,11 +3198,8 @@ We'd be endebted to your help.`;
             const likesEl = document.getElementById('cheerful-total-likes');
             const cheeredEl = document.getElementById('cheerful-folks-cheered');
             
-            console.log('🌸 [Cheerful Stats] Starting to load cheerful statistics...');
-            
             try {
                 // Get cheerful workers
-                console.log('🌸 [Cheerful Stats] Fetching /api/work/cheerful/status...');
                 const response = await fetch('/api/work/cheerful/status');
                 if (!response.ok) {
                     console.error('🌸 [Cheerful Stats] Failed to fetch status:', response.status);
@@ -3262,7 +3208,6 @@ We'd be endebted to your help.`;
                 
                 const data = await response.json();
                 const workers = data.role_info?.workers || [];
-                console.log('🌸 [Cheerful Stats] Found', workers.length, 'cheerful workers:', workers);
                 
                 // Member count is set by loadCheerfulList
                 
@@ -3272,7 +3217,6 @@ We'd be endebted to your help.`;
                 let folksSet = new Set();
                 
                 for (const worker of workers) {
-                    console.log('🌸 [Cheerful Stats] Processing worker:', worker.did);
                     try {
                         // Fetch likes from PDS directly with pagination
                         let cursor = null;
@@ -3282,11 +3226,8 @@ We'd be endebted to your help.`;
                         do {
                             // Use com.atproto.repo.listRecords to get like records from the PDS
                             const url = `/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(worker.did)}&collection=app.bsky.feed.like&limit=100${cursor ? '&cursor=' + encodeURIComponent(cursor) : ''}`;
-                            console.log('🌸 [Cheerful Stats] Fetching likes page', pageCount + 1, 'for', worker.did);
-                            console.log('🌸 [Cheerful Stats] URL:', url);
                             
                             const likesRes = await fetch(url);
-                            console.log('🌸 [Cheerful Stats] Response status:', likesRes.status);
                             
                             if (likesRes.ok) {
                                 const likesData = await likesRes.json();
@@ -3294,10 +3235,6 @@ We'd be endebted to your help.`;
                                 pageCount++;
                                 workerLikes += records.length;
                                 totalLikes += records.length;
-                                
-                                console.log('🌸 [Cheerful Stats] Page', pageCount, 'returned', records.length, 'likes');
-                                console.log('🌸 [Cheerful Stats] Worker total so far:', workerLikes);
-                                console.log('🌸 [Cheerful Stats] Grand total so far:', totalLikes);
                                 
                                 // Count unique folks cheered by extracting DIDs from subject URIs
                                 for (const record of records) {
@@ -3310,10 +3247,8 @@ We'd be endebted to your help.`;
                                         }
                                     }
                                 }
-                                console.log('🌸 [Cheerful Stats] Unique folks cheered so far:', folksSet.size);
                                 
                                 cursor = likesData.cursor;
-                                console.log('🌸 [Cheerful Stats] Cursor for next page:', cursor ? cursor : 'none (done)');
                                 
                                 // Animate count up as we fetch
                                 if (likesEl) {
@@ -3329,15 +3264,12 @@ We'd be endebted to your help.`;
                             }
                         } while (cursor);
                         
-                        console.log('🌸 [Cheerful Stats] Finished worker', worker.did, '- total likes:', workerLikes);
-                        
                     } catch (e) {
                         console.error('🌸 [Cheerful Stats] Failed to fetch likes for', worker.did, e);
                     }
                 }
                 
                 // Final update
-                console.log('🌸 [Cheerful Stats] FINAL TOTALS - Likes:', totalLikes, 'Folks:', folksSet.size);
                 if (likesEl) likesEl.textContent = totalLikes.toString();
                 if (cheeredEl) cheeredEl.textContent = folksSet.size.toString();
                 
@@ -3397,7 +3329,6 @@ We'd be endebted to your help.`;
                         
                         // If data is stale (no sync time or old), trigger background sync
                         if (!data.oc_last_sync || data.source === 'default' || data.source === 'empty') {
-                            console.log('💰 [Treasury] Data stale, triggering sync...');
                             syncTreasuryData();
                         }
                         return;
@@ -3405,7 +3336,6 @@ We'd be endebted to your help.`;
                 }
                 
                 // Fallback: trigger sync and show loading
-                console.log('💰 [Treasury] No cached data, syncing...');
                 await syncTreasuryData();
                 
             } catch (error) {
@@ -3451,8 +3381,6 @@ We'd be endebted to your help.`;
                             disbursedEl.textContent = `$${data.oc_disbursed.toFixed(2)}`;
                             disbursedEl.title = 'Total amount disbursed from treasury';
                         }
-                        
-                        console.log('✅ [Treasury] Synced successfully');
                     }
                 }
             } catch (error) {
@@ -3471,8 +3399,6 @@ We'd be endebted to your help.`;
         let pendingSchemeRequest = null;
         
         async function submitScheme() {
-            console.log('💰 [Bursar] Submit scheme clicked');
-            
             const input = document.getElementById('scheme-domain-input');
             const domain = input ? input.value.trim() : '';
             
@@ -3490,8 +3416,6 @@ We'd be endebted to your help.`;
             // Gate: Check if user has a .reverie.house handle
             const userHandle = currentSession.profile?.handle || currentSession.handle || '';
             if (!userHandle.endsWith('.reverie.house')) {
-                console.log('🚫 [Scheme Submit] User does not have a .reverie.house handle:', userHandle);
-                
                 // Get bursar handle for the message
                 let bursarHandle = 'the Treasurer';
                 const bursarStatus = roleStatuses.bursar;
@@ -3549,8 +3473,6 @@ We'd be endebted to your help.`;
         }
         
         async function showSchemeConfirmModal(bursarDid, domain) {
-            console.log('💰 [Scheme] Showing confirmation modal');
-            
             // Get bursar info for display
             let bursarName = 'the Treasurer';
             let bursarHandle = '';
@@ -3804,8 +3726,6 @@ We'd be endebted to your help.`;
             
             closeSchemeConfirmModal();
             
-            console.log('📨 [Scheme] Sending to backend...');
-            
             try {
                 let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
                 if (!token && currentSession && currentSession.accessJwt) {
@@ -3828,7 +3748,6 @@ We'd be endebted to your help.`;
                 });
                 
                 if (response.ok) {
-                    console.log('✅ [Scheme] Sent successfully');
                     showCelebration('Scheme submitted! The Treasurer has been notified.', 'success');
                     
                     // Clear the input
@@ -3905,8 +3824,6 @@ We'd be endebted to your help.`;
         let pendingRequestProvisionerDid = null;
         
         async function requestFoodPickup() {
-            console.log('🍽️ [Provisioner] Request food pickup clicked');
-            
             // Check if user is logged in
             if (!currentSession || !currentSession.profile) {
                 triggerLogin();
@@ -3916,8 +3833,6 @@ We'd be endebted to your help.`;
             // Gate: Check if user has a .reverie.house handle
             const userHandle = currentSession.profile?.handle || currentSession.handle || '';
             if (!userHandle.endsWith('.reverie.house')) {
-                console.log('🚫 [Food Request] User does not have a .reverie.house handle:', userHandle);
-                
                 // Get provisioner handle for the message
                 let provisionerHandle = 'the Head of Pantry';
                 const provStatus = roleStatuses.provisioner;
@@ -3985,41 +3900,19 @@ We'd be endebted to your help.`;
                 return;
             }
             
-            console.log('🔐 [Food Request] Using token:', token.substring(0, 20) + '...');
-            
             const headers = { 'Authorization': `Bearer ${token}` };
             
             try {
-                console.log('🔍 [Food Request] Checking for stored app password...');
-                console.log('   - Endpoint: /api/user/credentials/status');
-                console.log('   - Headers:', JSON.stringify(headers));
-                
                 const credResponse = await fetch('/api/user/credentials/status', { headers });
-                
-                console.log('📊 [Food Request] Credentials check response:', credResponse.status, credResponse.statusText);
-                console.log('   - OK:', credResponse.ok);
-                console.log('   - Headers:', Object.fromEntries(credResponse.headers.entries()));
                 
                 if (credResponse.ok) {
                     const credData = await credResponse.json();
-                    console.log('📊 [Food Request] Credentials data received:');
-                    console.log('   - Full response:', JSON.stringify(credData, null, 2));
-                    console.log('   - connected field:', credData.connected, '(type:', typeof credData.connected, ')');
-                    console.log('   - valid field:', credData.valid, '(type:', typeof credData.valid, ')');
                     
                     // Check if user has valid credentials stored
                     if (credData && (credData.connected === true || credData.valid === true)) {
-                        console.log('✅ [Food Request] User has stored credentials, proceeding with city modal');
-                        console.log('   - Storing provisioner DID:', provisionerDid);
-                        // User has credentials, proceed with city modal
                         pendingRequestProvisionerDid = provisionerDid;
                         showCityModal();
                     } else {
-                        console.log('⚠️ [Food Request] No stored credentials found, showing app password widget');
-                        console.log('   - connected:', credData?.connected);
-                        console.log('   - valid:', credData?.valid);
-                        console.log('   - Full data:', JSON.stringify(credData));
-                        // No credentials, show app password widget
                         showAppPasswordWidgetForFoodRequest(provisionerDid);
                     }
                 } else {
@@ -4040,19 +3933,12 @@ We'd be endebted to your help.`;
         }
         
         function showAppPasswordWidgetForFoodRequest(provisionerDid) {
-            console.log('🔑 [App Password Widget] Initializing for food request');
-            console.log('   - Provisioner DID:', provisionerDid);
-            console.log('   - Widget available:', !!window.appPasswordRequest);
-            
             if (!window.appPasswordRequest) {
-                console.error('❌ [App Password Widget] AppPasswordRequest widget not loaded');
-                console.error('   - window.appPasswordRequest:', window.appPasswordRequest);
-                console.error('   - Available window properties:', Object.keys(window).filter(k => k.includes('app') || k.includes('password')));
+                console.error('AppPasswordRequest widget not loaded');
                 showCelebration('Widget not loaded - please refresh the page', 'error');
                 return;
             }
             
-            console.log('📝 [App Password Widget] Showing widget with config:');
             const config = {
                 title: 'Enable Direct Messages',
                 description: 'To request food from the Head of Pantry, you need to create an app password that allows sending direct messages on Bluesky.',
@@ -4060,13 +3946,8 @@ We'd be endebted to your help.`;
                 roleColor: 'provisioner',
                 buttonText: 'ENABLE DIRECT MESSAGES'
             };
-            console.log('   - Config:', JSON.stringify(config, null, 2));
             
             window.appPasswordRequest.show(config, async (appPassword) => {
-                console.log('🔑 [App Password Widget] App password received from widget');
-                console.log('   - Password length:', appPassword ? appPassword.length : 'null');
-                console.log('   - Password format:', appPassword ? appPassword.substring(0, 4) + '-****-****-****' : 'null');
-                
                 // Store the credentials
                 try {
                     let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
@@ -4074,21 +3955,10 @@ We'd be endebted to your help.`;
                         token = currentSession.accessJwt;
                     }
                     
-                    console.log('🔐 [App Password Widget] Retrieved auth token for storage');
-                    console.log('   - Token source:', localStorage.getItem('oauth_token') ? 'oauth_token' : 
-                                                      localStorage.getItem('admin_token') ? 'admin_token' : 
-                                                      'currentSession.accessJwt');
-                    console.log('   - Token preview:', token ? token.substring(0, 20) + '...' : 'null');
-                    
                     const headers = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     };
-                    
-                    console.log('📤 [App Password Widget] Sending credential storage request');
-                    console.log('   - Endpoint: POST /api/user/credentials/connect');
-                    console.log('   - Headers:', JSON.stringify(headers));
-                    console.log('   - Body: { app_password: "****-****-****-****" }');
                     
                     const response = await fetch('/api/user/credentials/connect', {
                         method: 'POST',
@@ -4096,17 +3966,7 @@ We'd be endebted to your help.`;
                         body: JSON.stringify({ app_password: appPassword })
                     });
                     
-                    console.log('📨 [App Password Widget] Storage response received');
-                    console.log('   - Status:', response.status, response.statusText);
-                    console.log('   - OK:', response.ok);
-                    
                     if (response.ok) {
-                        const responseData = await response.json();
-                        console.log('✅ [App Password Widget] Credentials stored successfully');
-                        console.log('   - Response data:', JSON.stringify(responseData, null, 2));
-                        console.log('   - Now proceeding with food request modal');
-                        console.log('   - Setting pendingRequestProvisionerDid to:', provisionerDid);
-                        
                         // Now proceed with the food request
                         pendingRequestProvisionerDid = provisionerDid;
                         showCityModal();
@@ -4202,11 +4062,6 @@ We'd be endebted to your help.`;
             closeCityModal();
             showCelebration('Sending request...', 'info');
             
-            console.log('📨 Sending request with:', {
-                city: city,
-                provisioner_did: provisionerDid
-            });
-            
             try {
                 // Get auth token - same priority as other work endpoints
                 let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
@@ -4227,7 +4082,6 @@ We'd be endebted to your help.`;
                     provisioner_did: provisionerDid
                 };
                 
-                console.log('📤 Request payload:', payload);
                 
                 const response = await fetch('/api/work/provisioner/send-request', {
                     method: 'POST',
@@ -4270,38 +4124,7 @@ We'd be endebted to your help.`;
             }
         });
         
-        function sendFoodRequest() {
-            console.log('🍽️ [Provisioner] Send food request clicked');
-            
-            const city = document.getElementById('food-request-city')?.value?.trim();
-            const details = document.getElementById('food-request-details')?.value?.trim();
-            
-            if (!city) {
-                showCelebration('Please enter your current city', 'error');
-                return;
-            }
-            
-            if (!currentSession || !currentSession.profile) {
-                if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
-                    window.loginWidget.showLoginPopup();
-                }
-                return;
-            }
-            
-            // Placeholder for DM functionality
-            showCelebration('Food request functionality coming soon!\n\nYour request will be sent via DM to the current Head of Pantry.', 'info');
-            
-            console.log('Food request:', {
-                name: currentSession.profile.displayName,
-                handle: currentSession.profile.handle,
-                city: city,
-                details: details
-            });
-        }
-        
         async function syncProvisionerFollows() {
-            console.log('🔄 [Provisioner] Sync follows clicked');
-            
             const syncBtn = document.getElementById('sync-follows-btn');
             if (syncBtn) {
                 syncBtn.disabled = true;
@@ -4404,7 +4227,6 @@ We'd be endebted to your help.`;
         // Listen for profile loaded event - this guarantees we have all session data
         window.addEventListener('oauth:profile-loaded', async (event) => {
             if (isInitializing) {
-                console.log('⏭️ Work: Already initializing, skipping duplicate profile-loaded event');
                 return;
             }
             
@@ -4459,7 +4281,6 @@ We'd be endebted to your help.`;
             await loadGuardianRules();
             
             // Reload current role status to show current state
-            console.log('🔄 Work: Refreshing role status after logout...');
             await loadRoleStatus(currentRole);
             updateUI();
             
@@ -4598,37 +4419,30 @@ We'd be endebted to your help.`;
             // Setup work event listeners for cross-page synchronization
             const setupWorkEvents = () => {
                 if (!window.WorkEvents) {
-                    console.log('⏳ Work: WorkEvents not ready, retrying in 100ms...');
                     setTimeout(setupWorkEvents, 100);
                     return;
                 }
                 
-                console.log('🎯 Work: Setting up WorkEvents listeners');
-                
                 // Listen for greeter activation from dashboard
                 window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_ACTIVATED, async (data) => {
-                    console.log('🎯 Work: Received GREETER_ACTIVATED event', data);
                     await loadRoleStatus('greeter');
                     updateUI();
                 });
                 
                 // Listen for greeter step-down from dashboard
                 window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_STEPPED_DOWN, async (data) => {
-                    console.log('🎯 Work: Received GREETER_STEPPED_DOWN event', data);
                     await loadRoleStatus('greeter');
                     updateUI();
                 });
                 
                 // Listen for general status changes
                 window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_STATUS_CHANGED, async (data) => {
-                    console.log('🎯 Work: Received GREETER_STATUS_CHANGED event', data);
                     await loadRoleStatus('greeter');
                     updateUI();
                 });
                 
                 // Listen for dreamstyler activation - refresh Find Dreamstylers carousel
                 window.WorkEvents.on(window.WorkEvents.EVENTS.DREAMSTYLER_ACTIVATED, async (data) => {
-                    console.log('🎯 Work: Received DREAMSTYLER_ACTIVATED event', data);
                     await loadRoleStatus('dreamstyler');
                     updateUI();
                     // Refresh the Find Dreamstylers carousel
@@ -4640,7 +4454,6 @@ We'd be endebted to your help.`;
                 
                 // Listen for dreamstyler step-down - refresh Find Dreamstylers carousel
                 window.WorkEvents.on(window.WorkEvents.EVENTS.DREAMSTYLER_STEPPED_DOWN, async (data) => {
-                    console.log('🎯 Work: Received DREAMSTYLER_STEPPED_DOWN event', data);
                     await loadRoleStatus('dreamstyler');
                     updateUI();
                     // Refresh the Find Dreamstylers carousel
@@ -4652,7 +4465,6 @@ We'd be endebted to your help.`;
                 
                 // Listen for dreamstyler status changes
                 window.WorkEvents.on(window.WorkEvents.EVENTS.DREAMSTYLER_STATUS_CHANGED, async (data) => {
-                    console.log('🎯 Work: Received DREAMSTYLER_STATUS_CHANGED event', data);
                     await loadRoleStatus('dreamstyler');
                     updateUI();
                     // Refresh the Find Dreamstylers carousel
@@ -4839,24 +4651,15 @@ We'd be endebted to your help.`;
             const userHandle = currentSession.profile?.handle || currentSession.handle;
             if (!userHandle || userHandle === 'Unknown') {
                 // Profile data not ready yet, wait for it
-                console.warn('⚠️ Profile data not ready, waiting...');
+                console.warn('Profile data not ready, waiting...');
                 loadingState.style.display = 'block';
                 const loadingText = document.getElementById('loading-state-text');
                 if (loadingText) loadingText.textContent = 'Loading profile data...';
                 return;
             }
 
-            // Build user status card
             // Find which role the user actually has (not just the selected tab)
             let actualUserRole = null;
-            console.log('🔍 [DEBUG] Checking roleStatuses for user role:');
-            console.log('   roleStatuses.greeter:', roleStatuses.greeter);
-            console.log('   roleStatuses.mapper:', roleStatuses.mapper);
-            console.log('   roleStatuses.cogitarian:', roleStatuses.cogitarian);
-            console.log('   roleStatuses.provisioner:', roleStatuses.provisioner);
-            console.log('   roleStatuses.dreamstyler:', roleStatuses.dreamstyler);
-            console.log('   roleStatuses.bursar:', roleStatuses.bursar);
-            console.log('   roleStatuses.cheerful:', roleStatuses.cheerful);
             
             if (roleStatuses.greeter && roleStatuses.greeter.is_worker) actualUserRole = 'greeter';
             else if (roleStatuses.mapper && roleStatuses.mapper.is_worker) actualUserRole = 'mapper';
@@ -4866,35 +4669,17 @@ We'd be endebted to your help.`;
             else if (roleStatuses.bursar && roleStatuses.bursar.is_worker) actualUserRole = 'bursar';
             else if (roleStatuses.cheerful && roleStatuses.cheerful.is_worker) actualUserRole = 'cheerful';
             
-            console.log('   → actualUserRole determined:', actualUserRole);
-            
-            // Check if viewing own role vs different role
             const viewingOwnRole = actualUserRole && actualUserRole === currentRole;
             const hasRole = actualUserRole !== null;
-            
-            console.log('🔍 [DEBUG] Role comparison:');
-            console.log('   currentRole (selected tab):', currentRole);
-            console.log('   actualUserRole:', actualUserRole);
-            console.log('   viewingOwnRole:', viewingOwnRole);
-            console.log('   hasRole:', hasRole);
             
             // Get status for the selected tab role
             const selectedRoleStatus = roleStatuses[currentRole];
             const isWorkerForSelectedRole = selectedRoleStatus && selectedRoleStatus.is_worker;
             const status = selectedRoleStatus?.status;
             
-            console.log('🔍 [DEBUG] Selected role status:');
-            console.log('   selectedRoleStatus:', selectedRoleStatus);
-            console.log('   isWorkerForSelectedRole:', isWorkerForSelectedRole);
-            console.log('   status:', status);
-            console.log('   Will show Step Down card?', isWorkerForSelectedRole && viewingOwnRole);
-            
             // Show worker status card ONLY if viewing own role
             if (isWorkerForSelectedRole && viewingOwnRole) {
-                console.log('✅ [DEBUG] Showing Step Down card for', currentRole);
-                // Skip if elements don't exist (work.html uses different structure)
                 if (!userStatus || !activateBtn) {
-                    console.log('⚠️ [DEBUG] userStatus or activateBtn element not found, skipping');
                     return;
                 }
                 
@@ -4968,11 +4753,8 @@ We'd be endebted to your help.`;
                 setRetiringBtn.style.display = 'none';
                 setWorkingBtn.style.display = 'none';
             } else {
-                // Not volunteering for THIS role - show integrated profile + volunteer card
-                
-                // Skip if elements don't exist (work.html uses different structure)
+                // Not volunteering for THIS role — profile + volunteer card managed by sidebar
                 if (!userStatus || !activateBtn) {
-                    console.log('ℹ️ [UI] Using work.html structure - non-worker UI managed by sidebar');
                     return;
                 }
                 
@@ -5223,8 +5005,6 @@ We'd be endebted to your help.`;
                     token = currentSession.accessJwt;
                 }
                 
-                console.log(`🔐 [${role}] loadRoleStatus - token found: ${!!token}, source: ${localStorage.getItem('oauth_token') ? 'oauth_token' : localStorage.getItem('admin_token') ? 'admin_token' : currentSession?.accessJwt ? 'currentSession.accessJwt' : 'none'}`);
-
                 const headers = {};
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
@@ -5237,39 +5017,27 @@ We'd be endebted to your help.`;
                 if (response.ok) {
                     const data = await response.json();
                     roleStatuses[role] = data;
-                    console.log(`✅ [${role}] Status loaded - is_worker: ${data.is_worker}, status: ${data.status}`);
                     
-                    // Update worker display if this is the current role and we got role_info
-                    if (role === currentRole && data.role_info) {
-                        updateWorkerDisplay(data.role_info, role);
-                    } else if (role === currentRole) {
-                        // No role_info in response, show None
-                        const workerDisplay = document.getElementById('worker-display');
-                        if (workerDisplay) {
-                            workerDisplay.innerHTML = '<span style="color: #666;">None</span>';
-                        }
+                    // Update worker display if this is the current role
+                    if (role === currentRole) {
+                        // Use role_info if available, otherwise create empty one so the
+                        // "Become {Role}" button still renders properly
+                        const roleInfo = data.role_info || { role: role, workers: [] };
+                        updateWorkerDisplay(roleInfo, role);
                     }
                 } else {
                     const errorText = await response.text();
-                    console.error(`❌ [API] ${role} status endpoint failed: ${response.status}`, errorText.substring(0, 200));
-                    console.log(`📝 [STATE] Setting ${role}Status to default (failed response)`);
+                    console.error(`[API] ${role} status endpoint failed: ${response.status}`, errorText.substring(0, 200));
                     roleStatuses[role] = { is_worker: false, status: null };
                     if (role === currentRole) {
-                        const workerDisplay = document.getElementById('worker-display');
-                        if (workerDisplay) {
-                            workerDisplay.innerHTML = '<span style="color: #666;">None</span>';
-                        }
+                        updateWorkerDisplay({ role: role, workers: [] }, role);
                     }
                 }
             } catch (error) {
-                console.error(`❌ [API] Failed to load ${role} status:`, error);
-                console.log(`📝 [STATE] Setting ${role}Status to default (exception)`);
+                console.error(`Failed to load ${role} status:`, error);
                 roleStatuses[role] = { is_worker: false, status: null };
                 if (role === currentRole) {
-                    const workerDisplay = document.getElementById('worker-display');
-                    if (workerDisplay) {
-                        workerDisplay.innerHTML = '<span style="color: #666;">None</span>';
-                    }
+                    updateWorkerDisplay({ role: role, workers: [] }, role);
                 }
             }
         }
@@ -5343,19 +5111,12 @@ We'd be endebted to your help.`;
             }
 
             const worker = roleInfo.workers[0];
-            console.log('👤 Work: Fetching dreamer info for:', worker.did);
             
-            // Fetch dreamer info to get handle and avatar
             try {
-                const fetchStart = performance.now();
-                console.log('🌐 [API] Starting dreamer fetch at', new Date().toISOString());
                 const dreamerResponse = await fetch(`/api/dreamers/${worker.did}`);
-                const fetchDuration = performance.now() - fetchStart;
-                console.log(`⏱️ [API] Dreamer fetch took ${fetchDuration.toFixed(0)}ms (status: ${dreamerResponse.status})`);
                 
                 if (dreamerResponse.ok) {
                     const dreamer = await dreamerResponse.json();
-                    console.log('✅ Work: Dreamer info received:', dreamer);
                     const userColor = dreamer.color_hex || '#8b7355';
                     
                     // Extract handle first - needed for challenge button and display
@@ -5399,7 +5160,7 @@ We'd be endebted to your help.`;
                                     text-transform: uppercase;
                                     letter-spacing: 0.5px;
                                     transition: all 0.2s ease;
-                                    font-family: 'Courier New', monospace;
+                                    font-family: inherit;
                                 "
                                 onmouseover="this.style.background='var(--role-cogitarian-dark)'"
                                 onmouseout="this.style.background='var(--role-cogitarian)'"
@@ -5436,8 +5197,6 @@ We'd be endebted to your help.`;
                             <div style="margin-top: 0.25rem;">${statusText}</div>
                         </div>
                     `;
-                    
-                    console.log('✅ Work: Worker display updated');
                     
                     // Initialize dreamer-hover for the link after DOM updates
                     setTimeout(() => {
@@ -5480,7 +5239,7 @@ We'd be endebted to your help.`;
             if (role === 'cheerful') {
                 roleColor = 'var(--role-cheerful)';
                 defaultColor = '#e05ecf';
-                buttonText = 'Join The Cheerful';
+                buttonText = 'Join<br>The Cheerful';
                 emptyMessage = 'No Current Cheerful';
             } else if (role === 'guardian') {
                 roleColor = 'var(--role-guardian)';
@@ -5668,6 +5427,9 @@ We'd be endebted to your help.`;
 
         // Example greeting posts - loaded from API
         let greetingExamples = [];
+        
+        // Cache flag to prevent redundant greeting event loads
+        let greetingEventsLoaded = false;
         
         // Example mapper posts - origin declarations
         let mapperExamples = [
@@ -5861,39 +5623,49 @@ We'd be endebted to your help.`;
 
         // Load greeting events for eventstack display
         async function loadGreetingEvents() {
+            // Skip if already loaded (cache for tab switching efficiency)
+            if (greetingEventsLoaded) {
+                console.log('[Work] Greeting events already loaded, skipping fetch');
+                return;
+            }
+            
             try {
-                const response = await fetch('/api/canon');
+                // Use dedicated guestbook endpoint — server-side filtered & cached
+                const response = await fetch('/api/work/greeter/guestbook');
                 if (response.ok) {
-                    const allEvents = await response.json();
+                    const guestbookEvents = await response.json();
                     
-                    // Group events: parent events with their reactions embedded
-                    // First, separate reactions from parent events
+                    // Events are already filtered to key='name'|'greeter' by the server.
+                    // Thread reactions to their parents.
                     const parentEvents = [];
                     const reactions = {};
                     
-                    allEvents.forEach(event => {
-                        if (event.key === 'name' || event.key === 'greeter') {
-                            if (event.reaction_to) {
-                                // This is a reaction - group by parent URI
-                                if (!reactions[event.reaction_to]) {
-                                    reactions[event.reaction_to] = [];
-                                }
-                                reactions[event.reaction_to].push(event);
-                            } else {
-                                // This is a parent event
-                                parentEvents.push(event);
+                    guestbookEvents.forEach(event => {
+                        if (event.reaction_to) {
+                            // This is a reaction - group by parent event id
+                            if (!reactions[event.reaction_to]) {
+                                reactions[event.reaction_to] = [];
                             }
+                            reactions[event.reaction_to].push(event);
+                        } else {
+                            // This is a parent event
+                            parentEvents.push(event);
                         }
                     });
                     
                     // Attach reactions to their parent events
                     parentEvents.forEach(parent => {
+                        // Match by event id (reaction_to stores parent id)
+                        if (parent.id && reactions[parent.id]) {
+                            parent.reactions = reactions[parent.id];
+                        }
+                        // Also match by URI for legacy data
                         if (parent.uri && reactions[parent.uri]) {
-                            parent.reactions = reactions[parent.uri];
+                            parent.reactions = (parent.reactions || []).concat(reactions[parent.uri]);
                         }
                     });
                     
-                    console.log(`[Work] Found ${parentEvents.length} greeting events with reactions`);
+                    console.log(`[Work] Guestbook: ${parentEvents.length} events (${guestbookEvents.length} total incl. reactions)`);
                     
                     // Render with EventStack (auto mode uses database color_source and color_hex)
                     if (window.EventStack) {
@@ -5912,11 +5684,13 @@ We'd be endebted to your help.`;
                                 uri: false
                             }
                         });
+                        greetingEventsLoaded = true;
+                        console.log('[Work] Greeting events cached');
                     } else {
                         console.warn('[Work] EventStack not available yet');
                     }
                 } else {
-                    console.error('Failed to load events:', response.status);
+                    console.error('Failed to load guestbook events:', response.status);
                 }
             } catch (error) {
                 console.error('Failed to load greeting events:', error);
@@ -6541,8 +6315,6 @@ We'd be endebted to your help.`;
                             showCelebration(`The Bursar must be our top patron.\n\nCurrently that honor belongs to ${topPatronName}.`, 'error');
                             return;
                         }
-                        
-                        console.log(`✅ [bursar] User is top patron with score ${userPatronScore}`);
                     }
                 } catch (error) {
                     console.error('Failed to verify patron status:', error);
@@ -6554,7 +6326,6 @@ We'd be endebted to your help.`;
             // Check if this role requires an app password
             // Roles like bursar and dreamstyler don't need one
             if (config.requiresAppPassword === false) {
-                console.log(`🔓 [${role}] Role does not require app password - showing confirmation directly`);
                 showWorkerConfirmation(role, () => activateWorkerWithoutAppPassword(role));
                 return;
             }
@@ -6569,39 +6340,27 @@ We'd be endebted to your help.`;
             // Fall back to PDS accessJwt if no backend token
             if (!token && currentSession && currentSession.accessJwt) {
                 token = currentSession.accessJwt;
-                console.log('🔑 Using accessJwt from session (no backend token found)');
-            } else if (token) {
-                console.log('🔑 Using backend session token from localStorage');
             }
             
             if (!token) {
-                console.warn('⚠️ No token available for credentials check - showing password widget');
+                console.warn('No token available for credentials check - showing password widget');
                 // No token means we can't verify - show the widget to collect password
             } else {
                 const headers = {};
                 headers['Authorization'] = `Bearer ${token}`;
                 
-                console.log(`🔍 Checking credentials for ${role}...`);
                 try {
                     const credResponse = await fetch('/api/user/credentials/status', { headers });
-                    console.log(`🔍 Credentials check response: ${credResponse.status}`);
                     
                     if (credResponse.ok) {
                         const credData = await credResponse.json();
-                        console.log('🔍 Credentials data:', credData);
                         if (credData.connected && credData.valid) {
-                            // User already has valid credentials - show confirmation before activating
-                            console.log(`✅ Found existing credentials for ${role} - showing confirmation`);
                             showWorkerConfirmation(role, () => activateWorkerWithExistingCredentials(role));
                             return;
-                        } else {
-                            console.log(`⚠️ Credentials not valid: connected=${credData.connected}, valid=${credData.valid}`);
                         }
                     } else if (credResponse.status === 401) {
                         // Token is invalid/expired - still allow them to proceed with password entry
-                        console.warn('⚠️ Session token expired or invalid - user will need to enter app password');
-                        const errorData = await credResponse.json().catch(() => ({}));
-                        console.log('Token validation error:', errorData);
+                        console.warn('Session token expired or invalid - user will need to enter app password');
                     } else {
                         console.error('❌ Credentials check failed:', await credResponse.text());
                     }
@@ -6626,9 +6385,6 @@ We'd be endebted to your help.`;
                 buttonText: `BECOME ${config.title.toUpperCase()}`
             }, async (appPassword) => {
                 // Callback receives validated 16-char app password
-                console.log('🔑 App password received from widget');
-                
-                // Show confirmation popup before activating
                 showWorkerConfirmation(role, () => performWorkerActivation(role, appPassword, null));
             });
         }
@@ -6644,16 +6400,13 @@ We'd be endebted to your help.`;
                 
                 if (!token && currentSession && currentSession.accessJwt) {
                     token = currentSession.accessJwt;
-                    console.log('🔑 [Activation] Using accessJwt from session (no backend token found)');
-                } else if (token) {
-                    console.log('🔑 [Activation] Using backend session token from localStorage');
                 }
                 
                 const headers = { 'Content-Type': 'application/json' };
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 } else {
-                    console.error('❌ [Activation] No valid token found!');
+                    console.error('No valid token found for activation');
                     showCelebration('Session expired - please refresh and try again', 'error');
                     return;
                 }
@@ -6691,16 +6444,13 @@ We'd be endebted to your help.`;
                 
                 if (!token && currentSession && currentSession.accessJwt) {
                     token = currentSession.accessJwt;
-                    console.log('🔓 [No-Password Activation] Using accessJwt from session');
-                } else if (token) {
-                    console.log('🔓 [No-Password Activation] Using backend session token');
                 }
                 
                 const headers = { 'Content-Type': 'application/json' };
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 } else {
-                    console.error('❌ [No-Password Activation] No valid token found!');
+                    console.error('No valid token found for activation');
                     showCelebration('Session expired - please refresh and try again', 'error');
                     return;
                 }
@@ -6861,9 +6611,6 @@ We'd be endebted to your help.`;
 
             try {
                 // STEP 1: First, save the app password to credentials table
-                console.log('🔑 Step 1: Connecting app password...');
-                
-                // Get auth token
                 let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
                 if (!token && currentSession && currentSession.accessJwt) {
                     token = currentSession.accessJwt;
@@ -6897,14 +6644,10 @@ We'd be endebted to your help.`;
                     return;
                 }
                 
-                console.log('✅ App password connected successfully');
-                
                 // STEP 2: Now activate the role
                 if (submitBtn) {
                     submitBtn.textContent = 'ACTIVATING...';
                 }
-                
-                console.log(`🔑 Step 2: Activating as ${role}...`);
                 
                 const response = await fetch(`/api/work/${role}/activate`, {
                     method: 'POST',
@@ -7131,11 +6874,9 @@ We'd be endebted to your help.`;
                 }
 
                 const payload = {
-                    appPassword: appPassword  // Provide app password for greeter worker to use
+                    appPassword: appPassword
                 };
                 
-                console.log('🔐 Activating greeter with app password for posting');
-
                 const response = await fetch('/api/work/greeter/activate', {
                     method: 'POST',
                     headers: {
@@ -7321,7 +7062,6 @@ We'd be endebted to your help.`;
             // Multi-worker roles don't support retiring - they just step down
             const config = roleConfigs[role];
             if (config?.multiWorker === true) {
-                console.log('⚠️ setRoleRetiring called for multi-worker role:', role);
                 showCelebration('This role does not support retiring status.', 'error');
                 return;
             }
@@ -7938,14 +7678,6 @@ We'd be endebted to your help.`;
             }
         }
 
-        // Open introduce yourself modal
-        function openIntroduceModal() {
-            showCelebration(
-                'Introduce yourself feature coming soon!\\n\\nThis will allow new dreamers to share their story with the community.',
-                'info',
-                'UNDERSTOOD'
-            );
-        }
     </script>
 </body>
 </html>

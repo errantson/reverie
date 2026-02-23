@@ -115,8 +115,8 @@
     font-size: 18px;
     line-height: 1.6;
     color: #333;
-    min-height: calc(1.6em * 4); /* Space for exactly 4 lines of text */
-    max-height: calc(1.6em * 4); /* Space for exactly 4 lines of text */
+    min-height: calc(1.6em * 4); /* Space for at least 4 lines of text */
+    max-height: calc(1.6em * 8); /* Allow up to 8 lines before scrolling */
     text-align: left; /* Default, can be overridden by data-align attribute */
     position: relative;
     overflow-y: auto;
@@ -292,12 +292,12 @@
     }
     
     .dialogue-text {
-        font-size: 16px;
-        margin-top: 20px;
-        margin-bottom: 20px;
-        padding: 0 25px; /* Horizontal padding only */
-        min-height: calc(1.6em * 4); /* Space for exactly 4 lines of text */
-        max-height: calc(1.6em * 4); /* Space for exactly 4 lines of text */
+        font-size: 13px;
+        margin-top: 12px;
+        margin-bottom: 12px;
+        padding: 0 16px;
+        min-height: calc(1.5em * 4);
+        max-height: calc(1.5em * 8);
         overflow-y: auto;
     }
     
@@ -319,17 +319,17 @@
     }
     
     .dialogue-name {
-        font-size: 14px;
+        font-size: 12px;
     }
     
     .dialogue-buttons {
         flex-direction: row;
         gap: 8px;
-        padding: 0 16px; /* Horizontal padding only */
+        padding: 8px 16px;
         flex-wrap: wrap;
-        flex-shrink: 0; /* Don't shrink */
-        min-height: 70px; /* Fixed height for mobile too */
-        max-height: 70px;
+        flex-shrink: 0;
+        min-height: 56px;
+        max-height: none;
     }
     
     .dialogue-btn {

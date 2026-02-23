@@ -152,15 +152,15 @@ class LoginWidget {
         console.log('   this.oauthManager:', this.oauthManager);
         console.log('   this.loginsEnabled:', this.loginsEnabled);
         
-        // Check if any other modals/overlays are already visible
-        const existingOverlays = document.querySelectorAll('.login-overlay, .logout-overlay, .create-dreamer-overlay, .shadowbox-overlay, .share-modal-overlay');
-        const visibleOverlays = Array.from(existingOverlays).filter(el => {
+        // Only block if a login / logout overlay is already up (prevents
+        // double-open). Don't block on unrelated overlays like share-modal,
+        // shadowbox, etc.— those shouldn't prevent the user from logging in.
+        const loginOverlays = document.querySelectorAll('.login-overlay, .logout-overlay');
+        const hasVisibleLoginOverlay = Array.from(loginOverlays).some(el => {
             const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.opacity !== '0' && el.offsetParent !== null;
+            return style.display !== 'none' && style.visibility !== 'hidden';
         });
-        
-        if (visibleOverlays.length > 0) {
-            console.log('⚠️ Other modals are currently visible, not showing login popup');
+        if (hasVisibleLoginOverlay) {
             return;
         }
         
@@ -634,10 +634,9 @@ class LoginWidget {
         
         loginBox.innerHTML = `
             <div class="login-content login-compact">
-                <button class="login-close-btn" id="loginClose" aria-label="Close">×</button>
                 <div class="login-header-row">
-                    <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
                     <div class="login-info-box">
+                        <img src="/assets/logo.png" alt="Reverie House" class="login-logo">
                         <p class="login-info-text">Discover a community of dreamweavers, exploring our wild mindscape.</p>
                         <button id="loginBecomeResident" class="login-method-btn login-become-btn" style="--core-color: ${coreColor};">
                             <span class="become-btn-glow"></span>
@@ -672,7 +671,7 @@ class LoginWidget {
                     
                     <div id="loginPasswordGroup" class="login-password-group">
                         <div class="login-handle-input-group">
-                            <span class="login-handle-prefix">🔑</span>
+                            <span class="login-handle-prefix"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.5 9C12.9853 9 15 6.98528 15 4.5C15 2.01472 12.9853 0 10.5 0C8.01475 0 6.00003 2.01472 6.00003 4.5C6.00003 5.38054 6.25294 6.20201 6.69008 6.89574L0.585815 13L3.58292 15.9971L4.99714 14.5829L3.41424 13L5.00003 11.4142L6.58292 12.9971L7.99714 11.5829L6.41424 10L8.10429 8.30995C8.79801 8.74709 9.61949 9 10.5 9ZM10.5 7C11.8807 7 13 5.88071 13 4.5C13 3.11929 11.8807 2 10.5 2C9.11932 2 8.00003 3.11929 8.00003 4.5C8.00003 5.88071 9.11932 7 10.5 7Z" fill="currentColor"/></svg></span>
                             <input 
                                 type="password" 
                                 id="loginPassword" 
@@ -682,6 +681,10 @@ class LoginWidget {
                                 autocapitalize="off"
                                 spellcheck="false"
                             >
+                            <button type="button" id="loginPasswordToggle" class="login-password-toggle" aria-label="Show password">
+                                <svg class="login-eye-open" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 5C7.52354 5 3.73326 7.94288 2.45898 12C3.73324 16.0571 7.52354 19 12 19C16.4788 19 20.2691 16.0571 21.5434 12C20.2691 7.94291 16.4788 5 12 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <svg class="login-eye-closed" viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none"><path d="M3 3L21 21M9.843 9.914C9.321 10.454 9 11.189 9 12C9 13.657 10.343 15 12 15C12.822 15 13.567 14.669 14.109 14.133M6.5 6.647C4.6 7.9 3.153 9.784 2.457 12C3.731 16.057 7.522 19 12 19C13.988 19 15.841 18.419 17.399 17.418M11 5.049C11.328 5.017 11.662 5 12 5C16.477 5 20.267 7.943 21.541 12C21.261 12.894 20.858 13.734 20.352 14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
                         </div>
                     </div>
                     
@@ -694,6 +697,10 @@ class LoginWidget {
                             <span id="loginSubmitText">Enter</span>
                         </button>
                     </div>
+
+                    <div class="login-close-row">
+                        <button id="loginClose" class="login-dismiss-btn">Close</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -705,10 +712,68 @@ class LoginWidget {
             loginBox.classList.add('visible');
         }, 10);
         
+        // ── Mobile keyboard handling ──────────────────────────
+        // On mobile, the virtual keyboard steals ~40-50% of viewport height.
+        // We detect this via the visualViewport API and collapse decorative
+        // content (logo, info-box, divider) so the input stays visible.
+        const isMobile = window.matchMedia('(max-width: 600px)').matches;
+        const _kbCleanup = [];   // listeners to tear down when overlay closes
+
+        if (isMobile) {
+            const kbThreshold = 100; // px shrink that indicates keyboard is open
+
+            // visualViewport: fires when keyboard slides in/out
+            if (window.visualViewport) {
+                const onViewportResize = () => {
+                    const keyboardOpen = (window.innerHeight - window.visualViewport.height) > kbThreshold;
+                    loginBox.classList.toggle('keyboard-active', keyboardOpen);
+                    overlay.classList.toggle('keyboard-active', keyboardOpen);
+                    // Ensure the focused input is in view
+                    if (keyboardOpen && document.activeElement?.closest('.login-form')) {
+                        document.activeElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                };
+                window.visualViewport.addEventListener('resize', onViewportResize);
+                _kbCleanup.push(() => window.visualViewport.removeEventListener('resize', onViewportResize));
+            }
+
+            // Fallback: scroll focused input into view on focus (covers older iOS)
+            const onInputFocus = (e) => {
+                if (e.target.closest('.login-form')) {
+                    // Short delay lets the keyboard finish animating
+                    setTimeout(() => {
+                        e.target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }, 300);
+                }
+            };
+            loginBox.addEventListener('focusin', onInputFocus);
+            _kbCleanup.push(() => loginBox.removeEventListener('focusin', onInputFocus));
+        }
+        // Helper: remove overlay AND clean up keyboard listeners
+        const removeOverlay = () => {
+            overlay.classList.remove('visible');
+            loginBox.classList.remove('visible');
+            _kbCleanup.forEach(fn => fn());
+            setTimeout(() => overlay.remove(), 300);
+        };
+
         const handleInput = document.getElementById('loginHandle');
         const passwordInput = document.getElementById('loginPassword');
         const passwordGroup = document.getElementById('loginPasswordGroup');
+        const passwordToggle = document.getElementById('loginPasswordToggle');
         const statusMessage = document.getElementById('loginStatusMessage');
+
+        // Password show/hide toggle
+        if (passwordToggle && passwordInput) {
+            passwordToggle.addEventListener('click', () => {
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                passwordToggle.querySelector('.login-eye-open').style.display = isPassword ? 'none' : '';
+                passwordToggle.querySelector('.login-eye-closed').style.display = isPassword ? '' : 'none';
+                passwordToggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+                passwordInput.focus();
+            });
+        }
         const submitBtn = document.getElementById('loginSubmit');
         const submitText = document.getElementById('loginSubmitText');
         const sideDoorBtn = document.getElementById('loginSideDoor');
@@ -894,39 +959,29 @@ class LoginWidget {
                     // Show side door for OAuth users (guests/awakened)
                     sideDoorBtn.classList.add('visible');
                     sideDoorBtn.disabled = false;
-                    sideDoorBtn.style.borderColor = accountColor;
-                    sideDoorBtn.style.color = accountColor;
+                    // Tinting is handled by CSS: .login-box-found .login-side-door-btn.visible
                 }
-                
-                // Convert color to rgba for backgrounds
-                const hexToRgba = (hex, alpha) => {
-                    const r = parseInt(hex.slice(1,3), 16);
-                    const g = parseInt(hex.slice(3,5), 16);
-                    const b = parseInt(hex.slice(5,7), 16);
-                    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-                };
                 
                 // Apply styling based on heraldry using CSS custom properties
                 statusMessage.classList.remove('checking');
                 statusMessage.classList.add('found');
-                statusMessage.style.setProperty('--account-color', accountColor);
                 statusMessage.innerHTML = `
                     <img src="${accountIcon}" alt="" class="login-status-icon">
                     <strong>${accountName}</strong>
                 `;
                 
-                // Apply heraldry color using CSS custom property
+                // Apply heraldry color using CSS custom property on the box
+                // All children (status, submit btn, side door) inherit --account-color
                 loginBox.style.setProperty('--account-color', accountColor);
                 loginBox.classList.add('login-box-found');
                 
                 submitBtn.disabled = false;
                 submitBtn.classList.add('login-btn-ready');
-                // Set button colors directly for reliability (CSS vars on element don't always work)
+                // Set button colors directly for cross-browser reliability
                 submitBtn.style.background = accountColor;
                 submitBtn.style.borderColor = accountColor;
                 submitBtn.style.color = 'white';
-                submitBtn.style.opacity = '1';
-                console.log(`🎨 [Login] Applied button color: ${accountColor}`);
+                console.log(`🎨 [Login] Applied heraldry color: ${accountColor}`);
                 
                 // Determine button text based on account type
                 if (serviceEndpoint === 'https://reverie.house') {
@@ -1040,9 +1095,7 @@ class LoginWidget {
                 
                 submitText.textContent = 'Connecting...';
                 submitBtn.disabled = true;
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
+                removeOverlay();
                 try {
                     // Full scope for main door (default)
                     await this.oauthManager.login(handle, null, { scope: 'atproto transition:generic' });
@@ -1080,9 +1133,7 @@ class LoginWidget {
                     
                     if (!response.ok) {
                         if (result.code === 'account_deactivated') {
-                            overlay.classList.remove('visible');
-                            loginBox.classList.remove('visible');
-                            setTimeout(() => overlay.remove(), 300);
+                            removeOverlay();
                             this.showDeactivatedPanel(result.former, result.events || [], handle);
                             return;
                         }
@@ -1100,9 +1151,7 @@ class LoginWidget {
                     // to avoid double-triggering pigeon messages
                     window.dispatchEvent(new CustomEvent('oauth:login', { detail: { session: result.session } }));
                     
-                    overlay.classList.remove('visible');
-                    loginBox.classList.remove('visible');
-                    setTimeout(() => overlay.remove(), 300);
+                    removeOverlay();
                     
                     if (result.redirect) {
                         window.location.href = result.redirect;
@@ -1134,9 +1183,7 @@ class LoginWidget {
             
             if (sideDoorText) sideDoorText.textContent = 'Opening...';
             sideDoorBtn.disabled = true;
-            overlay.classList.remove('visible');
-            loginBox.classList.remove('visible');
-            setTimeout(() => overlay.remove(), 300);
+            removeOverlay();
             
             try {
                 // Minimal scope for side door - just identity
@@ -1150,12 +1197,10 @@ class LoginWidget {
         
         // Become a Resident button
         document.getElementById('loginBecomeResident').addEventListener('click', async () => {
-            overlay.classList.remove('visible');
-            loginBox.classList.remove('visible');
+            removeOverlay();
             
             // Wait for animation to complete
             await new Promise(r => setTimeout(r, 300));
-            overlay.remove();
             
             // Dynamically load CreateDreamer if not available
             if (!window.CreateDreamer) {
@@ -1191,9 +1236,7 @@ class LoginWidget {
         const closeBtn = document.getElementById('loginClose');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
-                overlay.classList.remove('visible');
-                loginBox.classList.remove('visible');
-                setTimeout(() => overlay.remove(), 300);
+                removeOverlay();
                 window.dispatchEvent(new CustomEvent('oauth:cancel'));
             });
         }
@@ -1202,9 +1245,7 @@ class LoginWidget {
         setTimeout(() => {
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
-                    overlay.classList.remove('visible');
-                    loginBox.classList.remove('visible');
-                    setTimeout(() => overlay.remove(), 300);
+                    removeOverlay();
                     window.dispatchEvent(new CustomEvent('oauth:cancel'));
                 }
             });

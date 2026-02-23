@@ -675,9 +675,9 @@
     .main-content {
         flex: 1;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
-        padding: 10px 0; /* 10px downward shift */
+        padding: 0;
     }
     
     /* Hide statbox and cc0 notice on desktop */

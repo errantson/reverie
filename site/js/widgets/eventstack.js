@@ -5,6 +5,9 @@
  * Handles reactions, octants, roles, souvenirs, and user colors
  */
 
+// Use the shared AvatarCache when available; fall back to a local Map otherwise.
+const _avatarCache = window.AvatarCache || new Map();
+
 class EventStack {
     constructor() {
         this.container = null;
@@ -217,12 +220,15 @@ class EventStack {
             ? `${day}/${month}/${year}` 
             : `${day}/${month}/${year} ${hours}:${minutes}`;
         
-        const avatar = event.avatar || '/assets/icon_face.png';
+        const did = event.did || '';
+        const avatar = (did && _avatarCache.has?.(did))
+            ? _avatarCache.get(did)
+            : (event.avatar || '/assets/icon_face.png');
+        if (did && avatar) _avatarCache.set?.(did, avatar);
         const name = event.name || 'unknown';
         const eventText = event.event || 'Event recorded';
         const uri = event.uri || '';
         const url = event.url || '';
-        const did = event.did || '';
         const type = event.type || 'unknown';
         const key = event.key || '';
         
@@ -331,8 +337,11 @@ class EventStack {
         if (isDualAvatar) {
             // Dual avatar cell for kindred events
             const other = event.others_data[0];
-            const otherAvatar = other.avatar || '/assets/icon_face.png';
             const otherDid = other.did || '';
+            const otherAvatar = (otherDid && _avatarCache.has?.(otherDid))
+                ? _avatarCache.get(otherDid)
+                : (other.avatar || '/assets/icon_face.png');
+            if (otherDid && otherAvatar) _avatarCache.set?.(otherDid, otherAvatar);
             const otherLink = otherDid ? `/dreamer?did=${encodeURIComponent(otherDid)}` : '#';
             
             html += `<div class="cell avatar avatar-dual" style="margin-left: ${avatarMargin}px;">`;

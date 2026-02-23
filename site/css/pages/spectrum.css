@@ -20,14 +20,15 @@ html, body {
     object-fit: cover;
 }
 
-/* Main content fills viewport below header, above drawer */
+/* Main content fills viewport below header, above drawer
+   with breathing room so the background scene peeks through */
 .main-content {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    bottom: 64px;
-    padding-top: 80px;
+    bottom: 0;
+    padding: 90px 32px 92px 32px;
     box-sizing: border-box;
     display: flex;
     z-index: 10;
@@ -50,6 +51,10 @@ html, body {
     min-height: 0;
     margin: 0;
     padding: 0;
+    border: 3px solid var(--user-color, var(--reverie-core-color, #734ba1));
+    border-radius: 0;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
 }
 
 .canvas-container {
@@ -136,8 +141,8 @@ html, body {
 /* Floating Actions */
 .spectrum-floating-actions {
     position: fixed;
-    bottom: 84px;
-    left: 20px;
+    bottom: 96px;
+    left: 44px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -168,21 +173,23 @@ html, body {
 
 /* Responsive */
 @media (max-width: 1200px) {
-    .main-content { padding-top: 72px; }
+    .main-content { padding: 82px 24px 88px 24px; }
     .spectrum-control-bar { padding: 10px 16px; gap: 12px; }
 }
 
 @media (max-width: 768px) {
-    .main-content { padding-top: 64px; bottom: 60px; }
+    .main-content { padding: 70px 14px 80px 14px; }
+    .spectrum-container { border-width: 2px; }
     .spectrum-control-bar { flex-direction: column; padding: 12px; }
     .control-bar-section { justify-content: center; }
     .control-bar-views { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .spectrum-floating-actions { bottom: 70px; left: 10px; }
+    .spectrum-floating-actions { bottom: 78px; left: 22px; }
     .floating-action-btn { padding: 10px 14px; font-size: 0.85em; }
 }
 
 @media (max-width: 480px) {
-    .main-content { padding-top: 56px; }
-    .spectrum-floating-actions { bottom: 66px; left: 8px; }
+    .main-content { padding: 62px 8px 74px 8px; }
+    .spectrum-container { border-width: 2px; }
+    .spectrum-floating-actions { bottom: 72px; left: 16px; }
     .floating-action-btn { padding: 8px 12px; font-size: 0.8em; }
 }

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Me — Reverie House</title>
+    <meta name="description" content="Your place in the Reverie House mindscape.">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/octants.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    <link rel="stylesheet" href="/css/widgets/dialogue.css">
+    <link rel="stylesheet" href="/css/roles.css">
+    <link rel="stylesheet" href="/css/souvenirs.css">
+    <link rel="stylesheet" href="/css/color-rows.css">
+    <link rel="stylesheet" href="/css/pages/me.css">
+    <link rel="stylesheet" href="/css/widgets/sharelore.css">
+
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/utils/heraldry.js"></script>
+    <script src="/js/widgets/background.js"></script>
+    <script src="/js/core/avatar-cache.js" defer></script>
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/upload_avatar.js" defer></script>
+    <script src="/js/widgets/dialogue.js" defer></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/pages/me.js" defer></script>
+</head>
+<body>
+    <div id="header-container"></div>
+
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="" alt="" class="scene-layer background-layer" id="meBgImg">
+        </div>
+    </div>
+
+    <div class="me-page" id="mePage">
+        <!-- Loading shimmer — shown while we check session -->
+        <div class="me-loading" id="meLoading">
+            <div class="me-loading-avatar"></div>
+            <div class="me-loading-lines">
+                <div class="me-loading-line wide"></div>
+                <div class="me-loading-line narrow"></div>
+            </div>
+        </div>
+        <!-- JS renders the authenticated shell here -->
+        <div id="meRoot"></div>
+    </div>
+
+    <div id="footer-container"></div>
+</body>
+</html>

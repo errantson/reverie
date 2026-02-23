@@ -1156,6 +1156,9 @@ class SpectrumVisualizer {
         });
     }
     handleCanvasClick(clickX, clickY) {
+        // On touch devices, disable dreamer navigation to prevent accidental clickthrough
+        if (this.isTouchDevice) return;
+
         let clickedLabel = null;
         for (const label of this.labelBounds) {
             if (clickX >= label.x && clickX <= label.x + label.width &&

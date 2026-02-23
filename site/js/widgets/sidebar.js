@@ -291,6 +291,7 @@ class Sidebar {
             .then(data => {
                 this.dreamers = data;
                 this.dreamersLoaded = true;
+                window.AvatarCache?.populateFromDreamers?.(data);
                 
                 // Initialize hover widget after dreamers are loaded
                 if (typeof DreamerHoverWidget !== 'undefined') {

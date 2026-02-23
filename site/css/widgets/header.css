@@ -659,212 +659,165 @@
         display: none;
     }
     
-    /* Show mobile errantson helper - position it in mobile-center-group */
-    .errantson-helper.mobile-helper {
-        display: flex;
-        width: 32px;
-        height: 32px;
-        margin: 0;
-        flex-shrink: 0;
-    }
-    
-    .errantson-helper.mobile-helper img {
-        width: 24px;
-        height: 24px;
-    }
-    
     .reader-header {
         width: 100%;
         left: 0;
         right: 0;
-        padding: 8px 0;
-        min-height: 48px;
+        padding: 0;
+        height: 50px;
+        align-items: stretch; /* let children fill full bar height */
     }
     .header-unified {
         padding: 0;
         width: 100%;
+        height: 100%;
+        align-items: stretch;
     }
     .mobile-nav {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        padding: 0 12px;
-        gap: 8px;
-    }
-    
-    .mobile-center-group {
         display: flex;
+        align-items: stretch;
+        width: 100%;
+        padding: 0;
+    }
+
+    .mobile-center-group {
+        display: none;
+    }
+
+    .mobile-message-display {
+        display: none;
+    }
+
+    /* Logo hidden on mobile — tabs fill the full bar */
+    .mobile-logo-link { display: none; }
+
+    /* === Mobile Tab Navigation === */
+    .mobile-tab-nav {
+        display: flex;
+        align-items: stretch;
+        flex: 1;
+        width: 100%;
+        height: 100%;
+    }
+
+    .mobile-tab-item {
+        display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 8px;
         flex: 1;
-        min-width: 0; /* Allow flex items to shrink */
-    }
-    
-    .mobile-message-display {
-        font-size: 0.75rem;
-        max-width: none;
-        min-height: 20px;
-        flex: 1;
+        gap: 3px;
+        padding: 0 4px;
         min-width: 0;
-        overflow: hidden;
-    }
-    
-    .mobile-logo-link {
-        display: flex;
-        align-items: center;
+        color: rgba(255, 255, 255, 0.45);
         text-decoration: none;
+        /* Top border is the selection indicator — transparent by default */
+        border-top: 3px solid transparent;
+        transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-tab-item svg {
+        width: 20px;
+        height: 20px;
         flex-shrink: 0;
     }
-    .mobile-logo {
-        height: 40px;
-        width: auto;
+
+    /* Me tab: circular avatar replaces the cloud SVG */
+    .mobile-tab-item .me-tab-avatar {
         display: block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1.5px solid rgba(255,255,255,0.4);
+        flex-shrink: 0;
     }
-    .hamburger-btn {
+
+    .mobile-tab-item .me-tab-name {
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        line-height: 1;
+    }
+
+    .mobile-tab-item span {
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        line-height: 1;
+    }
+
+    /* Active: bright top edge + gradient fill that fades down — like light
+       catching the top face of a physical selector. No border-radius anywhere. */
+    .mobile-tab-item.active {
+        color: #fff;
+        border-top-color: rgba(255, 255, 255, 0.95);
+        background: linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.22) 0%,
+            rgba(255, 255, 255, 0.07) 55%,
+            transparent 100%
+        );
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .mobile-tab-item:active {
+        background: rgba(255, 255, 255, 0.07);
+    }
+
+    /* Remove old hamburger and dropdown — replaced by tab nav */
+    .hamburger-btn { display: none !important; }
+    .mobile-menu { display: none !important; }
+
+    /* === Errantson FAB (injected into body by header.js on mobile) === */
+    .errantson-fab {
+        position: fixed;
+        bottom: 22px;
+        right: 18px;
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        min-height: 52px;
+        border-radius: 50%;
+        border: 2px solid var(--reverie-core-color, #734ba1);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), 0 1px 4px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: visible;
+        padding: 0;
+        z-index: 9500;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .errantson-fab:active {
+        transform: scale(0.92);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .errantson-fab img {
         width: 36px;
         height: 36px;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        z-index: 1001;
-        flex-shrink: 0;
-        padding: 6px;
+        border-radius: 50%;
+        object-fit: cover;
+        pointer-events: none;
     }
-    .hamburger-btn:hover .hamburger-icon,
-    .hamburger-btn:hover .hamburger-icon::before,
-    .hamburger-btn:hover .hamburger-icon::after {
-        background: rgba(255, 255, 255, 1);
+
+    /* Stronger pulse for unread messages on FAB */
+    .errantson-fab.has-unread .helper-pulse,
+    .errantson-fab.needs-attention .helper-pulse {
+        animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        border-color: var(--reverie-core-color, #734ba1);
     }
-    .hamburger-btn.active {
-        transform: rotate(0deg);
-    }
-    .hamburger-icon {
-        position: relative;
-        width: 24px;
-        height: 2px;
-        background: rgba(255, 255, 255, 0.9);
-        display: block;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 2px;
-    }
-    .hamburger-icon::before,
-    .hamburger-icon::after {
-        content: '';
-        position: absolute;
-        width: 24px;
-        height: 2px;
-        background: rgba(255, 255, 255, 0.9);
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 2px;
-        left: 0;
-    }
-    .hamburger-icon::before {
-        top: -7px;
-    }
-    .hamburger-icon::after {
-        top: 7px;
-    }
-    .hamburger-btn.active .hamburger-icon {
-        background: transparent;
-    }
-    .hamburger-btn.active .hamburger-icon::before {
-        top: 0;
-        transform: rotate(45deg);
-    }
-    .hamburger-btn.active .hamburger-icon::after {
-        top: 0;
-        transform: rotate(-45deg);
-    }
-    .mobile-menu {
-        display: none;
-        position: fixed;
-        top: 56px;
-        left: 0;
-        right: 0;
-        width: 100%;
-        max-height: calc(100vh - 56px);
-        background: linear-gradient(135deg, #fdfcff 0%, #f9f5fc 100%);
-        border-bottom: 2px solid rgba(107, 79, 155, 0.2);
-        box-shadow: 0 4px 16px rgba(107, 79, 155, 0.15);
-        overflow-y: auto;
-        z-index: 1050;
-        opacity: 0;
-        transform: translateY(-10px);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        padding: 8px 20px;
-    }
-    .mobile-menu.open {
-        display: block;
-        opacity: 1;
-        transform: translateY(0);
-    }
-    .mobile-menu-item {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 18px 0;
-        color: #6b4f9b;
-        text-decoration: none;
-        background: transparent;
-        border: none;
-        border-bottom: 1px solid rgba(107, 79, 155, 0.15);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        width: 100%;
-        text-align: left;
-        font-size: 17px;
-        font-weight: 500;
-    }
-    .mobile-menu-item:last-child {
-        border-bottom: none;
-    }
-    .mobile-menu-item:hover {
-        background: rgba(107, 79, 155, 0.08);
-        color: var(--reverie-core-color, #734ba1);
-    }
-    .mobile-menu-item:active {
-        background: rgba(107, 79, 155, 0.15);
-        color: var(--reverie-core-color, #734ba1);
-    }
-    .mobile-menu-icon {
-        font-size: 22px;
-        width: 28px;
-        text-align: center;
-        flex-shrink: 0;
-    }
-    .mobile-menu-text {
-        flex: 1;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-    }
-    .mobile-menu-divider {
-        height: 1px;
-        background: rgba(107, 79, 155, 0.25);
-        margin: 8px 0;
-    }
-    .mobile-menu-item.admin-item {
-        color: rgba(107, 79, 155, 0.85);
-        font-weight: 500;
-    }
-    .mobile-menu-item.admin-item:hover {
-        background: rgba(107, 79, 155, 0.12);
-    }
-    .header-message-display {
-        font-size: 0.65rem;
-        width: 140px; /* Fixed width on mobile */
-        height: 28px; /* Fixed height on mobile */
-        padding: 0;
-        line-height: 1.2;
-        overflow: hidden;
-    }
+
     .has-fixed-header {
         padding-top: 66px;
     }

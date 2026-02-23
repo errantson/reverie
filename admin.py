@@ -290,6 +290,11 @@ def add_first_time_work_canon(db_manager, did, role_name, canon_event, canon_key
         print(f"  ✨ First-time work canon: {canon_event}")
         print(f"     URI: {uri}")
         print(f"     URL: {url}")
+
+        # Invalidate guestbook cache if this is a greeter event
+        if canon_key == 'greeter':
+            invalidate_guestbook_cache()
+
         return True
         
     except Exception as e:
@@ -2053,6 +2058,10 @@ def admin_add_canon():
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
             """, (did, event, type_val, key, uri, url, epoch, int(time.time()), quantities_json, 'user', 'highlight'))
         
+        # Invalidate guestbook cache if this touches greeting events
+        if key in ('name', 'greeter'):
+            invalidate_guestbook_cache()
+
         return jsonify({'success': True})
         
     except Exception as e:
@@ -2084,6 +2093,9 @@ def admin_delete_canon(entry_id):
         # Delete the entry
         db.execute("DELETE FROM events WHERE id = %s", (entry_id,), autocommit=True)
         
+        # Invalidate guestbook cache in case a name/greeter event was deleted
+        invalidate_guestbook_cache()
+
         return jsonify({'success': True})
         
     except Exception as e:
@@ -6694,6 +6706,132 @@ def set_working(role):
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================================
+# GUESTBOOK CACHE — pre-built, server-filtered greeting events
+# ============================================================
+# Caches the guestbook query result in memory with a TTL.
+# Invalidated explicitly when new name/greeter events are written,
+# or expires naturally after GUESTBOOK_CACHE_TTL seconds.
+
+_guestbook_cache = {
+    'data': None,
+    'timestamp': 0,
+}
+GUESTBOOK_CACHE_TTL = 300  # 5 minutes
+
+def invalidate_guestbook_cache():
+    """Call this after inserting name/greeter events to bust the cache."""
+    _guestbook_cache['data'] = None
+    _guestbook_cache['timestamp'] = 0
+    print("[Guestbook] Cache invalidated")
+
+def _build_guestbook_data(limit=50):
+    """Query only name/greeter events with dreamer+spectrum joins, threaded."""
+    from core.database import DatabaseManager
+    db = DatabaseManager()
+
+    # Fetch only greeting-relevant events (server-side filter)
+    cursor = db.execute("""
+        SELECT c.id, c.epoch, c.did, c.event, c.url, c.uri, c.type, c.key,
+               c.color_source, c.color_intensity, c.reaction_to, c.others,
+               d.name, d.avatar, d.color_hex,
+               s.octant, s.origin_octant
+        FROM events c
+        LEFT JOIN dreamers d ON c.did = d.did
+        LEFT JOIN spectrum s ON c.did = s.did
+        WHERE c.key IN ('name', 'greeter')
+        ORDER BY c.epoch DESC
+        LIMIT %s
+    """, (limit,))
+    rows = cursor.fetchall()
+
+    # Batch-resolve others[] DIDs
+    all_other_dids = set()
+    for row in rows:
+        if row.get('others'):
+            for od in row['others']:
+                if od:
+                    all_other_dids.add(od)
+
+    others_lookup = {}
+    if all_other_dids:
+        oc = db.execute("""
+            SELECT did, name, handle, avatar, color_hex FROM dreamers WHERE did = ANY(%s)
+        """, (list(all_other_dids),))
+        for r in oc.fetchall():
+            others_lookup[r['did']] = {
+                'did': r['did'],
+                'name': r['name'] or 'unknown',
+                'handle': r['handle'] or '',
+                'avatar': r['avatar'] or '',
+                'color_hex': r['color_hex'] or '#888888',
+            }
+
+    result = []
+    for entry in rows:
+        others_data = []
+        if entry.get('others'):
+            for od in entry['others']:
+                if od and od in others_lookup:
+                    others_data.append(others_lookup[od])
+                elif od:
+                    others_data.append({'did': od, 'name': 'unknown', 'handle': '', 'avatar': '', 'color_hex': '#888888'})
+
+        result.append({
+            'id': entry['id'],
+            'epoch': entry['epoch'],
+            'did': entry['did'],
+            'name': entry['name'] or 'unknown',
+            'avatar': entry['avatar'] or '',
+            'color_hex': entry['color_hex'] or '#734ba1',
+            'event': entry['event'],
+            'url': entry['url'] or '',
+            'uri': entry['uri'] or '',
+            'type': entry['type'] or 'souvenir',
+            'key': entry['key'] or '',
+            'color_source': entry['color_source'] or 'none',
+            'color_intensity': entry['color_intensity'] or 'none',
+            'octant': entry['octant'] or '',
+            'origin_octant': entry['origin_octant'] or '',
+            'reaction_to': entry['reaction_to'],
+            'others': entry.get('others') or [],
+            'others_data': others_data,
+        })
+
+    return result
+
+
+@app.route('/api/work/greeter/guestbook')
+@rate_limit()
+def get_greeter_guestbook():
+    """Pre-built, cached guestbook data for the greeter eventstack.
+
+    Returns only key='name' and key='greeter' events with dreamer/spectrum
+    data pre-joined.  Cached in memory for GUESTBOOK_CACHE_TTL seconds and
+    invalidated when new greeting events are written.
+    """
+    try:
+        now = time.time()
+        if (_guestbook_cache['data'] is not None
+                and now - _guestbook_cache['timestamp'] < GUESTBOOK_CACHE_TTL):
+            resp = jsonify(_guestbook_cache['data'])
+            resp.headers['Cache-Control'] = 'public, max-age=60'
+            return resp
+
+        data = _build_guestbook_data(limit=50)
+        _guestbook_cache['data'] = data
+        _guestbook_cache['timestamp'] = time.time()
+        print(f"[Guestbook] Cache rebuilt — {len(data)} events")
+        resp = jsonify(data)
+        resp.headers['Cache-Control'] = 'public, max-age=60'
+        return resp
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/work/greeter/templates')
 @rate_limit()
 def get_greeter_templates():
@@ -6779,16 +6917,13 @@ def validate_work_token(token):
     Returns: (valid, user_did, handle)
     """
     if not token:
-        print(f"[validate_work_token] No token provided")
         return False, None, None
     
     # Validate session token
     valid, did, handle = auth.validate_session(token)
     if valid:
-        print(f"[validate_work_token] Session VALID - DID: {did}, Handle: {handle}")
         return True, did, handle
     
-    print(f"[validate_work_token] Invalid session token")
     return False, None, None
 
 
@@ -9830,9 +9965,16 @@ def activate_guardian():
         """)
         
         if not work_row:
-            return jsonify({'error': 'Guardian role not found in work table'}), 404
-        
-        workers = json.loads(work_row['workers']) if work_row['workers'] else []
+            # Auto-create guardian row if missing
+            import time as _time
+            db_manager.execute("""
+                INSERT INTO work (role, status, forced_retirement, workers, worker_limit, created_at, updated_at)
+                VALUES ('guardian', 'active', 0, '[]', 0, %s, %s)
+            """, (int(_time.time()), int(_time.time())))
+            print(f"  ⚠ Auto-created missing guardian work row")
+            workers = []
+        else:
+            workers = json.loads(work_row['workers']) if work_row['workers'] else []
         
         # Check if user is already in workers array
         already_active = any(w['did'] == user_did for w in workers)
@@ -9921,9 +10063,16 @@ def step_down_guardian():
         row = cursor.fetchone()
         
         if not row:
-            return jsonify({'error': 'Guardian role not found'}), 404
-        
-        workers = json.loads(row['workers']) if row['workers'] else []
+            # Auto-create guardian row if missing (edge case recovery)
+            import time as _time
+            db_manager.execute("""
+                INSERT INTO work (role, status, forced_retirement, workers, worker_limit, created_at, updated_at)
+                VALUES ('guardian', 'active', 0, '[]', 0, %s, %s)
+            """, (int(_time.time()), int(_time.time())))
+            print(f"  ⚠ Auto-created missing guardian work row")
+            workers = []
+        else:
+            workers = json.loads(row['workers']) if row['workers'] else []
         
         updated_workers = [w for w in workers if w['did'] != user_did]
         

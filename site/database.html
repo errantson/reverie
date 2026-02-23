@@ -41,6 +41,7 @@
     <script src="/js/utils/shadowbox.js"></script>
     <script src="/js/widgets/showpost.js"></script>
     <script src="/js/widgets/eventstack.js?v=20260210d"></script>
+    <script src="/js/core/avatar-cache.js" defer></script>
     <script src="/js/widgets/header.js" defer></script>
     <script type="module" src="/js/widgets/oauth-manager.js"></script>
     <script src="/js/widgets/login.js" defer></script>
@@ -184,6 +185,11 @@
         let guardianRules = null;
         let aggregateBarred = null;
         const searchFields = ['name', 'event', 'uri', 'type', 'key'];
+
+        // Pagination state
+        const PAGE_SIZE = 50;
+        let currentDisplayEvents = [];
+        let currentDisplayLimit = PAGE_SIZE;
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async () => {
@@ -413,22 +419,41 @@
             }
         }
 
-        // Render events using EventStack
+        // Render events using EventStack (with pagination)
         function renderEvents(eventsToRender = null) {
             const container = document.getElementById('rows-container');
-            const events = eventsToRender || allData.events || [];
-            
-            if (events.length === 0) {
+            currentDisplayEvents = eventsToRender || allData.events || [];
+            currentDisplayLimit = PAGE_SIZE; // reset on each new filter/render
+            renderPage(container);
+        }
+
+        // Render the current page slice; re-called on Load More
+        function renderPage(container) {
+            if (currentDisplayEvents.length === 0) {
                 container.innerHTML = '<div class="empty-state">No events found matching your criteria.</div>';
                 return;
             }
-            
-            // Use EventStack widget for consistent rendering
-            if (window.EventStack) {
-                const eventStack = new EventStack();
-                eventStack.render(events, container);
-            } else {
+
+            if (!window.EventStack) {
                 container.innerHTML = '<div class="empty-state">EventStack widget not loaded. Please refresh the page.</div>';
+                return;
+            }
+
+            const eventStack = new EventStack();
+            eventStack.render(currentDisplayEvents, container, { limit: currentDisplayLimit });
+
+            // Append Load More button if more rows remain
+            const totalTop = currentDisplayEvents.filter(e => !e.reaction_to).length;
+            if (totalTop > currentDisplayLimit) {
+                const remaining = totalTop - currentDisplayLimit;
+                const btn = document.createElement('button');
+                btn.className = 'load-more-btn';
+                btn.textContent = `Load ${Math.min(PAGE_SIZE, remaining)} more (${remaining} remaining)`;
+                btn.addEventListener('click', () => {
+                    currentDisplayLimit += PAGE_SIZE;
+                    renderPage(container);
+                });
+                container.appendChild(btn);
             }
         }
 

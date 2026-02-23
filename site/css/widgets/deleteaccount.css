@@ -1,82 +1,79 @@
 /**
- * Delete Account Modal Styles
- * Uses popup.css base styles with red accents for destructive actions
+ * Delete Account Modal — Mobile-optimized light theme
  */
 
-/* Shadowbox overlay - matches popup.css */
-.delete-account-shadowbox {
+/* ── Overlay ── */
+.da-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: rgba(0, 0, 0, 0);
     backdrop-filter: blur(0px);
     z-index: 99999;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 6vh 0 env(safe-area-inset-bottom, 20px);
     opacity: 0;
     transition: opacity 0.3s ease, backdrop-filter 0.3s ease, background 0.3s ease;
     pointer-events: none;
 }
 
-.delete-account-shadowbox.visible {
+.da-overlay.visible {
     opacity: 1;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(4px);
     pointer-events: all;
 }
 
-/* Modal container - matches popup style */
-.delete-account-modal {
-    background: var(--bg-primary, #1a1a1a);
-    border: 1px solid var(--border-color, #333);
-    border-radius: 8px;
-    max-width: 480px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+/* ── Modal ── */
+.da-modal {
+    background: #fff;
+    border: 1px solid #e0d8ea;
+    border-radius: 6px;
+    max-width: 420px;
+    width: 94%;
+    box-shadow: 0 4px 24px rgba(80, 40, 100, 0.12);
     transform: scale(0.95);
     transition: transform 0.3s ease;
+    flex-shrink: 0;
 }
 
-.delete-account-shadowbox.visible .delete-account-modal {
+.da-overlay.visible .da-modal {
     transform: scale(1);
 }
 
-/* Header - cleaner style */
-.delete-account-header {
-    background: var(--bg-secondary, #222);
-    border-bottom: 1px solid var(--border-color, #333);
-    padding: 0.875rem 1.125rem;
+/* ── Header ── */
+.da-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    position: relative;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #e8e0f0;
+    background: #fcfaff;
+    border-radius: 6px 6px 0 0;
 }
 
-.delete-account-logo {
-    width: 22px;
-    height: 22px;
+.da-logo {
+    width: 20px;
+    height: 20px;
     object-fit: contain;
 }
 
-.delete-account-title {
+.da-title {
     flex: 1;
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary, #fff);
-    letter-spacing: 0.5px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #c04040;
+    letter-spacing: 0.02em;
 }
 
-.delete-account-close {
+.da-close {
     background: none;
     border: none;
-    color: var(--text-secondary, #999);
-    font-size: 1.5rem;
+    color: #999;
+    font-size: 1.4rem;
     width: 32px;
     height: 32px;
     display: flex;
@@ -84,418 +81,314 @@
     justify-content: center;
     cursor: pointer;
     border-radius: 4px;
-    transition: all 0.2s ease;
-    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.delete-account-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary, #fff);
+.da-close:active {
+    background: #f0ecf5;
+    color: #666;
 }
 
-/* Body */
-.delete-account-body {
-    padding: 1.25rem;
-    color: var(--text-primary, #e0e0e0);
+/* ── Body ── */
+.da-body {
+    padding: 14px;
 }
 
-/* Warning section */
-.delete-account-warning {
-    background: rgba(139, 0, 0, 0.05);
-    border: 1px solid rgba(139, 0, 0, 0.2);
-    border-radius: 6px;
-    padding: 1rem;
-    margin-bottom: 1.25rem;
+/* ── Warning ── */
+.da-warning {
+    background: #fdf5f5;
+    border: 1px solid #f0d0d0;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 14px;
 }
 
-.warning-primary {
-    color: #ff6666;
-    font-size: 0.95rem;
-    margin: 0 0 0.875rem 0;
-    font-weight: 500;
+.da-warning-primary {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #c04040;
+    margin: 0 0 8px 0;
 }
 
-.warning-details {
-    color: var(--text-primary, #e0e0e0);
-    margin: 0.875rem 0 0.5rem 0;
-    font-size: 0.9rem;
+.da-warning-handle {
+    font-size: 0.78rem;
+    color: #555;
+    margin: 0 0 6px 0;
 }
 
-.delete-consequences {
+.da-consequences {
     list-style: none;
     padding: 0;
-    margin: 0.625rem 0;
-    font-size: 0.875rem;
+    margin: 0 0 8px 0;
 }
 
-.delete-consequences li {
-    padding: 0.375rem 0;
-    color: var(--text-secondary, #bbb);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+.da-consequences li {
+    font-size: 0.72rem;
+    color: #666;
+    padding: 3px 0;
+    border-bottom: 1px solid #f8f0f0;
+    line-height: 1.4;
 }
 
-.delete-consequences li:last-child {
+.da-consequences li:last-child {
     border-bottom: none;
 }
 
-.warning-final {
-    color: #ff6666;
-    font-weight: 500;
-    margin: 0.875rem 0 0 0;
-    padding: 0.75rem;
-    background: rgba(139, 0, 0, 0.08);
-    border-radius: 4px;
-    border: 1px solid rgba(139, 0, 0, 0.2);
-    font-size: 0.9rem;
-}
-
-/* Confirmation section */
-.delete-confirmation-section {
-    margin: 1.25rem 0 0.875rem 0;
-}
-
-.confirmation-label {
-    display: block;
-    color: var(--text-primary, #e0e0e0);
-    margin-bottom: 0.625rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-}
-
-.required-text {
-    color: #ff6666;
-    font-family: 'Courier New', monospace;
+.da-consequences li strong {
+    color: #c04040;
     font-weight: 600;
-    background: rgba(139, 0, 0, 0.1);
-    padding: 0.2rem 0.4rem;
+}
+
+.da-warning-final {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #c04040;
+    margin: 0;
+    padding: 8px;
+    background: #fdf0f0;
+    border: 1px solid #f0d0d0;
     border-radius: 3px;
 }
 
-.delete-confirmation-input {
+/* ── Confirmation ── */
+.da-confirm-section {
+    margin-bottom: 14px;
+}
+
+.da-confirm-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #555;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.da-required-text {
+    color: #c04040;
+    font-family: monospace;
+    font-weight: 700;
+    background: #fdf5f5;
+    padding: 1px 4px;
+    border-radius: 2px;
+    border: 1px solid #f0d0d0;
+}
+
+.da-confirm-input {
     width: 100%;
-    max-width: 320px;
-    padding: 0.625rem 0.875rem;
-    background: var(--bg-tertiary, #2a2a2a);
-    border: 1px solid var(--border-color, #444);
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #e0d8ea;
     border-radius: 4px;
-    color: var(--text-primary, #e0e0e0);
-    font-size: 0.9rem;
-    font-family: 'Courier New', monospace;
-    transition: all 0.2s ease;
+    color: #333;
+    font-size: 16px; /* prevents iOS zoom */
+    font-family: monospace;
+    transition: border-color 0.15s ease;
     box-sizing: border-box;
 }
 
-.delete-confirmation-input:focus {
+.da-confirm-input:focus {
     outline: none;
-    border-color: #ff6666;
-    background: var(--bg-secondary, #333);
+    border-color: #c04040;
 }
 
-.confirmation-status {
-    margin-top: 0;
-    font-size: 0.875rem;
-    min-height: 0;
+.da-confirm-input.da-valid {
+    border-color: #40a060;
+    background: #f8fdf8;
 }
 
-.confirmation-status.valid {
-    color: #66ff66;
+.da-confirm-input.da-invalid {
+    border-color: #e0a0a0;
 }
 
-.confirmation-status.invalid {
-    color: #ff9999;
-}
-
-/* Delete button container */
-.delete-button-container {
-    margin-top: 0.5rem;
+/* ── Actions ── */
+.da-actions {
     text-align: center;
 }
 
-.delete-account-btn {
+.da-delete-btn {
     position: relative;
-    background: linear-gradient(180deg, #8b0000 0%, #5a0000 100%);
-    border: 2px solid #a00000;
-    color: #ffffff;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    border-radius: 6px;
+    background: linear-gradient(180deg, #d04040 0%, #a02020 100%);
+    border: 2px solid #c03030;
+    color: #fff;
+    padding: 10px 20px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s ease;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3);
+    letter-spacing: 0.04em;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s ease;
+    min-height: 44px;
 }
 
-.delete-account-btn:not(:disabled):hover {
-    background: linear-gradient(180deg, #a00000 0%, #700000 100%);
-    border-color: #c00000;
-    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.4);
-    transform: translateY(-1px);
-}
-
-.delete-account-btn:disabled {
-    opacity: 0.4;
+.da-delete-btn:disabled {
+    opacity: 0.3;
     cursor: not-allowed;
-    background: linear-gradient(180deg, #4a0000 0%, #2a0000 100%);
-    border-color: #660000;
+    background: linear-gradient(180deg, #999 0%, #777 100%);
+    border-color: #888;
 }
 
-.delete-account-btn.valid {
-    background: linear-gradient(180deg, #ff4444 0%, #cc0000 100%);
-    border-color: #ff3333;
-    box-shadow: 0 0 20px rgba(255, 68, 68, 0.6), 0 2px 8px rgba(139, 0, 0, 0.3);
-    animation: pulse-glow 2s ease-in-out infinite;
+.da-delete-btn.valid {
+    background: linear-gradient(180deg, #e04040 0%, #c02020 100%);
+    border-color: #e03030;
+    box-shadow: 0 0 16px rgba(200, 40, 40, 0.3);
+    animation: da-pulse 2s ease-in-out infinite;
 }
 
-@keyframes pulse-glow {
-    0%, 100% {
-        box-shadow: 0 0 20px rgba(255, 68, 68, 0.6), 0 2px 8px rgba(139, 0, 0, 0.3);
-    }
-    50% {
-        box-shadow: 0 0 30px rgba(255, 68, 68, 0.8), 0 2px 8px rgba(139, 0, 0, 0.3);
-    }
+@keyframes da-pulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(200, 40, 40, 0.3); }
+    50%      { box-shadow: 0 0 24px rgba(200, 40, 40, 0.5); }
 }
 
-.delete-account-btn .btn-text {
+.da-delete-btn .da-btn-text {
     position: relative;
     z-index: 2;
 }
 
-/* Crack animations */
-.btn-crack {
+/* ── Cracks ── */
+.da-crack {
     position: absolute;
-    background: #000;
+    background: rgba(0, 0, 0, 0.6);
     opacity: 0;
     transition: opacity 0.3s ease;
     z-index: 1;
 }
 
-.crack-1 {
-    width: 2px;
-    height: 40%;
-    top: 10%;
-    left: 30%;
-    transform: rotate(15deg);
-}
+.da-crack-1 { width: 2px; height: 40%; top: 10%; left: 30%; transform: rotate(15deg); }
+.da-crack-2 { width: 2px; height: 50%; top: 20%; right: 35%; transform: rotate(-20deg); }
+.da-crack-3 { width: 60%; height: 2px; top: 40%; left: 20%; transform: rotate(-5deg); }
+.da-crack-4 { width: 2px; height: 35%; bottom: 15%; left: 50%; transform: rotate(25deg); }
 
-.crack-2 {
-    width: 2px;
-    height: 50%;
-    top: 20%;
-    right: 35%;
-    transform: rotate(-20deg);
-}
+.da-delete-btn.stage-1 .da-crack-1 { opacity: 0.6; }
 
-.crack-3 {
-    width: 60%;
-    height: 2px;
-    top: 40%;
-    left: 20%;
-    transform: rotate(-5deg);
-}
+.da-delete-btn.stage-2 .da-crack-1,
+.da-delete-btn.stage-2 .da-crack-2,
+.da-delete-btn.stage-2 .da-crack-3 { opacity: 0.7; }
+.da-delete-btn.stage-2 { animation: da-shake 0.5s ease; }
 
-.crack-4 {
-    width: 2px;
-    height: 35%;
-    bottom: 15%;
-    left: 50%;
-    transform: rotate(25deg);
-}
+.da-delete-btn.stage-3 .da-crack-1,
+.da-delete-btn.stage-3 .da-crack-2,
+.da-delete-btn.stage-3 .da-crack-3,
+.da-delete-btn.stage-3 .da-crack-4 { opacity: 0.8; }
+.da-delete-btn.stage-3 { animation: da-shake-heavy 0.5s ease; }
 
-/* Stage 1: First crack */
-.delete-account-btn.stage-1 .crack-1 {
-    opacity: 0.6;
-}
+.da-delete-btn.destroying { animation: da-destroy 1s ease-in-out forwards; }
 
-/* Stage 2: More cracks */
-.delete-account-btn.stage-2 .crack-1,
-.delete-account-btn.stage-2 .crack-2,
-.delete-account-btn.stage-2 .crack-3 {
-    opacity: 0.7;
-}
+.da-delete-btn.shake { animation: da-shake 0.5s ease; }
 
-.delete-account-btn.stage-2 {
-    animation: crack-shake 0.5s ease;
-}
-
-/* Stage 3: Maximum damage before destruction */
-.delete-account-btn.stage-3 .crack-1,
-.delete-account-btn.stage-3 .crack-2,
-.delete-account-btn.stage-3 .crack-3,
-.delete-account-btn.stage-3 .crack-4 {
-    opacity: 0.8;
-}
-
-.delete-account-btn.stage-3 {
-    animation: crack-shake-heavy 0.5s ease;
-}
-
-/* Destruction animation */
-.delete-account-btn.destroying {
-    animation: btn-destroy 1s ease-in-out forwards;
-}
-
-@keyframes crack-shake {
+@keyframes da-shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-3px); }
     75% { transform: translateX(3px); }
 }
 
-@keyframes crack-shake-heavy {
+@keyframes da-shake-heavy {
     0%, 100% { transform: translateX(0) translateY(0); }
-    15% { transform: translateX(-5px) translateY(2px); }
-    30% { transform: translateX(5px) translateY(-2px); }
-    45% { transform: translateX(-4px) translateY(-1px); }
-    60% { transform: translateX(4px) translateY(1px); }
-    75% { transform: translateX(-3px) translateY(-1px); }
+    15% { transform: translateX(-4px) translateY(2px); }
+    30% { transform: translateX(4px) translateY(-2px); }
+    45% { transform: translateX(-3px) translateY(-1px); }
+    60% { transform: translateX(3px) translateY(1px); }
+    75% { transform: translateX(-2px) translateY(-1px); }
 }
 
-@keyframes btn-destroy {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.1) rotate(2deg);
-    }
-    100% {
-        transform: scale(0.3) rotate(15deg);
-        opacity: 0;
-    }
+@keyframes da-destroy {
+    0%   { transform: scale(1); opacity: 1; }
+    50%  { transform: scale(1.1) rotate(2deg); }
+    100% { transform: scale(0.3) rotate(15deg); opacity: 0; }
 }
 
-/* Shake animation on click */
-.delete-account-btn.shake {
-    animation: btn-shake 0.5s ease;
+/* ── Progress / status ── */
+.da-progress {
+    margin-top: 8px;
+    font-size: 0.72rem;
+    color: #999;
+    min-height: 1.2rem;
 }
 
-@keyframes btn-shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
+.da-deleting { color: #c04040; font-weight: 600; }
+.da-error    { color: #c04040; font-weight: 600; }
+
+.da-transfer {
+    margin-top: 6px;
+    font-size: 0.68rem;
+    color: #b0a0c0;
 }
 
-/* Progress text */
-.delete-progress {
-    margin-top: 0.875rem;
-    color: var(--text-secondary, #999);
-    font-size: 0.875rem;
-    min-height: 1.5rem;
-}
-
-.transfer-notice {
-    margin-top: 0.5rem;
-    color: var(--text-secondary, #999);
-    font-size: 0.75rem;
-}
-
-.transfer-notice a {
-    color: var(--text-secondary, #bbb);
+.da-transfer a {
+    color: #734ba1;
     text-decoration: underline;
-    transition: color 0.2s ease;
 }
 
-.transfer-notice a:hover {
-    color: var(--text-primary, #fff);
-}
-
-.deleting-text {
-    color: #ff6666;
-    font-weight: 500;
-}
-
-.error-text {
-    color: #ff6666;
-    font-weight: 500;
-}
-
-/* Deletion complete screen */
-.deletion-complete {
+/* ── Deletion complete ── */
+.da-complete {
     text-align: center;
-    padding: 2rem;
+    padding: 20px 10px;
 }
 
-.deletion-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+.da-complete-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 10px 0;
 }
 
-.deletion-title {
-    color: var(--text-primary, #fff);
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0 0 1rem 0;
+.da-complete-msg {
+    font-size: 0.82rem;
+    color: #666;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
 }
 
-.deletion-message {
-    color: var(--text-secondary, #bbb);
-    font-size: 1rem;
-    margin: 0 0 1.5rem 0;
+.da-complete-note {
+    font-size: 0.78rem;
+    color: #888;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
 }
 
-.deletion-farewell {
-    color: var(--text-secondary, #999);
+.da-complete-farewell {
+    font-size: 0.82rem;
+    color: #734ba1;
     font-style: italic;
-    margin: 0 0 2rem 0;
+    margin: 0 0 16px 0;
     line-height: 1.6;
 }
 
-.deletion-redirect {
-    color: var(--text-secondary, #bbb);
-    font-size: 0.875rem;
-    padding: 0.875rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    border: 1px solid var(--border-color, #333);
+.da-redirect {
+    font-size: 0.75rem;
+    color: #999;
+    padding: 8px;
+    background: #fcfaff;
+    border: 1px solid #e8e0f0;
+    border-radius: 3px;
 }
 
-#redirect-countdown {
-    color: var(--text-primary, #fff);
-    font-weight: 600;
-    font-size: 1.1rem;
+#da-countdown {
+    font-weight: 700;
+    color: #734ba1;
 }
 
-/* Scrollbar styling for modal */
-.delete-account-modal::-webkit-scrollbar {
-    width: 8px;
-}
-
-.delete-account-modal::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-}
-
-.delete-account-modal::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-}
-
-.delete-account-modal::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .delete-account-modal {
-        width: 95%;
-        max-height: 95vh;
+/* ── Mobile keyboard-active ── */
+@media (max-width: 600px) {
+    .da-overlay.keyboard-active {
+        padding-top: 2vh;
     }
-    
-    .delete-account-header {
-        padding: 0.75rem 1rem;
+
+    .da-modal.keyboard-active {
+        transition: none;
     }
-    
-    .delete-account-title {
-        font-size: 0.95rem;
+
+    .da-modal.keyboard-active .da-warning {
+        display: none;
     }
-    
-    .delete-account-body {
-        padding: 1.25rem;
+
+    .da-modal.keyboard-active .da-actions {
+        display: none;
     }
-    
-    .delete-account-btn {
-        padding: 0.625rem 1.25rem;
-        font-size: 0.9rem;
+
+    .da-modal.keyboard-active .da-body {
+        padding: 10px 14px;
     }
 }

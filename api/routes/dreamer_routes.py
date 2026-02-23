@@ -341,6 +341,50 @@ def get_active_dreamers():
         return jsonify([])
 
 
+@bp.route('/dreamers/<did>/roles')
+def get_dreamer_roles(did):
+    """
+    Get active roles for a dreamer.
+    Returns: [{ role, status, work_status, worker_limit, last_activity }]
+    """
+    try:
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+
+        cursor = db.execute(
+            """
+            SELECT ur.role,
+                   ur.status,
+                   ur.last_activity,
+                   ur.activated_at,
+                   w.status        AS work_status,
+                   w.worker_limit  AS worker_limit
+            FROM user_roles ur
+            LEFT JOIN work w ON w.role = ur.role
+            WHERE ur.did = %s AND ur.status = 'active'
+            ORDER BY ur.activated_at ASC
+            """,
+            (did,)
+        )
+        rows = cursor.fetchall()
+        result = []
+        for r in rows:
+            result.append({
+                'role':          r['role'],
+                'status':        r['status'],
+                'work_status':   r['work_status'],
+                'worker_limit':  r['worker_limit'],
+                'last_activity': r['last_activity'].isoformat() if r['last_activity'] else None,
+                'activated_at':  r['activated_at'].isoformat() if r['activated_at'] else None,
+            })
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error fetching dreamer roles: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify([])
+
+
 @bp.route('/dreamers/<did>')
 def get_dreamer_by_did(did):
     """Get a single dreamer by DID"""
@@ -356,6 +400,8 @@ def get_dreamer_by_did(did):
                 d.server, d.avatar, d.banner,
                 d.followers_count, d.follows_count, d.posts_count,
                 d.created_at, d.arrival, d.heading, d.color_hex, d.phanera, d.alts,
+                d.status, d.designation,
+                d.canon_score, d.lore_score, d.patron_score, d.contribution_score,
                 s.oblivion, s.authority, s.skeptic, s.receptive, s.liberty, s.entropy, s.octant,
                 s.origin_oblivion, s.origin_authority, s.origin_skeptic,
                 s.origin_receptive, s.origin_liberty, s.origin_entropy, s.origin_octant
@@ -389,6 +435,12 @@ def get_dreamer_by_did(did):
                 'origin_octant': dreamer['origin_octant']
             }
         
+        # Get souvenirs for this dreamer
+        souvenir_cursor = db.execute(
+            "SELECT souvenir_key, earned_epoch FROM awards WHERE did = %s", (did,)
+        )
+        souvenirs = {row['souvenir_key']: row['earned_epoch'] for row in souvenir_cursor.fetchall()}
+        
         # Return dreamer data
         return jsonify({
             'did': dreamer['did'],
@@ -408,6 +460,14 @@ def get_dreamer_by_did(did):
             'color_hex': dreamer['color_hex'],
             'phanera': dreamer['phanera'],
             'alt_names': dreamer['alts'] or '',
+            'status': dreamer['status'],
+            'designation': dreamer['designation'],
+            'patronage': dreamer['patron_score'] or 0,
+            'patron_score': dreamer['patron_score'] or 0,
+            'canon_score': dreamer['canon_score'] or 0,
+            'lore_score': dreamer['lore_score'] or 0,
+            'contribution_score': dreamer['contribution_score'] or 0,
+            'souvenirs': souvenirs,
             'spectrum': spectrum
         })
         
@@ -823,7 +883,7 @@ def update_dreamer_phanera():
         did = data.get('did')
         phanera = data.get('phanera')
         
-        if not did or not phanera:
+        if not did or phanera is None:
             return jsonify({'error': 'DID and phanera required'}), 400
         
         # Check if user owns this DID or is admin
@@ -835,23 +895,28 @@ def update_dreamer_phanera():
         
         import sys
         import os
-        import json
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from core.database import DatabaseManager
         
         db = DatabaseManager()
         
         # Verify dreamer exists
-        cursor = db.execute("SELECT did, souvenirs FROM dreamers WHERE did = %s", (did,))
+        cursor = db.execute("SELECT did FROM dreamers WHERE did = %s", (did,))
         dreamer = cursor.fetchone()
         
         if not dreamer:
             return jsonify({'error': 'Dreamer not found'}), 404
         
-        # Verify phanera is one of their unlocked souvenirs
-        souvenirs = json.loads(dreamer['souvenirs']) if dreamer['souvenirs'] else {}
-        if phanera not in souvenirs:
-            return jsonify({'error': 'Souvenir not unlocked'}), 403
+        # Collective (empty string) is always allowed — no souvenir required
+        if phanera != '':
+            # Verify phanera key is one of their unlocked souvenirs (via awards table)
+            cursor = db.execute(
+                "SELECT souvenir_key FROM awards WHERE did = %s",
+                (did,)
+            )
+            owned_keys = {r['souvenir_key'] for r in cursor.fetchall()}
+            if phanera not in owned_keys:
+                return jsonify({'error': 'Souvenir not unlocked'}), 403
         
         # Update phanera
         db.execute("UPDATE dreamers SET phanera = %s WHERE did = %s", (phanera, did))

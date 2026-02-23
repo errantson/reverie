@@ -604,6 +604,9 @@
 .souvenir-widget-photo {
     width: 64px;
     height: 64px;
+    min-width: 64px;
+    min-height: 64px;
+    aspect-ratio: 1;
     flex-shrink: 0;
     border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(200,220,255,0.6));
@@ -795,6 +798,10 @@
     right: 12px;
     width: 36px;
     height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    aspect-ratio: 1;
+    flex-shrink: 0;
     padding: 0;
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid #734ba1;

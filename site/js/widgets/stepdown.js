@@ -53,9 +53,37 @@ class StepDownWidget {
                 border-radius: 0;
                 box-shadow: 0 16px 64px rgba(0, 0, 0, 0.7);
                 max-width: 550px;
+                width: 90vw;
                 text-align: center;
                 animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
                 position: relative;
+                box-sizing: border-box;
+            }
+
+            @media (max-width: 768px) {
+                .stepdown-popup {
+                    padding: 1.5rem 1.25rem;
+                    width: 92vw;
+                    max-width: none;
+                    border-width: 3px;
+                }
+                .stepdown-title {
+                    font-size: 1.15rem;
+                }
+                .stepdown-message {
+                    font-size: 0.95rem;
+                    margin-bottom: 1.5rem;
+                }
+                .stepdown-buttons {
+                    flex-direction: column;
+                    gap: 0.6rem;
+                }
+                .stepdown-cancel,
+                .stepdown-confirm {
+                    width: 100%;
+                    padding: 0.8rem 1.5rem;
+                    font-size: 0.95rem;
+                }
             }
 
             .stepdown-title {
@@ -146,11 +174,11 @@ class StepDownWidget {
                 ${roleMessage}
             </div>
             <div class="stepdown-buttons">
-                <button class="stepdown-cancel">
-                    NEVERMIND
-                </button>
                 <button class="stepdown-confirm">
                     STEP DOWN NOW
+                </button>
+                <button class="stepdown-cancel">
+                    NEVERMIND
                 </button>
             </div>
         `;

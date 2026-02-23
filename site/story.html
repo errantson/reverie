@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/heraldry.css">
     <link rel="stylesheet" href="/css/responsive.css">
-    <link rel="stylesheet" href="/css/pages/story.css">
+    <link rel="stylesheet" href="/css/pages/story.css?v=20260223b">
+    <link rel="stylesheet" href="/css/widgets/sharelore.css">
     <link rel="stylesheet" href="/css/widgets/login.css">
     <link rel="stylesheet" href="/css/widgets/createdreamer.css">
     <link rel="stylesheet" href="/css/widgets/dialogue.css">
@@ -24,6 +25,7 @@
     <script src="/js/widgets/background.js"></script>
     
     <!-- Scripts -->
+    <script src="/js/core/avatar-cache.js" defer></script>
     <script src="/js/widgets/header.js" defer></script>
     <script type="module" src="/js/widgets/oauth-manager.js"></script>
     <script src="/js/widgets/login.js" defer></script>
@@ -54,14 +56,12 @@
             <div class="story-header-top">
                 <div class="story-logo-container">
                     <img src="/assets/logo.png" alt="Reverie House Logo">
-                    <div class="story-logo-label">CANON</div>
                 </div>
                 <div class="story-header-info">
                     <div class="story-header-description">
                         <span class="desktop-text">Share your adventures throughout our wild mindscape as journals, acts, stories, or any other sorts of dreams you may compose.</span>
                         <span class="mobile-text">Share your adventures as journals, acts, stories, or dreams.</span>
-                        <br><br>
-                        Your contributions will join the collective Reverie House lore.
+                        <span class="second-line">Your contributions will join the collective Reverie House lore.</span>
                     </div>
                 </div>
                 <button class="learn-more-btn" onclick="openExplanationModal()">

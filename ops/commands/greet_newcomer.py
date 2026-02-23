@@ -306,6 +306,13 @@ def greet_newcomer(replies: List[Dict], quest_config: Dict, verbose: bool = Fals
                             print(f"   📖 Created greeting event (id: {greeting_event_id})")
                             if name_event:
                                 print(f"   🔗 Points to name event (reaction_to: {name_event['id']})")
+
+                        # Invalidate guestbook cache so new greeting shows immediately
+                        try:
+                            from admin import invalidate_guestbook_cache
+                            invalidate_guestbook_cache()
+                        except Exception:
+                            pass  # cache will expire naturally
                     
                     except Exception as e:
                         if verbose:

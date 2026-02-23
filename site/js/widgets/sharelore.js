@@ -6,36 +6,19 @@
 
 class ShareLore {
     constructor() {
-        console.log('🏗️ [sharelore.js] ShareLore constructor called');
         this.LORE_FARM_API = 'https://lore.farm';
         this.WORLD_DOMAIN = 'reverie.house';
         this.previewTimeout = null;
         this.hasValidPreview = false;
         this.currentPostAuthorDid = null;
         this.modal = null;
-        console.log('   Calling init()...');
         this.init();
     }
 
     init() {
-        console.log('🎬 [sharelore.js] Initializing ShareLore widget');
-        
-        // Create modal HTML
-        console.log('   Creating modal...');
         this.createModal();
-        console.log('   Modal created, element:', this.modal);
-        
-        // Set up event listeners
-        console.log('   Setting up event listeners...');
         this.setupEventListeners();
-        console.log('   Event listeners set up');
-        
-        // Load character registration preference
-        console.log('   Loading preferences...');
         this.loadPreferences();
-        console.log('   Preferences loaded');
-        
-        console.log('✅ [sharelore.js] ShareLore widget initialized');
     }
 
     createModal() {
@@ -45,14 +28,6 @@ class ShareLore {
         overlay.id = 'shareModalOverlay';
         overlay.innerHTML = `
             <div class="share-modal">
-                <!-- Close Button -->
-                <button class="share-modal-close" id="closeShareModal" aria-label="Close">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-                
                 <!-- Header Section -->
                 <div class="share-modal-header">
                     <h2 class="share-modal-title">Submit to Canon</h2>
@@ -91,6 +66,17 @@ class ShareLore {
                             />
                         </div>
                     </div>
+                    
+                    <!-- Stage 1 Actions -->
+                    <div class="share-modal-actions">
+                        <button class="share-cancel-btn" id="cancelShareBtn">Cancel</button>
+                        <button class="share-modal-btn share-modal-btn-primary" id="submitLabelBtn" disabled>
+                            <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>SHARE LORE</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Stage 2: Preview & Actions -->
@@ -124,7 +110,7 @@ class ShareLore {
                             </svg>
                             Back
                         </button>
-                        <button class="share-modal-btn share-modal-btn-primary" id="submitLabelBtn">
+                        <button class="share-modal-btn share-modal-btn-primary" id="submitLabelBtnConfirm">
                             <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
@@ -155,11 +141,7 @@ class ShareLore {
                 <!-- Footer -->
                 <div class="share-modal-footer">
                     <a class="learn-more-link" id="learnMoreLink">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                        </svg>
+                        <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor"><path d="M306.068,156.129c-6.566-5.771-14.205-10.186-22.912-13.244c-8.715-3.051-17.82-4.58-27.326-4.58 c-9.961,0-19.236,1.59-27.834,4.752c-8.605,3.171-16.127,7.638-22.576,13.41c-6.449,5.772-11.539,12.9-15.272,21.384 c-3.736,8.486-5.604,17.937-5.604,28.34h44.131c0-7.915,2.258-14.593,6.785-20.028c4.524-5.426,11.314-8.138,20.369-8.138 c8.598,0,15.328,2.661,20.197,7.974c4.864,5.322,7.297,11.942,7.297,19.856c0,3.854-0.965,7.698-2.887,11.543 c-1.922,3.854-4.242,7.586-6.959,11.197l-21.26,27.232c-4.527,5.884-16.758,22.908-16.758,40.316v10.187h44.129v-7.128 c0-2.938,0.562-5.996,1.699-9.168c1.127-3.162,6.453-10.904,8.268-13.168l21.264-28.243c4.752-6.333,8.705-12.839,11.881-19.518 c3.166-6.67,4.752-14.308,4.752-22.913c0-10.86-1.926-20.478-5.772-28.85C317.832,168.969,312.627,161.892,306.068,156.129z"></path><rect x="234.106" y="328.551" width="46.842" height="45.144"></rect><path d="M256,0C114.613,0,0,114.615,0,256s114.613,256,256,256c141.383,0,256-114.615,256-256S397.383,0,256,0z M256,448c-105.871,0-192-86.131-192-192S150.129,64,256,64c105.867,0,192,86.131,192,192S361.867,448,256,448z"></path></svg>
                         Learn more about lore.farm labels
                     </a>
                 </div>
@@ -177,16 +159,25 @@ class ShareLore {
             input.addEventListener('input', () => this.handlePostUrlInput());
         }
 
-        // Submit button
+        // Stage 1 submit button — triggers URL processing (fetch + preview)
         const submitBtn = document.getElementById('submitLabelBtn');
         if (submitBtn) {
-            submitBtn.addEventListener('click', () => this.submitStoryLabel());
+            submitBtn.addEventListener('click', () => {
+                this._skipDebounce = true;
+                this.handlePostUrlInput();
+            });
         }
 
-        // Close button
-        const closeBtn = document.getElementById('closeShareModal');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.close());
+        // Stage 2 confirm submit button
+        const submitConfirmBtn = document.getElementById('submitLabelBtnConfirm');
+        if (submitConfirmBtn) {
+            submitConfirmBtn.addEventListener('click', () => this.submitStoryLabel());
+        }
+
+        // Cancel button
+        const cancelBtn = document.getElementById('cancelShareBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => this.close());
         }
 
         // Back button
@@ -205,13 +196,12 @@ class ShareLore {
             });
         }
 
-        // Learn more link (optional - can be handled externally)
+        // Learn more link
         const learnMoreLink = document.getElementById('learnMoreLink');
         if (learnMoreLink) {
             learnMoreLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // Trigger custom event for external handling
                 window.dispatchEvent(new CustomEvent('sharelore:learnMore'));
             });
         }
@@ -231,6 +221,12 @@ class ShareLore {
         // Reset state
         this.hasValidPreview = false;
         this.currentPostAuthorDid = null;
+
+        // Disable buttons — nothing is selected yet
+        const stage1Btn = document.getElementById('submitLabelBtn');
+        const confirmBtn = document.getElementById('confirmSubmitBtn');
+        if (stage1Btn) stage1Btn.disabled = true;
+        if (confirmBtn) confirmBtn.disabled = true;
     }
 
     async showPreviewStage() {
@@ -275,10 +271,10 @@ class ShareLore {
             // Only show character section if user is NOT already registered
             if (userDreamer && userDreamer.display_name) {
                 characterSection.style.display = 'none';
-                console.log('✅ [Share] User already registered as character, hiding toggle');
+
             } else {
                 characterSection.style.display = 'block';
-                console.log('ℹ️ [Share] User not registered, showing character toggle');
+
             }
         } catch (error) {
             console.error('Failed to check character status:', error);
@@ -292,7 +288,7 @@ class ShareLore {
             const modal = document.querySelector('.share-modal');
             if (modal) {
                 modal.style.setProperty('--user-color', userColor);
-                console.log('🎨 [Share] Applied user color:', userColor);
+
             }
         }
     }
@@ -390,13 +386,9 @@ class ShareLore {
     }
 
     show() {
-        console.log('📺 [sharelore.js] show() called');
-        
         const overlay = document.getElementById('shareModalOverlay');
-        console.log('   Overlay element:', overlay);
         
         if (overlay) {
-            console.log('   Adding "active" class to overlay');
             overlay.classList.add('active');
             
             // Show input stage, hide preview stage
@@ -410,53 +402,70 @@ class ShareLore {
             
             const statusMsg = document.getElementById('labelStatus');
             if (statusMsg) {
-                console.log('   Resetting status message');
                 statusMsg.className = 'share-modal-status';
                 statusMsg.textContent = '';
-            } else {
-                console.warn('⚠️ [sharelore.js] labelStatus not found');
             }
             
             const characterStatus = document.getElementById('characterStatus');
             if (characterStatus) {
-                console.log('   Resetting character status');
                 characterStatus.className = 'share-modal-status';
                 characterStatus.textContent = '';
-            } else {
-                console.warn('⚠️ [sharelore.js] characterStatus not found');
             }
             
-            // Disable submit button until valid post
+            // Disable submit buttons until valid post (CSS :disabled handles styling)
             const submitBtn = document.getElementById('submitLabelBtn');
-            if (submitBtn) {
-                console.log('   Disabling submit button');
-                submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
-            } else {
-                console.warn('⚠️ [sharelore.js] submitLabelBtn not found');
-            }
+            if (submitBtn) submitBtn.disabled = true;
+            const submitConfirmBtn = document.getElementById('submitLabelBtnConfirm');
+            if (submitConfirmBtn) submitConfirmBtn.disabled = true;
             
             this.hasValidPreview = false;
             this.currentPostAuthorDid = null;
-            
-            console.log('✅ [sharelore.js] Modal shown successfully');
-        } else {
-            console.error('❌ [sharelore.js] shareModalOverlay element not found in DOM');
-            console.log('   Available elements with id containing "share":', 
-                Array.from(document.querySelectorAll('[id*="share"]')).map(el => el.id));
+
+            // ── Mobile keyboard handling ──────────────────────────
+            this._cleanupKeyboard();
+            const isMobile = window.matchMedia('(max-width: 600px)').matches;
+            this._kbCleanup = [];
+
+            if (isMobile && window.visualViewport) {
+                const modal = overlay.querySelector('.share-modal');
+                const kbThreshold = 100;
+                const onViewportResize = () => {
+                    const keyboardOpen = (window.innerHeight - window.visualViewport.height) > kbThreshold;
+                    overlay.classList.toggle('keyboard-active', keyboardOpen);
+                    if (modal) modal.classList.toggle('keyboard-active', keyboardOpen);
+                    if (keyboardOpen && document.activeElement?.closest('.share-modal')) {
+                        document.activeElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                };
+                window.visualViewport.addEventListener('resize', onViewportResize);
+                this._kbCleanup.push(() => window.visualViewport.removeEventListener('resize', onViewportResize));
+            }
+
+            if (isMobile) {
+                const onInputFocus = (e) => {
+                    if (e.target.closest('.share-modal')) {
+                        setTimeout(() => {
+                            e.target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }, 300);
+                    }
+                };
+                overlay.addEventListener('focusin', onInputFocus);
+                this._kbCleanup.push(() => overlay.removeEventListener('focusin', onInputFocus));
+            }
+        }
+    }
+
+    _cleanupKeyboard() {
+        if (this._kbCleanup) {
+            this._kbCleanup.forEach(fn => fn());
+            this._kbCleanup = [];
         }
     }
 
     async loadRecentPosts() {
-        console.log('📚 [sharelore.js] Loading recent posts...');
-        
         try {
             const session = await window.oauthManager.getSession();
-            if (!session?.did) {
-                console.log('   No session, skipping recent posts');
-                return;
-            }
+            if (!session?.did) return;
             
             const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${session.did}&limit=10`);
             if (!response.ok) throw new Error('Failed to fetch posts');
@@ -465,7 +474,7 @@ class ShareLore {
             const posts = data.feed || [];
             
             if (posts.length === 0) {
-                console.log('   No recent posts found');
+
                 return;
             }
             
@@ -533,7 +542,7 @@ class ShareLore {
                     const input = document.getElementById('postUriInput');
                     if (input) {
                         input.value = url;
-                        // Trigger the input handler which will switch to preview stage
+                        this._skipDebounce = true;
                         this.handlePostUrlInput();
                     }
                 });
@@ -542,8 +551,8 @@ class ShareLore {
             });
             
             carousel.style.display = 'block';
-            console.log(`✅ Loaded ${posts.length} recent posts`);
-            
+            // Reset scroll position so the first card is fully visible
+            scroll.scrollLeft = 0;            
         } catch (error) {
             console.error('❌ Failed to load recent posts:', error);
         }
@@ -574,10 +583,11 @@ class ShareLore {
         const overlay = document.getElementById('shareModalOverlay');
         if (overlay) {
             overlay.classList.remove('active');
-            
-            // Dispatch cancel event
+            overlay.classList.remove('keyboard-active');
+            const modal = overlay.querySelector('.share-modal');
+            if (modal) modal.classList.remove('keyboard-active');
+            this._cleanupKeyboard();
             window.dispatchEvent(new CustomEvent('sharelore:cancel'));
-            console.log('📢 [sharelore.js] Dispatched sharelore:cancel event');
         }
     }
 
@@ -585,7 +595,8 @@ class ShareLore {
         const input = document.getElementById('postUriInput');
         const url = input.value.trim();
         const preview = document.getElementById('postPreview');
-        const submitBtn = document.getElementById('submitLabelBtn');
+        const confirmBtn = document.getElementById('submitLabelBtnConfirm');
+        const stage1Btn = document.getElementById('submitLabelBtn');
         const statusMsg = document.getElementById('labelStatus');
         
         // Clear previous timeout
@@ -599,13 +610,19 @@ class ShareLore {
             preview.classList.remove('active');
             this.hasValidPreview = false;
             this.currentPostAuthorDid = null;
-            submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.5';
-            submitBtn.style.cursor = 'not-allowed';
+            confirmBtn.disabled = true;
+            stage1Btn.disabled = true;
             return;
         }
         
-        // Wait for user to stop typing
+        // Enable Stage 1 button as manual trigger while URL is present
+        stage1Btn.disabled = false;
+        
+        // Wait for user to stop typing (skip debounce if called from
+        // recent-post click, which sets _skipDebounce before calling)
+        const delay = this._skipDebounce ? 0 : 500;
+        this._skipDebounce = false;
+        
         this.previewTimeout = setTimeout(async () => {
             const parsed = this.bskyUrlToAtUri(url);
             if (!parsed) {
@@ -614,10 +631,11 @@ class ShareLore {
             }
             
             try {
-                // Fetch post details
-                const atUri = parsed.handle && parsed.postId 
-                    ? `at://${parsed.handle}/app.bsky.feed.post/${parsed.postId}`
-                    : url;
+                // Resolve AT URI — bskyUrlToAtUri returns either a
+                // string (AT URI) or an object { handle, postId }
+                const atUri = typeof parsed === 'string'
+                    ? parsed
+                    : `at://${parsed.handle}/app.bsky.feed.post/${parsed.postId}`;
                 
                 const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(atUri)}&depth=0`);
                 if (!response.ok) return;
@@ -631,7 +649,7 @@ class ShareLore {
                     
                     // Check if this post belongs to the logged-in user
                     const session = window.oauthManager ? window.oauthManager.getSession() : null;
-                    const userDid = session ? session.did : null;
+                    const userDid = session ? (session.did || session.sub) : null;
                     
                     // Populate preview
                     document.getElementById('previewAvatar').src = post.author.avatar || '';
@@ -651,19 +669,14 @@ class ShareLore {
                     // Switch to preview stage
                     this.showPreviewStage();
                     
-                    // Only enable submit button if the post belongs to the logged-in user
+                    // Enable/disable confirm button based on ownership
                     if (userDid && this.currentPostAuthorDid === userDid) {
                         this.hasValidPreview = true;
-                        submitBtn.disabled = false;
-                        submitBtn.style.opacity = '1';
-                        submitBtn.style.cursor = 'pointer';
+                        confirmBtn.disabled = false;
                     } else {
                         this.hasValidPreview = false;
-                        submitBtn.disabled = true;
-                        submitBtn.style.opacity = '0.5';
-                        submitBtn.style.cursor = 'not-allowed';
+                        confirmBtn.disabled = true;
                         
-                        // Show error message if trying to submit someone else's post
                         if (userDid && this.currentPostAuthorDid !== userDid) {
                             statusMsg.className = 'share-modal-status error';
                             statusMsg.textContent = 'You may only enter your own dreams to the lore.';
@@ -674,11 +687,9 @@ class ShareLore {
                 console.error('Error fetching post preview:', error);
                 this.hasValidPreview = false;
                 this.currentPostAuthorDid = null;
-                submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
+                confirmBtn.disabled = true;
             }
-        }, 500);
+        }, delay);
     }
 
     bskyUrlToAtUri(url) {
@@ -707,7 +718,7 @@ class ShareLore {
 
     async submitStoryLabel() {
         const input = document.getElementById('postUriInput');
-        const btn = document.getElementById('submitLabelBtn');
+        const btn = document.getElementById('submitLabelBtnConfirm');
         const status = document.getElementById('labelStatus');
         
         const url = input.value.trim();
@@ -719,7 +730,7 @@ class ShareLore {
         
         // Disable button during submission
         btn.disabled = true;
-        btn.textContent = 'Adding to canon...';
+        btn.innerHTML = '<span>Adding to canon...</span>';
         status.className = 'share-modal-status info';
         status.textContent = 'Processing your request...';
         
@@ -731,61 +742,32 @@ class ShareLore {
             }
             
             // Check if user is logged in
-            console.log('🔍 [Share] Step 1: Checking OAuth session...');
             const session = window.oauthManager ? window.oauthManager.getSession() : null;
-            console.log('🔍 [Share] OAuth manager exists:', !!window.oauthManager);
-            console.log('🔍 [Share] Session exists:', !!session);
             
             if (!session) {
-                console.error('❌ [Share] No session found');
                 throw new Error('You must be logged in to label posts. Please log in first.');
             }
             
-            console.log('✅ [Share] Session found:', {
-                did: session.did,
-                handle: session.handle || 'unknown'
-            });
+            const userDid = session.did || session.sub;
             
             // Verify the post belongs to the logged in user
-            console.log('🔍 [Share] Step 2: Verifying post ownership...');
-            console.log('🔍 [Share] Current post author DID:', this.currentPostAuthorDid);
-            console.log('🔍 [Share] Session DID:', session.did);
-            
             if (!this.currentPostAuthorDid) {
-                console.error('❌ [Share] No currentPostAuthorDid available');
                 throw new Error('Unable to verify post ownership. Please try loading the post again.');
             }
             
-            if (this.currentPostAuthorDid !== session.did) {
-                console.error('❌ [Share] DID mismatch:', {
-                    postAuthor: this.currentPostAuthorDid,
-                    sessionUser: session.did
-                });
+            if (this.currentPostAuthorDid !== userDid) {
                 throw new Error('You can only submit your own posts to the lore archive.');
             }
             
-            console.log('✅ [Share] Ownership verified');
-            console.log('📤 [Share] Step 3: Sending label application request...');
-            
             // Convert URL to AT URI format
             const parsedUri = this.bskyUrlToAtUri(url);
-            let atUri;
+            if (!parsedUri) throw new Error('Invalid Bluesky post URL format');
             
-            if (typeof parsedUri === 'string') {
-                // Already an AT URI
-                atUri = parsedUri;
-            } else if (parsedUri && parsedUri.handle && parsedUri.postId) {
-                // Need to construct AT URI from DID we already have
-                atUri = `at://${this.currentPostAuthorDid}/app.bsky.feed.post/${parsedUri.postId}`;
-            } else {
-                throw new Error('Failed to parse post URL');
-            }
+            const atUri = typeof parsedUri === 'string'
+                ? parsedUri
+                : `at://${this.currentPostAuthorDid}/app.bsky.feed.post/${parsedUri.postId}`;
             
-            console.log('📤 [Share] Request payload:', {
-                uri: atUri,
-                userDid: session.did,
-                label: 'lore:reverie.house'
-            });
+
             
             // Make request to Reverie proxy endpoint
             // Prefer using the OAuth manager token set (handles refresh/DPoP),
@@ -846,26 +828,17 @@ class ShareLore {
                 headers,
                 body: JSON.stringify({
                     uri: atUri,
-                    userDid: session.did,
+                    userDid: userDid,
                     label: 'lore:reverie.house'
                 })
             });
             
-            console.log('📥 [Share] Response received:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok
-            });
-            
             if (!response.ok) {
-                console.error('❌ [Share] Response not OK');
                 const errorData = await response.json().catch(() => ({}));
-                console.error('❌ [Share] Error data:', errorData);
                 throw new Error(errorData.error || `Server returned ${response.status}`);
             }
             
             const result = await response.json();
-            console.log('✅ [Share] Success! Result:', result);
             
             status.className = 'share-modal-status success';
             status.textContent = '✓ Your story has been added to the canon!';
@@ -886,30 +859,25 @@ class ShareLore {
             status.textContent = error.message || 'Failed to apply label. Please try again.';
         } finally {
             btn.disabled = false;
-            btn.textContent = 'Add to Shared Lore';
+            btn.innerHTML = `
+                <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>SHARE LORE</span>`;
         }
     }
 }
 
-// Export class (don't auto-initialize - let pages create their own instance)
-console.log('📦 [sharelore.js] Exporting ShareLore class to window.ShareLore');
+// Export class
 window.ShareLore = ShareLore;
-console.log('✅ [sharelore.js] ShareLore class available at window.ShareLore:', window.ShareLore);
 
-// Only auto-initialize on story.html page (check for stories-container)
+// Auto-initialize on story.html page (check for stories-container)
 if (document.getElementById('stories-container')) {
-    console.log('📄 [sharelore.js] story.html detected, auto-initializing...');
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('📄 [sharelore.js] DOM loaded, creating ShareLore instance for story.html');
             window.shareLoreWidget = new ShareLore();
-            console.log('✅ [sharelore.js] ShareLore widget assigned to window.shareLoreWidget:', window.shareLoreWidget);
         });
     } else {
-        console.log('📄 [sharelore.js] DOM already loaded, creating ShareLore instance for story.html');
         window.shareLoreWidget = new ShareLore();
-        console.log('✅ [sharelore.js] ShareLore widget assigned to window.shareLoreWidget:', window.shareLoreWidget);
     }
-} else {
-    console.log('� [sharelore.js] Not story.html, skipping auto-initialization (will be created on-demand)');
 }

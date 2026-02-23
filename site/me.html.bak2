@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Me — Reverie House</title>
+
+    <meta name="description" content="Your place in the Reverie House mindscape.">
+    <meta name="robots" content="noindex">
+
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    <link rel="manifest" href="/assets/site.webmanifest">
+
+    <!-- Core styles -->
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/octants.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    <link rel="stylesheet" href="/css/widgets/dialogue.css">
+
+    <!-- Me page styles -->
+    <link rel="stylesheet" href="/css/pages/me.css">
+
+    <!-- Core utilities -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/utils/heraldry.js"></script>
+    <script src="/js/widgets/background.js"></script>
+
+    <!-- Header -->
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/login.js" defer></script>
+
+    <!-- Me page script -->
+    <script src="/js/pages/me.js" defer></script>
+</head>
+<body>
+    <div id="header-container"></div>
+
+    <!-- Background phanera layer -->
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="" alt="" class="scene-layer background-layer" id="meBgImg">
+        </div>
+    </div>
+
+    <div class="me-page" id="mePage">
+
+        <!-- Loading shimmer — shown while we check session -->
+        <div class="me-loading" id="meLoading">
+            <div class="me-loading-avatar"></div>
+            <div class="me-loading-lines">
+                <div class="me-loading-line wide"></div>
+                <div class="me-loading-line narrow"></div>
+            </div>
+        </div>
+
+        <!-- Authenticated state — hidden until session confirmed -->
+        <div class="me-authenticated" id="meAuthenticated" style="display:none;">
+
+            <!-- PROFILE STRIP -->
+            <div class="me-profile-strip" id="meProfileStrip">
+                <button class="me-avatar-btn" id="meAvatarBtn" aria-label="Change avatar">
+                    <img src="/assets/icon_face.png" alt="Avatar" class="me-avatar-img" id="meAvatarImg">
+                </button>
+                <div class="me-identity">
+                    <div class="me-display-name" id="meDisplayName">—</div>
+                    <div class="me-handle" id="meHandle">@…</div>
+                </div>
+                <div class="me-strip-meta">
+                    <div class="me-octant-chip" id="meOctantChip"></div>
+                    <div class="me-status-chip" id="meStatusChip"></div>
+                </div>
+            </div>
+
+            <!-- MODE BAR -->
+            <div class="me-mode-bar" id="meModeBar" role="tablist">
+                <button class="me-mode-btn active" data-mode="compose" role="tab" aria-selected="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Write
+                </button>
+                <button class="me-mode-btn" data-mode="messages" role="tab" aria-selected="false" id="meModeMessages">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Messages
+                    <span class="me-mode-badge" id="meMessageBadge" style="display:none;"></span>
+                </button>
+                <button class="me-mode-btn" data-mode="look" role="tab" aria-selected="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.937A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+                    Look
+                </button>
+                <button class="me-mode-btn" data-mode="details" role="tab" aria-selected="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
+                    Details
+                </button>
+                <button class="me-mode-btn" data-mode="roles" role="tab" aria-selected="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Roles
+                </button>
+            </div>
+
+            <!-- CONTENT PANELS -->
+            <div class="me-content-zone" id="meContentZone">
+
+                <div class="me-panel active" id="mePanelCompose" role="tabpanel">
+                    <div class="me-compose-area" id="meComposeArea">
+                        <div class="me-panel-loading">Loading composer…</div>
+                    </div>
+                </div>
+
+                <div class="me-panel" id="mePanelMessages" role="tabpanel" style="display:none;">
+                    <div class="me-messages-area" id="meMessagesArea">
+                        <div class="me-panel-loading">Loading messages…</div>
+                    </div>
+                </div>
+
+                <div class="me-panel" id="mePanelLook" role="tabpanel" style="display:none;">
+                    <div class="me-look-area" id="meLookArea">
+                        <div class="me-panel-loading">Loading appearance…</div>
+                    </div>
+                </div>
+
+                <div class="me-panel" id="mePanelDetails" role="tabpanel" style="display:none;">
+                    <div class="me-details-area" id="meDetailsArea">
+                        <div class="me-panel-loading">Loading details…</div>
+                    </div>
+                </div>
+
+                <div class="me-panel" id="mePanelRoles" role="tabpanel" style="display:none;">
+                    <div class="me-roles-area" id="meRolesArea">
+                        <div class="me-panel-loading">Loading roles…</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div id="footer-container"></div>
+</body>
+</html>
