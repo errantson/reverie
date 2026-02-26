@@ -586,11 +586,11 @@ class Profile {
                     
                     headingHTML += `
                         <div class="heading-dreamer">
-                            <a href="/dreamer?did=${encodeURIComponent(targetDreamer.did)}" class="heading-avatar">
+                            <a href="/dreamer?handle=${encodeURIComponent(targetDreamer.handle)}" class="heading-avatar">
                                 <img src="${avatarUrl}" alt="${targetDreamer.name || targetDreamer.handle}">
                             </a>
                             <div class="heading-info">
-                                <a href="/dreamer?did=${encodeURIComponent(targetDreamer.did)}" class="heading-name">
+                                <a href="/dreamer?handle=${encodeURIComponent(targetDreamer.handle)}" class="heading-name">
                                     ${targetDreamer.name || targetDreamer.handle}
                                 </a>
                                 <div class="heading-handle">@${targetDreamer.handle}</div>
@@ -1027,7 +1027,7 @@ class Profile {
                                 const avatarUrl = k.avatar?.url || k.avatar || '/assets/icon_face.png';
                                 return `
                                     <div class="profile-kindred-card" data-dreamer-did="${k.did}" data-dreamer-handle="${k.handle}">
-                                        <a href="/dreamer?did=${encodeURIComponent(k.did)}" 
+                                        <a href="/dreamer?handle=${encodeURIComponent(k.handle)}" 
                                            class="profile-kindred-link"
                                            data-dreamer-did="${k.did}"
                                            data-dreamer-handle="${k.handle}">
@@ -4655,8 +4655,10 @@ class Profile {
                     userColor: userColor,
                     onDotClick: (clickedDreamer) => {
                         // Navigate to dreamer page
-                        if (clickedDreamer.did) {
-                            window.location.href = `/dreamer?did=${encodeURIComponent(clickedDreamer.did)}`;
+                        if (clickedDreamer.handle) {
+                            window.location.href = `/dreamer?handle=${encodeURIComponent(clickedDreamer.handle)}`;
+                        } else if (clickedDreamer.did) {
+                            window.location.href = `/dreamer?did=${clickedDreamer.did}`;
                         }
                     }
                 });
@@ -4961,7 +4963,7 @@ class Profile {
                 );
                 
                 if (dreamer) {
-                    parts.push(`<a href="/dreamer?did=${encodeURIComponent(dreamer.did)}" class="activity-handle-link">${escapeHtml(match.text)}</a>`);
+                    parts.push(`<a href="/dreamer?handle=${encodeURIComponent(dreamer.handle)}" class="activity-handle-link">${escapeHtml(match.text)}</a>`);
                 } else {
                     parts.push(`<a href="https://bsky.app/profile/${encodeURIComponent(handle)}" target="_blank" class="activity-handle-link">${escapeHtml(match.text)}</a>`);
                 }
@@ -5440,7 +5442,9 @@ class Profile {
             if (window.sidebarWidget?.displayDreamer) {
                 window.sidebarWidget.displayDreamer(dreamer);
             } else {
-                window.location.href = `/dreamer?did=${encodeURIComponent(dreamer.did)}`;
+                window.location.href = dreamer.handle
+                    ? `/dreamer?handle=${encodeURIComponent(dreamer.handle)}`
+                    : `/dreamer?did=${dreamer.did}`;
             }
         } catch (error) {
             console.error('Error navigating to dreamer:', error);

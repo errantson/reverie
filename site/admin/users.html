@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Control - Reverie House Admin</title>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/widgets/header.css">
+    <link rel="stylesheet" href="/css/color-rows.css">
+
+    <!-- Favicon and Icons -->
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+
+    <!-- Core utilities -->
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/core/rowstyle-registry.js"></script>
+    <script src="/js/core/rowstyle-engine.js"></script>
+
+    <!-- Header and drawer widgets -->
+    <script src="/js/core/avatar-cache.js" defer></script>
+    <script src="/js/widgets/header.js" defer></script>
+    <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/widgets/drawer.js" defer></script>
+    <script src="/js/widgets/konami.js" defer></script>
+
+    <style>
+        :root {
+            --sidebar-width: 320px;
+            --sidebar-bg: #fafafa;
+            --sidebar-border: #e5e5e5;
+            --card-bg: #ffffff;
+            --card-border: #e5e5e5;
+            --text-primary: #171717;
+            --text-secondary: #6b7280;
+            --text-dim: #9ca3af;
+            --hover-bg: #f3f4f6;
+            --active-bg: #f0f0ff;
+            --active-border: #734ba1;
+            --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--page-background-color, #f9fafb);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .users-layout {
+            display: flex;
+            height: calc(100vh - 60px);
+            margin-top: 60px;
+        }
+
+        /* Sidebar */
+        .users-sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-bottom: 64px;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+            background: white;
+            text-align: center;
+        }
+
+        .sidebar-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--active-border);
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-count {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 2px;
+            font-family: monospace;
+        }
+
+        .sidebar-search {
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        .sidebar-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1.5px solid var(--card-border);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            background: white;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .sidebar-search input:focus {
+            border-color: var(--active-border);
+        }
+
+        .users-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.25rem;
+            padding-bottom: 80px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: 1px solid transparent;
+        }
+
+        .user-item:hover {
+            background: var(--hover-bg);
+        }
+
+        .user-item.active {
+            background: var(--active-bg);
+            border-color: var(--active-border);
+        }
+
+        .user-item-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #e5e7eb;
+            flex-shrink: 0;
+        }
+
+        .user-item-avatar.placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--text-dim);
+            background: #f3f4f6;
+        }
+
+        .user-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-item-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-item-handle {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-item-octant {
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 3px;
+            background: #f3f4f6;
+            color: var(--text-secondary);
+            font-family: monospace;
+            flex-shrink: 0;
+        }
+
+        /* Main content */
+        .users-main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            padding-bottom: 120px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state-text {
+            font-size: 1rem;
+            font-family: monospace;
+        }
+
+        /* User detail panel */
+        .user-detail {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .user-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--card-border);
+        }
+
+        .user-detail-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--card-border);
+        }
+
+        .user-detail-identity h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: var(--text-primary);
+        }
+
+        .user-detail-identity .handle {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .user-detail-identity .did {
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            word-break: break-all;
+        }
+
+        .detail-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--active-border);
+            margin: 0 0 0.75rem 0;
+            font-family: monospace;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .detail-field {
+            padding: 0.4rem 0;
+        }
+
+        .detail-field-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: monospace;
+        }
+
+        .detail-field-value {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .detail-field-value.empty {
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        /* Spectrum bar */
+        .spectrum-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .spectrum-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spectrum-bar-label {
+            width: 80px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        .spectrum-bar-track {
+            flex: 1;
+            height: 14px;
+            background: #f3f4f6;
+            border-radius: 7px;
+            overflow: hidden;
+        }
+
+        .spectrum-bar-fill {
+            height: 100%;
+            border-radius: 7px;
+            transition: width 0.4s ease;
+        }
+
+        .spectrum-bar-value {
+            width: 30px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            color: var(--text-dim);
+        }
+
+        /* Counts badges */
+        .counts-row {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .count-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #f9fafb;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        .count-badge-number {
+            font-weight: 700;
+            color: var(--active-border);
+        }
+
+        .count-badge-label {
+            color: var(--text-secondary);
+        }
+
+        /* Admin actions toolbar - right below the header */
+        .admin-actions-bar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem 1rem;
+            background: #f9fafb;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+        }
+
+        .admin-actions-bar .action-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            font-family: monospace;
+            margin-right: 0.25rem;
+        }
+
+        .btn-action {
+            border: none;
+            padding: 6px 14px;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: monospace;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-action:active {
+            transform: translateY(0);
+        }
+
+        .btn-action.danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-action.danger:hover {
+            background: var(--danger-hover);
+        }
+
+        .btn-action.secondary {
+            background: #e5e7eb;
+            color: var(--text-secondary);
+        }
+
+        .btn-action.secondary:hover {
+            background: #d1d5db;
+        }
+
+        .btn-action:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Danger zone - compact at bottom */
+        .danger-zone {
+            background: var(--danger-bg);
+            border: 2px solid var(--danger-border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .danger-zone-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--danger);
+            margin: 0 0 0.4rem 0;
+            font-family: monospace;
+        }
+
+        .danger-zone-desc {
+            font-size: 0.75rem;
+            color: #991b1b;
+            margin-bottom: 0;
+            line-height: 1.4;
+        }
+
+        /* Confirm modal */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-overlay.active {
+            display: flex;
+        }
+
+        .confirm-modal {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            max-width: 440px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .confirm-modal h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--danger);
+            font-family: monospace;
+        }
+
+        .confirm-modal p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+        }
+
+        .confirm-modal .confirm-handle {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .confirm-input-wrap {
+            margin-bottom: 1rem;
+        }
+
+        .confirm-input-wrap label {
+            display: block;
+            font-size: 0.75rem;
+            font-family: monospace;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+
+        .confirm-input-wrap input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid var(--danger-border);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            text-align: center;
+            outline: none;
+        }
+
+        .confirm-input-wrap input:focus {
+            border-color: var(--danger);
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .btn-confirm-cancel {
+            background: #f3f4f6;
+            color: var(--text-secondary);
+            border: 1px solid var(--card-border);
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            cursor: pointer;
+        }
+
+        .btn-confirm-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-confirm-delete {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: monospace;
+            cursor: pointer;
+        }
+
+        .btn-confirm-delete:hover {
+            background: var(--danger-hover);
+        }
+
+        .btn-confirm-delete:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Loading */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-family: monospace;
+            font-size: 0.85rem;
+            z-index: 100000;
+            animation: toastIn 0.3s ease;
+            max-width: 400px;
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+
+        .status-badge.active { background: #dcfce7; color: #166534; }
+        .status-badge.wretched { background: #fef3c7; color: #92400e; }
+        .status-badge.unknown { background: #f3f4f6; color: #6b7280; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .users-sidebar { width: 100%; max-width: none; }
+            .users-layout { flex-direction: column; }
+            .users-main { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="users-layout">
+        <aside class="users-sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">🎭 User Control</h1>
+                <div class="sidebar-count" id="dreamer-count">Loading...</div>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="user-search" placeholder="Search by handle, name, or DID..." autocomplete="off">
+            </div>
+            <div class="users-list" id="users-list">
+                <div class="loading-spinner">Loading dreamers...</div>
+            </div>
+        </aside>
+
+        <main class="users-main" id="users-main">
+            <div class="empty-state">
+                <div class="empty-state-icon">🎭</div>
+                <div class="empty-state-text">Select a dreamer to view details</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Delete confirmation modal -->
+    <div class="confirm-overlay" id="confirm-overlay">
+        <div class="confirm-modal">
+            <h3>⚠️ Permanent Deletion</h3>
+            <p>
+                This will <strong>permanently remove</strong> 
+                <span class="confirm-handle" id="confirm-handle"></span> 
+                from the entire system: database records, spectrum, events, awards,
+                kindred links, messages, credentials, master records, and all shared history entries.
+            </p>
+            <p style="color: var(--danger); font-weight: 600; font-size: 0.8rem;">
+                This action cannot be undone.
+            </p>
+            <div class="confirm-input-wrap">
+                <label>Type the handle to confirm:</label>
+                <input type="text" id="confirm-input" placeholder="" autocomplete="off">
+            </div>
+            <div class="confirm-buttons">
+                <button class="btn-confirm-cancel" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn-confirm-delete" id="btn-confirm-delete" disabled onclick="executeDelete()">
+                    Delete Forever
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====================================================================
+        // State
+        // ====================================================================
+        let allDreamers = [];
+        let selectedDid = null;
+        let selectedDetail = null;
+        let pendingDeleteDid = null;
+        let pendingDeleteHandle = null;
+
+        const token = localStorage.getItem('admin_token');
+        if (!token) {
+            window.location.href = '/admin/login.html';
+        }
+
+        // ====================================================================
+        // API helpers
+        // ====================================================================
+        async function apiFetch(url, options = {}) {
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+            const res = await fetch(url, { ...options, headers });
+            if (res.status === 401) {
+                window.location.href = '/admin/login.html';
+                return null;
+            }
+            return res;
+        }
+
+        // showToast() defined below in Utility section
+
+        // ====================================================================
+        // Load all dreamers
+        // ====================================================================
+        async function loadDreamers() {
+            try {
+                const res = await apiFetch('/api/admin/users');
+                if (!res) return;
+                const data = await res.json();
+                if (data.success) {
+                    allDreamers = data.dreamers;
+                    document.getElementById('dreamer-count').textContent = `${data.total} dreamers`;
+                    renderUserList(allDreamers);
+                } else {
+                    document.getElementById('users-list').innerHTML =
+                        `<div class="loading-spinner">Error: ${escHtml(data.error)}</div>`;
+                }
+            } catch (e) {
+                document.getElementById('users-list').innerHTML =
+                    `<div class="loading-spinner">Failed to load dreamers</div>`;
+            }
+        }
+
+        // ====================================================================
+        // Render sidebar list
+        // ====================================================================
+        function renderUserList(dreamers) {
+            const list = document.getElementById('users-list');
+            if (!dreamers.length) {
+                list.innerHTML = '<div class="loading-spinner">No dreamers found</div>';
+                return;
+            }
+
+            list.innerHTML = dreamers.map(d => {
+                const avatarHtml = d.avatar
+                    ? `<img class="user-item-avatar" src="${escHtml(d.avatar)}" alt="" onerror="this.outerHTML='<div class=\\'user-item-avatar placeholder\\'>🧙</div>'">`
+                    : `<div class="user-item-avatar placeholder">🧙</div>`;
+
+                const octantHtml = d.octant
+                    ? `<span class="user-item-octant">${escHtml(d.octant)}</span>`
+                    : '';
+
+                return `
+                    <div class="user-item ${d.did === selectedDid ? 'active' : ''}"
+                         onclick="selectUser('${escAttr(d.did)}')" data-did="${escHtml(d.did)}">
+                        ${avatarHtml}
+                        <div class="user-item-info">
+                            <div class="user-item-name">${escHtml(d.name || d.display_name || d.handle)}</div>
+                            <div class="user-item-handle">@${escHtml(d.handle)}</div>
+                        </div>
+                        ${octantHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ====================================================================
+        // Search / filter
+        // ====================================================================
+        document.getElementById('user-search').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            if (!q) {
+                renderUserList(allDreamers);
+                return;
+            }
+            const filtered = allDreamers.filter(d =>
+                (d.handle || '').toLowerCase().includes(q) ||
+                (d.name || '').toLowerCase().includes(q) ||
+                (d.display_name || '').toLowerCase().includes(q) ||
+                (d.did || '').toLowerCase().includes(q)
+            );
+            renderUserList(filtered);
+        });
+
+        // ====================================================================
+        // Select user → load details
+        // ====================================================================
+        async function selectUser(did) {
+            selectedDid = did;
+
+            // Highlight in sidebar
+            document.querySelectorAll('.user-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.did === did);
+            });
+
+            const main = document.getElementById('users-main');
+            main.innerHTML = '<div class="loading-spinner">Loading details...</div>';
+
+            try {
+                const res = await apiFetch(`/api/admin/users/${encodeURIComponent(did)}/details`);
+                if (!res) return;
+                const data = await res.json();
+                if (!data.success) {
+                    main.innerHTML = `<div class="loading-spinner">Error: ${escHtml(data.error)}</div>`;
+                    return;
+                }
+                selectedDetail = data;
+                renderUserDetail(data);
+            } catch (e) {
+                main.innerHTML = `<div class="loading-spinner">Failed to load details</div>`;
+            }
+        }
+
+        // ====================================================================
+        // Render detail panel
+        // ====================================================================
+        function renderUserDetail(data) {
+            const d = data.dreamer;
+            const s = data.spectrum;
+            const main = document.getElementById('users-main');
+
+            const statusClass = d.status === 'wretched' ? 'wretched' : (d.status ? 'unknown' : 'active');
+            const statusLabel = d.status || 'active';
+            const arrivalDate = d.arrival ? new Date(d.arrival * 1000).toLocaleDateString() : 'Unknown';
+
+            const avatarHtml = d.avatar
+                ? `<img class="user-detail-avatar" src="${escHtml(d.avatar)}" alt="">`
+                : `<div class="user-detail-avatar" style="display:flex;align-items:center;justify-content:center;background:#f3f4f6;font-size:2rem;">🧙</div>`;
+
+            // Spectrum bars
+            let spectrumHtml = '<div class="detail-field-value empty">No spectrum data</div>';
+            if (s) {
+                const axes = [
+                    { label: 'Oblivion', key: 'oblivion', color: '#8b5cf6' },
+                    { label: 'Authority', key: 'authority', color: '#ef4444' },
+                    { label: 'Skeptic', key: 'skeptic', color: '#f59e0b' },
+                    { label: 'Receptive', key: 'receptive', color: '#10b981' },
+                    { label: 'Liberty', key: 'liberty', color: '#3b82f6' },
+                    { label: 'Entropy', key: 'entropy', color: '#6366f1' }
+                ];
+                spectrumHtml = `
+                    <div class="spectrum-bars">
+                        ${axes.map(a => {
+                            const val = s[a.key] || 0;
+                            const pct = Math.min(100, Math.max(0, val));
+                            return `
+                                <div class="spectrum-bar-row">
+                                    <span class="spectrum-bar-label">${a.label}</span>
+                                    <div class="spectrum-bar-track">
+                                        <div class="spectrum-bar-fill" style="width:${pct}%;background:${a.color}"></div>
+                                    </div>
+                                    <span class="spectrum-bar-value">${val}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                        <div style="text-align:center;margin-top:6px;">
+                            <span class="user-item-octant" style="font-size:0.8rem;">${escHtml(s.octant) || 'Unknown Octant'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            main.innerHTML = `
+                <div class="user-detail">
+                    <div class="user-detail-header">
+                        ${avatarHtml}
+                        <div class="user-detail-identity">
+                            <h2>${escHtml(d.name || d.display_name || d.handle)}
+                                <span class="status-badge ${statusClass}">${statusLabel}</span>
+                            </h2>
+                            <div class="handle">@${escHtml(d.handle)}</div>
+                            <div class="did">${escHtml(d.did)}</div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Actions - always visible at top -->
+                    <div class="admin-actions-bar">
+                        <span class="action-label">Actions:</span>
+                        <button class="btn-action danger" onclick="openConfirmModal('${escAttr(d.did)}', '${escAttr(d.handle)}')">
+                            🗑️ Delete User
+                        </button>
+                        <button class="btn-action secondary" onclick="navigator.clipboard.writeText('${escAttr(d.did)}').then(() => showToast('DID copied'))">
+                            📋 Copy DID
+                        </button>
+                        <button class="btn-action secondary" onclick="window.open('https://bsky.app/profile/${escAttr(d.handle)}', '_blank')">
+                            🦋 Bluesky Profile
+                        </button>
+                    </div>
+
+                    <!-- Footprint -->
+                    <div class="detail-section">
+                        <h3 class="detail-section-title">Footprint</h3>
+                        <div class="counts-row">
+                            <div class="count-badge">
+                                <span class="count-badge-number">${data.events_total}</span>
+                                <span class="count-badge-label">Events</span>
+                            </div>
+                            <div class="count-badge">
+                                <span class="count-badge-number">${data.awards.length}</span>
+                                <span class="count-badge-label">Awards</span>
+                            </div>
+                            <div class="count-badge">
+                                <span class="count-badge-number">${data.kindred.length}</span>
+                                <span class="count-badge-label">Kindred</span>
+                            </div>
+                            <div class="count-badge">
+                                <span class="count-badge-number">${data.messages_count}</span>
+                                <span class="count-badge-label">Messages</span>
+                            </div>
+                            <div class="count-badge">
+                                <span class="count-badge-number">${data.courier_count}</span>
+                                <span class="count-badge-label">Courier</span>
+                            </div>
+                            <div class="count-badge">
+                                <span class="count-badge-number">${data.roles.length}</span>
+                                <span class="count-badge-label">Roles</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Identity -->
+                    <div class="detail-section">
+                        <h3 class="detail-section-title">Identity</h3>
+                        <div class="detail-grid">
+                            <div class="detail-field">
+                                <div class="detail-field-label">Server</div>
+                                <div class="detail-field-value">${escHtml(d.server) || '<span class="empty">—</span>'}</div>
+                            </div>
+                            <div class="detail-field">
+                                <div class="detail-field-label">Arrival</div>
+                                <div class="detail-field-value">${arrivalDate}</div>
+                            </div>
+                            <div class="detail-field">
+                                <div class="detail-field-label">Color</div>
+                                <div class="detail-field-value">
+                                    ${d.color_hex
+                                        ? `<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${safeColor(d.color_hex)};vertical-align:middle;margin-right:4px;border:1px solid #ccc;"></span>${escHtml(d.color_hex)}`
+                                        : '<span class="empty">—</span>'}
+                                </div>
+                            </div>
+                            <div class="detail-field">
+                                <div class="detail-field-label">Heading</div>
+                                <div class="detail-field-value">${escHtml(d.heading) || '<span class="empty">—</span>'}</div>
+                            </div>
+                            <div class="detail-field">
+                                <div class="detail-field-label">Dream Pair</div>
+                                <div class="detail-field-value">${escHtml(d.dream_pair_did) || '<span class="empty">none</span>'}</div>
+                            </div>
+                            <div class="detail-field">
+                                <div class="detail-field-label">Phanera</div>
+                                <div class="detail-field-value">${escHtml(d.phanera) || '<span class="empty">—</span>'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Credentials -->
+                    <div class="detail-section">
+                        <h3 class="detail-section-title">Credentials</h3>
+                        <div class="detail-grid">
+                            <div class="detail-field">
+                                <div class="detail-field-label">App Password</div>
+                                <div class="detail-field-value">${data.user_credentials ? (data.user_credentials.is_valid ? '✅ Valid' : '❌ Invalid') : '<span class="empty">Not stored</span>'}</div>
+                            </div>
+                            <div class="detail-field">
+                                <div class="detail-field-label">PDS</div>
+                                <div class="detail-field-value">${(data.user_credentials && data.user_credentials.pds_url) || '<span class="empty">—</span>'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${data.roles.length ? `
+                    <div class="detail-section">
+                        <h3 class="detail-section-title">Roles</h3>
+                        <div class="counts-row">
+                            ${data.roles.map(r => `
+                                <div class="count-badge">
+                                    <span class="count-badge-label">${escHtml(r.role_name)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Spectrum -->
+                    <div class="detail-section">
+                        <h3 class="detail-section-title">Spectrum</h3>
+                        ${spectrumHtml}
+                    </div>
+
+                    <!-- Danger zone reminder at bottom -->
+                    <div class="danger-zone">
+                        <h3 class="danger-zone-title">⚠️ Danger Zone</h3>
+                        <div class="danger-zone-desc">
+                            Full deletion removes <strong>@${escHtml(d.handle)}</strong> from all database tables,
+                            AT Protocol master records, and shared history. This cannot be undone.
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ====================================================================
+        // Delete confirmation
+        // ====================================================================
+        function openConfirmModal(did, handle) {
+            pendingDeleteDid = did;
+            pendingDeleteHandle = handle;
+            document.getElementById('confirm-handle').textContent = `@${handle}`;
+            document.getElementById('confirm-input').value = '';
+            document.getElementById('confirm-input').placeholder = handle;
+            document.getElementById('btn-confirm-delete').disabled = true;
+            document.getElementById('confirm-overlay').classList.add('active');
+
+            // Focus the input
+            setTimeout(() => document.getElementById('confirm-input').focus(), 100);
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-overlay').classList.remove('active');
+            pendingDeleteDid = null;
+            pendingDeleteHandle = null;
+        }
+
+        document.getElementById('confirm-input').addEventListener('input', (e) => {
+            const match = e.target.value.trim() === pendingDeleteHandle;
+            document.getElementById('btn-confirm-delete').disabled = !match;
+        });
+
+        // Close on overlay click
+        document.getElementById('confirm-overlay').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeConfirmModal();
+        });
+
+        // Close on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeConfirmModal();
+        });
+
+        async function executeDelete() {
+            if (!pendingDeleteDid || !pendingDeleteHandle) return;
+
+            const btn = document.getElementById('btn-confirm-delete');
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+
+            try {
+                const res = await apiFetch(`/api/admin/users/${encodeURIComponent(pendingDeleteDid)}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!res) return;
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(`✅ ${data.message}`, 'success');
+                    closeConfirmModal();
+
+                    // Remove from local list and re-render
+                    allDreamers = allDreamers.filter(d => d.did !== pendingDeleteDid);
+                    document.getElementById('dreamer-count').textContent = `${allDreamers.length} dreamers`;
+                    renderUserList(allDreamers);
+
+                    // Clear detail panel
+                    selectedDid = null;
+                    selectedDetail = null;
+                    document.getElementById('users-main').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <div class="empty-state-text">User deleted successfully</div>
+                        </div>
+                    `;
+                } else {
+                    showToast(`❌ ${data.error}`, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Delete Forever';
+                }
+            } catch (e) {
+                showToast('❌ Request failed', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Delete Forever';
+            }
+        }
+
+        // ====================================================================
+        // Utility
+        // ====================================================================
+        function escHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function safeColor(hex) {
+            if (!hex) return '#ccc';
+            return /^#[0-9a-fA-F]{3,8}$/.test(hex) ? hex : '#ccc';
+        }
+
+        function escAttr(str) {
+            if (!str) return '';
+            return str.replace(/\\/g, '\\\\')
+                      .replace(/'/g, "\\'")
+                      .replace(/"/g, '\\"')
+                      .replace(/\n/g, '\\n')
+                      .replace(/\r/g, '\\r')
+                      .replace(/</g, '\\x3c')
+                      .replace(/>/g, '\\x3e')
+                      .replace(/&/g, '\\x26');
+        }
+
+        function showToast(msg, type) {
+            const bg = type === 'error' ? '#991b1b' : '#1f2937';
+            const t = document.createElement('div');
+            Object.assign(t.style, {
+                position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+                background: bg, color: '#fff', padding: '8px 18px', borderRadius: '6px',
+                fontSize: '0.8rem', fontFamily: 'monospace', zIndex: '9999',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)', opacity: '0', transition: 'opacity 0.2s'
+            });
+            t.textContent = msg;
+            document.body.appendChild(t);
+            requestAnimationFrame(() => t.style.opacity = '1');
+            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 1800);
+        }
+
+        // ====================================================================
+        // Init
+        // ====================================================================
+        loadDreamers();
+    </script>
+</body>
+</html>

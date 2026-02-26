@@ -1789,6 +1789,229 @@ def get_wretched_state(handle):
         return jsonify({"error": str(e)}), 500
 
 
+# ============================================================================
+# USER CONTROL ENDPOINTS
+# ============================================================================
+
+import re as _re
+_DID_PATTERN = _re.compile(r'^did:(plc|web):[a-zA-Z0-9._:%-]+$')
+
+@app.route('/api/admin/users')
+@require_auth()
+@rate_limit(30)
+def admin_list_users():
+    """List all dreamers with summary info for admin user control panel"""
+    try:
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+
+        dreamers = db.fetch_all("""
+            SELECT d.did, d.handle, d.name, d.display_name, d.avatar,
+                   d.arrival, d.status, d.server, d.color_hex,
+                   s.octant,
+                   (SELECT COUNT(*) FROM events WHERE did = d.did) AS event_count,
+                   (SELECT COUNT(*) FROM awards WHERE did = d.did) AS award_count,
+                   (SELECT COUNT(*) FROM kindred WHERE did_a = d.did OR did_b = d.did) AS kindred_count
+            FROM dreamers d
+            LEFT JOIN spectrum s ON d.did = s.did
+            ORDER BY d.arrival DESC NULLS LAST, d.handle
+        """)
+
+        return jsonify({
+            'success': True,
+            'dreamers': [dict(d) for d in dreamers],
+            'total': len(dreamers)
+        })
+
+    except Exception as e:
+        print(f"Error listing users: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to load user list'}), 500
+
+
+@app.route('/api/admin/users/<did>/details')
+@require_auth()
+@rate_limit(30)
+def admin_user_details(did):
+    """Get detailed info about a specific user for the admin panel"""
+    try:
+        if not _DID_PATTERN.match(did):
+            return jsonify({'error': 'Invalid DID format'}), 400
+
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+
+        dreamer = db.fetch_one("""
+            SELECT did, handle, name, display_name, description, server, avatar, banner,
+                   followers_count, follows_count, posts_count, arrival, created_at, updated_at,
+                   heading, heading_changed_at, alts, color_hex, phanera, dream_pair_did,
+                   dream_pair_since, collab_partner_did, collab_partner_since, status,
+                   canon_score, lore_score, patron_score, contribution_score,
+                   deactivated, designation, is_wretched, wretched_at,
+                   community_shield, shield_unlocked
+            FROM dreamers WHERE did = %s
+        """, (did,))
+        if not dreamer:
+            return jsonify({'error': 'User not found'}), 404
+
+        spectrum = db.fetch_one("SELECT * FROM spectrum WHERE did = %s", (did,))
+        events = db.fetch_all(
+            "SELECT id, event, type, key, epoch FROM events WHERE did = %s ORDER BY epoch DESC LIMIT 50", (did,)
+        )
+        awards = db.fetch_all("SELECT * FROM awards WHERE did = %s", (did,))
+        kindred = db.fetch_all(
+            "SELECT * FROM kindred WHERE did_a = %s OR did_b = %s", (did, did)
+        )
+        user_creds = db.fetch_one(
+            "SELECT did, pds_url, is_valid, last_verified FROM user_credentials WHERE did = %s", (did,)
+        )
+        roles = db.fetch_all("""
+            SELECT a.role_id, r.name as role_name, a.assigned_at
+            FROM assignments a JOIN roles r ON a.role_id = r.id
+            WHERE a.did = %s
+        """, (did,))
+        messages_count = db.fetch_one(
+            "SELECT COUNT(*) as count FROM messages WHERE user_did = %s", (did,)
+        )
+        courier_count = db.fetch_one(
+            "SELECT COUNT(*) as count FROM courier WHERE did = %s", (did,)
+        )
+
+        return jsonify({
+            'success': True,
+            'dreamer': dict(dreamer),
+            'spectrum': dict(spectrum) if spectrum else None,
+            'events': [dict(e) for e in events],
+            'events_total': db.fetch_one("SELECT COUNT(*) as count FROM events WHERE did = %s", (did,))['count'],
+            'awards': [dict(a) for a in awards],
+            'kindred': [dict(k) for k in kindred],
+            'credentials': dict(user_creds) if user_creds else None,
+            'user_credentials': dict(user_creds) if user_creds else None,
+            'roles': [dict(r) for r in roles],
+            'messages_count': messages_count['count'] if messages_count else 0,
+            'courier_count': courier_count['count'] if courier_count else 0
+        })
+
+    except Exception as e:
+        print(f"Error getting user details: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to load user details'}), 500
+
+
+@app.route('/api/admin/users/<did>', methods=['DELETE'])
+@require_auth()
+@rate_limit(5)
+def admin_delete_user(did):
+    """
+    Completely delete a user from the system.
+    Removes from: dreamers table (cascades to spectrum, events, awards, kindred,
+    credentials, messages, actions, assignments, deliveries, dialogue_seen, courier, retries),
+    user_credentials, and AT Protocol master records.
+    """
+    try:
+        if not _DID_PATTERN.match(did):
+            return jsonify({'error': 'Invalid DID format'}), 400
+
+        # Verify the caller is the authorized admin
+        if request.admin_did != AUTHORIZED_ADMIN_DID:
+            return jsonify({'error': 'Forbidden: only the primary admin can delete users'}), 403
+
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+
+        # Safety: don't allow deleting the admin account
+        if did == AUTHORIZED_ADMIN_DID:
+            return jsonify({'error': 'Cannot delete the admin account'}), 403
+
+        # Verify user exists
+        dreamer = db.fetch_one("SELECT did, handle, name FROM dreamers WHERE did = %s", (did,))
+        if not dreamer:
+            return jsonify({'error': 'User not found'}), 404
+
+        handle = dreamer['handle']
+        name = dreamer['name']
+        deleted_data = {'handle': handle, 'name': name, 'did': did}
+
+        # ---- 1. Delete AT Protocol master record ----
+        master_deleted = False
+        try:
+            from services.mastervalidator.master_validator import MasterValidator
+            validator = MasterValidator()
+            if validator.authenticate():
+                existing = validator.get_existing_master_records()
+                if did in existing:
+                    master_deleted = validator.delete_record(existing[did]['rkey'])
+                    if master_deleted:
+                        print(f"✅ Deleted master record for {handle}")
+                    else:
+                        print(f"⚠️ Failed to delete master record for {handle}")
+                else:
+                    print(f"ℹ️ No master record found for {handle}")
+                    master_deleted = True  # Nothing to delete
+            else:
+                print(f"⚠️ Could not authenticate to delete master record for {handle}")
+        except Exception as e:
+            print(f"⚠️ Master record deletion error for {handle}: {e}")
+
+        # ---- 2. Delete from user_credentials (not FK-cascaded) ----
+        try:
+            db.delete("DELETE FROM user_credentials WHERE did = %s", (did,))
+        except Exception as e:
+            print(f"⚠️ user_credentials deletion note: {e}")
+
+        # ---- 3. Delete from dreamers (CASCADE handles most related tables) ----
+        # The schema has ON DELETE CASCADE for:
+        #   spectrum, credentials, events, awards, messages, actions,
+        #   kindred, retries, assignments, deliveries, dialogue_seen, courier
+        rows_deleted = db.delete("DELETE FROM dreamers WHERE did = %s", (did,))
+
+        if rows_deleted == 0:
+            return jsonify({'error': 'User deletion failed - no rows affected'}), 500
+
+        # ---- 4. Log the admin action ----
+        try:
+            import time as time_mod
+            token = None
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith('Bearer '):
+                token = auth_header[7:]
+            valid, admin_did, admin_handle = auth.validate_session(token)
+
+            db.insert("""
+                INSERT INTO admin_log (admin_did, action, target_did, details, timestamp, ip_address)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                admin_did if valid else 'unknown',
+                'delete_user',
+                did,
+                json.dumps(deleted_data),
+                int(time_mod.time()),
+                get_client_ip()
+            ))
+        except Exception as e:
+            print(f"⚠️ Admin log error: {e}")
+
+        return jsonify({
+            'success': True,
+            'message': f'User {handle} ({name}) has been completely removed',
+            'deleted': {
+                'did': did,
+                'handle': handle,
+                'name': name,
+                'master_record_deleted': master_deleted,
+                'database_cascaded': True
+            }
+        })
+
+    except Exception as e:
+        print(f"Error deleting user {did}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to delete user'}), 500
+
+
 @app.route('/api/admin/wretch/preview')
 @require_auth()
 def wretch_preview():

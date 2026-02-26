@@ -85,6 +85,7 @@ class Header {
                 { href: '/admin/dialogues.html', icon: '📣', title: 'Dialogues' },
                 { href: '/admin/history.html', icon: '⌛', title: 'Edit History' },
                 { href: '/admin/roles.html', icon: '👥', title: 'Roles' },
+                { href: '/admin/users.html', icon: '🎭', title: 'User Control' },
                 { href: '/admin/wretching.html', icon: '🔮', title: 'Wretching' }
             );
         }

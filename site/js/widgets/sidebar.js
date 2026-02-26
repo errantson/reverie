@@ -1036,17 +1036,37 @@ class Sidebar {
         }
     }
     
-    handleUrlParams() {
+    // Build a clean dreamer URL: prefer ?handle=, fall back to ?did= with unencoded colons
+    static dreamerUrl(dreamer) {
+        if (dreamer.handle) return `/dreamer?handle=${encodeURIComponent(dreamer.handle)}`;
+        return `/dreamer?did=${dreamer.did}`; // colons are valid in query values
+    }
+
+    async handleUrlParams() {
         const params = new URLSearchParams(window.location.search);
         let foundDreamer;
         
-        // Check query parameters for dreamer lookup
-        if (params.has('did')) {
-            const queryDid = params.get('did').toLowerCase();
-            foundDreamer = this.dreamers.find(d => d.did.toLowerCase() === queryDid);
-        } else if (params.has('handle')) {
+        // Check query parameters for dreamer lookup (local list first)
+        if (params.has('handle')) {
             const queryHandle = params.get('handle').toLowerCase();
             foundDreamer = this.dreamers.find(d => d.handle.toLowerCase() === queryHandle);
+            // API fallback — the dreamer may be freshly registered and not yet in the bulk list
+            if (!foundDreamer) {
+                try {
+                    const res = await fetch(`/api/dreamer/by-handle/${encodeURIComponent(queryHandle)}`);
+                    if (res.ok) {
+                        const apiDreamer = await res.json();
+                        // Merge into local list so subsequent lookups work
+                        if (apiDreamer && apiDreamer.did) {
+                            this.dreamers.push(apiDreamer);
+                            foundDreamer = apiDreamer;
+                        }
+                    }
+                } catch (e) { /* silent */ }
+            }
+        } else if (params.has('did')) {
+            const queryDid = params.get('did').toLowerCase();
+            foundDreamer = this.dreamers.find(d => d.did.toLowerCase() === queryDid);
         } else if (params.has('name')) {
             const queryName = params.get('name').toLowerCase();
             foundDreamer = this.dreamers.find(d => d.name.toLowerCase() === queryName);
@@ -1059,7 +1079,7 @@ class Sidebar {
                 const guardian = this.getGuardianDreamer();
                 if (guardian) {
                     // Update URL to guardian's page
-                    const newUrl = `/dreamer?did=${encodeURIComponent(guardian.did)}`;
+                    const newUrl = Sidebar.dreamerUrl(guardian);
                     window.history.replaceState({ did: guardian.did }, '', newUrl);
                     this.displayDreamer(guardian, { skipPushState: true });
                     return;
@@ -1081,7 +1101,7 @@ class Sidebar {
             if (guardian && guardian.did !== dreamer?.did) {
                 // Update URL to guardian's page
                 if (!skipPushState && window.location.pathname.includes('dreamer')) {
-                    const newUrl = `/dreamer?did=${encodeURIComponent(guardian.did)}`;
+                    const newUrl = Sidebar.dreamerUrl(guardian);
                     window.history.replaceState({ did: guardian.did }, '', newUrl);
                 }
                 this.displayDreamer(guardian, { skipPushState: true, skipGuardianCheck: true });
@@ -1101,7 +1121,7 @@ class Sidebar {
             
             // Update URL to reflect current dreamer (for sharing/bookmarking)
             if (!skipPushState && window.location.pathname.includes('dreamer')) {
-                const newUrl = `/dreamer?did=${encodeURIComponent(dreamer.did)}`;
+                const newUrl = Sidebar.dreamerUrl(dreamer);
                 window.history.pushState({ did: dreamer.did }, '', newUrl);
             }
         }
