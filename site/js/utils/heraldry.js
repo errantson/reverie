@@ -19,6 +19,26 @@ class HeraldrySystem {
                 description: 'Home of dreams',
                 className: 'heraldry-reverie'
             },
+            'pds.rpg.actor': {
+                id: 'rpgactor',
+                name: 'rpg.actor',
+                fullName: 'Adventuring Guest',
+                icon: '/assets/heraldry/rpgactor.png',
+                color: '#c9a227',
+                colorSecondary: '#8b4513',
+                description: 'Tabletop character identities',
+                className: 'heraldry-rpgactor'
+            },
+            'rpg.actor': {
+                id: 'rpgactor',
+                name: 'rpg.actor',
+                fullName: 'Adventuring Guest',
+                icon: '/assets/heraldry/rpgactor.png',
+                color: '#c9a227',
+                colorSecondary: '#8b4513',
+                description: 'Tabletop character identities',
+                className: 'heraldry-rpgactor'
+            },
             'bsky.network': {
                 id: 'bluesky',
                 name: 'Bluesky',

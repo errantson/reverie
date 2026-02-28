@@ -795,9 +795,8 @@ class Sidebar {
                        !server.includes('bsky.network');
             });
             
-            // Shuffle and take 1
-            const shuffled = guests.sort(() => Math.random() - 0.5);
-            const selectedGuests = shuffled.slice(0, 1);
+            // Shuffle for display variety but show all guests
+            const selectedGuests = guests.sort(() => Math.random() - 0.5);
             
             const container = this.container.querySelector('.carousel-container') || this.container.querySelector('.honoured-guests-container');
             if (!container) return;

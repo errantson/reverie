@@ -47,6 +47,12 @@
     --heraldry-chaos-bg: rgba(232, 93, 4, 0.05);
     --heraldry-chaos-border: rgba(232, 93, 4, 0.25);
     
+    /* rpg.actor - Tabletop character PDS */
+    --heraldry-rpgactor-primary: #c9a227;
+    --heraldry-rpgactor-secondary: #8b4513;
+    --heraldry-rpgactor-bg: rgba(201, 162, 39, 0.05);
+    --heraldry-rpgactor-border: rgba(201, 162, 39, 0.25);
+
     /* Default/Unknown - Neutral grays */
     --heraldry-default-primary: #2d3748;
     --heraldry-default-secondary: #1a202c;
@@ -282,6 +288,12 @@
     color: var(--heraldry-chaos-primary);
 }
 
+.heraldry-rpgactor {
+    background: var(--heraldry-rpgactor-bg);
+    border: 1px solid var(--heraldry-rpgactor-border);
+    color: var(--heraldry-rpgactor-primary);
+}
+
 .heraldry-default {
     background: var(--heraldry-default-bg);
     border: 1px solid var(--heraldry-default-border);
@@ -494,6 +506,12 @@
 .login-heraldry-chaos {
     background: var(--heraldry-chaos-primary) !important;
     border-color: var(--heraldry-chaos-primary) !important;
+    color: white !important;
+}
+
+.login-heraldry-rpgactor {
+    background: var(--heraldry-rpgactor-primary) !important;
+    border-color: var(--heraldry-rpgactor-primary) !important;
     color: white !important;
 }
 
