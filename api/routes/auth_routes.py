@@ -974,6 +974,20 @@ def auto_register():
         
         dreamer = reg_result['dreamer']
         
+        # Immediately sync the .master record for this user so they
+        # don't have to wait for the 15-minute master_validator timer.
+        # Best-effort — if it fails the timer will pick it up later.
+        try:
+            from services.mastervalidator.master_validator import MasterValidator
+            validator = MasterValidator()
+            sync_result = validator.sync_single_user(dreamer['did'])
+            if sync_result.get('success'):
+                print(f"   ✅ auto-register: master record {sync_result['action']} for {dreamer['did']}")
+            else:
+                print(f"   ⚠️  auto-register: master sync note: {sync_result.get('message', 'unknown')}")
+        except Exception as master_err:
+            print(f"   ⚠️  auto-register: master record sync failed (timer will retry): {master_err}")
+        
         # Create session token for this OAuth user
         session_token = auth.create_session(
             did=dreamer['did'],

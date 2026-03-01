@@ -35,13 +35,17 @@ from core.database import DatabaseManager
 from core.encryption import decrypt_password
 
 # Configure logging
+_log_handlers = [logging.StreamHandler()]
+for _log_path in ('/srv/reverie.house/logs/master_validator.log', '/srv/logs/master_validator.log'):
+    _log_dir = os.path.dirname(_log_path)
+    if os.path.isdir(_log_dir):
+        _log_handlers.append(logging.FileHandler(_log_path))
+        break
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('/srv/reverie.house/logs/master_validator.log')
-    ]
+    handlers=_log_handlers
 )
 logger = logging.getLogger(__name__)
 

@@ -1196,6 +1196,19 @@ def calculate_spectrum():
                     int(time.time())
                 ))
                 print(f"✅ Updated existing dreamer and spectrum data for {handle}")
+                
+                # Immediately sync the .master record so rpg.actor can
+                # validate the stats as soon as the user saves them.
+                try:
+                    from services.mastervalidator.master_validator import MasterValidator
+                    validator = MasterValidator()
+                    sync_result = validator.sync_single_user(did)
+                    if sync_result.get('success'):
+                        print(f"   ✅ spectrum/calculate: master record {sync_result['action']} for {did}")
+                    else:
+                        print(f"   ⚠️  spectrum/calculate: master sync note: {sync_result.get('message', 'unknown')}")
+                except Exception as master_err:
+                    print(f"   ⚠️  spectrum/calculate: master record sync failed (timer will retry): {master_err}")
             
             # 2. Check if spectrum image already exists
             from werkzeug.utils import secure_filename
