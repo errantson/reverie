@@ -72,9 +72,14 @@ class PhraseScanner:
         self.all_phrases: Set[str] = set()
         self.phrase_config: Dict[str, List[Dict]] = {}  # phrase_key -> [{quest, original_phrase, case_sensitive}]
         
+        # Reply quest monitoring (bsky_reply quests assigned to questhose)
+        self.reply_quests: List[Dict] = []
+        self.quest_uri_map: Dict[str, Dict] = {}  # quest_uri -> quest dict
+        
         # Load configuration
         self._load_cursor()
         self._load_phrase_quests()
+        self._load_reply_quests()
         
         # Signal handling
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -211,12 +216,52 @@ class PhraseScanner:
             import traceback
             traceback.print_exc()
     
+    def _load_reply_quests(self):
+        """Load bsky_reply quests assigned to questhose for reply monitoring."""
+        try:
+            from ops.quests import QuestManager
+            
+            manager = QuestManager()
+            all_quests = manager.get_enabled_quests()
+            
+            self.reply_quests = []
+            self.quest_uri_map = {}
+            
+            for quest in all_quests:
+                trigger_type = quest.get('trigger_type', 'bsky_reply')
+                if trigger_type != 'bsky_reply':
+                    continue
+                
+                hose_service = quest.get('hose_service', '')
+                if hose_service != 'questhose':
+                    continue
+                
+                uri = quest.get('uri', '')
+                if not uri:
+                    continue
+                
+                self.reply_quests.append(quest)
+                self.quest_uri_map[uri] = quest
+            
+            print(f"🎯 Loaded {len(self.reply_quests)} reply-triggered quests")
+            for q in self.reply_quests:
+                print(f"   - {q['title']}: ...{q['uri'][-30:]}")
+            
+        except Exception as e:
+            print(f"❌ Error loading reply quests: {e}")
+            import traceback
+            traceback.print_exc()
+    
     def reload_quests(self):
         """Reload quest configuration (called periodically)."""
-        old_count = len(self.phrase_quests)
+        old_phrase_count = len(self.phrase_quests)
+        old_reply_count = len(self.reply_quests)
         self._load_phrase_quests()
-        if len(self.phrase_quests) != old_count:
-            print(f"🔄 Quest reload: {old_count} → {len(self.phrase_quests)} phrase quests")
+        self._load_reply_quests()
+        if len(self.phrase_quests) != old_phrase_count:
+            print(f"🔄 Quest reload: {old_phrase_count} → {len(self.phrase_quests)} phrase quests")
+        if len(self.reply_quests) != old_reply_count:
+            print(f"🔄 Quest reload: {old_reply_count} → {len(self.reply_quests)} reply quests")
     
     async def handle_event(self, event: Dict[str, Any]):
         """Handle a Jetstream event."""
@@ -258,8 +303,12 @@ class PhraseScanner:
         # Check for phrase matches
         did = event.get('did', '')
         rkey = commit.get('rkey', '')
+        cid = commit.get('cid', '')
         
         await self._check_phrase_matches(did, rkey, record, text)
+        
+        # Check if this is a reply to a monitored quest post
+        await self._check_reply_quests(did, rkey, cid, record, text)
     
     async def _check_phrase_matches(self, author_did: str, rkey: str, 
                                     record: Dict, text: str):
@@ -371,6 +420,75 @@ class PhraseScanner:
                 import traceback
                 traceback.print_exc()
     
+    async def _check_reply_quests(self, author_did: str, rkey: str, cid: str,
+                                   record: Dict, text: str):
+        """Check if post is a reply to a monitored quest post."""
+        if not self.quest_uri_map:
+            return
+        
+        reply = record.get('reply')
+        if not reply:
+            return
+        
+        # Only match direct replies (parent), not nested replies in the thread
+        parent_uri = reply.get('parent', {}).get('uri', '')
+        if parent_uri not in self.quest_uri_map:
+            return
+        
+        # Reply to a quest post detected!
+        quest = self.quest_uri_map[parent_uri]
+        post_uri = f"at://{author_did}/app.bsky.feed.post/{rkey}"
+        post_created_at = record.get('createdAt', '')
+        
+        self.stats['phrase_matches'] += 1  # Reuse match counter for all quest triggers
+        
+        if self.verbose:
+            print(f"\n🎯 Quest reply detected!")
+            print(f"   Author: {author_did}")
+            print(f"   Quest: {quest.get('title', 'unknown')}")
+            print(f"   Text: {text[:80]}...")
+        
+        # Process in background
+        self.executor.submit(
+            self._process_reply_quest,
+            post_uri, author_did, text, post_created_at, parent_uri, cid
+        )
+    
+    def _process_reply_quest(self, reply_uri: str, author_did: str, post_text: str,
+                              post_created_at: str, quest_uri: str, reply_cid: str = None):
+        """Process a reply-triggered quest via quest_hooks."""
+        try:
+            from ops.quest_hooks import process_quest_reply
+            
+            result = process_quest_reply(
+                reply_uri=reply_uri,
+                author_did=author_did,
+                author_handle='unknown',  # register_if_needed resolves this
+                post_text=post_text,
+                post_created_at=post_created_at,
+                quest_uri=quest_uri,
+                verbose=self.verbose,
+                reply_cid=reply_cid
+            )
+            
+            if result.get('success') and not result.get('skipped'):
+                self.stats['quests_triggered'] += 1
+                quest_title = result.get('quest_title', 'unknown')
+                commands = result.get('commands_executed', [])
+                print(f"✅ Quest '{quest_title}' triggered for {author_did[:30]}...")
+                if self.verbose and commands:
+                    print(f"   Commands: {', '.join(commands)}")
+            elif result.get('skipped') and self.verbose:
+                print(f"   ⏭️  Skipped: {result.get('skip_reason', 'unknown')}")
+            elif result.get('errors'):
+                print(f"⚠️  Quest errors: {result['errors']}")
+                
+        except Exception as e:
+            print(f"⚠️  Error processing quest reply: {e}")
+            if self.verbose:
+                import traceback
+                traceback.print_exc()
+    
     def _build_url(self) -> str:
         """Build Jetstream URL with cursor if available."""
         url = self.JETSTREAM_URL
@@ -385,12 +503,14 @@ class PhraseScanner:
         print("=" * 70)
         print(f"Started: {self.stats['start_time'].strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Phrase quests: {len(self.phrase_quests)}")
+        print(f"Reply quests: {len(self.reply_quests)}")
         print(f"Monitored phrases: {len(self.all_phrases)}")
+        print(f"Monitored quest URIs: {len(self.quest_uri_map)}")
         print("Using Jetstream (JSON) - efficient low-CPU scanning")
         print("=" * 70 + "\n")
         
-        if not self.phrase_quests:
-            print("⚠️  No firehose_phrase quests enabled")
+        if not self.phrase_quests and not self.reply_quests:
+            print("⚠️  No quests enabled (phrase or reply)")
             print("   Waiting for quests to be enabled...")
             print()
         

@@ -1119,8 +1119,8 @@ class OrderWidget {
                 <div class="fulfillment-pledge"><strong>Thank you for supporting Reverie House!</strong><br>Your ${this.quantity === 1 ? 'book' : 'books'} will be shipped as fast as humanly possible.</div>
                 <div class="contact-whisper">Questions or special requests? Email <a href="mailto:books@reverie.house">books@reverie.house</a></div>
                 <div class="success-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
-                    <button onclick="window.location.reload()" style="padding: 0.75rem 1.5rem; background: #734ba1; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Continue Shopping</button>
-                    <button onclick="orderWidget.handleReadOnline()" style="padding: 0.75rem 1.5rem; background: white; color: #734ba1; border: 2px solid #734ba1; border-radius: 4px; cursor: pointer; font-weight: 600;">Read Now</button>
+                    <button onclick="window.location.reload()" style="padding: 0.75rem 1.5rem; background: #734ba1; color: white; border: none; border-radius: 0; cursor: pointer; font-weight: 600;">Continue Shopping</button>
+                    <button onclick="orderWidget.handleReadOnline()" style="padding: 0.75rem 1.5rem; background: white; color: #734ba1; border: 2px solid #734ba1; border-radius: 0; cursor: pointer; font-weight: 600;">Read Now</button>
                 </div>
             </div>
         `;

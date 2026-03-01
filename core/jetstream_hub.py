@@ -679,14 +679,34 @@ class QuestHandler(EventHandler):
             print(f"[quest] ❌ Error loading dreamers: {e}")
     
     def _load_quests(self):
-        """Load quest URIs to monitor."""
+        """Load quest URIs to monitor (excluding questhose quests handled by phrase_scanner)."""
         try:
-            from ops.quest_hooks import get_quest_uris
-            self.quest_uris = set(get_quest_uris())
-            self.log(f"📜 Monitoring {len(self.quest_uris)} quest posts")
+            from ops.quests import QuestManager
+            manager = QuestManager()
+            all_quests = manager.get_enabled_quests()
+            
+            self.quest_uris = set()
+            for quest in all_quests:
+                trigger_type = quest.get('trigger_type', 'bsky_reply')
+                if trigger_type != 'bsky_reply':
+                    continue
+                # Skip quests handled by phrase_scanner (questhose)
+                hose_service = quest.get('hose_service', '')
+                if hose_service == 'questhose':
+                    continue
+                uri = quest.get('uri', '')
+                if uri:
+                    self.quest_uris.add(uri)
+            
+            self.log(f"📜 Monitoring {len(self.quest_uris)} quest posts (excluding questhose)")
         except Exception as e:
             print(f"[quest] ❌ Error loading quests: {e}")
             self.quest_uris = set()
+    
+    def refresh_dreamers(self):
+        """Reload dreamer list and quest URIs (call when community changes)."""
+        self._load_dreamers()
+        self._load_quests()
     
     def get_wanted_dids(self) -> Set[str]:
         return self.tracked_dids
@@ -1121,6 +1141,8 @@ class JetstreamHub:
         self.verbose = verbose
         self.handlers: list[EventHandler] = []
         self.running = True
+        self._needs_reconnect = False  # Set True when DID list changes
+        self._active_ws = None  # Reference to active WebSocket for forcing reconnect
         self.cursor: Optional[int] = None
         self.last_cursor: Optional[int] = None  # Track most recent cursor for time-based saving
         self.last_cursor_save: datetime = datetime.now()  # Track when we last saved
@@ -1280,6 +1302,44 @@ class JetstreamHub:
                 self._save_cursor(cursor_to_save, force_log=True)
                 self.last_cursor_save = datetime.now()
     
+    async def _periodic_did_refresh(self):
+        """Refresh handler DID lists every 5 minutes. Reconnect if DIDs changed."""
+        while self.running:
+            await asyncio.sleep(300)  # 5 minutes
+            if not self.running:
+                break
+            try:
+                # Snapshot current DID set
+                old_dids: Set[str] = set()
+                for handler in self.handlers:
+                    old_dids.update(handler.get_wanted_dids())
+                
+                # Refresh all handlers that support it
+                for handler in self.handlers:
+                    if hasattr(handler, 'refresh_dreamers'):
+                        handler.refresh_dreamers()
+                
+                # Check if DID set changed
+                new_dids: Set[str] = set()
+                for handler in self.handlers:
+                    new_dids.update(handler.get_wanted_dids())
+                
+                added = new_dids - old_dids
+                removed = old_dids - new_dids
+                
+                if added or removed:
+                    print(f"🔄 DID list changed: +{len(added)} -{len(removed)} (total: {len(new_dids)})")
+                    if added:
+                        print(f"   New DIDs: {', '.join(list(added)[:5])}{'...' if len(added) > 5 else ''}")
+                    # Signal reconnect needed
+                    self._needs_reconnect = True
+                    # Close active WebSocket to trigger reconnect
+                    if self._active_ws:
+                        print("🔌 Closing WebSocket for DID refresh reconnect...")
+                        await self._active_ws.close()
+            except Exception as e:
+                print(f"⚠️ DID refresh error: {e}")
+    
     async def run(self):
         """Main run loop with reconnection."""
         print("\n" + "=" * 70)
@@ -1289,12 +1349,14 @@ class JetstreamHub:
         print(f"Started: {self.stats['start_time'].strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 70 + "\n")
         
-        # Start periodic cursor save task
+        # Start periodic tasks
         cursor_task = asyncio.create_task(self._periodic_cursor_save())
+        did_refresh_task = asyncio.create_task(self._periodic_did_refresh())
         
         try:
             while self.running:
                 try:
+                    self._needs_reconnect = False
                     url = self._build_subscribe_url()
                     print(f"\n🔌 Connecting to Jetstream...")
                     
@@ -1304,6 +1366,7 @@ class JetstreamHub:
                         ping_timeout=10,
                         max_size=10 * 1024 * 1024  # 10 MB max message
                     ) as ws:
+                        self._active_ws = ws
                         print("✅ Connected!")
                         
                         message_count = 0
@@ -1322,20 +1385,34 @@ class JetstreamHub:
                                 await self._dispatch_event(event)
                             except json.JSONDecodeError as e:
                                 print(f"⚠️ JSON decode error: {e}")
+                        
+                        self._active_ws = None
                     
                 except websockets.exceptions.ConnectionClosed as e:
-                    self.stats['reconnects'] += 1
-                    print(f"🔄 Connection closed ({e}), reconnecting in 5s... (attempt {self.stats['reconnects']})")
-                    await asyncio.sleep(5)
+                    self._active_ws = None
+                    if self._needs_reconnect:
+                        print(f"🔄 Reconnecting with updated DID list...")
+                        self._needs_reconnect = False
+                        await asyncio.sleep(1)
+                    else:
+                        self.stats['reconnects'] += 1
+                        print(f"🔄 Connection closed ({e}), reconnecting in 5s... (attempt {self.stats['reconnects']})")
+                        await asyncio.sleep(5)
                     
                 except Exception as e:
+                    self._active_ws = None
                     self.stats['reconnects'] += 1
                     print(f"❌ Error: {e}, reconnecting in 10s... (attempt {self.stats['reconnects']})")
                     await asyncio.sleep(10)
         finally:
             cursor_task.cancel()
+            did_refresh_task.cancel()
             try:
                 await cursor_task
+            except asyncio.CancelledError:
+                pass
+            try:
+                await did_refresh_task
             except asyncio.CancelledError:
                 pass
     
