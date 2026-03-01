@@ -12409,6 +12409,66 @@ def step_down_cheerful():
         return jsonify({'error': str(e)}), 500
 
 
+def build_dm_link_facets(text, models, mentions=None, domains=None):
+    """Build richtext facets for DM messages.
+    
+    Args:
+        text: The DM text
+        models: atproto models module
+        mentions: Optional dict mapping '@handle' strings to DIDs for mention facets
+        domains: Optional dict mapping bare domain text to full URLs for link facets
+    
+    Returns list of facets or None.
+    """
+    import re
+    facets = []
+    
+    # Match full https:// URLs
+    for match in re.finditer(r'https?://[^\s]+', text):
+        url = match.group(0)
+        byte_start = len(text[:match.start()].encode('utf-8'))
+        byte_end = len(text[:match.end()].encode('utf-8'))
+        facets.append(models.AppBskyRichtextFacet.Main(
+            index=models.AppBskyRichtextFacet.ByteSlice(
+                byte_start=byte_start,
+                byte_end=byte_end
+            ),
+            features=[models.AppBskyRichtextFacet.Link(uri=url)]
+        ))
+    
+    # Add mention facets for @handle references
+    if mentions:
+        for handle_text, did in mentions.items():
+            idx = text.find(handle_text)
+            if idx >= 0:
+                byte_start = len(text[:idx].encode('utf-8'))
+                byte_end = len(text[:idx + len(handle_text)].encode('utf-8'))
+                facets.append(models.AppBskyRichtextFacet.Main(
+                    index=models.AppBskyRichtextFacet.ByteSlice(
+                        byte_start=byte_start,
+                        byte_end=byte_end
+                    ),
+                    features=[models.AppBskyRichtextFacet.Mention(did=did)]
+                ))
+    
+    # Add link facets for bare domain text
+    if domains:
+        for domain_text, full_url in domains.items():
+            idx = text.find(domain_text)
+            if idx >= 0:
+                byte_start = len(text[:idx].encode('utf-8'))
+                byte_end = len(text[:idx + len(domain_text)].encode('utf-8'))
+                facets.append(models.AppBskyRichtextFacet.Main(
+                    index=models.AppBskyRichtextFacet.ByteSlice(
+                        byte_start=byte_start,
+                        byte_end=byte_end
+                    ),
+                    features=[models.AppBskyRichtextFacet.Link(uri=full_url)]
+                ))
+    
+    return facets if facets else None
+
+
 @app.route('/api/work/provisioner/send-request', methods=['POST'])
 @rate_limit()
 def send_provisioner_request():
@@ -12429,6 +12489,7 @@ def send_provisioner_request():
         # Get request data
         data = request.json or {}
         city = (data.get('city') or '').strip()
+        area = (data.get('area') or '').strip()
         provisioner_did = (data.get('provisioner_did') or '').strip()
         
         if not city:
@@ -12439,7 +12500,7 @@ def send_provisioner_request():
         
         db_manager = DatabaseManager()
         
-        print(f"📨 [Provisioner Request] {user_did} → {provisioner_did} (city: {city})")
+        print(f"📨 [Provisioner Request] {user_did} → {provisioner_did} (city: {city}, area: {area})")
         
         # Verify provisioner is active
         cursor = db_manager.execute("""
@@ -12467,209 +12528,406 @@ def send_provisioner_request():
             req_row = cursor.fetchone()
             user_handle = req_row['handle'] if req_row else 'dreamer'
         
-        # For DM sending, we need the user's app password to authenticate with their PDS
+        # ================================================================
+        # STEP 1: Save food request to database FIRST (ensures persistence)
+        # ================================================================
         try:
-            print(f"🔐 Preparing to send DM for {user_handle}...")
-            
-            # Check if user has stored credentials
+            db_manager.execute("""
+                CREATE TABLE IF NOT EXISTS food_requests (
+                    id SERIAL PRIMARY KEY,
+                    requester_did TEXT NOT NULL,
+                    requester_handle TEXT,
+                    provisioner_did TEXT NOT NULL,
+                    city TEXT NOT NULL,
+                    area TEXT,
+                    status TEXT DEFAULT 'pending',
+                    dm_sent BOOLEAN DEFAULT FALSE,
+                    dm_error TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    reviewed_at TIMESTAMP,
+                    notes TEXT
+                )
+            """)
+        except Exception as table_err:
+            print(f"⚠️ Food requests table creation (may already exist): {table_err}")
+        
+        # Ensure area column exists (migration for existing tables)
+        try:
+            db_manager.execute("ALTER TABLE food_requests ADD COLUMN IF NOT EXISTS area TEXT")
+        except Exception:
+            pass
+        
+        food_request_id = None
+        try:
             cursor = db_manager.execute("""
-                SELECT app_password_hash, pds_url FROM user_credentials
+                INSERT INTO food_requests 
+                (requester_did, requester_handle, provisioner_did, city, area, status, dm_sent)
+                VALUES (%s, %s, %s, %s, %s, 'pending', FALSE)
+                RETURNING id
+            """, (user_did, user_handle, provisioner_did, city, area if area else None))
+            row = cursor.fetchone()
+            food_request_id = row['id'] if row else None
+            print(f"📋 Food request #{food_request_id} saved to database")
+        except Exception as save_err:
+            print(f"⚠️ Failed to save food request: {save_err}")
+            # Don't fail the whole request — still try DM
+        
+        # ================================================================
+        # STEP 2: Try to send DM notification via system account (best-effort)
+        # ================================================================
+        dm_sent = False
+        dm_error = None
+        
+        # Use the reverie.house system account to send DM to the provisioner
+        SYSTEM_DID = 'did:plc:yauphjufk7phkwurn266ybx2'  # reverie.house
+        try:
+            print(f"📨 Sending provisioner notification DM via system account...")
+            
+            cursor = db_manager.execute("""
+                SELECT app_password_hash FROM user_credentials
                 WHERE did = %s
-            """, (user_did,))
+            """, (SYSTEM_DID,))
             
-            cred_row = cursor.fetchone()
+            sys_cred = cursor.fetchone()
             
-            if not cred_row or not cred_row['app_password_hash']:
-                return jsonify({
-                    'error': 'App password required. Please create an app password to enable direct messaging.',
-                    'needs_credentials': True
-                }), 400
-            
-            encrypted_password = cred_row['app_password_hash']
-            pds_url = cred_row.get('pds_url')
-            
-            # If no PDS URL stored, resolve from DID document
-            if not pds_url:
-                try:
-                    did_response = requests.get(
-                        f"https://plc.directory/{user_did}",
-                        timeout=5
-                    )
-                    if did_response.status_code == 200:
-                        did_doc = did_response.json()
-                        services = did_doc.get('service', [])
-                        for service in services:
-                            if service.get('id') == '#atproto_pds':
-                                pds_url = service.get('serviceEndpoint')
-                                print(f"🔍 Resolved PDS from DID document: {pds_url}")
-                                break
-                except Exception as e:
-                    print(f"⚠️ Failed to resolve PDS from DID: {e}")
-            
-            if not pds_url:
-                pds_url = 'https://bsky.social'
-                print(f"⚠️ Using fallback PDS: {pds_url}")
+            if not sys_cred or not sys_cred['app_password_hash']:
+                dm_error = "System account credentials not configured"
+                print(f"⚠️ {dm_error}")
             else:
-                print(f"🔐 User PDS: {pds_url}")
-            
-            # Decrypt the app password
-            app_password = decrypt_password(encrypted_password)
-            
-            # For chat operations, we need to use bsky.social's API since chat.bsky is centralized
-            # Self-hosted PDS instances may not properly proxy chat requests
-            # Strategy: Try bsky.social first for chat, then fallback to user's PDS
-            chat_endpoints = ['https://bsky.social']
-            if pds_url != 'https://bsky.social':
-                chat_endpoints.append(pds_url)
-            
-            last_error = None
-            for chat_endpoint in chat_endpoints:
-                try:
-                    print(f"🔐 Attempting chat login via {chat_endpoint}...")
-                    client = Client(base_url=chat_endpoint)
-                    client.login(user_handle, app_password)
-                    print(f"Login successful via {chat_endpoint}")
-            
-                    # Create chat proxy client
-                    dm_client = client.with_bsky_chat_proxy()
-                    dm = dm_client.chat.bsky.convo
-            
-                    # Step 1: Check if DM can be sent to the provisioner
-                    # The provisioner may have chat settings that only allow messages from people they follow
-                    print(f"🔍 Checking chat availability with provisioner...")
-                    try:
-                        # Try to get conversation availability first
-                        availability = dm.get_convo_availability(
-                            models.ChatBskyConvoGetConvoAvailability.Params(members=[provisioner_did])
-                        )
-                        can_chat = availability.can_chat if hasattr(availability, 'can_chat') else True
-                        print(f"   Chat availability: can_chat={can_chat}")
-                    except Exception as avail_error:
-                        # If we can't check availability, try to proceed anyway
-                        print(f"⚠️ Could not check chat availability: {avail_error}")
-                        can_chat = True  # Optimistic - try anyway
-            
-                    # Step 2: If chat is blocked, have the provisioner follow the requester first
-                    if not can_chat:
-                        print(f"🔗 Provisioner has restricted DM settings. Attempting to establish follow relationship...")
+                system_password = decrypt_password(sys_cred['app_password_hash'])
                 
-                        # Get provisioner's credentials so they can follow the requester
-                        cursor = db_manager.execute("""
-                            SELECT app_password_hash, pds_url FROM user_credentials
-                            WHERE did = %s
-                        """, (provisioner_did,))
+                client = Client(base_url='https://reverie.house')
+                client.login('reverie.house', system_password)
+                print(f"✅ System account login successful")
                 
-                        prov_cred_row = cursor.fetchone()
+                dm_client = client.with_bsky_chat_proxy()
+                dm = dm_client.chat.bsky.convo
                 
-                        if prov_cred_row and prov_cred_row['app_password_hash']:
+                convo = dm.get_convo_for_members(
+                    models.ChatBskyConvoGetConvoForMembers.Params(members=[provisioner_did])
+                ).convo
+                
+                message_text = f"New Food Request\n\nFrom: @{user_handle}\nCity: {city}"
+                if area:
+                    message_text += f"\nArea: {area}"
+                message_text += f"\n\nPlease review at https://reverie.house/provisioner"
+                
+                mention_key = f"@{user_handle}"
+                facets = build_dm_link_facets(message_text, models,
+                    mentions={mention_key: user_did})
+                
+                message = dm.send_message(
+                    models.ChatBskyConvoSendMessage.Data(
+                        convo_id=convo.id,
+                        message=models.ChatBskyConvoDefs.MessageInput(text=message_text, facets=facets)
+                    )
+                )
+                
+                print(f"✅ Provisioner DM sent! Message ID: {message.id}")
+                dm_sent = True
+                    
+        except Exception as notify_err:
+            dm_error = str(notify_err)
+            print(f"⚠️ DM notification error: {dm_error}")
+        
+        # Update the food request record with DM status
+        if food_request_id:
+            try:
+                db_manager.execute("""
+                    UPDATE food_requests 
+                    SET dm_sent = %s, dm_error = %s
+                    WHERE id = %s
+                """, (dm_sent, dm_error, food_request_id))
+            except Exception as update_err:
+                print(f"⚠️ Failed to update DM status: {update_err}")
+        
+        # ================================================================
+        # STEP 3: Return success (request was saved regardless of DM)
+        # ================================================================
+        response = {
+            'success': True,
+            'message': 'Request sent successfully'
+        }
+        
+        if not dm_sent and dm_error:
+            response['dm_note'] = f"DM notification could not be sent. The Head of Pantry will see your request in their dashboard."
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/provisioner/requests')
+@rate_limit()
+def get_provisioner_requests():
+    """Get pending food requests for the provisioner to review"""
+    try:
+        from core.database import DatabaseManager
+        
+        # Validate authentication
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, user_handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        # Verify caller is the active provisioner
+        cursor = db_manager.execute("""
+            SELECT status FROM user_roles
+            WHERE did = %s AND role = 'provisioner' AND status = 'active'
+        """, (user_did,))
+        
+        if not cursor.fetchone():
+            return jsonify({'error': 'Only the active provisioner can view requests'}), 403
+        
+        status_filter = request.args.get('status', 'pending')
+        
+        try:
+            cursor = db_manager.execute("""
+                SELECT id, requester_did, requester_handle, city, area, status,
+                       dm_sent, dm_error, created_at, reviewed_at, notes
+                FROM food_requests
+                WHERE provisioner_did = %s AND status = %s
+                ORDER BY created_at DESC
+                LIMIT 50
+            """, (user_did, status_filter))
+            
+            requests_list = []
+            for row in cursor.fetchall():
+                requests_list.append({
+                    'id': row['id'],
+                    'requester_did': row['requester_did'],
+                    'requester_handle': row['requester_handle'],
+                    'city': row['city'],
+                    'area': row.get('area', ''),
+                    'status': row['status'],
+                    'dm_sent': row['dm_sent'],
+                    'dm_error': row['dm_error'],
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'reviewed_at': row['reviewed_at'].isoformat() if row['reviewed_at'] else None,
+                    'notes': row['notes']
+                })
+            
+            return jsonify({'requests': requests_list})
+        except Exception as query_err:
+            if 'food_requests' in str(query_err) and ('does not exist' in str(query_err) or 'relation' in str(query_err)):
+                return jsonify({'requests': []})
+            raise
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/provisioner/requests/<int:request_id>/review', methods=['POST'])
+@rate_limit()
+def review_provisioner_request(request_id):
+    """Review a food request (mark as fulfilled or declined)"""
+    try:
+        from core.database import DatabaseManager
+        
+        # Validate authentication
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, user_did, user_handle = validate_work_token(token)
+        if not valid or not user_did:
+            return jsonify({'error': 'Invalid session'}), 401
+        
+        db_manager = DatabaseManager()
+        
+        # Verify caller is the active provisioner
+        cursor = db_manager.execute("""
+            SELECT status FROM user_roles
+            WHERE did = %s AND role = 'provisioner' AND status = 'active'
+        """, (user_did,))
+        
+        if not cursor.fetchone():
+            return jsonify({'error': 'Only the active provisioner can review requests'}), 403
+        
+        data = request.json or {}
+        new_status = data.get('status', '')
+        invitation_link = (data.get('invitation_link') or '').strip()
+        pickup_location = (data.get('pickup_location') or '').strip()
+        
+        if new_status not in ('fulfilled', 'declined'):
+            return jsonify({'error': 'Status must be fulfilled or declined'}), 400
+        
+        if new_status == 'fulfilled' and not invitation_link:
+            return jsonify({'error': 'Invitation link is required for fulfilled requests'}), 400
+        
+        # Validate invitation link format
+        import re
+        if invitation_link and not re.match(r'^https://share\.toogoodtogo\.com/invitation/order/[a-f0-9-]+$', invitation_link):
+            return jsonify({'error': 'Invalid TooGoodToGo invitation link'}), 400
+        
+        # Ensure columns exist
+        try:
+            db_manager.execute("ALTER TABLE food_requests ADD COLUMN IF NOT EXISTS order_id TEXT")
+            db_manager.execute("ALTER TABLE food_requests ADD COLUMN IF NOT EXISTS invitation_link TEXT")
+            db_manager.execute("ALTER TABLE food_requests ADD COLUMN IF NOT EXISTS pickup_location TEXT")
+        except Exception:
+            pass
+        
+        # Get the requester DID before updating
+        cursor = db_manager.execute("""
+            SELECT requester_did, requester_handle, city, area FROM food_requests
+            WHERE id = %s AND provisioner_did = %s
+        """, (request_id, user_did))
+        request_row = cursor.fetchone()
+        
+        if not request_row:
+            return jsonify({'error': 'Request not found'}), 404
+        
+        requester_did = request_row['requester_did']
+        requester_handle = request_row.get('requester_handle', 'dreamer')
+        request_city = request_row.get('city', '')
+        request_area = request_row.get('area', '')
+        
+        db_manager.execute("""
+            UPDATE food_requests 
+            SET status = %s, reviewed_at = CURRENT_TIMESTAMP,
+                invitation_link = %s, pickup_location = %s
+            WHERE id = %s AND provisioner_did = %s
+        """, (new_status, invitation_link if invitation_link else None,
+              pickup_location if pickup_location else None, request_id, user_did))
+        
+        # Send automated DM to the requester
+        # Fulfilled: sent from provisioner's own account
+        # Declined: sent from reverie.house system account
+        dm_sent = False
+        if requester_did:
+            try:
+                from atproto import Client, models
+                
+                if new_status == 'fulfilled':
+                    # === FULFILL: DM from provisioner's own account ===
+                    cursor = db_manager.execute("""
+                        SELECT uc.app_password_hash, uc.pds_url, d.handle
+                        FROM user_credentials uc
+                        JOIN dreamers d ON uc.did = d.did
+                        WHERE uc.did = %s AND uc.app_password_hash IS NOT NULL
+                    """, (user_did,))
+                    prov_cred = cursor.fetchone()
+                    
+                    if not prov_cred or not prov_cred['app_password_hash']:
+                        print(f"⚠️ Provisioner {user_did} has no stored app password — cannot send DM")
+                    else:
+                        prov_password = decrypt_password(prov_cred['app_password_hash'])
+                        prov_handle = prov_cred.get('handle', '')
+                        
+                        # Resolve PDS URL
+                        pds_url = prov_cred.get('pds_url')
+                        if not pds_url:
                             try:
-                                # Resolve provisioner's PDS
-                                prov_pds_url = prov_cred_row.get('pds_url')
-                                if not prov_pds_url:
-                                    try:
-                                        prov_did_response = requests.get(
-                                            f"https://plc.directory/{provisioner_did}",
-                                            timeout=5
-                                        )
-                                        if prov_did_response.status_code == 200:
-                                            prov_did_doc = prov_did_response.json()
-                                            prov_services = prov_did_doc.get('service', [])
-                                            for service in prov_services:
-                                                if service.get('id') == '#atproto_pds':
-                                                    prov_pds_url = service.get('serviceEndpoint')
-                                                    break
-                                    except Exception:
-                                        pass
+                                did_response = requests.get(f"https://plc.directory/{user_did}", timeout=5)
+                                if did_response.status_code == 200:
+                                    did_doc = did_response.json()
+                                    for service in did_doc.get('service', []):
+                                        if service.get('id') == '#atproto_pds':
+                                            pds_url = service.get('serviceEndpoint')
+                                            break
+                            except Exception:
+                                pass
+                        if not pds_url:
+                            pds_url = 'https://bsky.social'
                         
-                                if not prov_pds_url:
-                                    prov_pds_url = 'https://bsky.social'
+                        client = Client(base_url=pds_url)
+                        client.login(prov_handle, prov_password)
+                        print(f"✅ Provisioner login as {prov_handle}")
                         
-                                # Login as provisioner and follow the requester
-                                prov_password = decrypt_password(prov_cred_row['app_password_hash'])
-                                prov_client = Client(base_url=prov_pds_url)
-                                prov_client.login(provisioner_handle, prov_password)
+                        # Auto-follow the requester to ensure DM delivery (skip if already following)
+                        try:
+                            profile = client.app.bsky.actor.get_profile({'actor': requester_did})
+                            if profile.viewer and profile.viewer.following:
+                                print(f"ℹ️ Provisioner already follows {requester_did}, skipping")
+                            else:
+                                client.follow(requester_did)
+                                print(f"✅ Provisioner now follows {requester_did}")
+                        except Exception as follow_err:
+                            print(f"⚠️ Follow check/follow failed (non-critical): {follow_err}")
                         
-                                # Have provisioner follow the requester
-                                print(f"🤝 Provisioner following requester {user_did}...")
-                                prov_client.follow(user_did)
-                                print(f"Provisioner now follows requester")
+                        dm_client = client.with_bsky_chat_proxy()
+                        dm = dm_client.chat.bsky.convo
                         
-                                # Wait a moment for the follow to propagate
-                                import time
-                                time.sleep(0.5)
+                        convo = dm.get_convo_for_members(
+                            models.ChatBskyConvoGetConvoForMembers.Params(members=[requester_did])
+                        ).convo
                         
-                            except Exception as follow_error:
-                                print(f"⚠️ Could not establish follow relationship: {follow_error}")
-                                # Continue anyway - the DM might still fail, but we'll get a better error
-                        else:
-                            print(f"⚠️ Provisioner has no stored credentials to establish follow relationship")
-            
-                    # Step 3: Get or create conversation with the provisioner
-                    print(f"💬 Getting conversation with provisioner {provisioner_did}...")
-                    convo = dm.get_convo_for_members(
-                        models.ChatBskyConvoGetConvoForMembers.Params(members=[provisioner_did])
-                    ).convo
-                    print(f"Got conversation: {convo.id}")
-            
-                    # Compose the message
-                    message_text = f"Hey, {provisioner_name}! If you're around to help, I'm in {city} and could use some free food whenever it's available. Thanks in advance."
-            
-                    # Send the message
-                    print(f"📤 Sending message to {provisioner_handle}...")
-                    message = dm.send_message(
-                        models.ChatBskyConvoSendMessage.Data(
-                            convo_id=convo.id,
-                            message=models.ChatBskyConvoDefs.MessageInput(
-                                text=message_text
+                        dm_text = "Your food pickup has been confirmed!\n\n"
+                        if pickup_location:
+                            dm_text += f"Location: {pickup_location}\n\n"
+                        dm_text += f"Confirmation Link:\n{invitation_link}\n\n"
+                        dm_text += "Follow the instructions through the link above to claim. Please pick up the order within the designated window or the food will go to waste."
+                        
+                        facets = build_dm_link_facets(dm_text, models)
+                        
+                        dm.send_message(
+                            models.ChatBskyConvoSendMessage.Data(
+                                convo_id=convo.id,
+                                message=models.ChatBskyConvoDefs.MessageInput(text=dm_text, facets=facets)
                             )
                         )
-                    )
-            
-                    print(f"Message sent successfully! Message ID: {message.id}")
-            
-                    return jsonify({
-                        'success': True,
-                        'message': 'Request sent successfully',
-                        'convo_id': convo.id
-                    })
+                        dm_sent = True
+                        print(f"✅ Fulfill DM sent to {requester_did} from provisioner {prov_handle}")
+                
+                else:
+                    # === DECLINE: DM from reverie.house system account ===
+                    SYSTEM_DID = 'did:plc:yauphjufk7phkwurn266ybx2'  # reverie.house
+                    cursor = db_manager.execute("""
+                        SELECT app_password_hash FROM user_credentials
+                        WHERE did = %s
+                    """, (SYSTEM_DID,))
+                    sys_cred = cursor.fetchone()
                     
-                except Exception as endpoint_error:
-                    error_str = str(endpoint_error)
-                    print(f"⚠️ Chat attempt via {chat_endpoint} failed: {error_str}")
-                    last_error = endpoint_error
-                    
-                    # If it's a token/auth error, try the next endpoint
-                    if 'InvalidToken' in error_str or 'Bad token' in error_str:
-                        print(f"Token error detected, trying next endpoint...")
-                        continue
-                    
-                    # If it's a DM restriction error, don't retry
-                    if 'recipient requires' in error_str.lower() or 'cannot chat' in error_str.lower():
-                        raise endpoint_error
-                    
-                    # For other errors, try the next endpoint
-                    continue
-            
-            # If we get here, all endpoints failed
-            raise last_error if last_error else Exception("All chat endpoints failed")
-            
-        except Exception as auth_error:
-            error_str = str(auth_error)
-            print(f"AT Protocol error: {auth_error}")
-            import traceback
-            traceback.print_exc()
-            
-            # Provide a more helpful error message for DM restriction issues
-            if 'recipient requires incoming messages' in error_str.lower() or \
-               'cannot chat' in error_str.lower() or \
-               'requires incoming messages to come from someone they follow' in error_str:
-                return jsonify({
-                    'error': 'The provisioner has DM settings that require you to be followed first. Please ask them to follow you on Bluesky, or try again later.',
-                    'dm_restricted': True,
-                    'provisioner_handle': provisioner_handle
-                }), 400
-            
-            return jsonify({'error': f'Failed to send message: {error_str}'}), 500
+                    if not sys_cred or not sys_cred['app_password_hash']:
+                        print(f"⚠️ System account credentials not configured — cannot send decline DM")
+                    else:
+                        system_password = decrypt_password(sys_cred['app_password_hash'])
+                        
+                        client = Client(base_url='https://reverie.house')
+                        client.login('reverie.house', system_password)
+                        print(f"✅ System account login for decline DM")
+                        
+                        dm_client = client.with_bsky_chat_proxy()
+                        dm = dm_client.chat.bsky.convo
+                        
+                        convo = dm.get_convo_for_members(
+                            models.ChatBskyConvoGetConvoForMembers.Params(members=[requester_did])
+                        ).convo
+                        
+                        location_str = request_city
+                        if request_area:
+                            location_str += f" ({request_area})"
+                        
+                        dm_text = (
+                            f"Apologies, but your request for food pickup"
+                            f"{' in ' + location_str if location_str else ''}"
+                            f" could not be fulfilled at this time."
+                        )
+                        
+                        dm.send_message(
+                            models.ChatBskyConvoSendMessage.Data(
+                                convo_id=convo.id,
+                                message=models.ChatBskyConvoDefs.MessageInput(text=dm_text)
+                            )
+                        )
+                        dm_sent = True
+                        print(f"✅ Decline DM sent to {requester_did} from reverie.house")
+                
+            except Exception as dm_err:
+                print(f"⚠️ Failed to DM requester: {dm_err}")
+        
+        return jsonify({'success': True, 'status': new_status, 'dm_sent': dm_sent})
         
     except Exception as e:
         import traceback
@@ -12710,6 +12968,25 @@ def send_bursar_scheme():
             return jsonify({'error': 'Request amount is required'}), 400
         
         db_manager = DatabaseManager()
+        
+        # SERVER-SIDE GATE: Verify treasury balance allows scheme submissions
+        # Schemes require $500+ balance (one-way: once enabled, stays enabled)
+        try:
+            treasury_row = db_manager.fetch_one("SELECT total_balance_cents, schemes_enabled FROM treasury WHERE id = 1")
+            schemes_enabled = False
+            if treasury_row:
+                balance_dollars = (treasury_row.get('total_balance_cents') or 0) / 100
+                schemes_enabled = balance_dollars >= 500 or treasury_row.get('schemes_enabled', False)
+            
+            # Allow admin override for testing (only the authorized admin DID)
+            is_admin = (user_did == AUTHORIZED_ADMIN_DID)
+            
+            if not schemes_enabled and not is_admin:
+                return jsonify({'error': 'Scheme submissions are not yet open. Treasury balance must reach $500.'}), 403
+        except Exception as gate_err:
+            print(f"⚠️ [Scheme] Treasury gate check failed: {gate_err}")
+            # If we can't verify, fail closed (deny)
+            return jsonify({'error': 'Unable to verify treasury status'}), 500
         
         print(f"💰 [Scheme Submit] {user_did} → {bursar_did} (domain: {domain}, request: ${request_amount})")
         
@@ -12777,95 +13054,58 @@ def send_bursar_scheme():
             return jsonify({'error': f'Failed to save scheme: {save_err}'}), 500
         
         # ================================================================
-        # STEP 2: Try to send DM notification (best-effort)
+        # STEP 2: Try to send DM notification via system account (best-effort)
         # ================================================================
         dm_sent = False
         dm_error = None
         
+        # Use the reverie.house system account to send DM to the bursar
+        SYSTEM_DID = 'did:plc:yauphjufk7phkwurn266ybx2'  # reverie.house
         try:
-            print(f"🔐 Preparing to send scheme DM notification for {user_handle}...")
+            print(f"📨 Sending bursar notification DM via system account...")
             
             cursor = db_manager.execute("""
-                SELECT app_password_hash, pds_url FROM user_credentials
+                SELECT app_password_hash FROM user_credentials
                 WHERE did = %s
-            """, (user_did,))
+            """, (SYSTEM_DID,))
             
-            cred_row = cursor.fetchone()
+            sys_cred = cursor.fetchone()
             
-            if not cred_row or not cred_row['app_password_hash']:
-                dm_error = "No app password configured - DM skipped"
+            if not sys_cred or not sys_cred['app_password_hash']:
+                dm_error = "System account credentials not configured"
                 print(f"⚠️ {dm_error}")
             else:
-                encrypted_password = cred_row['app_password_hash']
-                pds_url = cred_row.get('pds_url')
+                system_password = decrypt_password(sys_cred['app_password_hash'])
                 
-                # Resolve PDS if not stored
-                if not pds_url:
-                    try:
-                        did_response = requests.get(
-                            f"https://plc.directory/{user_did}",
-                            timeout=5
-                        )
-                        if did_response.status_code == 200:
-                            did_doc = did_response.json()
-                            services = did_doc.get('service', [])
-                            for service in services:
-                                if service.get('id') == '#atproto_pds':
-                                    pds_url = service.get('serviceEndpoint')
-                                    break
-                    except Exception as e:
-                        print(f"⚠️ Failed to resolve PDS: {e}")
+                client = Client(base_url='https://reverie.house')
+                client.login('reverie.house', system_password)
+                print(f"✅ System account login successful")
                 
-                if not pds_url:
-                    pds_url = 'https://bsky.social'
+                dm_client = client.with_bsky_chat_proxy()
+                dm = dm_client.chat.bsky.convo
                 
-                # Decrypt app password
-                app_password = decrypt_password(encrypted_password)
+                convo = dm.get_convo_for_members(
+                    models.ChatBskyConvoGetConvoForMembers.Params(members=[bursar_did])
+                ).convo
                 
-                # Try to send DM via user's PDS (self-hosted PDS chat proxy)
-                try:
-                    print(f"🔐 Attempting chat login via {pds_url}...")
-                    client = Client(base_url=pds_url)
-                    client.login(user_handle, app_password)
-                    print(f"Login successful via {pds_url}")
-                    
-                    # Create chat proxy client
-                    dm_client = client.with_bsky_chat_proxy()
-                    dm = dm_client.chat.bsky.convo
-                    
-                    # Get or create conversation with the bursar
-                    print(f"💬 Getting conversation with bursar {bursar_did}...")
-                    convo = dm.get_convo_for_members(
-                        models.ChatBskyConvoGetConvoForMembers.Params(members=[bursar_did])
-                    ).convo
-                    print(f"Got conversation: {convo.id}")
-                    
-                    # Compose the message - just 3 lines
-                    message_text = f"Domain: {domain}\nCreated By: @{user_handle}\nRequest: ${request_amount}"
-                    
-                    # Send the message
-                    print(f"📤 Sending scheme DM to {bursar_handle}...")
-                    message = dm.send_message(
-                        models.ChatBskyConvoSendMessage.Data(
-                            convo_id=convo.id,
-                            message=models.ChatBskyConvoDefs.MessageInput(
-                                text=message_text
-                            )
-                        )
+                message_text = f"New Scheme Submitted\n\nDomain: {domain}\nFrom: @{user_handle}\nRequest: ${request_amount}\n\nPlease review at https://reverie.house/bursar"
+                
+                # Build domain URL for facet (add https:// if it looks like a domain)
+                domain_url = domain if domain.startswith('http') else f"https://{domain}"
+                mention_key = f"@{user_handle}"
+                facets = build_dm_link_facets(message_text, models,
+                    mentions={mention_key: user_did},
+                    domains={domain: domain_url})
+                
+                message = dm.send_message(
+                    models.ChatBskyConvoSendMessage.Data(
+                        convo_id=convo.id,
+                        message=models.ChatBskyConvoDefs.MessageInput(text=message_text, facets=facets)
                     )
-                    
-                    print(f"Scheme DM sent successfully! Message ID: {message.id}")
-                    dm_sent = True
-                    
-                except Exception as dm_err:
-                    dm_error = str(dm_err)
-                    print(f"⚠️ DM notification failed: {dm_error}")
-                    
-                    # Check for specific DM restriction errors
-                    if 'recipient requires' in dm_error.lower() or 'cannot chat' in dm_error.lower():
-                        dm_error = f"Bursar DM settings restrict messages. Scheme saved for dashboard review."
-                    elif 'InvalidToken' in dm_error or 'Bad token' in dm_error:
-                        dm_error = f"Chat auth failed (self-hosted PDS limitation). Scheme saved for dashboard review."
+                )
+                
+                print(f"✅ Bursar DM sent! Message ID: {message.id}")
+                dm_sent = True
                     
         except Exception as notify_err:
             dm_error = str(notify_err)
@@ -12899,6 +13139,49 @@ def send_bursar_scheme():
             response['dm_note'] = f"DM notification skipped: {dm_error}. The bursar will see your scheme in their dashboard."
         
         return jsonify(response)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/work/bursar/toggle-schemes', methods=['POST'])
+@rate_limit()
+def toggle_bursar_schemes():
+    """Admin-only toggle to enable/disable scheme submissions"""
+    try:
+        from core.database import DatabaseManager
+        
+        # Validate admin authentication (admin panel login only)
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if not token:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        valid, admin_did, admin_handle = validate_work_token(token)
+        if not valid or not admin_did:
+            # Try admin session token
+            try:
+                from core.admin_auth import auth
+                valid, admin_did, admin_handle = auth.validate_session(token)
+            except Exception:
+                pass
+        
+        if not valid or admin_did != AUTHORIZED_ADMIN_DID:
+            return jsonify({'error': 'Admin access required'}), 403
+        
+        data = request.json or {}
+        enabled = bool(data.get('enabled', False))
+        
+        db_manager = DatabaseManager()
+        db_manager.execute("UPDATE treasury SET schemes_enabled = %s WHERE id = 1", (enabled,))
+        
+        print(f"🔧 [Admin] Bursar schemes toggled to {enabled} by {admin_did}")
+        
+        return jsonify({
+            'success': True,
+            'schemes_enabled': enabled
+        })
         
     except Exception as e:
         import traceback
@@ -13087,6 +13370,24 @@ def get_treasury_data():
         print_revenue = (row.get('print_revenue_cents') or 0) / 100
         print_books = row.get('print_books_counted') or 0
         
+        # Schemes are enabled once balance has ever reached $500 (one-way flag)
+        # Check if schemes were previously enabled via a flag in treasury table
+        schemes_enabled = balance >= 500
+        if not schemes_enabled:
+            try:
+                flag_row = db_manager.fetch_one("SELECT schemes_enabled FROM treasury WHERE id = 1")
+                if flag_row and flag_row.get('schemes_enabled'):
+                    schemes_enabled = True
+            except Exception:
+                pass  # Column may not exist yet
+        
+        # If balance just crossed $500, persist the flag
+        if balance >= 500 and not (flag_row and flag_row.get('schemes_enabled') if 'flag_row' in dir() else False):
+            try:
+                db_manager.execute("UPDATE treasury SET schemes_enabled = TRUE WHERE id = 1")
+            except Exception:
+                pass  # Column may not exist yet
+        
         return jsonify({
             'success': True,
             'balance': round(balance, 2),
@@ -13094,6 +13395,7 @@ def get_treasury_data():
             'disbursed': round(disbursed, 2),
             'print_revenue': round(print_revenue, 2),
             'print_books': print_books,
+            'schemes_enabled': schemes_enabled,
             'oc_last_sync': row.get('oc_last_sync').isoformat() if row.get('oc_last_sync') else None,
             'updated_at': row.get('updated_at').isoformat() if row.get('updated_at') else None,
             'source': 'database'
@@ -13215,6 +13517,7 @@ def sync_treasury():
                         print_books_counted INTEGER DEFAULT 0,
                         total_balance_cents INTEGER DEFAULT 0,
                         total_raised_cents INTEGER DEFAULT 0,
+                        schemes_enabled BOOLEAN DEFAULT FALSE,
                         oc_last_sync TIMESTAMP,
                         print_last_sync TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -13247,6 +13550,23 @@ def sync_treasury():
                 import traceback
                 traceback.print_exc()
         
+        total_bal = round(total_balance_cents / 100, 2)
+        
+        # Check/set one-way schemes_enabled flag
+        schemes_enabled = total_bal >= 500
+        if not schemes_enabled:
+            try:
+                flag_row = db_manager.fetch_one("SELECT schemes_enabled FROM treasury WHERE id = 1")
+                if flag_row and flag_row.get('schemes_enabled'):
+                    schemes_enabled = True
+            except Exception:
+                pass
+        if total_bal >= 500:
+            try:
+                db_manager.execute("UPDATE treasury SET schemes_enabled = TRUE WHERE id = 1")
+            except Exception:
+                pass
+        
         return jsonify({
             'success': True,
             'oc_balance': round(oc_balance_cents / 100, 2),
@@ -13255,7 +13575,8 @@ def sync_treasury():
             'print_revenue': round(print_revenue_cents / 100, 2),
             'print_books': print_books,
             'total_raised': round(total_raised_cents / 100, 2),
-            'total_balance': round(total_balance_cents / 100, 2)
+            'total_balance': total_bal,
+            'schemes_enabled': schemes_enabled
         })
         
     except Exception as e:

@@ -199,7 +199,7 @@ class EventsManager:
                         epoch,
                         quantities_json,
                         'user',
-                        'highlight'
+                        'special'
                     ))
                     
                     result = cursor.fetchone()

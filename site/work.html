@@ -155,10 +155,11 @@
     }
     
     .bursar-box-subtext {
-        font-size: 0.85em;
-        color: var(--text-muted);
+        font-size: 0.7rem;
+        color: var(--role-bursar);
         font-style: italic;
         margin-top: 8px;
+        text-align: center;
     }
     
     /* Active Challenge Banner Styles */
@@ -358,6 +359,15 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Admin Controls (hidden by default, shown for admin users) -->
+            <div id="sidebar-admin-controls" class="sidebar-admin-controls" style="display: none;">
+                <label class="admin-toggle">
+                    <span class="admin-toggle-label">Bursar Open</span>
+                    <input type="checkbox" id="bursar-open-toggle" onchange="toggleBursarOpen()">
+                    <span class="admin-toggle-slider"></span>
+                </label>
             </div>
 
             <!-- Work Philosophy -->
@@ -790,8 +800,8 @@
                             </button>
                         </div>
                         
-                        <!-- Right Box -->
-                        <div class="provisioner-box">
+                        <!-- Right Box: Info (visitors) -->
+                        <div class="provisioner-box" id="provisioner-info-box">
                             <h3 class="provisioner-box-title">Being Provisioner</h3>
                             <p class="provisioner-box-text">
                                 This is an experiment in effective altruism. Please accept that this is a human relationship, and both parties will need to be available to communicate.<br>
@@ -809,24 +819,23 @@
                                 Food Banks
                             </button>
                         </div>
-                    </div>
-                    
-                    <!-- Provisioner Tools (only visible to active provisioner) -->
-                    <div id="provisioner-tools-section" class="provisioner-tools-container" style="display: none; margin-top: 1rem;">
-                        <div class="provisioner-box" style="background: rgba(100, 100, 100, 0.1);">
-                            <h3 class="provisioner-box-title">🔧 Provisioner Tools</h3>
-                            <p class="provisioner-box-text">
-                                <b>Sync Follows:</b> Follow all reverie.house dreamers so they can DM you.
-                                <br><i>This runs automatically when you activate, but you can run it manually if needed.</i>
-                            </p>
-                            <button class="provisioner-box-button" id="sync-follows-btn" onclick="syncProvisionerFollows()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <polyline points="1 20 1 14 7 14"></polyline>
-                                    <path d="m3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
-                                </svg>
-                                Sync Follows
-                            </button>
+                        <!-- Right Box: Worker panel (active provisioner only) -->
+                        <div class="provisioner-box" id="provisioner-worker-box" style="display: none; background: rgba(218, 165, 32, 0.05);">
+                            <h3 class="provisioner-box-title">Food Requests</h3>
+                            <div id="provisioner-requests-list" class="schemes-list">
+                                <p class="provisioner-box-text" style="color: #999; font-style: italic;">Loading requests...</p>
+                            </div>
+                            <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <button class="provisioner-box-button" id="sync-follows-btn" onclick="syncProvisionerFollows()" style="font-size: 0.7rem; padding: 0.35rem 0.75rem;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <polyline points="1 20 1 14 7 14"></polyline>
+                                        <path d="m3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+                                    </svg>
+                                    Sync Follows
+                                </button>
+                                <p class="provisioner-box-text" style="font-size: 0.65rem; color: #999; margin-top: 0.4rem; line-height: 1.3;">Auto-follows requesters and unfollows those no longer pending, so DMs can be exchanged.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -897,10 +906,10 @@
                             <div class="bursar-box-actions">
                                 <a href="/order" class="bursar-box-button bursar-btn-secondary">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M4 19.5C2.9 19.5 2 18.6 2 17.5V3C2 1.9 2.9 1 4 1h14c1.1 0 2 0.9 2 2v14.5c0 1.1-0.9 2-2 2H4z"></path>
-                                        <path d="M12 3v14"></path>
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                                     </svg>
-                                    Support
+                                    Order Books
                                 </a>
                                 <a href="https://opencollective.com/reverie-house/donate" target="_blank" class="bursar-box-button">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -911,11 +920,11 @@
                             </div>
                         </div>
                         
-                        <!-- Right Box: Submit a Scheme -->
+                        <!-- Right Box: Submit a Scheme (visitors) -->
                         <div class="bursar-box bursar-box-disabled" id="scheme-box">
                             <h3 class="bursar-box-title">Submit a Scheme</h3>
                             <p class="bursar-box-text">
-                                Share your dreams with the bursar to begin.
+                                Dreams shared with the Bursar will be reviewed and considered for support from the available treasury funds.
                             </p>
                             <div class="bursar-submit-form">
                                 <input type="text" class="bursar-domain-input" id="scheme-domain-input" placeholder="yourdream.domain" />
@@ -927,7 +936,14 @@
                                     Submit
                                 </button>
                             </div>
-                            <p class="bursar-box-subtext">Scheme submissions opening soon</p>
+                            <p class="bursar-box-subtext" id="scheme-subtext">Submissions for schemes will open once the treasury reaches $500 in available funding.</p>
+                        </div>
+                        <!-- Right Box: Pending Schemes (active bursar only) -->
+                        <div class="bursar-box" id="bursar-worker-box" style="display: none; background: rgba(16, 185, 129, 0.05);">
+                            <h3 class="bursar-box-title">Pending Schemes</h3>
+                            <div id="bursar-schemes-list" class="schemes-list">
+                                <p class="bursar-box-text" style="color: #999; font-style: italic;">Loading schemes...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1144,11 +1160,16 @@
                 <span class="city-modal-label">Current City:</span>
                 <input type="text" id="cityInput" placeholder="Toronto, New York, London..." autocomplete="off">
             </div>
+
+            <div class="city-modal-header">
+                <span class="city-modal-label">Area / Neighbourhood:</span>
+                <input type="text" id="areaInput" placeholder="e.g. Downtown, East Side, Near campus..." autocomplete="off">
+            </div>
             
             <div class="city-modal-preview">
                 <div class="preview-label">Message Preview:</div>
                 <div id="messagePreview" class="preview-text">
-                    Hey, <span class="preview-handle">Donatella</span>! If you're around to help, I'm in <span class="preview-city">...</span> and could use some free food whenever it's available. Thanks in advance.
+                    Hey, <span class="preview-handle">Donatella</span>! If you're around to help, I'm in <span class="preview-city">...</span><span class="preview-area"></span> and could use some free food whenever it's available. Thanks in advance.
                 </div>
             </div>
             
@@ -1159,6 +1180,41 @@
                 <button class="city-modal-btn city-cancel-btn" onclick="closeCityModal()">
                     Cancel
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provisioner Review Modal -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content review-modal-content">
+            <div class="review-modal-title" id="reviewModalTitle">Complete Fulfillment</div>
+
+            <!-- Fulfilled: paste text OR manual override -->
+            <div id="reviewFulfilledFields">
+                <p class="review-modal-hint">Paste the full share text from TooGoodToGo, or enter details manually below.</p>
+                <textarea id="tgtgPasteArea" class="review-modal-textarea" placeholder="Paste full TGTG share text here..." rows="3"></textarea>
+                <div id="tgtgPreview" class="review-modal-preview" style="display:none;">
+                    Parsed: <span id="tgtgLocation"></span>
+                </div>
+                <div class="review-modal-separator">or enter manually</div>
+                <label class="review-modal-label">Invitation Link</label>
+                <input type="text" id="tgtgLinkOverride" class="review-modal-input" placeholder="https://share.toogoodtogo.com/..." autocomplete="off">
+                <label class="review-modal-label">Pickup Location</label>
+                <input type="text" id="tgtgLocationOverride" class="review-modal-input" placeholder="Store name / location" autocomplete="off">
+            </div>
+
+            <!-- Declined: simple confirmation -->
+            <div id="reviewDeclineFields" style="display:none;">
+                <p class="review-modal-hint">Decline this food request?</p>
+                <div class="review-modal-detail">
+                    <span id="declineRequester"></span> &mdash; <span id="declineCity"></span>
+                </div>
+                <p class="review-modal-subtext">An automated message will be sent to the requester.</p>
+            </div>
+
+            <div class="review-modal-actions">
+                <button class="review-modal-btn review-confirm-btn" id="reviewConfirmBtn" onclick="confirmReview()">Send Pickup</button>
+                <button class="review-modal-btn review-cancel-btn" onclick="closeReviewModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -1358,6 +1414,12 @@
             if (guardianMobile) {
                 guardianMobile.style.display = '';
             }
+
+            // Show admin controls in sidebar for admin users
+            const adminControls = document.getElementById('sidebar-admin-controls');
+            if (adminControls) {
+                adminControls.style.display = isAdminUser ? 'block' : 'none';
+            }
         }
         
         // Role selection function
@@ -1456,7 +1518,9 @@
                 hideCheerfulContent();
                 hideGuardianContent();
             } else if (role === 'provisioner') {
-                loadRoleStatus(role);
+                loadRoleStatus(role).then(() => {
+                    updateProvisionerToolsVisibility();
+                });
                 hideEventStack();
                 hideSpectrumPreview();
                 hideMapperContent();
@@ -1467,6 +1531,7 @@
                 hideGuardianContent();
                 // Show provisioner content
                 showProvisionerContent();
+                updateProvisionerToolsVisibility();
                 // Populate food request form with user data
                 populateFoodRequestForm();
             } else if (role === 'dreamstyler') {
@@ -1482,7 +1547,9 @@
                 // Show dreamstyler content
                 showDreamstylerContent();
             } else if (role === 'bursar') {
-                loadRoleStatus(role);
+                loadRoleStatus(role).then(() => {
+                    updateBursarToolsVisibility();
+                });
                 hideEventStack();
                 hideSpectrumPreview();
                 hideMapperContent();
@@ -1493,6 +1560,7 @@
                 hideGuardianContent();
                 // Show bursar content
                 showBursarContent();
+                updateBursarToolsVisibility();
             } else if (role === 'cheerful') {
                 loadRoleStatus(role);
                 hideEventStack();
@@ -2196,12 +2264,12 @@
             popup.className = 'entreat-popup';
             popup.style.cssText = `
                 background: rgba(255, 255, 255, 0.97);
-                padding: 1.5rem 2rem 2rem;
+                padding: 1.25rem;
                 border: 1px solid rgba(0, 0, 0, 0.1);
                 border-top: 3px solid ${dreamstylerColor};
-                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-                max-width: 440px;
-                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+                max-width: 340px;
+                width: auto;
                 max-height: 85vh;
                 overflow-y: auto;
             `;
@@ -2937,7 +3005,7 @@ We'd be endebted to your help.`;
                 if (data.success) {
                     let message = 'You have left your guardian.';
                     if (data.labeler_subscription?.success) {
-                        message += '\n🛡️ Content filtering has been removed.';
+                        message += '\nContent filtering has been removed.';
                     }
                     showCelebration(message, 'info');
                     // Refresh the guardian details
@@ -3097,7 +3165,7 @@ We'd be endebted to your help.`;
                     let message = `You are now a ${roleName} of ${window.selectedGuardianName || 'this guardian'}!`;
                     
                     if (data.labeler_subscription?.success) {
-                        message += '\n🛡️ Content filtering is now active across the network.';
+                        message += '\nContent filtering is now active across the network.';
                     }
                     
                     showCelebration(message, 'success');
@@ -3327,6 +3395,9 @@ We'd be endebted to your help.`;
                             disbursedEl.title = 'Total amount disbursed from treasury';
                         }
                         
+                        // Unlock scheme box based on server-side check
+                        checkSchemeUnlock(data.schemes_enabled);
+                        
                         // If data is stale (no sync time or old), trigger background sync
                         if (!data.oc_last_sync || data.source === 'default' || data.source === 'empty') {
                             syncTreasuryData();
@@ -3381,10 +3452,64 @@ We'd be endebted to your help.`;
                             disbursedEl.textContent = `$${data.oc_disbursed.toFixed(2)}`;
                             disbursedEl.title = 'Total amount disbursed from treasury';
                         }
+                        
+                        // Unlock scheme box based on server-side check
+                        checkSchemeUnlock(data.schemes_enabled);
                     }
                 }
             } catch (error) {
                 console.error('Failed to sync treasury data:', error);
+            }
+        }
+        
+        // One-way unlock: server tells us if schemes are enabled
+        let schemeUnlocked = false;
+        function checkSchemeUnlock(enabled) {
+            if (schemeUnlocked) return; // Already unlocked, never re-lock
+            if (enabled) {
+                schemeUnlocked = true;
+                const schemeBox = document.getElementById('scheme-box');
+                const subtext = document.getElementById('scheme-subtext');
+                if (schemeBox) {
+                    schemeBox.classList.remove('bursar-box-disabled');
+                }
+                if (subtext) {
+                    subtext.style.display = 'none';
+                }
+            }
+            // Update admin toggle state if visible
+            updateBursarToggle(enabled);
+        }
+
+        function updateBursarToggle(enabled) {
+            const toggle = document.getElementById('bursar-open-toggle');
+            if (toggle) toggle.checked = enabled;
+        }
+
+        async function toggleBursarOpen() {
+            const toggle = document.getElementById('bursar-open-toggle');
+            const newState = toggle.checked;
+            try {
+                const adminToken = localStorage.getItem('admin_token');
+                const resp = await fetch('/api/work/bursar/toggle-schemes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ enabled: newState })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    schemeUnlocked = false; // Allow re-evaluation
+                    checkSchemeUnlock(data.schemes_enabled);
+                } else {
+                    toggle.checked = !newState; // Revert
+                    showCelebration(data.error || 'Failed to toggle', 'error');
+                }
+            } catch (err) {
+                toggle.checked = !newState; // Revert
+                showCelebration('Failed to toggle bursar schemes', 'error');
             }
         }
         
@@ -3748,7 +3873,7 @@ We'd be endebted to your help.`;
                 });
                 
                 if (response.ok) {
-                    showCelebration('Scheme submitted! The Treasurer has been notified.', 'success');
+                    showCelebration('Scheme submitted!\nThe Treasurer has been notified.', 'success');
                     
                     // Clear the input
                     const input = document.getElementById('scheme-domain-input');
@@ -3892,44 +4017,13 @@ We'd be endebted to your help.`;
             }
             
             if (!token) {
-                console.error('❌ [Food Request] No authentication token found');
-                console.error('   - oauth_token:', localStorage.getItem('oauth_token') ? 'exists' : 'missing');
-                console.error('   - admin_token:', localStorage.getItem('admin_token') ? 'exists' : 'missing');
-                console.error('   - currentSession:', currentSession ? 'exists' : 'missing');
                 showCelebration('Session expired - please refresh and try again', 'error');
                 return;
             }
             
-            const headers = { 'Authorization': `Bearer ${token}` };
-            
-            try {
-                const credResponse = await fetch('/api/user/credentials/status', { headers });
-                
-                if (credResponse.ok) {
-                    const credData = await credResponse.json();
-                    
-                    // Check if user has valid credentials stored
-                    if (credData && (credData.connected === true || credData.valid === true)) {
-                        pendingRequestProvisionerDid = provisionerDid;
-                        showCityModal();
-                    } else {
-                        showAppPasswordWidgetForFoodRequest(provisionerDid);
-                    }
-                } else {
-                    console.error('❌ [Food Request] Credentials check failed');
-                    console.error('   - Status:', credResponse.status, credResponse.statusText);
-                    const errorText = await credResponse.text();
-                    console.error('   - Error response:', errorText);
-                    console.error('   - Falling back to app password widget');
-                    showAppPasswordWidgetForFoodRequest(provisionerDid);
-                }
-            } catch (error) {
-                console.error('❌ [Food Request] Exception during credential check');
-                console.error('   - Error type:', error.constructor.name);
-                console.error('   - Error message:', error.message);
-                console.error('   - Stack trace:', error.stack);
-                showAppPasswordWidgetForFoodRequest(provisionerDid);
-            }
+            // Go directly to city modal - server handles DM as best-effort
+            pendingRequestProvisionerDid = provisionerDid;
+            showCityModal();
         }
         
         function showAppPasswordWidgetForFoodRequest(provisionerDid) {
@@ -4021,6 +4115,13 @@ We'd be endebted to your help.`;
                 cityPreview.textContent = city || '...';
                 cityPreview.style.fontStyle = city ? 'normal' : 'italic';
             });
+
+            const areaInput = document.getElementById('areaInput');
+            const areaPreview = document.querySelector('.preview-area');
+            areaInput.addEventListener('input', function() {
+                const area = this.value.trim();
+                areaPreview.textContent = area ? ` (${area})` : '';
+            });
             
             modal.classList.add('show');
             document.body.setAttribute('data-current-role', 'provisioner');
@@ -4035,6 +4136,8 @@ We'd be endebted to your help.`;
             
             modal.classList.remove('show');
             input.value = '';
+            document.getElementById('areaInput').value = '';
+            document.querySelector('.preview-area').textContent = '';
             preview.textContent = '...';
             preview.style.fontStyle = 'italic';
             pendingRequestProvisionerDid = null;
@@ -4043,6 +4146,7 @@ We'd be endebted to your help.`;
         async function submitCityAndSendRequest() {
             const cityInput = document.getElementById('cityInput');
             const city = cityInput.value.trim();
+            const area = (document.getElementById('areaInput').value || '').trim();
             
             if (!city) {
                 showCelebration('Please enter your city', 'error');
@@ -4060,7 +4164,7 @@ We'd be endebted to your help.`;
             
             // Close modal and show loading
             closeCityModal();
-            showCelebration('Sending request...', 'info');
+            showCelebration('Sending request...', 'info', null);
             
             try {
                 // Get auth token - same priority as other work endpoints
@@ -4079,6 +4183,7 @@ We'd be endebted to your help.`;
                 
                 const payload = {
                     city: city,
+                    area: area,
                     provisioner_did: provisionerDid
                 };
                 
@@ -4092,7 +4197,7 @@ We'd be endebted to your help.`;
                 const data = await response.json();
                 
                 if (response.ok) {
-                    showCelebration('Request sent successfully!\n\nThe Head of Pantry will respond via DM.', 'success');
+                    showCelebration('Your request for food pickup has been submitted and is pending review.', 'success');
                 } else {
                     if (data.needs_credentials) {
                         showCelebration('You need to activate a work role first to send direct messages.\n\nPlease activate any role (like Provisioner) to enable DM functionality.', 'error');
@@ -4156,11 +4261,11 @@ We'd be endebted to your help.`;
                 
                 if (response.ok) {
                     let message = `Follow sync complete!\n\n`;
-                    message += `✅ Followed: ${data.followed}\n`;
-                    message += `🗑️ Unfollowed: ${data.unfollowed}\n`;
-                    message += `📋 Already following: ${data.already_following}`;
+                    message += `Followed: ${data.followed}\n`;
+                    message += `Unfollowed: ${data.unfollowed}\n`;
+                    message += `Already following: ${data.already_following}`;
                     if (data.errors && data.errors.length > 0) {
-                        message += `\n⚠️ Errors: ${data.errors.length}`;
+                        message += `\nErrors: ${data.errors.length}`;
                     }
                     showCelebration(message, 'success');
                 } else {
@@ -4185,14 +4290,298 @@ We'd be endebted to your help.`;
         }
         
         function updateProvisionerToolsVisibility() {
-            const toolsSection = document.getElementById('provisioner-tools-section');
-            if (!toolsSection) return;
+            const infoBox = document.getElementById('provisioner-info-box');
+            const workerBox = document.getElementById('provisioner-worker-box');
+            if (!infoBox || !workerBox) return;
             
-            // Only show tools if user is the active provisioner
             const provisionerStatus = roleStatuses.provisioner;
             const isActiveProvisioner = provisionerStatus && provisionerStatus.is_worker;
             
-            toolsSection.style.display = isActiveProvisioner ? 'block' : 'none';
+            if (isActiveProvisioner) {
+                infoBox.style.display = 'none';
+                workerBox.style.display = '';
+                loadProvisionerRequests();
+            } else {
+                infoBox.style.display = '';
+                workerBox.style.display = 'none';
+            }
+        }
+
+        function updateBursarToolsVisibility() {
+            const schemeBox = document.getElementById('scheme-box');
+            const workerBox = document.getElementById('bursar-worker-box');
+            if (!schemeBox || !workerBox) return;
+
+            const bursarStatus = roleStatuses.bursar;
+            const isActiveBursar = bursarStatus && bursarStatus.is_worker;
+
+            if (isActiveBursar) {
+                schemeBox.style.display = 'none';
+                workerBox.style.display = '';
+                loadBursarSchemes();
+            } else {
+                schemeBox.style.display = '';
+                workerBox.style.display = 'none';
+            }
+        }
+
+        async function loadBursarSchemes() {
+            const container = document.getElementById('bursar-schemes-list');
+            if (!container) return;
+
+            try {
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                if (!token && currentSession && currentSession.accessJwt) token = currentSession.accessJwt;
+
+                const resp = await fetch('/api/work/bursar/schemes?status=pending', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!resp.ok) {
+                    container.innerHTML = '<p class="bursar-box-text" style="color:#999;font-style:italic;">Could not load schemes.</p>';
+                    return;
+                }
+
+                const data = await resp.json();
+                const schemes = data.schemes || [];
+
+                if (schemes.length === 0) {
+                    container.innerHTML = '<p class="bursar-box-text" style="color:#999;font-style:italic;">No pending schemes.</p>';
+                    return;
+                }
+
+                container.innerHTML = schemes.map(s => `
+                    <div class="scheme-item" data-id="${s.id}">
+                        <div class="scheme-item-header">
+                            <span class="scheme-item-domain">${s.domain}</span>
+                            <span class="scheme-item-amount">$${s.request_amount}</span>
+                        </div>
+                        <div class="scheme-item-meta">
+                            <span>@${s.requester_handle || 'unknown'}</span>
+                            <span>${new Date(s.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div class="scheme-item-actions">
+                            <button class="scheme-action-btn scheme-approve" onclick="reviewScheme(${s.id}, 'approved')">Approve</button>
+                            <button class="scheme-action-btn scheme-decline" onclick="reviewScheme(${s.id}, 'rejected')">Decline</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Failed to load bursar schemes:', err);
+                container.innerHTML = '<p class="bursar-box-text" style="color:#999;font-style:italic;">Failed to load schemes.</p>';
+            }
+        }
+
+        async function reviewScheme(schemeId, status) {
+            try {
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                if (!token && currentSession && currentSession.accessJwt) token = currentSession.accessJwt;
+
+                const resp = await fetch(`/api/work/bursar/schemes/${schemeId}/review`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: status })
+                });
+
+                if (resp.ok) {
+                    showCelebration(`Scheme ${status}!`, status === 'approved' ? 'success' : 'info');
+                    loadBursarSchemes();
+                } else {
+                    const data = await resp.json().catch(() => ({}));
+                    showCelebration(data.error || `Failed to ${status} scheme`, 'error');
+                }
+            } catch (err) {
+                showCelebration('Failed to review scheme', 'error');
+            }
+        }
+
+        async function loadProvisionerRequests() {
+            const container = document.getElementById('provisioner-requests-list');
+            if (!container) return;
+
+            try {
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                if (!token && currentSession && currentSession.accessJwt) token = currentSession.accessJwt;
+
+                const resp = await fetch('/api/work/provisioner/requests?status=pending', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!resp.ok) {
+                    container.innerHTML = '<p class="provisioner-box-text" style="color:#999;font-style:italic;">Could not load requests.</p>';
+                    return;
+                }
+
+                const data = await resp.json();
+                const reqs = data.requests || [];
+
+                if (reqs.length === 0) {
+                    container.innerHTML = '<p class="provisioner-box-text" style="color:#999;font-style:italic;">No pending food requests.</p>';
+                    return;
+                }
+
+                container.innerHTML = reqs.map(r => `
+                    <div class="scheme-item" data-id="${r.id}" data-city="${r.city}" data-area="${r.area || ''}" data-handle="${r.requester_handle || 'unknown'}" data-requester-did="${r.requester_did || ''}">
+                        <div class="scheme-item-header">
+                            <span class="scheme-item-domain">${r.city}${r.area ? ' (' + r.area + ')' : ''}</span>
+                            <span class="scheme-item-amount">@${r.requester_handle || 'unknown'}</span>
+                        </div>
+                        <div class="scheme-item-meta">
+                            <span>${new Date(r.created_at).toLocaleDateString()}</span>
+                            <span>${r.dm_sent ? 'DM sent' : 'Dashboard only'}</span>
+                        </div>
+                        <div class="scheme-item-actions">
+                            <button class="scheme-action-btn scheme-approve" onclick="reviewFoodRequest(${r.id}, 'fulfilled', this)">Fulfilled</button>
+                            <button class="scheme-action-btn scheme-decline" onclick="reviewFoodRequest(${r.id}, 'declined', this)">Decline</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Failed to load provisioner requests:', err);
+                container.innerHTML = '<p class="provisioner-box-text" style="color:#999;font-style:italic;">Failed to load requests.</p>';
+            }
+        }
+
+        let pendingReviewRequestId = null;
+        let pendingReviewStatus = null;
+
+        function parseTGTGInput(text) {
+            const linkMatch = text.match(/https:\/\/share\.toogoodtogo\.com\/invitation\/order\/[a-f0-9-]+/i);
+            const locationMatch = text.match(/Surprise Bag from (.+?)\?/i);
+            return {
+                link: linkMatch ? linkMatch[0] : null,
+                location: locationMatch ? locationMatch[1].trim() : null
+            };
+        }
+
+        function reviewFoodRequest(requestId, status, btnEl) {
+            pendingReviewRequestId = requestId;
+            pendingReviewStatus = status;
+
+            const titleEl = document.getElementById('reviewModalTitle');
+            const fulfilledFields = document.getElementById('reviewFulfilledFields');
+            const declineFields = document.getElementById('reviewDeclineFields');
+            const confirmBtn = document.getElementById('reviewConfirmBtn');
+
+            if (status === 'fulfilled') {
+                titleEl.textContent = 'Complete Fulfillment';
+                fulfilledFields.style.display = '';
+                declineFields.style.display = 'none';
+                document.getElementById('tgtgPasteArea').value = '';
+                document.getElementById('tgtgLinkOverride').value = '';
+                document.getElementById('tgtgLocationOverride').value = '';
+                document.getElementById('tgtgPreview').style.display = 'none';
+                confirmBtn.textContent = 'Send Pickup';
+                confirmBtn.className = 'review-modal-btn review-confirm-btn';
+            } else {
+                titleEl.textContent = 'Decline Request';
+                fulfilledFields.style.display = 'none';
+                declineFields.style.display = '';
+                const item = btnEl.closest('.scheme-item');
+                document.getElementById('declineRequester').textContent = '@' + (item?.dataset.handle || 'unknown');
+                document.getElementById('declineCity').textContent = item?.dataset.city || '';
+                confirmBtn.textContent = 'Decline';
+                confirmBtn.className = 'review-modal-btn review-decline-btn';
+            }
+
+            document.getElementById('reviewModal').classList.add('show');
+            if (status === 'fulfilled') {
+                setTimeout(() => document.getElementById('tgtgPasteArea').focus(), 100);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const pasteArea = document.getElementById('tgtgPasteArea');
+            if (pasteArea) {
+                pasteArea.addEventListener('input', () => {
+                    const parsed = parseTGTGInput(pasteArea.value);
+                    const preview = document.getElementById('tgtgPreview');
+                    const linkOverride = document.getElementById('tgtgLinkOverride');
+                    const locationOverride = document.getElementById('tgtgLocationOverride');
+                    if (parsed.link) {
+                        // Auto-fill override fields from paste (only if override is empty)
+                        if (!linkOverride.value) linkOverride.value = parsed.link;
+                        if (parsed.location) {
+                            document.getElementById('tgtgLocation').textContent = parsed.location;
+                            preview.style.display = '';
+                            if (!locationOverride.value) locationOverride.value = parsed.location;
+                        } else {
+                            preview.style.display = 'none';
+                        }
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.remove('show');
+            pendingReviewRequestId = null;
+            pendingReviewStatus = null;
+        }
+
+        function confirmReview() {
+            const status = pendingReviewStatus;
+            const requestId = pendingReviewRequestId;
+
+            if (status === 'fulfilled') {
+                // Override fields take precedence; fall back to paste-parsed values
+                const pasteRaw = (document.getElementById('tgtgPasteArea').value || '').trim();
+                const parsed = parseTGTGInput(pasteRaw);
+
+                const linkOverride = (document.getElementById('tgtgLinkOverride').value || '').trim();
+                const locationOverride = (document.getElementById('tgtgLocationOverride').value || '').trim();
+
+                const finalLink = linkOverride || parsed.link;
+                const finalLocation = locationOverride || parsed.location;
+
+                if (!finalLink) {
+                    showCelebration('Provide a valid TooGoodToGo invitation link.', 'error');
+                    return;
+                }
+                closeReviewModal();
+                submitFoodReview(requestId, 'fulfilled', finalLink, finalLocation);
+            } else {
+                closeReviewModal();
+                submitFoodReview(requestId, 'declined', null, null);
+            }
+        }
+
+        async function submitFoodReview(requestId, status, invitationLink, pickupLocation) {
+            try {
+                let token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
+                if (!token && currentSession && currentSession.accessJwt) token = currentSession.accessJwt;
+
+                const body = { status: status };
+                if (invitationLink) body.invitation_link = invitationLink;
+                if (pickupLocation) body.pickup_location = pickupLocation;
+
+                const resp = await fetch(`/api/work/provisioner/requests/${requestId}/review`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (resp.ok) {
+                    const data = await resp.json();
+                    let msg = status === 'fulfilled' ? 'Pickup details sent!' : 'Request declined.';
+                    if (data.dm_sent) msg += '\nDM sent to requester.';
+                    showCelebration(msg, status === 'fulfilled' ? 'success' : 'info');
+                    loadProvisionerRequests();
+                } else {
+                    const data = await resp.json().catch(() => ({}));
+                    showCelebration(data.error || `Failed to update request`, 'error');
+                }
+            } catch (err) {
+                showCelebration('Failed to update request', 'error');
+            }
         }
         
         function updateRoleActions(role) {
@@ -4245,6 +4634,7 @@ We'd be endebted to your help.`;
             await loadRoleStatus('cheerful');
             updateUI();
             updateProvisionerToolsVisibility();
+            updateBursarToolsVisibility();
             updateAdminRoleVisibility(); // Re-check now that currentSession is available
             isInitializing = false;
         });
@@ -7576,16 +7966,19 @@ We'd be endebted to your help.`;
                 position: relative;
             `;
             
-            popup.innerHTML = `
-                <div style="color: white; font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; line-height: 1.5;">
-                    ${formattedMessage}
-                </div>
+            const buttonHtml = buttonText ? `
                 <button onclick="this.closest('.celebration-overlay').remove()" 
                         style="padding: 0.75rem 2rem; background: white; color: #8b7355; border: none; 
                                font-weight: 700; font-size: 1rem; cursor: pointer; border-radius: 0;
                                box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.2s;">
                     ${buttonText}
-                </button>
+                </button>` : '';
+            
+            popup.innerHTML = `
+                <div style="color: white; font-size: 1.3rem; font-weight: 700; margin-bottom: ${buttonText ? '1rem' : '0'}; line-height: 1.5;">
+                    ${formattedMessage}
+                </div>
+                ${buttonHtml}
             `;
             
             overlay.appendChild(popup);
