@@ -1448,6 +1448,211 @@ def get_snapshot_detail(snapshot_id):
         return jsonify({'error': str(e)}), 500
 
 
+# ─── Story Feed ──────────────────────────────────────────────
+# Server-side enriched story feed using local label recognition
+# from the feed generator. Replaces the old pattern of querying
+# lore.farm queryLabels + 42 individual Bluesky API calls from
+# the browser with a single server request.
+# ─────────────────────────────────────────────────────────────
+
+_story_feed_cache = {'data': None, 'timestamp': 0, 'filter': None}
+_STORY_FEED_TTL = 300  # 5 minute cache
+
+@app.route('/api/story/feed')
+def story_feed():
+    """Serve enriched story feed from local label data.
+    
+    Queries the feed_posts table (populated by feed generator's label sync)
+    joined with dreamers for author info. Batch-enriches from Bluesky's
+    getPosts API for embed/engagement data, cached server-side.
+    
+    Query params:
+        filter: 'canon' (default) or 'all'
+        limit: max posts (default 100, max 200)
+    """
+    try:
+        from core.database import DatabaseManager
+        
+        filter_type = request.args.get('filter', 'all')
+        limit = min(int(request.args.get('limit', 100)), 200)
+        
+        # Check cache
+        now = time.time()
+        cache_key = f"{filter_type}:{limit}"
+        if (_story_feed_cache['data'] is not None 
+            and _story_feed_cache['filter'] == cache_key
+            and now - _story_feed_cache['timestamp'] < _STORY_FEED_TTL):
+            return jsonify(_story_feed_cache['data'])
+        
+        db = DatabaseManager()
+        
+        # Query labeled posts joined with dreamer info
+        if filter_type == 'canon':
+            where_clause = "fp.has_canon_label = 1"
+        else:
+            where_clause = "(fp.has_lore_label = 1 OR fp.has_canon_label = 1)"
+        
+        rows = db.fetch_all(f"""
+            SELECT fp.uri, fp.cid, fp.author_did, fp.text, fp.created_at,
+                   fp.has_lore_label, fp.has_canon_label,
+                   d.handle, d.name AS display_name, d.avatar, d.color_hex
+            FROM feed_posts fp
+            LEFT JOIN dreamers d ON fp.author_did = d.did
+            WHERE {where_clause}
+            ORDER BY fp.created_at DESC
+            LIMIT %s
+        """, (limit,))
+        
+        if not rows:
+            return jsonify({
+                'stories': [],
+                'total': 0,
+                'canon_count': 0,
+                'source': 'label_db'
+            })
+        
+        # Build story objects from DB data
+        stories = []
+        uris_to_enrich = []
+        
+        for row in rows:
+            uri = row['uri']
+            handle = row['handle'] or ''
+            rkey = uri.split('/')[-1] if '/' in uri else ''
+            
+            story = {
+                'uri': uri,
+                'cid': row['cid'] or '',
+                'isCanon': bool(row['has_canon_label']),
+                'isLore': bool(row['has_lore_label']),
+                'text': row['text'] or '',
+                'createdAt': row['created_at'].isoformat() + 'Z' if row['created_at'] else '',
+                'author': {
+                    'did': row['author_did'],
+                    'handle': handle,
+                    'displayName': row['display_name'] or handle.split('.')[0] if handle else 'Unknown',
+                    'avatar': row['avatar'] or '',
+                    'color': row['color_hex'] or '#734ba1',
+                },
+                'url': f"https://bsky.app/profile/{handle}/post/{rkey}" if handle and rkey else '',
+                'embed': None,
+                'likeCount': 0,
+                'repostCount': 0,
+                'replyCount': 0,
+            }
+            stories.append(story)
+            uris_to_enrich.append(uri)
+        
+        # Batch-enrich from Bluesky (up to 25 per request)
+        try:
+            enriched = {}
+            for i in range(0, len(uris_to_enrich), 25):
+                batch = uris_to_enrich[i:i+25]
+                resp = requests.get(
+                    'https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts',
+                    params={'uris': batch},
+                    timeout=15
+                )
+                if resp.status_code == 200:
+                    for post in resp.json().get('posts', []):
+                        enriched[post['uri']] = post
+            
+            # Merge enriched data into stories
+            for story in stories:
+                post_data = enriched.get(story['uri'])
+                if not post_data:
+                    continue
+                
+                # Update engagement counts
+                story['likeCount'] = post_data.get('likeCount', 0)
+                story['repostCount'] = post_data.get('repostCount', 0)
+                story['replyCount'] = post_data.get('replyCount', 0)
+                
+                # Update author info from Bluesky (may be more current than our DB)
+                author = post_data.get('author', {})
+                if author.get('avatar'):
+                    story['author']['avatar'] = author['avatar']
+                if author.get('displayName'):
+                    story['author']['displayName'] = author['displayName']
+                if author.get('handle'):
+                    story['author']['handle'] = author['handle']
+                
+                # Extract embed data
+                embed = post_data.get('embed')
+                if embed:
+                    embed_type = embed.get('$type', '')
+                    if 'images' in embed_type:
+                        story['embed'] = {
+                            'type': 'images',
+                            'images': [{
+                                'thumb': img.get('thumb', ''),
+                                'fullsize': img.get('fullsize', ''),
+                                'alt': img.get('alt', ''),
+                            } for img in embed.get('images', [])]
+                        }
+                    elif 'external' in embed_type:
+                        ext = embed.get('external', {})
+                        story['embed'] = {
+                            'type': 'external',
+                            'uri': ext.get('uri', ''),
+                            'title': ext.get('title', ''),
+                            'description': ext.get('description', ''),
+                            'thumb': ext.get('thumb', ''),
+                        }
+                    elif 'record' in embed_type:
+                        # Quote post — include basic info
+                        record = embed.get('record', {})
+                        if isinstance(record, dict):
+                            story['embed'] = {
+                                'type': 'quote',
+                                'uri': record.get('uri', ''),
+                                'author': record.get('author', {}).get('handle', ''),
+                                'text': record.get('value', {}).get('text', '')[:200] if isinstance(record.get('value'), dict) else '',
+                            }
+                    elif 'video' in embed_type:
+                        story['embed'] = {
+                            'type': 'video',
+                            'thumb': embed.get('thumbnail', ''),
+                            'alt': embed.get('alt', ''),
+                        }
+                
+                # Use Bluesky text if our DB text is empty
+                record = post_data.get('record', {})
+                if not story['text'] and isinstance(record, dict):
+                    story['text'] = record.get('text', '')
+                
+                # Update CID if missing
+                if not story['cid'] and post_data.get('cid'):
+                    story['cid'] = post_data['cid']
+        
+        except Exception as enrich_error:
+            print(f"⚠️ Story feed enrichment error (serving without embeds): {enrich_error}")
+        
+        # Filter out posts that no longer exist on Bluesky
+        # (enriched dict won't have them, but they still have DB text)
+        valid_stories = [s for s in stories if s['text'] or s['uri'] in enriched]
+        
+        result = {
+            'stories': valid_stories,
+            'total': len(valid_stories),
+            'canon_count': sum(1 for s in valid_stories if s['isCanon']),
+            'source': 'label_db',
+        }
+        
+        # Cache the result
+        _story_feed_cache['data'] = result
+        _story_feed_cache['timestamp'] = now
+        _story_feed_cache['filter'] = cache_key
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f"Error in /api/story/feed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/canon')
 def get_canon():
     """Get all canon entries from database"""
@@ -2699,152 +2904,36 @@ def apply_lore_label():
     print("=" * 80)
     
     try:
-        import sys
         import requests
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from core.database import DatabaseManager
         
-        # AUTHENTICATION CHECK: Get token from Authorization header
+        # AUTHENTICATION CHECK: Get token from Authorization header or session cookie
         token = None
         auth_header = request.headers.get('Authorization')
         cookie_session = request.cookies.get('session')
         
-        print(f"🔍 [Lore Label] Auth Check:")
-        print(f"   - Authorization header present: {bool(auth_header)}")
-        print(f"   - Session cookie present: {bool(cookie_session)}")
-        
         if auth_header and auth_header.startswith('Bearer '):
             token = auth_header[7:]
-            auth_method = "OAuth Bearer Token"
-            print(f"   - Auth method: {auth_method}")
-            print(f"   - Token preview: {token[:30]}..." if len(token) > 30 else f"   - Token: {token}")
         elif cookie_session:
             token = cookie_session
-            auth_method = "Session Cookie (App Password)"
-            print(f"   - Auth method: {auth_method}")
-            print(f"   - Cookie preview: {cookie_session[:20]}...")
         else:
-            print(f"[Lore Label] No authentication credentials found")
             return jsonify({
                 'success': False,
                 'error': 'Authentication required. Please log in.'
             }), 401
         
         # Validate token (supports both admin sessions and OAuth JWT)
-        print(f"🔐 [Lore Label] Validating token using validate_work_token()...")
         valid, authenticated_did, handle = validate_work_token(token)
         
-        print(f"[Lore Label] Validation result:")
-        print(f"   - Valid: {valid}")
-        print(f"   - Authenticated DID: {authenticated_did}")
-        print(f"   - Handle: {handle}")
-        
         if not valid:
-            print(f"[Lore Label] Authentication validation failed")
             return jsonify({
                 'success': False,
                 'error': 'Invalid token. Please log in again.'
             }), 401
         
-        print(f"[Lore Label] Authentication successful - DID: {authenticated_did}")
+        print(f"[Lore Label] Authenticated: {authenticated_did}")
         
-        # Load LOREFARM_KEY from environment or file
-        lorefarm_key = os.environ.get('LOREFARM_KEY')
-        if not lorefarm_key:
-            # Try loading from file
-            lorefarm_key_file = os.environ.get('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm.api.key')
-            try:
-                with open(lorefarm_key_file, 'r') as f:
-                    lorefarm_key = f.read().strip()
-            except FileNotFoundError:
-                return jsonify({
-                    'success': False,
-                    'error': 'Server configuration error: LOREFARM_KEY missing'
-                }), 500
-            except Exception as e:
-                return jsonify({
-                    'success': False,
-                    'error': 'Server configuration error: Could not read LOREFARM_KEY'
-                }), 500
-        
-        if not lorefarm_key:
-            return jsonify({
-                'success': False,
-                'error': 'Server configuration error: LOREFARM_KEY empty'
-            }), 500
-        
-        # Test LOREFARM_KEY against lore.farm API
-        try:
-            verify_response = requests.get(
-                'https://lore.farm/api/health',
-                headers={'Authorization': f'Bearer {lorefarm_key}'},
-                timeout=5
-            )
-        except Exception as verify_error:
-            pass  # Continue anyway - the actual label API call will fail if key is invalid
-        
-        # Get request data
-        data = request.get_json()
-        
-        if not data:
-            print(f"[Lore Label] No JSON data in request")
-            return jsonify({
-                'success': False,
-                'error': 'Missing request data'
-            }), 400
-        
-        uri = data.get('uri')
-        user_did = data.get('userDid')
-        label = data.get('label', 'lore:reverie.house')
-        
-        print(f"[Lore Label] Parsed fields:")
-        print(f"   - URI: {uri}")
-        print(f"   - User DID: {user_did}")
-        print(f"   - Label: {label}")
-        
-        if not uri or not user_did:
-            print(f"[Lore Label] Missing required fields")
-            return jsonify({
-                'success': False,
-                'error': 'Missing required fields: uri, userDid'
-            }), 400
-        
-        # AUTHORIZATION CHECK: User can only label their own posts
-        # (unless admin override)
-        is_admin = (authenticated_did == AUTHORIZED_ADMIN_DID)
-        is_self = (authenticated_did == user_did)
-        
-        if not is_self and not is_admin:
-            print(f"[Lore Label] SECURITY: Authorization failed!")
-            print(f"   Authenticated DID: {authenticated_did}")
-            print(f"   Requested DID: {user_did}")
-            print(f"   Someone tried to label posts for another user!")
-            return jsonify({
-                'success': False,
-                'error': 'You can only label your own posts'
-            }), 403
-        
-        if is_admin and not is_self:
-            print(f"[Lore Label] Admin override: {authenticated_did} labeling for {user_did}")
-        
-        print(f"[Lore Label] Authorization passed (is_self: {is_self}, is_admin: {is_admin})")
-        
-        # Verify the user is registered in Reverie
-        print(f"[Lore Label] Checking if user is registered...")
-        db = DatabaseManager()
-        cursor = db.execute("SELECT * FROM dreamers WHERE did = %s", (user_did,))
-        dreamer = cursor.fetchone()
-        
-        if not dreamer:
-            print(f"[Lore Label] User not found in database: {user_did}")
-            return jsonify({
-                'success': False,
-                'error': 'User not registered in Reverie'
-            }), 403
-        
-        print(f"[Lore Label] User verified: {dreamer['name'] if dreamer else 'unknown'}")
-        
-        # Get the lorekey for reverie.house from file or environment
+        # Load LOREFARM_KEY from file or environment
         lorekey = None
         key_file = os.getenv('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm.api.key')
         if os.path.exists(key_file):
@@ -2863,19 +2952,61 @@ def apply_lore_label():
                 'error': 'Server configuration error: LOREFARM_KEY not configured'
             }), 500
         
-        # Prepare request to lore.farm API
-        # Try modern endpoint first, fall back to legacy if needed
-        lorefarm_url = 'https://lore.farm/api/labels'
+        # Get request data
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing request data'
+            }), 400
+        
+        uri = data.get('uri')
+        user_did = data.get('userDid')
+        label = data.get('label', 'lore:reverie.house')
+        
+        if not uri or not user_did:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields: uri, userDid'
+            }), 400
+        
+        # AUTHORIZATION CHECK: User can only label their own posts (unless admin)
+        is_admin = (authenticated_did == AUTHORIZED_ADMIN_DID)
+        is_self = (authenticated_did == user_did)
+        
+        if not is_self and not is_admin:
+            print(f"[Lore Label] SECURITY: {authenticated_did} tried to label for {user_did}")
+            return jsonify({
+                'success': False,
+                'error': 'You can only label your own posts'
+            }), 403
+        
+        if is_admin and not is_self:
+            print(f"[Lore Label] Admin override: {authenticated_did} labeling for {user_did}")
+        
+        # Verify the user is registered in Reverie
+        db = DatabaseManager()
+        cursor = db.execute("SELECT * FROM dreamers WHERE did = %s", (user_did,))
+        dreamer = cursor.fetchone()
+        
+        if not dreamer:
+            return jsonify({
+                'success': False,
+                'error': 'User not registered in Reverie'
+            }), 403
+        
+        # Prepare request to lore.farm v1 API
+        lorefarm_url = 'https://lore.farm/api/v1/label/apply'
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {lorekey}'
         }
         
-        # Prepare payload with correct field names for lore.farm API
+        # v1 endpoint expects {uri, val}
         payload = {
-            'post_uri': uri,
-            'label_value': label,
-            'world_domain': 'reverie.house'
+            'uri': uri,
+            'val': label
         }
         
         # Log the label application attempt to audit log
@@ -3864,13 +3995,6 @@ def update_error_status(error_id):
         
         if status not in ['new', 'investigating', 'resolved', 'ignored']:
             return jsonify({'error': 'Invalid status'}), 400
-        
-        # import sys
-        # sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        # from core.audit import AuditLogger
-        
-        # # Update via audit logger
-        # audit = AuditLogger()
         
         if status == 'resolved':
             # Get authenticated user
@@ -10964,7 +11088,7 @@ def guardian_add_item():
     
     Syncs labels to lore.farm for network-wide protection:
     - barred_users/barred_content -> hide:{guardian} label
-    - allowed_users/allowed_content -> safe:{guardian} label
+    - allowed_users/allowed_content -> database record only (no ATProto label)
     """
     try:
         from core.database import DatabaseManager
@@ -11134,7 +11258,12 @@ def guardian_remove_item():
                         guardian_handle=guardian_handle
                     )
                 else:
-                    print(f"  📝 Removed barred user record: {value}")
+                    # Negate account-level hide label
+                    label_result = label_manager.remove_hide_account_label(
+                        user_did=value,
+                        guardian_did=user_did,
+                        guardian_handle=guardian_handle
+                    )
                     
             else:
                 # Remove safe:{guardian} label
@@ -15100,14 +15229,6 @@ if __name__ == '__main__':
         print("Follow sync worker started (runs hourly)")
     except Exception as e:
         print(f"⚠️ Failed to start follow sync worker: {e}")
-    
-    # Dream enrichment worker disabled (dream_queue service removed)
-    # try:
-    #     from core.dream_enricher import start_enricher
-    #     enricher = start_enricher(batch_size=10, sleep_interval=5, verbose=True)
-    #     print("✨ Dream enrichment worker started")
-    # except Exception as e:
-    #     print(f"⚠️  Failed to start dream enricher: {e}")
     
     print(f"Admin panel: http://localhost:{port}/")
     

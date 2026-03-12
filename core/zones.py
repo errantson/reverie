@@ -306,60 +306,12 @@ class ZoneManager:
         self.zones: Dict[str, Zone] = {}
     
     def load_zones_from_db(self):
-        """Load zone definitions from database."""
-        # TODO: Zones table was removed during schema simplification
-        # Zones are now calculated dynamically based on spectrum clustering
-        # For now, return empty zones list
+        """Load zone definitions from database.
+        
+        Zones table was removed during schema simplification.
+        Zones are now calculated dynamically based on spectrum clustering.
+        """
         self.zones = {}
-        return
-        
-        # Old code (disabled):
-        # cursor = self.db.execute("""
-        #     SELECT zone_id, name, type, definition, color, description, effects, enabled
-        #     FROM zones
-        #     WHERE enabled = 1
-        #     ORDER BY zone_id
-        # """)
-        
-        self.zones = {}
-        
-        for row in cursor.fetchall():
-            zone_id = row['zone_id']
-            name = row['name']
-            zone_type = row['type']
-            definition = json.loads(row['definition']) if row['definition'] else {}
-            color = json.loads(row['color']) if row['color'] else None
-            description = row['description'] or ""
-            effects = json.loads(row['effects']) if row['effects'] else {}
-            
-            if zone_type == 'sphere':
-                zone = SphereZone(
-                    zone_id=zone_id,
-                    name=name,
-                    center_did=definition.get('center_did'),
-                    center_coords=definition.get('center_coords'),
-                    radius=definition.get('radius', 30.0),
-                    axes=definition.get('axes'),
-                    color=color,
-                    description=description,
-                    effects=effects
-                )
-            elif zone_type == 'hull':
-                zone = ConvexHullZone(
-                    zone_id=zone_id,
-                    name=name,
-                    point_dids=definition.get('point_dids'),
-                    point_coords=definition.get('point_coords'),
-                    axes=definition.get('axes'),
-                    color=color,
-                    description=description,
-                    effects=effects
-                )
-            else:
-                print(f"⚠️ Unknown zone type '{zone_type}' for zone {zone_id}")
-                continue
-            
-            self.zones[zone_id] = zone
     
     def get_zone(self, zone_id: str) -> Optional[Zone]:
         """Get a specific zone by ID."""

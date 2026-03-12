@@ -178,7 +178,7 @@
         
         let allStories = [];
         let currentFilter = sessionStorage.getItem('storyFilter') || 'canon';
-        let allDreamers = []; // Store dreamers for handle resolution
+        let allDreamers = [];
         let guardianRules = null;
         let aggregateBarred = null;
 
@@ -520,82 +520,24 @@
             }
         }
 
-        async function fetchLabels() {
+        /**
+         * Fetch stories from the server's label-recognition database.
+         * The server queries feed_posts (indexed by the feed generator)
+         * joined with dreamers data, and batch-enriches from Bluesky
+         * for embeds and engagement counts — all in one request.
+         */
+        async function fetchStories(filter = 'all') {
             try {
-                console.log('Fetching labels from:', `${LORE_FARM_API}/xrpc/com.atproto.label.queryLabels`);
-                const response = await fetch(`${LORE_FARM_API}/xrpc/com.atproto.label.queryLabels?uriPatterns=*&limit=100`);
-                console.log('Response status:', response.status);
+                const response = await fetch(`/api/story/feed?filter=${filter}&limit=200`);
                 if (!response.ok) {
-                    const text = await response.text();
-                    console.error('Response error:', text);
-                    throw new Error('Failed to fetch labels');
-                }
-                const data = await response.json();
-                console.log('Fetched labels:', data.labels?.length || 0, 'labels');
-                console.log('Sample labels:', data.labels?.slice(0, 3));
-                return data.labels || [];
-            } catch (error) {
-                console.error('Error fetching labels:', error);
-                return [];
-            }
-        }
-
-        async function fetchPostDetails(uri) {
-            try {
-                console.log('Fetching post details for:', uri);
-                // Use Bluesky's public API to fetch post content
-                const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=0`);
-                if (!response.ok) {
-                    if (response.status === 400) {
-                        console.warn('⚠️ Post not found or deleted:', uri);
-                    } else {
-                        console.warn('Failed to fetch post details for:', uri, response.status);
-                    }
+                    console.error('Story feed error:', response.status);
                     return null;
                 }
-                const data = await response.json();
-                
-                // Check if the post was actually deleted or blocked
-                if (data.thread?.notFound || data.thread?.blocked) {
-                    console.warn('⚠️ Post unavailable (deleted or blocked):', uri);
-                    return null;
-                }
-                
-                console.log('Post details fetched for:', uri, data);
-                // Return the thread post data
-                return data.thread?.post || null;
+                return await response.json();
             } catch (error) {
-                console.error('Error fetching post details:', error);
+                console.error('Error fetching story feed:', error);
                 return null;
             }
-        }
-
-        function groupLabelsByPost(labels) {
-            const grouped = {};
-            
-            console.log('Grouping labels, total:', labels.length);
-            
-            labels.forEach(label => {
-                const val = label.val || '';
-                if (!val.startsWith('lore:') && !val.startsWith('canon:')) return;
-                
-                const [type, domain] = val.split(':');
-                if (domain !== WORLD_DOMAIN) {
-                    console.log('Skipping label for different domain:', domain);
-                    return;
-                }
-                
-                const uri = label.uri;
-                if (!grouped[uri]) {
-                    grouped[uri] = { lore: false, canon: false, label };
-                }
-                
-                if (type === 'lore') grouped[uri].lore = true;
-                if (type === 'canon') grouped[uri].canon = true;
-            });
-            
-            console.log('Grouped posts:', Object.keys(grouped).length);
-            return grouped;
         }
 
         function formatDate(dateString) {
@@ -624,28 +566,25 @@
         }
 
         function createStoryCard(story) {
-            console.log('Creating card for story:', story.uri);
-            console.log('Story data:', story);
-            console.log('Story CID:', story.post?.cid);
             const canonClass = story.isCanon ? 'canon' : '';
             
-            // Extract text from post and linkify handles
-            const rawText = story.post?.record?.text || 'No text available';
+            // Extract text from server-enriched story and linkify handles
+            const rawText = story.text || 'No text available';
             const postText = linkifyHandles(rawText);
             
-            // Get author info
-            const authorHandle = story.post?.author?.handle || 'unknown';
-            const authorDisplayName = story.post?.author?.displayName || 'Unknown';
-            const authorAvatar = story.post?.author?.avatar || '';
-            const authorDid = story.post?.author?.did || '';
+            // Get author info (already enriched by server from dreamers + Bluesky)
+            const authorHandle = story.author?.handle || 'unknown';
+            const authorDisplayName = story.author?.displayName || 'Unknown';
+            const authorAvatar = story.author?.avatar || '';
+            const authorDid = story.author?.did || '';
             
             // Check if author is a registered dreamer
             const dreamer = getDreamerByHandle(authorHandle);
             const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(dreamer.did)}` : `https://bsky.app/profile/${authorDid || authorHandle}`;
             const bskyProfileUrl = `https://bsky.app/profile/${authorDid || authorHandle}`;
             
-            // Get author's color for card styling
-            const authorColor = dreamer?.color_hex || '#734ba1';
+            // Get author's color for card styling (from server's dreamer data)
+            const authorColor = story.author?.color || dreamer?.color_hex || '#734ba1';
             
             // Build avatar HTML with link to bsky profile
             const avatarHtml = authorAvatar 
@@ -654,40 +593,35 @@
                    </a>`
                 : '';
             
-            // Build image HTML - check for embed images
+            // Build image HTML from server-enriched embed data
             let imageHtml = '';
-            if (story.post?.embed?.images && story.post.embed.images.length > 0) {
-                const imgUrl = story.post.embed.images[0].thumb || story.post.embed.images[0].fullsize;
-                const imgAlt = story.post.embed.images[0].alt || 'Story image';
-                imageHtml = `<img src="${imgUrl}" alt="${imgAlt}" class="story-image" onclick="showImageShadowbox('${imgUrl}', '${imgAlt.replace(/'/g, "\\'")}')">`;
-            } else if (story.post?.embed?.$type === 'app.bsky.embed.images#view' && story.post?.embed?.images) {
-                const imgUrl = story.post.embed.images[0].thumb || story.post.embed.images[0].fullsize;
-                const imgAlt = story.post.embed.images[0].alt || 'Story image';
-                imageHtml = `<img src="${imgUrl}" alt="${imgAlt}" class="story-image" onclick="showImageShadowbox('${imgUrl}', '${imgAlt.replace(/'/g, "\\'")}')">`;
+            if (story.embed?.type === 'images' && story.embed.images?.length > 0) {
+                const img = story.embed.images[0];
+                const imgUrl = img.thumb || img.fullsize;
+                const imgAlt = img.alt || 'Story image';
+                if (imgUrl) {
+                    imageHtml = `<img src="${imgUrl}" alt="${imgAlt}" class="story-image" onclick="showImageShadowbox('${imgUrl}', '${imgAlt.replace(/'/g, "\\'")}')">`;
+                }
+            } else if (story.embed?.type === 'external' && story.embed.thumb) {
+                imageHtml = `<img src="${story.embed.thumb}" alt="${story.embed.title || 'Link preview'}" class="story-image">`;
             }
             
-            // Convert AT URI to web URL
-            const postUrl = story.uri.replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/');
+            // Post URL (server provides this, fallback to deriving from URI)
+            const postUrl = story.url || story.uri.replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/');
             
-            // Get interaction counts
-            const likeCount = story.post?.likeCount || 0;
-            const repostCount = story.post?.repostCount || 0;
-            const replyCount = story.post?.replyCount || 0;
+            // Get interaction counts (server-enriched from Bluesky batch fetch)
+            const likeCount = story.likeCount || 0;
+            const repostCount = story.repostCount || 0;
+            const replyCount = story.replyCount || 0;
             
             // Check if user is logged in
             const session = window.oauthManager ? window.oauthManager.getSession() : null;
             const isLoggedIn = !!session;
             
-            // Check viewer state (liked, reposted, etc)
-            const isLiked = story.post?.viewer?.like || false;
-            const isReposted = story.post?.viewer?.repost || false;
-            
             // Build actions HTML (only for logged-in users)
-            // Use data attributes for complex data to avoid escaping issues in onclick
             let actionsHtml = '';
             if (isLoggedIn) {
                 const escapedDisplayName = escapeForAttribute(authorDisplayName);
-                // Truncate to 30 chars for reply preview
                 const truncatedText = rawText.substring(0, 30) + (rawText.length > 30 ? '...' : '');
                 const escapedPostText = escapeForAttribute(truncatedText);
                 
@@ -696,27 +630,27 @@
                 
                 actionsHtml = `
                     <div class="story-actions">
-                        <button class="story-action-btn like-btn ${isLiked ? 'liked' : ''}" 
+                        <button class="story-action-btn like-btn" 
                                 data-uri="${story.uri}"
-                                data-cid="${story.post?.cid || ''}"
-                                data-liked="${isLiked}"
+                                data-cid="${story.cid || ''}"
+                                data-liked="false"
                                 onclick="handleLike(this.dataset.uri, this.dataset.cid, this.dataset.liked === 'true', this)" 
-                                title="${isLiked ? 'Unlike' : 'Like'} this post">
+                                title="Like this post">
                             <span>Like</span>
                             <span class="action-count">${likeCount > 0 ? likeCount : ''}</span>
                         </button>
-                        <button class="story-action-btn repost-btn ${isReposted ? 'reposted' : ''}" 
+                        <button class="story-action-btn repost-btn" 
                                 data-uri="${story.uri}"
-                                data-cid="${story.post?.cid || ''}"
-                                data-reposted="${isReposted}"
+                                data-cid="${story.cid || ''}"
+                                data-reposted="false"
                                 onclick="handleRepost(this.dataset.uri, this.dataset.cid, this.dataset.reposted === 'true', this)"
-                                title="${isReposted ? 'Undo repost' : 'Repost'} to your timeline">
+                                title="Repost to your timeline">
                             <span>Repost</span>
                             <span class="action-count">${repostCount > 0 ? repostCount : ''}</span>
                         </button>
                         <button class="story-action-btn reply-btn" 
                                 data-uri="${story.uri}"
-                                data-cid="${story.post?.cid || ''}"
+                                data-cid="${story.cid || ''}"
                                 data-handle="${authorHandle}"
                                 data-displayname="${escapedDisplayName}"
                                 data-text="${escapedPostText}"
@@ -744,7 +678,7 @@
                         ${isOwnPost ? `
                         <button class="story-action-btn delete-btn" 
                                 data-uri="${story.uri}"
-                                data-cid="${story.post?.cid || ''}"
+                                data-cid="${story.cid || ''}"
                                 onclick="handleDelete(this.dataset.uri, this.dataset.cid, this)"
                                 title="Delete your post">
                             <span>Delete</span>
@@ -774,7 +708,7 @@
                     </div>
                     <div class="story-meta">
                         <div class="story-meta-left">
-                            <span class="post-date">${formatDate(story.post?.record?.createdAt || story.label.cts)}</span>
+                            <span class="post-date">${formatDate(story.createdAt)}</span>
                             ${actionsHtml}
                         </div>
                         <a href="${postUrl}" target="_blank" class="post-link">View →</a>
@@ -786,9 +720,8 @@
         function renderStories() {
             const container = document.getElementById('stories-container');
             
-            // Filter out reposts and apply canon filter
+            // Apply canon/all filter
             let filtered = allStories.filter(s => {
-                if (s.post?.record?.reason || s.post?.reason) return false;
                 return currentFilter === 'all' || s.isCanon;
             });
             
@@ -797,11 +730,11 @@
                 if (guardianRules.filter_mode === 'whitelist') {
                     const allowedDids = new Set(guardianRules.filter_dids || []);
                     const allowedUris = new Set(guardianRules.filter_uris || []);
-                    filtered = filtered.filter(s => allowedDids.has(s.post?.author?.did) || allowedUris.has(s.uri));
+                    filtered = filtered.filter(s => allowedDids.has(s.author?.did) || allowedUris.has(s.uri));
                 } else if (guardianRules.filter_mode === 'blacklist') {
                     const barredDids = new Set(guardianRules.filter_dids || []);
                     const barredUris = new Set(guardianRules.filter_uris || []);
-                    filtered = filtered.filter(s => !barredDids.has(s.post?.author?.did) && !barredUris.has(s.uri));
+                    filtered = filtered.filter(s => !barredDids.has(s.author?.did) && !barredUris.has(s.uri));
                 }
             }
             
@@ -810,7 +743,7 @@
                 const barredDids = new Set(aggregateBarred.barred_dids || []);
                 const barredUris = new Set(aggregateBarred.barred_uris || []);
                 if (barredDids.size > 0 || barredUris.size > 0) {
-                    filtered = filtered.filter(s => !barredDids.has(s.post?.author?.did) && !barredUris.has(s.uri));
+                    filtered = filtered.filter(s => !barredDids.has(s.author?.did) && !barredUris.has(s.uri));
                 }
             }
             
@@ -829,13 +762,10 @@
         }
 
         async function loadStories() {
-            console.log('Starting to load stories...');
-            
-            // Fetch dreamers first
+            // Fetch dreamers for handle resolution and hover cards
             allDreamers = await fetchDreamers();
-            console.log('Dreamers loaded:', allDreamers.length);
             
-            // Initialize dreamer hover widget with loaded dreamers
+            // Initialize dreamer hover widget
             if (window.DreamerHoverWidget) {
                 if (!dreamerHoverWidget) {
                     dreamerHoverWidget = new DreamerHoverWidget(allDreamers);
@@ -845,57 +775,17 @@
                 }
             }
             
-            const labels = await fetchLabels();
-            console.log('Labels fetched:', labels.length);
+            // Fetch stories from server (uses local label DB, not external APIs)
+            const feedData = await fetchStories('all');
             
-            if (labels.length === 0) {
+            if (!feedData || !feedData.stories || feedData.stories.length === 0) {
                 document.getElementById('stories-container').innerHTML = 
-                    '<div class="empty-state">No labels found from lore.farm API. Check console for details.</div>';
+                    '<div class="empty-state">No stories found. The feed generator may still be indexing.</div>';
                 return;
             }
             
-            const grouped = groupLabelsByPost(labels);
-            console.log('Posts grouped:', Object.keys(grouped).length);
-            
-            if (Object.keys(grouped).length === 0) {
-                document.getElementById('stories-container').innerHTML = 
-                    '<div class="empty-state">No stories found for ' + WORLD_DOMAIN + '</div>';
-                return;
-            }
-            
-            const stories = await Promise.all(
-                Object.entries(grouped).map(async ([uri, info]) => {
-                    const post = await fetchPostDetails(uri);
-                    return {
-                        uri,
-                        label: info.label,
-                        isCanon: info.canon,
-                        post
-                    };
-                })
-            );
-            
-            // Filter out stories where post fetch failed (deleted posts)
-            const validStories = stories.filter(story => {
-                if (!story.post) {
-                    console.warn('⚠️ Skipping deleted post:', story.uri);
-                    return false;
-                }
-                // Also check for valid author data
-                if (!story.post.author || !story.post.author.handle) {
-                    console.warn('⚠️ Skipping post with missing author:', story.uri);
-                    return false;
-                }
-                return true;
-            });
-            
-            console.log('Stories loaded:', stories.length, 'Valid:', validStories.length);
-            
-            allStories = validStories.sort((a, b) => {
-                const dateA = new Date(a.post?.record?.createdAt || a.label.cts);
-                const dateB = new Date(b.post?.record?.createdAt || b.label.cts);
-                return dateB - dateA;
-            });
+            // Stories come pre-sorted by date from server, already enriched
+            allStories = feedData.stories;
             
             updateStats();
             renderStories();
@@ -1103,7 +993,7 @@
             if (characterCheck) {
                 characterCheck.addEventListener('change', function() {
                     sessionStorage.setItem('registerAsCharacter', this.checked.toString());
-                    console.log('💾 Character registration preference saved:', this.checked);
+
                 });
             }
         });
@@ -1175,7 +1065,7 @@
          * Update reply count for a post after successful reply
          */
         function updateReplyCount(postUri) {
-            console.log('🔄 [Story] Updating reply count for:', postUri);
+
             
             // Find the story card with this URI
             const card = document.querySelector(`.story-card[data-uri="${postUri}"]`);
@@ -1201,14 +1091,14 @@
             const currentCount = parseInt(countSpan.textContent) || 0;
             countSpan.textContent = currentCount + 1;
             
-            console.log(`✅ [Story] Reply count updated: ${currentCount} → ${currentCount + 1}`);
+
         }
         
         /**
          * Handle like/unlike action via AT Protocol
          */
         async function handleLike(uri, cid, isCurrentlyLiked, button) {
-            console.log('🔍 [Like] handleLike called with:', { uri, cid, isCurrentlyLiked });
+
             
             if (!window.atprotoInteractions) {
                 console.error('❌ [Like] AT Protocol interactions utility not loaded');
@@ -1271,7 +1161,7 @@
          * Handle repost/unrepost action
          */
         async function handleRepost(uri, cid, isCurrentlyReposted, button) {
-            console.log('🔁 [Repost] handleRepost called with:', { uri, cid, isCurrentlyReposted });
+
             
             if (!window.atprotoInteractions) {
                 console.error('❌ [Repost] AT Protocol interactions utility not loaded');
@@ -1332,7 +1222,7 @@
          * Handle reply - opens composer modal for reply
          */
         function handleReply(postUri, postCid, authorHandle, authorDisplayName, postText) {
-            console.log('💬 [Story] handleReply called:', { postUri, postCid, authorHandle, authorDisplayName, postText });
+
             
             if (!window.atprotoInteractions) {
                 console.error('❌ [Story] AT Protocol interactions utility not loaded');

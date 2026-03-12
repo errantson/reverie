@@ -1288,6 +1288,52 @@ def save_spectrum_image():
         return jsonify({'error': str(e)}), 500
 
 
+@bp.route('/spectrum/generate-card', methods=['POST'])
+def generate_spectrum_card():
+    """
+    Generate a spectrum origin card image via the origincards service (port 3050).
+    Accepts JSON with handle, displayName, avatar, spectrum.
+    Returns the URL of the generated image.
+    """
+    try:
+        import requests as req
+
+        data = request.get_json()
+        if not data or 'handle' not in data:
+            return jsonify({'error': 'Missing required field: handle'}), 400
+
+        handle = data['handle'].strip().lstrip('@')
+        if not handle or '.' not in handle:
+            return jsonify({'error': 'Invalid handle'}), 400
+
+        # Forward to origincards service
+        gen_response = req.post(
+            'http://localhost:3050/generate',
+            json={
+                'handle': handle,
+                'displayName': data.get('displayName', handle),
+                'avatar': data.get('avatar'),
+                'spectrum': data.get('spectrum', {}),
+                'coordinates': data.get('spectrum', {}).get('coordinates')
+            },
+            timeout=15
+        )
+
+        if gen_response.status_code == 200:
+            result = gen_response.json()
+            print(f"✅ Generated spectrum card for {handle}: {result.get('url')}")
+            return jsonify({'success': True, 'url': result.get('url')}), 200
+        else:
+            print(f"⚠️  Origincards service error: {gen_response.status_code}")
+            return jsonify({'error': 'Card generation failed', 'status': gen_response.status_code}), 502
+
+    except Exception as e:
+        print(f"Error generating spectrum card: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @bp.route('/spectrum/origin/<handle>', methods=['GET'])
 def spectrum_origin_redirect(handle):
     """
