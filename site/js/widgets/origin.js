@@ -646,8 +646,9 @@ class OriginScene {
     
     async ensureSpectrumImage() {
         /**
-         * Ensure the spectrum image exists for OG previews
-         * If it doesn't exist, generate and upload it
+         * Ensure the spectrum image exists for OG previews.
+         * Uses the origincards backend service to generate the canonical card image.
+         * Does NOT upload bare backgrounds — the backend produces the full card.
          */
         try {
             const safe_handle = this.handle.replace('/', '').replace('\\', '').replace('..', '');
@@ -661,68 +662,35 @@ class OriginScene {
                 return;
             }
             
-            console.log('🎨 [Origin] Image does not exist, generating...');
+            console.log('🎨 [Origin] Image does not exist, requesting generation via origincards service...');
             
-            // Dynamically import spectrum utilities
-            const utilsModule = await import('/js/utils/spectrum-utils.js');
-            const { configurePixelPerfectCanvas, loadImage: loadImageUtil } = utilsModule;
-            
-            // Generate the image canvas
-            const canvas = document.createElement('canvas');
-            canvas.width = 1280;
-            canvas.height = 720;
-            const ctx = canvas.getContext('2d');
-            configurePixelPerfectCanvas(ctx);
-            
-            // Load background
+            // Ask the backend to generate the card via the origincards service
             try {
-                const bgImage = await loadImageUtil('/assets/originBG.png');
-                ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-            } catch (e) {
-                // Fallback gradient
-                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                gradient.addColorStop(0, '#0a0806');
-                gradient.addColorStop(1, '#1a1410');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
-            
-            // Add particles (simplified version)
-            const particleCount = 100;
-            for (let i = 0; i < particleCount; i++) {
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                const size = Math.random() * 3 + 1;
-                const opacity = Math.random() * 0.6 + 0.2;
+                const genResponse = await fetch('/api/spectrum/generate-card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        handle: this.handle,
+                        displayName: this.displayName || this.handle,
+                        avatar: this.avatarUrl || null,
+                        spectrum: this.spectrum
+                    })
+                });
                 
-                ctx.fillStyle = `rgba(212, 175, 55, ${opacity})`;
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            // Convert to blob and upload
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            
-            const formData = new FormData();
-            formData.append('image', blob, `${this.handle}.png`);
-            formData.append('handle', this.handle);
-            
-            console.log('📤 [Origin] Uploading generated image...');
-            const uploadResponse = await fetch('/api/spectrum/save-image', {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (uploadResponse.ok) {
-                const result = await uploadResponse.json();
-                console.log('✅ [Origin] Image uploaded successfully:', result.url);
-            } else {
-                console.warn('⚠️  [Origin] Image upload failed');
+                if (genResponse.ok) {
+                    const result = await genResponse.json();
+                    if (result.success) {
+                        console.log('✅ [Origin] Card generated via backend:', result.url);
+                        return;
+                    }
+                }
+                console.warn('⚠️  [Origin] Backend card generation returned non-success');
+            } catch (e) {
+                console.warn('⚠️  [Origin] Backend card generation failed:', e);
             }
             
         } catch (error) {
-            console.warn('⚠️  [Origin] Could not generate/upload image:', error);
+            console.warn('⚠️  [Origin] Could not ensure spectrum image:', error);
             // Don't throw - this is not critical to page display
         }
     }

@@ -20,7 +20,7 @@ ProtectSystem=strict
 ProtectHome=yes
 NoNewPrivileges=yes
 PrivateTmp=yes
-ReadWritePaths=/srv/reverie.house/services/origincards
+ReadWritePaths=/srv/reverie.house/services/origincards /srv/reverie.house/site/spectrum
 
 [Install]
 WantedBy=multi-user.target

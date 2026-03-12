@@ -1109,127 +1109,39 @@ ${originUrl}`;
     async generateAndUploadOriginImage(handle, displayName, octantName, spectrum) {
         /**
          * Generate origin image and upload it to the server immediately
-         * This makes the image available for OG previews right away
+         * Uses the origincards backend service (port 3050) for consistent rendering,
+         * falling back to client-side canvas generation if the service is unavailable.
          */
         try {
-            console.log('🎨 [Upload] Attempting origin page snapshot for immediate upload...');
+            console.log('🎨 [Upload] Generating origin card via origincards service...');
 
-            // Try to load html2canvas first
+            // Try the origincards backend service first (produces the canonical card)
             try {
-                await this.loadHtml2Canvas();
-            } catch (e) {
-                console.warn('⚠️ [Upload] html2canvas failed to load, falling back to canvas generator', e);
-            }
+                const avatarUrl = this.octantDisplay?.dreamer?.avatar || null;
+                const genResponse = await fetch('/api/spectrum/generate-card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        handle: handle,
+                        displayName: displayName,
+                        avatar: avatarUrl,
+                        spectrum: spectrum
+                    })
+                });
 
-            // Fetch origin.html markup for the requested handle
-            try {
-                const originUrl = `/origin.html?handle=${encodeURIComponent(handle)}`;
-                const resp = await fetch(originUrl);
-                if (resp.ok) {
-                    const htmlText = await resp.text();
-
-                    // Parse HTML and extract the origin-display-container markup
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(htmlText, 'text/html');
-                    const originContainer = doc.querySelector('#origin-display-container');
-
-                    if (originContainer && window.html2canvas) {
-                        console.log('🧩 [Upload] Preparing offscreen snapshot container');
-
-                        // Create offscreen wrapper in the current document
-                        const wrapper = document.createElement('div');
-                        wrapper.style.position = 'fixed';
-                        wrapper.style.left = '-9999px';
-                        wrapper.style.top = '0';
-                        wrapper.style.width = '792px';
-                        wrapper.style.height = '567px';
-                        wrapper.style.overflow = 'hidden';
-                        wrapper.style.background = 'transparent';
-                        wrapper.id = `origin-snapshot-${Date.now()}`;
-
-                        // Inject basic stylesheets referenced by origin.html so the snapshot looks correct
-                        const styleHrefs = Array.from(doc.querySelectorAll('link[rel="stylesheet"]')).map(l => l.getAttribute('href'));
-                        const stylePromises = styleHrefs.map(async href => {
-                            try {
-                                const absHref = href.startsWith('/') ? href : ('/' + href.replace(/^\//, ''));
-                                const r = await fetch(absHref);
-                                if (r.ok) return r.text();
-                            } catch (e) {
-                                console.warn('Could not fetch stylesheet', href, e);
-                            }
-                            return '';
-                        });
-
-                        const styleTexts = await Promise.all(stylePromises);
-                        const styleEl = document.createElement('style');
-                        styleEl.textContent = styleTexts.join('\n');
-                        wrapper.appendChild(styleEl);
-
-                        // Import the inner HTML of the origin container
-                        // Remove any handle input to keep snapshot 'sans handle input'
-                        const inner = originContainer.cloneNode(true);
-                        const inputEl = inner.querySelector('#landing-handle');
-                        if (inputEl) inputEl.parentNode && inputEl.parentNode.removeChild(inputEl);
-                        // Remove landing lookup button if present
-                        const lookupBtn = inner.querySelector('#landing-lookup-btn');
-                        if (lookupBtn) lookupBtn.parentNode && lookupBtn.parentNode.removeChild(lookupBtn);
-
-                        wrapper.appendChild(inner);
-                        document.body.appendChild(wrapper);
-
-                        // Wait for images inside wrapper to load
-                        const imgs = wrapper.querySelectorAll('img');
-                        await Promise.all(Array.from(imgs).map(img => {
-                            return new Promise(resolve => {
-                                if (img.complete) return resolve();
-                                img.onload = img.onerror = () => resolve();
-                            });
-                        }));
-
-                        // Use html2canvas to snapshot the origin container
-                        try {
-                            const target = wrapper.querySelector('#origin-display-container') || wrapper;
-                            const canvas = await window.html2canvas(target, { backgroundColor: null, scale: 1 });
-                            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-
-                            // Clean up wrapper
-                            setTimeout(() => { try { document.body.removeChild(wrapper); } catch (e) {} }, 200);
-
-                            // Upload blob same as before
-                            const formData = new FormData();
-                            formData.append('image', blob, `${handle}.png`);
-                            formData.append('handle', handle);
-
-                            console.log('📤 [Upload] Uploading snapshot to server...');
-                            const uploadResponse = await fetch('/api/spectrum/save-image', {
-                                method: 'POST',
-                                body: formData
-                            });
-
-                            if (uploadResponse.ok) {
-                                const result = await uploadResponse.json();
-                                console.log('✅ [Upload] Snapshot uploaded successfully:', result.url);
-                                return { success: true, url: result.url };
-                            } else {
-                                const error = await uploadResponse.json();
-                                console.error('❌ [Upload] Snapshot upload failed:', error);
-                                // Fall through to canvas generator fallback
-                            }
-                        } catch (e) {
-                            console.warn('⚠️ [Upload] html2canvas snapshot failed, falling back:', e);
-                            try { document.body.removeChild(wrapper); } catch (er) {}
-                        }
-                    } else {
-                        console.warn('⚠️ [Upload] No origin container found or html2canvas not available');
+                if (genResponse.ok) {
+                    const result = await genResponse.json();
+                    if (result.success && result.url) {
+                        console.log('✅ [Upload] Origin card generated via backend:', result.url);
+                        return { success: true, url: result.url };
                     }
-                } else {
-                    console.warn('⚠️ [Upload] Failed to fetch origin.html for snapshot:', resp.status);
                 }
+                console.warn('⚠️ [Upload] Backend card generation returned non-success, falling back');
             } catch (e) {
-                console.warn('⚠️ [Upload] Error fetching/processing origin.html snapshot:', e);
+                console.warn('⚠️ [Upload] Backend card generation failed, falling back to canvas:', e);
             }
 
-            // If snapshot approach failed, fall back to existing generator
+            // Fallback: generate client-side via canvas and upload
             console.log('🔁 [Upload] Falling back to canvas generator');
             const { blob, dataUrl } = await this.generateOriginImageCanvas(handle, displayName, octantName, spectrum);
 
@@ -1258,16 +1170,6 @@ ${originUrl}`;
             console.error('❌ [Upload] Image generation/upload failed:', error);
             return { success: false, error: error.message };
         }
-    }
-    
-    async loadHtml2Canvas() {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
     }
     
     getCoordinateString() {
