@@ -302,7 +302,7 @@ def create_lore_entry(post, post_uri, post_cid, post_text):
     
     # Try to get key from file first, then env var
     lorekey = None
-    key_file = os.getenv('LOREFARM_KEY_FILE')
+    key_file = os.getenv('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm.api.key')
     if key_file and os.path.exists(key_file):
         try:
             with open(key_file, 'r') as f:
@@ -318,17 +318,16 @@ def create_lore_entry(post, post_uri, post_cid, post_text):
     
     print(f"📤 [COURIER] Applying lore label to {post_uri}")
     
-    # Make request to lore.farm API directly
-    lorefarm_url = 'https://lore.farm/api/labels'
+    # Make request to lore.farm v1 API
+    lorefarm_url = 'https://lore.farm/api/v1/label/apply'
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {lorekey}'
     }
     
     payload = {
-        'post_uri': post_uri,
-        'label_value': 'lore:reverie.house',
-        'world_domain': 'reverie.house'
+        'uri': post_uri,
+        'val': 'lore:reverie.house'
     }
     
     response = requests.post(lorefarm_url, json=payload, headers=headers, timeout=10)

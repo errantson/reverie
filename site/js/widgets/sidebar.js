@@ -87,8 +87,8 @@ class Sidebar {
     
     // Apply guardian filtering to a list of dreamers
     filterDreamersByGuardian(dreamers) {
-        if (!dreamers) {
-            return dreamers;
+        if (!Array.isArray(dreamers)) {
+            return [];
         }
         
         let filtered = dreamers;
@@ -289,6 +289,10 @@ class Sidebar {
         fetch('/api/dreamers')
             .then(response => response.json())
             .then(data => {
+                if (!Array.isArray(data)) {
+                    console.error('[Sidebar] /api/dreamers returned non-array:', data);
+                    data = [];
+                }
                 this.dreamers = data;
                 this.dreamersLoaded = true;
                 window.AvatarCache?.populateFromDreamers?.(data);
@@ -423,6 +427,7 @@ class Sidebar {
             // Fetch dreamers and their roles
             const response = await fetch('/api/dreamers');
             let allDreamers = await response.json();
+            if (!Array.isArray(allDreamers)) allDreamers = [];
             
             // Apply guardian filtering
             allDreamers = this.filterDreamersByGuardian(allDreamers);
@@ -623,6 +628,7 @@ class Sidebar {
             // Fetch all dreamers to match DIDs
             const dreamersResponse = await fetch('/api/dreamers');
             let allDreamers = await dreamersResponse.json();
+            if (!Array.isArray(allDreamers)) allDreamers = [];
             
             // Apply guardian filtering
             allDreamers = this.filterDreamersByGuardian(allDreamers);

@@ -119,7 +119,6 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
     
     # Check character status via registration API
     try:
-        print(f"  🔍 Checking character registration for {did}")
         response = requests.get(
             f'https://lore.farm/api/characters/status',
             params={'did': did, 'world': 'reverie.house'},
@@ -129,12 +128,8 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
             char_data = response.json()
             is_registered = char_data.get('registered', False)
             
-            print(f"  🎭 Character registered: {is_registered}")
-            
             if is_registered:
                 character = char_data.get('character', {})
-                print(f"  ✅ Character: {character.get('name')}")
-                
                 status_data['is_character'] = True
                 status_data['character_level'] = 'known'  # Default
                 
@@ -149,20 +144,14 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
                         can_auto_canon = perms_data.get('can_auto_canon', False)
                         can_auto_lore = perms_data.get('can_auto_lore', False)
                         
-                        print(f"  🔐 Permissions: auto_canon={can_auto_canon}, auto_lore={can_auto_lore}")
-                        
                         if can_auto_canon:
                             status_data['character_level'] = 'revered'
                         elif can_auto_lore:
                             status_data['character_level'] = 'well-known'
-                        
-                        print(f"  🎖️ Character level: {status_data['character_level']}")
-                except Exception as e:
-                    print(f"  ⚠️ Could not check character permissions: {e}")
-            else:
-                print(f"  ❌ Not registered as character")
-    except Exception as e:
-        print(f"  ⚠️ Could not check character registration: {e}")
+                except Exception:
+                    pass  # Permissions check is non-critical
+    except Exception:
+        pass  # Character registration check is non-critical
     
     # Check worker roles
     if auth_token:
@@ -248,9 +237,7 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
         else:
             role_title = 'dreamer'
     
-    print(f"  📊 Role determined: {role_title}")
-    print(f"  🎭 Character level: {status_data.get('character_level', 'None')}")
-    print(f"  💰 Patronage: {status_data.get('patronage', 0)} cents")
+    return role_title
     
     # Add character prefix if applicable (can prefix ANY role except House Patron)
     if status_data['character_level'] and not status_data['is_great_patron']:
@@ -283,7 +270,6 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
         
         role_title = f'{role_title} {patron_tier}'
     
-    print(f"  ✅ Final status: {role_title}")
     return role_title
 
 
@@ -303,10 +289,9 @@ def update_user_status_in_db(did, status):
             (status, int(time.time()), did)
         )
         
-        print(f"✅ Updated status for {did}: {status}")
         return True
     except Exception as e:
-        print(f"❌ Error updating status in database: {e}")
+        print(f"Error updating status for {did}: {e}")
         return False
 
 
@@ -325,9 +310,7 @@ def calculate_and_save_status(did, handle, server=None, auth_token=None):
     """
     import time
     
-    print(f"🔄 Calculating status for {handle} ({did})")
     status = calculate_user_status(did, handle, server, auth_token)
-    print(f"✅ Calculated status: {status}")
     
     update_user_status_in_db(did, status)
     

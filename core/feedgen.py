@@ -94,20 +94,69 @@ class FeedDatabase:
         return True  # New post added
     
     def update_labels(self, labels: List[Dict]):
-        """Update labels from lore.farm"""
-        # Clear old labels
-        self.db.execute('DELETE FROM feed_labels')
+        """Update labels from lore.farm — incremental merge instead of full replace"""
+        # Track ALL affected URIs (both active and negated)
+        active_labels = set()
+        negated_uris = set()
         
-        # Insert new labels
         for label in labels:
             uri = label.get('uri', '')
             label_val = label.get('val', '')
             created_at = label.get('cts', datetime.now(timezone.utc).isoformat())
+            is_neg = label.get('neg', False)
             
-            # Extract label type from formats like "lore:reverie.house" or "canon:reverie.house"
+            if ':' not in label_val:
+                continue
+            label_type, domain = label_val.split(':', 1)
+            if domain != 'reverie.house' or label_type not in ['lore', 'canon']:
+                continue
+            
+            if is_neg:
+                # Remove negated labels
+                self.db.execute(
+                    'DELETE FROM feed_labels WHERE uri = %s AND label_type = %s',
+                    (uri, label_type)
+                )
+                negated_uris.add(uri)
+            else:
+                active_labels.add((uri, label_type))
+                self.db.execute('''
+                    INSERT INTO feed_labels (uri, label_type, created_at)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (uri, label_type) DO NOTHING
+                ''', (uri, label_type, created_at))
+        
+        # Update post flags for ALL affected URIs (active + negated)
+        affected_uris = {uri for uri, _ in active_labels} | negated_uris
+        if affected_uris:
+            uri_list = list(affected_uris)
+            placeholders = ','.join(['%s'] * len(uri_list))
+            self.db.execute(f'''
+                UPDATE feed_posts 
+                SET has_lore_label = (
+                    SELECT COUNT(*)::INTEGER FROM feed_labels 
+                    WHERE feed_labels.uri = feed_posts.uri AND feed_labels.label_type = 'lore'
+                ),
+                has_canon_label = (
+                    SELECT COUNT(*)::INTEGER FROM feed_labels 
+                    WHERE feed_labels.uri = feed_posts.uri AND feed_labels.label_type = 'canon'
+                )
+                WHERE uri IN ({placeholders})
+            ''', uri_list)
+    
+    def full_label_resync(self, labels: List[Dict]):
+        """Full resync — clear and rebuild label table. Used for periodic reconciliation."""
+        self.db.execute('DELETE FROM feed_labels')
+        
+        for label in labels:
+            if label.get('neg', False):
+                continue
+            uri = label.get('uri', '')
+            label_val = label.get('val', '')
+            created_at = label.get('cts', datetime.now(timezone.utc).isoformat())
+            
             if ':' in label_val:
                 label_type, domain = label_val.split(':', 1)
-                # Only index reverie.house labels
                 if domain == 'reverie.house' and label_type in ['lore', 'canon']:
                     self.db.execute('''
                         INSERT INTO feed_labels (uri, label_type, created_at)
@@ -115,7 +164,7 @@ class FeedDatabase:
                         ON CONFLICT (uri, label_type) DO NOTHING
                     ''', (uri, label_type, created_at))
         
-        # Update posts with label flags
+        # Full update of all post flags
         self.db.execute('''
             UPDATE feed_posts 
             SET has_lore_label = (
@@ -123,7 +172,6 @@ class FeedDatabase:
                 WHERE feed_labels.uri = feed_posts.uri AND feed_labels.label_type = 'lore'
             )
         ''')
-        
         self.db.execute('''
             UPDATE feed_posts 
             SET has_canon_label = (
@@ -242,6 +290,8 @@ class FeedGenerator:
         self._community_dids = None
         self._lore_labels = None
         self._last_label_sync = None
+        self._last_full_resync = None  # Track full reconciliation  
+        self._label_cursor = None  # Cursor for incremental label fetching
         
     def get_community_dids(self, force_refresh: bool = False) -> set:
         """Get all active DIDs from dreamers table (excludes deactivated accounts)"""
@@ -257,7 +307,7 @@ class FeedGenerator:
         return self.get_community_dids(force_refresh=True)
     
     def sync_lore_labels(self, force: bool = False):
-        """Sync labels from lore.farm (cache for 5 minutes)"""
+        """Sync labels from lore.farm — incremental with periodic full reconciliation"""
         now = datetime.now(timezone.utc)
         
         if not force and self._last_label_sync:
@@ -265,36 +315,71 @@ class FeedGenerator:
             if elapsed < 300:  # 5 minutes
                 return
         
+        # Full reconciliation every hour, incremental otherwise
+        needs_full_resync = (
+            self._last_full_resync is None
+            or (now - self._last_full_resync).total_seconds() > 3600
+        )
+        
         try:
-            response = requests.get(
-                'https://lore.farm/xrpc/com.atproto.label.queryLabels',
-                params={'limit': 5000},
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                labels = response.json().get('labels', [])
-                self.feed_db.update_labels(labels)
-                self._last_label_sync = now
-                print(f"✓ Synced {len(labels)} labels from lore.farm")
-                
-                # Update history with lore events
-                self._update_lore_history(labels)
+            if needs_full_resync or force:
+                # Full fetch — get all labels
+                response = requests.get(
+                    'https://lore.farm/xrpc/com.atproto.label.queryLabels',
+                    params={'limit': 5000},
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    labels = response.json().get('labels', [])
+                    self.feed_db.full_label_resync(labels)
+                    self._last_label_sync = now
+                    self._last_full_resync = now
+                    # Reset cursor to latest for next incremental
+                    if labels:
+                        self._label_cursor = labels[0].get('cts')
+                    print(f"✓ Full label resync: {len(labels)} labels")
+                    self._update_lore_history(labels)
+            else:
+                # Incremental — only fetch labels newer than our cursor
+                params = {'limit': 500}
+                # Note: queryLabels uses cursor as cts < cursor (descending),
+                # so we fetch without cursor to get newest labels
+                response = requests.get(
+                    'https://lore.farm/xrpc/com.atproto.label.queryLabels',
+                    params=params,
+                    timeout=15
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    labels = data.get('labels', [])
+                    
+                    # Filter to only labels newer than our cursor
+                    if self._label_cursor:
+                        new_labels = [l for l in labels if l.get('cts', '') > self._label_cursor]
+                    else:
+                        new_labels = labels
+                    
+                    if new_labels:
+                        self.feed_db.update_labels(new_labels)
+                        self._label_cursor = labels[0].get('cts') if labels else self._label_cursor
+                        print(f"✓ Incremental sync: {len(new_labels)} new labels")
+                        self._update_lore_history(new_labels)
+                    
+                    self._last_label_sync = now
         except Exception as e:
             print(f"✗ Failed to sync labels: {e}")
     
     def _update_lore_history(self, labels: List[Dict]):
         """Update events table with lore contributions"""
-        # Filter for reverie.house labels only
+        # Filter for reverie.house labels only (exclude negated labels)
         reverie_labels = [
             label for label in labels
             if label.get('val', '').endswith(':reverie.house')
+            and not label.get('neg', False)
         ]
         
         if not reverie_labels:
             return
-        
-        print(f"📜 Processing {len(reverie_labels)} reverie.house labels for history...")
         
         # Group labels by URI to handle lore+canon together, and fetch post timestamps
         import requests
@@ -317,7 +402,8 @@ class FeedGenerator:
                                 'repo': parts[0],
                                 'collection': parts[1],
                                 'rkey': parts[2]
-                            }
+                            },
+                            timeout=10
                         )
                         if post_response.status_code == 200:
                             post_data = post_response.json()
@@ -345,7 +431,8 @@ class FeedGenerator:
             if self._process_lore_event(uri, label_info):
                 processed += 1
         
-        print(f"✅ Processed {processed} lore/canon events")
+        if processed > 0:
+            print(f"📜 Processed {processed} new lore/canon events from {len(reverie_labels)} labels")
     
     def _process_lore_event(self, uri: str, label_info: Dict) -> bool:
         """Process a single lore event and update history. Returns True if processed."""
@@ -394,7 +481,6 @@ class FeedGenerator:
                 )
                 if existing_lore:
                     self.main_db.execute('DELETE FROM events WHERE id = %s', (existing_lore['id'],))
-                    print(f"  🗑️  Removed lore event (superseded by canon)")
                 
                 # Create or skip canon event
                 if not existing_canon:
@@ -427,8 +513,6 @@ class FeedGenerator:
                         INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ''', (author_did, canon_text, 'canon', 'canon', uri, post_url, post_epoch, post_epoch, 'user', 'highlight'))
-                    
-                    print(f"  ✓ Canon: {dreamer['handle']} - {canon_text}")
                     return True
                 
                 return False  # Canon already exists
@@ -475,8 +559,6 @@ class FeedGenerator:
                         INSERT INTO events (did, event, type, key, uri, url, epoch, created_at, color_source, color_intensity)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ''', (author_did, event_text, 'lore', 'lore', uri, post_url, post_epoch, post_epoch, 'user', 'highlight'))
-                    
-                    print(f"  ✓ Lore: {dreamer['handle']} - {event_text}")
                     return True
             
             # Handle label removals
@@ -493,20 +575,16 @@ class FeedGenerator:
                 
                 if existing_lore:
                     self.main_db.execute('DELETE FROM events WHERE id = %s', (existing_lore['id'],))
-                    print(f"  🗑️  Removed lore event (label revoked)")
                 
                 if existing_canon:
                     self.main_db.execute('DELETE FROM events WHERE id = %s', (existing_canon['id'],))
-                    print(f"  🗑️  Removed canon event (label revoked)")
                 
                 return True
             
             return False
                 
         except Exception as e:
-            print(f"  ❌ Error processing {uri[:60]}...: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"✗ Lore event error: {uri[:60]}: {e}")
             return False
     
     def get_feed_skeleton(self, feed: str, limit: int = 50, cursor: Optional[str] = None) -> Dict[str, Any]:

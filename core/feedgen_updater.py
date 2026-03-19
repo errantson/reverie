@@ -2,11 +2,11 @@
 """
 Feed Generator Updater - Scheduled Feed Refresh
 
-Polls community member timelines every 2 minutes to refresh feed contents.
+Polls community member timelines every minute to refresh feed contents.
 This is more reliable than a continuous firehose and prevents ConsumerTooSlow errors.
 
 Architecture:
-- Runs on a loop, checking every 120 seconds
+- Runs on a loop, checking every 60 seconds
 - Fetches latest posts from each community member via getAuthorFeed
 - Updates feed_posts table with new posts (PostgreSQL)
 - Syncs lore.farm labels
@@ -63,8 +63,8 @@ class FeedUpdater:
             print(f"[{timestamp}] {message}")
     
     def run(self):
-        """Main run loop - update feeds every 2 minutes"""
-        self.log("✅ Feed updater running. Refreshing every 2 minutes...", force=True)
+        """Main run loop - update feeds every minute"""
+        self.log("✅ Feed updater running. Refreshing every minute...", force=True)
         self.log("   Press Ctrl+C to stop", force=True)
         
         try:
@@ -88,8 +88,8 @@ class FeedUpdater:
                 self.log(f"✅ Cycle complete in {cycle_time:.1f}s", force=True)
                 self.print_stats()
                 
-                # Wait until next cycle (2 minutes total)
-                sleep_time = max(0, 120 - cycle_time)
+                # Wait until next cycle (1 minute total)
+                sleep_time = max(0, 60 - cycle_time)
                 if sleep_time > 0:
                     self.log(f"⏸️  Sleeping {sleep_time:.0f}s until next cycle...")
                     time.sleep(sleep_time)

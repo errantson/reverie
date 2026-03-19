@@ -1456,7 +1456,7 @@ def get_snapshot_detail(snapshot_id):
 # ─────────────────────────────────────────────────────────────
 
 _story_feed_cache = {'data': None, 'timestamp': 0, 'filter': None}
-_STORY_FEED_TTL = 300  # 5 minute cache
+_STORY_FEED_TTL = 60  # 1 minute cache (was 5min — too slow for label removal)
 
 @app.route('/api/story/feed')
 def story_feed():
@@ -2965,6 +2965,13 @@ def apply_lore_label():
         user_did = data.get('userDid')
         label = data.get('label', 'lore:reverie.house')
         
+        # Whitelist allowed label values — only lore labels via this endpoint
+        if label != 'lore:reverie.house':
+            return jsonify({
+                'success': False,
+                'error': 'Only lore labels can be applied through this endpoint'
+            }), 400
+        
         if not uri or not user_did:
             return jsonify({
                 'success': False,
@@ -3085,7 +3092,7 @@ def apply_lore_label():
         print("=" * 80)
         return jsonify({
             'success': False,
-            'error': f'Failed to connect to lore.farm: {str(e)}'
+            'error': 'Failed to connect to lore.farm. Please try again later.'
         }), 500
     except Exception as e:
         print(f"[Lore Label] Unexpected error: {e}")
@@ -3094,7 +3101,7 @@ def apply_lore_label():
         print("=" * 80)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred. Please try again later.'
         }), 500
 
 
