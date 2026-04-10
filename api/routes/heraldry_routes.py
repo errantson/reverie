@@ -8,6 +8,7 @@ from functools import wraps
 import os
 import time
 import traceback
+from urllib.parse import urlparse
 
 # Create blueprint
 bp = Blueprint('heraldry', __name__, url_prefix='/api')
@@ -118,6 +119,15 @@ def verify_ambassador_auth():
             
             if not pds_endpoint:
                 return jsonify({'error': 'Could not determine PDS endpoint'}), 400
+            
+            # Validate PDS endpoint is not an internal address
+            try:
+                parsed = urlparse(pds_endpoint)
+                host = parsed.hostname or ''
+                if parsed.scheme != 'https' or any(host.startswith(p) for p in ('127.', '10.', '192.168.', '172.', '169.254.', '0.', '[', 'localhost')) or '.' not in host:
+                    return jsonify({'error': 'Invalid PDS endpoint'}), 400
+            except Exception:
+                return jsonify({'error': 'Invalid PDS endpoint'}), 400
                 
         except Exception as e:
             print(f"Error fetching DID document: {e}")

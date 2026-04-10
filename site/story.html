@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/css/widgets/login.css">
     <link rel="stylesheet" href="/css/widgets/createdreamer.css">
     <link rel="stylesheet" href="/css/widgets/dialogue.css">
+    <link rel="stylesheet" href="/css/utils/auth-gate.css">
     
     <!-- Favicon and Icons -->
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
@@ -28,6 +29,7 @@
     <script src="/js/core/avatar-cache.js" defer></script>
     <script src="/js/widgets/header.js" defer></script>
     <script type="module" src="/js/widgets/oauth-manager.js"></script>
+    <script src="/js/utils/auth-gate.js" defer></script>
     <script src="/js/widgets/login.js" defer></script>
     <script src="/js/widgets/createdreamer.js" defer></script>
     <script src="/js/widgets/drawer.js" defer></script>
@@ -526,9 +528,10 @@
          * joined with dreamers data, and batch-enriches from Bluesky
          * for embeds and engagement counts — all in one request.
          */
-        async function fetchStories(filter = 'all') {
+        async function fetchStories(filter = 'all', fresh = false) {
             try {
-                const response = await fetch(`/api/story/feed?filter=${filter}&limit=200`);
+                const freshParam = fresh ? '&fresh=1' : '';
+                const response = await fetch(`/api/story/feed?filter=${filter}&limit=200${freshParam}`);
                 if (!response.ok) {
                     console.error('Story feed error:', response.status);
                     return null;
@@ -711,7 +714,9 @@
                             <span class="post-date">${formatDate(story.createdAt)}</span>
                             ${actionsHtml}
                         </div>
-                        <a href="${postUrl}" target="_blank" class="post-link">View →</a>
+                        <div class="story-meta-right">
+                            <a href="${postUrl}" target="_blank" class="post-link">View →</a>
+                        </div>
                     </div>
                 </div>
             `;
@@ -761,7 +766,7 @@
             document.getElementById('canon-count').textContent = allStories.filter(s => s.isCanon).length;
         }
 
-        async function loadStories() {
+        async function loadStories(fresh = false) {
             // Fetch dreamers for handle resolution and hover cards
             allDreamers = await fetchDreamers();
             
@@ -776,7 +781,7 @@
             }
             
             // Fetch stories from server (uses local label DB, not external APIs)
-            const feedData = await fetchStories('all');
+            const feedData = await fetchStories('all', fresh);
             
             if (!feedData || !feedData.stories || feedData.stories.length === 0) {
                 document.getElementById('stories-container').innerHTML = 
@@ -824,7 +829,7 @@
                     // Listen for success to reload stories
                     window.addEventListener('sharelore:success', () => {
                         setTimeout(() => {
-                            loadStories();
+                            loadStories(true);
                         }, 2000);
                     }, { once: true });
                 } catch (err) {

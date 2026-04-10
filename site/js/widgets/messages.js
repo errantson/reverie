@@ -61,7 +61,6 @@ class Messages {
                 dismissed: data.dismissed || 0
             };
             
-            console.log('📬 [Messages] Loaded inbox:', this.counts);
             
         } catch (error) {
             console.error('❌ [Messages] Failed to load inbox:', error);
@@ -264,7 +263,6 @@ class Messages {
      */
     async openMessage(messageId) {
         try {
-            console.log('📖 [Messages] Opening message:', messageId);
             
             // Fetch full message data
             const response = await fetch(`/api/messages/${messageId}`, {
@@ -329,7 +327,6 @@ class Messages {
                 credentials: 'include'
             });
             
-            console.log('✓ [Messages] Dismissed message:', messageId);
             
             // Reload inbox
             await this.loadInbox();
@@ -364,7 +361,6 @@ class Messages {
             }
             
             const data = await response.json();
-            console.log('✓ [Messages] Bulk dismissed:', data.dismissed_count);
             
             // Reload inbox
             await this.loadInbox();
@@ -420,4 +416,3 @@ class Messages {
 // Export globally
 window.Messages = Messages;
 
-console.log('✅ [messages.js] Messages widget loaded');

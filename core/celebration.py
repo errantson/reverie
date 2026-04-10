@@ -293,7 +293,7 @@ class CelebrationProcessor:
                     (reason_key, target_did, target_handle, post_uri, cheerful_did, cheerful_handle, success, error_message)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (reason_key, target_did, target_handle, post_uri, worker['did'], worker['handle'], False, str(e)[:200]))
-            except:
+            except Exception:
                 pass
             
             self.stats['errors'] += 1
@@ -311,7 +311,7 @@ class CelebrationProcessor:
             if resp.status_code == 200:
                 return resp.json().get('thread', {}).get('post', {}).get('cid')
             return None
-        except:
+        except Exception:
             return None
     
     def _process_queue_item(self, item: Dict) -> bool:
@@ -488,7 +488,7 @@ def trigger_positivity_wave(count: int = 3, max_age_hours: int = 24):
                     age_hours = (datetime.now(post_time.tzinfo) - post_time).total_seconds() / 3600
                     if age_hours > max_age_hours:
                         continue
-                except:
+                except Exception:
                     continue
                 
                 # Queue it

@@ -27,7 +27,6 @@ class KonamiCode {
         window.addEventListener('blur', () => {
             this.hasFocus = false;
         });
-        console.log('🎮 Konami code listener active');
     }
     handleKeyPress(e) {
         if (this.isActive) return;
@@ -46,7 +45,6 @@ class KonamiCode {
         }
     }
     async trigger() {
-        console.log('🎉 Konami code activated!');
         this.isActive = true;
         try {
             const response = await fetch('/data/souvenirs.json');
@@ -188,7 +186,6 @@ class KonamiCode {
     }
     scatterAllBubbles(clickX, clickY) {
         if (this.scattering) return;
-        console.log('💥 Bubbles scattering!');
         this.scattering = true;
         if (this.spawnTimer) {
             clearInterval(this.spawnTimer);
@@ -215,7 +212,6 @@ class KonamiCode {
     popBubble(bubble, souvenirId) {
         if (bubble.popped) return;
         bubble.popped = true;
-        console.log('💥 Bubble popped! Navigating to souvenir:', souvenirId);
         bubble.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out';
         bubble.style.transform = 'translate(-50%, -50%) scale(1.5) rotate(' + (bubble.rotation + 360) + 'deg)';
         bubble.style.opacity = '0';
@@ -307,7 +303,6 @@ class KonamiCode {
             this.bubbles.splice(toRemove[i], 1);
         }
         if (this.scattering && this.bubbles.length === 0) {
-            console.log('🎮 All bubbles scattered away! Effect complete.');
             this.isActive = false;
         }
     }
@@ -361,7 +356,6 @@ class KonamiCode {
         }
         this.bubbles = [];
         this.isActive = false;
-        console.log('🎮 Konami code deactivated');
     }
 }
 const konamiCode = new KonamiCode();

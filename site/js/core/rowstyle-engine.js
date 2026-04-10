@@ -10,7 +10,6 @@ class RowStyleEngine {
         this.appliedEffects = new WeakMap(); // Track which elements have effects applied
         
         this.registerCoreEffects();
-        console.log('🎨 [RowStyleEngine] Initialized');
     }
     
     /**
@@ -92,7 +91,6 @@ class RowStyleEngine {
             }
         });
         
-        console.log(`🎨 [RowStyleEngine] Applied ${rowsNeedingEffects.size} effect types to ${container.querySelectorAll('.row-entry').length} rows`);
     }    /**
      * Scan container for rows that need effects
      * Uses explicit effects from rowstyle rendering metadata
@@ -212,7 +210,6 @@ class RowStyleEngine {
      */
     registerEffect(name, handler) {
         this.effectHandlers.set(name, handler);
-        console.log(`🎨 [RowStyleEngine] Registered effect: ${name}`);
     }
     
     /**
@@ -227,4 +224,3 @@ class RowStyleEngine {
 // Create global singleton
 window.rowStyleEngine = new RowStyleEngine();
 
-console.log('✅ [RowStyleEngine] Loaded and ready');

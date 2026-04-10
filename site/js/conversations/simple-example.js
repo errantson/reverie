@@ -143,4 +143,3 @@ const SimpleGreetingTree = {
 // Export for use
 window.SimpleGreetingTree = SimpleGreetingTree;
 
-console.log('✅ [simple-example.js] Simple greeting tree loaded');

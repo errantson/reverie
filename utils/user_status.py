@@ -108,28 +108,25 @@ def calculate_user_status(did, handle, server=None, auth_token=None):
     
     # Check Keeper status
     try:
-        response = requests.get('https://lore.farm/api/worlds', timeout=5)
+        response = requests.get('https://lore.farm/api/worlds/reverie.house', timeout=5)
         if response.status_code == 200:
             data = response.json()
-            reverie_world = next((w for w in data.get('worlds', []) if w.get('domain') == 'reverie.house'), None)
-            if reverie_world and reverie_world.get('gm_did') == did:
+            if data.get('gm_did') == did:
                 status_data['is_keeper'] = True
     except Exception as e:
         print(f"Warning: Could not check Keeper status: {e}")
     
-    # Check character status via registration API
+    # Check character status via indexed API
     try:
         response = requests.get(
-            f'https://lore.farm/api/characters/status',
-            params={'did': did, 'world': 'reverie.house'},
+            f'https://lore.farm/api/worlds/reverie.house/characters/{did}/indexed',
             timeout=5
         )
         if response.status_code == 200:
             char_data = response.json()
-            is_registered = char_data.get('registered', False)
+            is_member = char_data.get('member', False)
             
-            if is_registered:
-                character = char_data.get('character', {})
+            if is_member:
                 status_data['is_character'] = True
                 status_data['character_level'] = 'known'  # Default
                 

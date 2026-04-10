@@ -14,8 +14,6 @@ class SouvenirInfoCard {
      * @param {HTMLElement} targetElement - Element to render into
      */
     render(souvenir, targetElement) {
-        console.log('💳 [InfoCard] render() called with souvenir:', souvenir?.name);
-        console.log('💳 [InfoCard] Target element:', targetElement);
         
         this.container = targetElement;
         
@@ -145,4 +143,3 @@ class SouvenirInfoCard {
 
 // Make globally available
 window.SouvenirInfoCard = SouvenirInfoCard;
-console.log('✅ [SouvenirInfoCard] Widget loaded');

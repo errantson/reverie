@@ -14,7 +14,6 @@ class SouvenirsPage {
         if (this.initialized) return;
         this.initialized = true;
 
-        console.log('🎁 [SouvenirsPage] Initializing...');
 
         // Get souvenir key from URL
         const params = new URLSearchParams(window.location.search);
@@ -25,26 +24,21 @@ class SouvenirsPage {
 
         // Initialize background system with souvenir's phanera
         if (typeof Background !== 'undefined' && this.currentSouvenir) {
-            console.log('🎁 [SouvenirsPage] Background class found, creating instance...');
             const phaneraUrl = this.currentSouvenir.phanera || 'souvenirs/residence/phanera.png';
             window.background = new Background('static', { phaneraUrl: phaneraUrl });
-            console.log('🎁 [SouvenirsPage] Background instance created with phanera:', phaneraUrl);
             await window.background.init();
-            console.log('🎁 [SouvenirsPage] Background initialized successfully');
         } else {
             console.warn('🎁 [SouvenirsPage] Background class not available or souvenir not loaded');
         }
     }
 
     async loadSouvenirData() {
-        console.log('🎁 [SouvenirsPage] Loading souvenir data for key:', this.souvenirKey);
         try {
             const response = await fetch('/api/souvenirs');
             const allSouvenirs = await response.json();
             
             if (allSouvenirs[this.souvenirKey]) {
                 this.currentSouvenir = allSouvenirs[this.souvenirKey];
-                console.log('🎁 [SouvenirsPage] Loaded souvenir:', this.currentSouvenir.name);
             } else {
                 console.error('❌ [SouvenirsPage] Souvenir not found:', this.souvenirKey);
                 // Fallback to residence
@@ -64,4 +58,3 @@ document.addEventListener('DOMContentLoaded', () => {
     window.souvenirsPage.init();
 });
 
-console.log('✅ [souvenirs.js] Souvenirs page widget loaded');

@@ -14,10 +14,8 @@ class WorkEvents {
         try {
             this.channel = new BroadcastChannel('work-events');
             this.channel.onmessage = (event) => {
-                console.log(`📨 [WorkEvents] Received from other tab:`, event.data);
                 this._triggerListeners(event.data.event, event.data.data);
             };
-            console.log('✅ [WorkEvents] Event system initialized with BroadcastChannel');
         } catch (error) {
             console.warn('⚠️ [WorkEvents] BroadcastChannel not available, falling back to local events only');
             this.channel = null;
@@ -50,7 +48,6 @@ class WorkEvents {
      * @param {*} data - Event data
      */
     _triggerListeners(event, data) {
-        console.log(`🔔 [WorkEvents] Triggering local listeners for ${event}`, `Listener count: ${this.listeners[event]?.length || 0}`);
         
         if (!this.listeners[event]) {
             console.warn(`⚠️ [WorkEvents] No listeners registered for ${event}`);
@@ -59,7 +56,6 @@ class WorkEvents {
 
         this.listeners[event].forEach((callback, index) => {
             try {
-                console.log(`  └─ [WorkEvents] Calling listener #${index + 1} for ${event}`);
                 callback(data);
             } catch (error) {
                 console.error(`❌ [WorkEvents] Error in ${event} listener #${index + 1}:`, error);
@@ -74,7 +70,6 @@ class WorkEvents {
      * @param {*} data - Event data
      */
     emit(event, data) {
-        console.log(`📢 [WorkEvents] Emitting ${event}`, data);
         
         // Trigger local listeners
         this._triggerListeners(event, data);
@@ -83,7 +78,6 @@ class WorkEvents {
         if (this.channel) {
             try {
                 this.channel.postMessage({ event, data });
-                console.log(`📡 [WorkEvents] Broadcasted to other tabs: ${event}`);
             } catch (error) {
                 console.error(`❌ [WorkEvents] Error broadcasting ${event}:`, error);
             }
@@ -146,4 +140,3 @@ window.WorkEvents = new WorkEvents();
 // Also expose event types
 window.WorkEvents.EVENTS = WorkEvents.EVENTS;
 
-console.log('✅ [WorkEvents] Event types registered:', Object.keys(WorkEvents.EVENTS));

@@ -367,7 +367,7 @@ def reverie_login():
                 if 'not found' in error_msg.lower() or 'does not exist' in error_msg.lower():
                     return jsonify({'error': 'Account not found'}), 404
                 return jsonify({'error': error_msg}), 400
-            except:
+            except Exception:
                 return jsonify({'error': 'Invalid credentials'}), 400
         
         # Invalid password
@@ -380,7 +380,7 @@ def reverie_login():
             error_data = response.json()
             error_detail = error_data.get('message', error_detail)
             print(f"PDS error: {error_detail}")
-        except:
+        except Exception:
             pass
         
         return jsonify({'error': error_detail}), response.status_code
@@ -596,7 +596,7 @@ def create_account():
             error_data = {}
             try:
                 error_data = response.json()
-            except:
+            except Exception:
                 error_data = {'message': response.text or 'Account creation failed'}
             
             error_msg = error_data.get('message') or error_data.get('error') or 'Account creation failed'

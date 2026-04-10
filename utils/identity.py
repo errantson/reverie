@@ -52,6 +52,15 @@ def normalize_avatar_url(avatar_data, did: str, image_type: str = 'avatar') -> s
             return ''
         # Already a full URL
         if avatar_data.startswith('http'):
+            # Ensure Bluesky CDN avatar/banner URLs have @jpeg suffix
+            # The public API returns URLs without it; without @jpeg the CDN
+            # serves WebP which breaks canvas-based image processing.
+            if avatar_data.startswith('https://cdn.bsky.app/img/') and not avatar_data.endswith('@jpeg'):
+                # URL looks like .../bafkrei...  — append @jpeg
+                # Only if the URL ends with a bare CID (no existing format suffix)
+                last_segment = avatar_data.rsplit('/', 1)[-1] if '/' in avatar_data else ''
+                if last_segment.startswith('bafkrei') and '@' not in last_segment:
+                    avatar_data = f"{avatar_data}@jpeg"
             return avatar_data
         # Local asset path — keep as-is
         if avatar_data.startswith('/'):

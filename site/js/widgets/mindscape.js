@@ -15,7 +15,6 @@ class Mindscape {
     }
 
     async init() {
-        console.log('[Mindscape] Initializing...');
         this.session = window.oauthManager?.getSession();
         
         // Wait for EventStack to be available
@@ -38,23 +37,19 @@ class Mindscape {
             // Load events from API
             const eventsResponse = await fetch('/api/canon');
             this.allEvents = await eventsResponse.json();
-            console.log(`[Mindscape] Loaded ${this.allEvents.length} events`);
             
             // Load world data for population stats
             const worldResponse = await fetch('/api/world');
             this.worldData = await worldResponse.json();
-            console.log('[Mindscape] Loaded world data:', this.worldData);
             
             // Load dreamers data for population
             const dreamersResponse = await fetch('/api/dreamers');
             this.dreamersData = await dreamersResponse.json();
-            console.log('[Mindscape] Loaded dreamers data');
             
             // If we have a session, load dreamer data
             if (this.session) {
                 const dreamerResponse = await fetch('/api/dreamer');
                 this.dreamerData = await dreamerResponse.json();
-                console.log('[Mindscape] Loaded dreamer data:', this.dreamerData);
             }
         } catch (error) {
             console.error('[Mindscape] Error loading data:', error);
@@ -74,11 +69,6 @@ class Mindscape {
             console.warn('[Mindscape] User info container not found');
             return;
         }
-
-        console.log('[Mindscape] Rendering user card...', {
-            session: this.session,
-            dreamerData: this.dreamerData
-        });
 
         // Render keeper-style user card
         if (this.session && this.dreamerData) {

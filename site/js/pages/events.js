@@ -115,7 +115,6 @@ async function loadEvents() {
             }
         }
         
-        console.log(`📅 [Events] Fetching events from ${didsToFetch.length} sources (mode: ${currentEventList})`);
         
         // First, resolve all PDS endpoints in parallel
         await Promise.all(didsToFetch.map(did => resolvePDS(did)));
@@ -145,7 +144,6 @@ async function loadEvents() {
         const createdUris = new Set(createdEvents.map(e => e.uri));
         const missingUris = [...rsvpEventUris].filter(uri => !createdUris.has(uri));
         
-        console.log(`📅 [Events] Found ${missingUris.length} additional events from RSVPs`);
         
         // Fetch the missing events by URI
         let rsvpEvents = [];
@@ -163,7 +161,6 @@ async function loadEvents() {
         
         allEvents = [...eventMap.values()];
         
-        console.log(`📅 [Events] Loaded ${allEvents.length} total unique events`);
         
         // Sort events by start date
         allEvents.sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
@@ -851,10 +848,8 @@ async function checkLoginStatus() {
                     const dreamer = await dreamerResp.json();
                     userColor = dreamer.color_hex || '#8b60af';
                     dbAvatar = dreamer.avatar;
-                    console.log('📅 [Events] Got dreamer color from DB:', userColor);
                 }
             } catch (e) {
-                console.log('📅 [Events] Could not fetch dreamer record:', e);
             }
             
             // Fallback to profile API for avatar if not in DB
@@ -874,19 +869,15 @@ async function checkLoginStatus() {
                 color: userColor
             };
             
-            console.log('📅 [Events] User logged in:', currentUser.handle, 'color:', currentUser.color);
         } else {
-            console.log('📅 [Events] No session found');
         }
     } catch (e) {
-        console.log('📅 [Events] Not logged in or error:', e);
         currentUser = null;
     }
 }
 
 // Listen for OAuth events to update login status
 window.addEventListener('oauth:profile-loaded', async (e) => {
-    console.log('📅 [Events] OAuth profile loaded event received');
     await checkLoginStatus();
     applyUserColor();
     if (currentUser) {
@@ -896,7 +887,6 @@ window.addEventListener('oauth:profile-loaded', async (e) => {
 });
 
 window.addEventListener('oauth:login', async (e) => {
-    console.log('📅 [Events] OAuth login event received');
     await checkLoginStatus();
     applyUserColor();
     if (currentUser) {
@@ -906,7 +896,6 @@ window.addEventListener('oauth:login', async (e) => {
 });
 
 window.addEventListener('oauth:logout', () => {
-    console.log('📅 [Events] OAuth logout event received');
     currentUser = null;
     userRsvps = {}; // Clear RSVPs on logout
     applyUserColor();
@@ -923,7 +912,6 @@ async function loadDreamweavers() {
     try {
         const response = await fetch('/api/dreamers');
         if (!response.ok) {
-            console.log('📅 [Events] Could not fetch dreamweavers');
             return;
         }
         
@@ -936,7 +924,6 @@ async function loadDreamweavers() {
             color: d.color_hex || '#8b60af'  // Store user's color
         }));
         
-        console.log(`📅 [Events] Loaded ${allDreamweavers.length} dreamweavers from database`);
     } catch (e) {
         console.error('📅 [Events] Error loading dreamweavers:', e);
     }
@@ -947,7 +934,6 @@ async function loadDreamweaverAttendance() {
     // Check which dreamweavers have RSVP'd going to events
     const dreamweaversToCheck = allDreamweavers.slice(0, 50); // Check first 50 dreamweavers
     
-    console.log(`📅 [Events] Checking RSVPs for ${dreamweaversToCheck.length} dreamweavers...`);
     
     // Fetch RSVPs from each dreamweaver's PDS in parallel (batched)
     const batchSize = 10;
@@ -956,12 +942,10 @@ async function loadDreamweaverAttendance() {
         await Promise.all(batch.map(dw => fetchDreamweaverRsvps(dw)));
     }
     
-    console.log('📅 [Events] Dreamweaver attendance:', eventAttendees);
 }
 
 // Fetch attendance counts from Smoke Signal (async, updates UI when ready)
 async function loadSmokesignalAttendance() {
-    console.log('📅 [Events] Loading attendance counts from Smoke Signal...');
     
     // Fetch attendance for all events in parallel (batched to avoid overwhelming)
     const batchSize = 5;
@@ -970,7 +954,6 @@ async function loadSmokesignalAttendance() {
         await Promise.all(batch.map(event => fetchEventAttendanceCount(event)));
     }
     
-    console.log('📅 [Events] Attendance counts loaded:', eventAttendanceCounts);
 }
 
 // Fetch RSVP count for a single event from Smoke Signal
@@ -1104,7 +1087,6 @@ async function loadUserRsvps() {
         // Resolve user's PDS
         const userPds = await resolvePDS(currentUser.did);
         if (!userPds) {
-            console.log('📅 [Events] Could not resolve user PDS for RSVPs');
             return;
         }
         
@@ -1114,14 +1096,12 @@ async function loadUserRsvps() {
         );
         
         if (!response.ok) {
-            console.log('📅 [Events] Could not fetch RSVPs:', response.status);
             return;
         }
         
         const data = await response.json();
         const rsvpRecords = data.records || [];
         
-        console.log(`📅 [Events] Loaded ${rsvpRecords.length} RSVP records from user's PDS`);
         
         // Build maps of event URI -> RSVP status and record info
         userRsvps = {};
@@ -1155,7 +1135,6 @@ async function loadUserRsvps() {
             }
         }
         
-        console.log('📅 [Events] User RSVPs:', userRsvps);
         
     } catch (e) {
         console.error('📅 [Events] Error loading RSVPs:', e);
@@ -1196,8 +1175,15 @@ async function toggleRsvp(button) {
     const type = button.dataset.rsvpType;
     
     if (!currentUser?.did) {
-        console.log('📅 [Events] Cannot RSVP - not logged in');
         return;
+    }
+    
+    // Check if Side Door user needs write access for RSVP
+    if (window.AuthGate?.isSideDoorUser()) {
+        const granted = await window.AuthGate.requireWriteAccess({ feature: 'RSVP' });
+        if (!granted) {
+            return;
+        }
     }
     
     // Show loading state
@@ -1214,7 +1200,6 @@ async function toggleRsvp(button) {
                 await deleteRsvpRecord(existingRecord.rkey);
                 delete userRsvps[eventUri];
                 delete userRsvpRecords[eventUri];
-                console.log('📅 [Events] Deleted RSVP for:', eventUri);
             }
         } else {
             // Selecting a new status
@@ -1235,7 +1220,6 @@ async function toggleRsvp(button) {
                 rkey: result.uri.split('/').pop(),
                 cid: result.cid
             };
-            console.log('📅 [Events] Created RSVP:', type, 'for:', eventUri);
         }
         
         // Re-render events to update button states and attendance
@@ -1324,7 +1308,6 @@ async function fetchWithAuth(url, options = {}) {
                 return await fetch(url, options);
             }
         } catch (e) {
-            console.log('📅 [Events] PDS session auth failed:', e);
         }
     }
     
@@ -1338,7 +1321,6 @@ async function fetchWithAuth(url, options = {}) {
                 return await agent.fetchHandler(urlObj.pathname, options);
             }
         } catch (e) {
-            console.log('📅 [Events] OAuth auth failed:', e);
         }
     }
     

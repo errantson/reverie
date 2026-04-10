@@ -91,7 +91,7 @@ def detect_facets_in_text(text: str) -> list:
                         "index": {"byteStart": byte_start, "byteEnd": byte_end},
                         "features": [{"$type": "app.bsky.richtext.facet#mention", "did": did}]
                     })
-        except:
+        except Exception:
             pass  # Skip if resolution fails
     
     return facets
@@ -246,12 +246,12 @@ def send_post(post):
             WHERE id = ?
         ''', (int(time.time()), post_uri, post_cid, post['id']))
         
-        # If this is lore, apply label via API
+        # If this is lore, write farm.lore.content record to user's PDS
         if post['is_lore']:
             try:
-                create_lore_entry(post, post_uri, post_cid, post_text)
+                create_lore_entry(post_uri, post_cid, pds_url, access_jwt, user_did)
             except Exception as e:
-                print(f"⚠️ [COURIER] Failed to apply lore label: {e}")
+                print(f"⚠️ [COURIER] Failed to create lore record: {e}")
         
         return True
         
@@ -296,48 +296,41 @@ def send_post(post):
         return False
 
 
-def create_lore_entry(post, post_uri, post_cid, post_text):
-    """Apply lore.farm label to a post via the lore.farm API"""
-    import os
-    
-    # Try to get key from file first, then env var
-    lorekey = None
-    key_file = os.getenv('LOREFARM_KEY_FILE', '/srv/secrets/lorefarm.api.key')
-    if key_file and os.path.exists(key_file):
-        try:
-            with open(key_file, 'r') as f:
-                lorekey = f.read().strip()
-        except Exception as e:
-            print(f"⚠️ [COURIER] Could not read LOREFARM_KEY_FILE: {e}")
-    
-    if not lorekey:
-        lorekey = os.getenv('LOREFARM_KEY')
-    
-    if not lorekey:
-        raise Exception("LOREFARM_KEY not configured")
-    
-    print(f"📤 [COURIER] Applying lore label to {post_uri}")
-    
-    # Make request to lore.farm v1 API
-    lorefarm_url = 'https://lore.farm/api/v1/label/apply'
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {lorekey}'
+def create_lore_entry(post_uri, post_cid, pds_url, access_jwt, user_did):
+    """Write a farm.lore.content record to the user's PDS (record-first architecture)."""
+    print(f"📤 [COURIER] Writing farm.lore.content record for {post_uri}")
+
+    record = {
+        '$type': 'farm.lore.content',
+        'subject': {
+            'uri': post_uri,
+            'cid': post_cid,
+        },
+        'world': 'reverie.house',
+        'createdAt': datetime.utcnow().isoformat() + 'Z',
     }
-    
-    payload = {
-        'uri': post_uri,
-        'val': 'lore:reverie.house'
-    }
-    
-    response = requests.post(lorefarm_url, json=payload, headers=headers, timeout=10)
-    
+
+    response = requests.post(
+        f'{pds_url}/xrpc/com.atproto.repo.createRecord',
+        headers={
+            'Authorization': f'Bearer {access_jwt}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'repo': user_did,
+            'collection': 'farm.lore.content',
+            'record': record,
+        },
+        timeout=10,
+    )
+
     if response.status_code == 200:
-        print(f"✅ [COURIER] Lore label applied successfully to post {post['id']}")
+        result = response.json()
+        print(f"✅ [COURIER] Lore record created: {result.get('uri')}")
     else:
         error_text = response.text[:200]
-        print(f"❌ [COURIER] Lore label failed: {response.status_code} - {error_text}")
-        raise Exception(f"Lore label failed: {response.status_code}")
+        print(f"❌ [COURIER] Lore record failed: {response.status_code} - {error_text}")
+        raise Exception(f"Lore record creation failed: {response.status_code}")
 
 
 def run_courier_service(interval=60):

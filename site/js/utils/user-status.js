@@ -1,7 +1,7 @@
 /**
  * User Status Utility
  * Centralized status/role determination for users across the site
- * Checks lore.farm for character tags and work roles
+ * Checks lore.farm indexer API for character/curator status and work roles
  * 
  * Designation Hierarchy:
  * - Singular Overrides: House Patron, Keeper of Reverie House
@@ -114,20 +114,24 @@ class UserStatus {
      */
     static async _checkKeeperStatus(did) {
         try {
-            const response = await fetch('https://lore.farm/api/worlds');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            const response = await fetch('https://lore.farm/api/worlds/reverie.house/indexed', { signal: controller.signal });
+            clearTimeout(timeoutId);
             if (response.ok) {
                 const data = await response.json();
-                const reverieWorld = data.worlds?.find(w => w.domain === 'reverie.house');
-                return reverieWorld && reverieWorld.gm_did === did;
+                return data.owner === did;
             }
         } catch (error) {
-            console.warn('Failed to check Keeper status:', error);
+            if (error.name !== 'AbortError') {
+                console.warn('Failed to check Keeper status:', error);
+            }
         }
         return false;
     }
     
     /**
-     * Check character status and permissions from lore.farm
+     * Check character status and permissions from lore.farm indexer API
      * @private
      */
     static async _checkCharacterStatus(did) {
@@ -149,54 +153,45 @@ class UserStatus {
         }
         
         try {
-            // PERFORMANCE: Add 2 second timeout to prevent hanging
+            // Check character membership via indexer API
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000);
             
-            // Check if character via labels
-            const labelsResponse = await fetch(
-                `https://lore.farm/xrpc/com.atproto.label.queryLabels?uriPatterns=${encodeURIComponent(did)}`,
+            const charResponse = await fetch(
+                `https://lore.farm/api/worlds/reverie.house/characters/${encodeURIComponent(did)}/indexed`,
                 { signal: controller.signal }
             );
             clearTimeout(timeoutId);
             
-            if (labelsResponse.ok) {
-                const labelsData = await labelsResponse.json();
-                const hasCharacterLabel = labelsData.labels?.some(label => 
-                    label.val === 'character' && label.src === 'did:plc:u5cwb2mwiv2bfq53cjufe6yn'
-                );
+            if (charResponse.ok) {
+                const charData = await charResponse.json();
                 
-                if (hasCharacterLabel) {
+                if (charData.member) {
                     result.isCharacter = true;
                     result.characterLevel = 'known'; // Default
                     
-                    // Check permissions for auto-lore/auto-canon
+                    // Check curator status for elevated permissions
                     try {
-                        const permController = new AbortController();
-                        const permTimeout = setTimeout(() => permController.abort(), 2000);
+                        const curatorController = new AbortController();
+                        const curatorTimeout = setTimeout(() => curatorController.abort(), 2000);
                         
-                        const permsResponse = await fetch(
-                            `https://lore.farm/api/worlds/reverie.house/permissions?did=${did}`,
-                            { signal: permController.signal }
+                        const curatorResponse = await fetch(
+                            `https://lore.farm/api/worlds/reverie.house/curators/${encodeURIComponent(did)}/indexed`,
+                            { signal: curatorController.signal }
                         );
-                        clearTimeout(permTimeout);
+                        clearTimeout(curatorTimeout);
                         
-                        if (permsResponse.ok) {
-                            const permsData = await permsResponse.json();
-                            result.canAutoCanon = permsData.can_auto_canon || false;
-                            result.canAutoLore = permsData.can_auto_lore || false;
-                            
-                            // Determine character level based on permissions
-                            if (result.canAutoCanon) {
+                        if (curatorResponse.ok) {
+                            const curatorData = await curatorResponse.json();
+                            if (curatorData.curator) {
+                                result.canAutoLore = true;
+                                result.canAutoCanon = true;
                                 result.characterLevel = 'revered';
-                            } else if (result.canAutoLore) {
-                                result.characterLevel = 'well-known';
                             }
                         }
                     } catch (error) {
-                        // Silent fail on timeout - lore.farm might be down
                         if (error.name !== 'AbortError') {
-                            console.warn('Failed to check character permissions:', error);
+                            console.warn('Failed to check curator status:', error);
                         }
                     }
                 }
@@ -838,6 +833,5 @@ class UserStatus {
 // Export for use across the site
 window.UserStatus = UserStatus;
 
-console.log('✅ [UserStatus] User status utility loaded');
 
 } // End of window.UserStatus check

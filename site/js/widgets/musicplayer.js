@@ -47,7 +47,6 @@ class MusicPlayer {
                 timestamp: Date.now()
             };
             localStorage.setItem('reverie-music-state', JSON.stringify(state));
-            console.log('🎵 [MusicPlayer] State saved:', state.position, 'ms, playing:', state.isPlaying);
         }
     }
 
@@ -63,7 +62,6 @@ class MusicPlayer {
                 return state;
             }
         } catch (e) {
-            console.log('🎵 [MusicPlayer] Could not parse saved state');
         }
         return null;
     }
@@ -72,7 +70,6 @@ class MusicPlayer {
         const adminToken = localStorage.getItem('admin_token');
         
         if (!adminToken) {
-            console.log('🎵 [MusicPlayer] No admin token, player hidden');
             return;
         }
 
@@ -83,11 +80,9 @@ class MusicPlayer {
             
             if (response.ok) {
                 this.isAdmin = true;
-                console.log('🎵 [MusicPlayer] Admin verified, showing player');
                 this.loadWidgetAPI().then(() => this.setup());
             }
         } catch (error) {
-            console.log('🎵 [MusicPlayer] Admin check failed:', error);
         }
     }
 
@@ -194,14 +189,12 @@ class MusicPlayer {
     initWidget() {
         const iframe = document.getElementById('soundcloudPlayer');
         if (!iframe || !window.SC || !window.SC.Widget) {
-            console.log('🎵 [MusicPlayer] Widget API not available');
             return;
         }
 
         this.widget = SC.Widget(iframe);
         
         this.widget.bind(SC.Widget.Events.READY, () => {
-            console.log('🎵 [MusicPlayer] Widget ready');
             this.widgetReady = true;
             this.widget.setVolume(this.volume * 100);
             this.widget.getDuration((d) => this.duration = d);
@@ -209,7 +202,6 @@ class MusicPlayer {
             // Check for saved state to resume
             const savedState = this.loadState();
             if (savedState && savedState.isPlaying) {
-                console.log('🎵 [MusicPlayer] Has saved playing state, position:', savedState.position, 'ms');
                 this.pendingResume = savedState;
                 this.widget.seekTo(savedState.position);
                 
@@ -220,7 +212,6 @@ class MusicPlayer {
                     // Check if play actually started after a moment
                     setTimeout(() => {
                         if (!this.isPlaying && this.pendingResume) {
-                            console.log('🎵 [MusicPlayer] Autoplay blocked, showing resume indicator');
                             this.showResumeIndicator();
                         }
                     }, 500);

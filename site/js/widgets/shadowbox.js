@@ -185,7 +185,6 @@ class ShadowboxWidget {
         // Filter to only claimed souvenirs
         const claimedSouvenirs = this.getClaimedSouvenirs();
         if (claimedSouvenirs.length === 0) {
-            console.log('No claimed souvenirs for bubbles');
             return;
         }
 
@@ -397,7 +396,6 @@ class ShadowboxWidget {
                 };
             }
             this.souvenirsData = transformed;
-            console.log('✅ Shadowbox souvenirs loaded:', Object.keys(transformed).length);
         } catch (err) {
             console.error('Error loading souvenirs for shadowbox:', err);
         }
@@ -408,7 +406,6 @@ class ShadowboxWidget {
             const response = await fetch('/api/dreamers');
             const data = await response.json();
             this.dreamersData = data;
-            console.log('✅ Shadowbox dreamers loaded:', data.length);
         } catch (err) {
             console.error('Error loading dreamers for shadowbox:', err);
         }

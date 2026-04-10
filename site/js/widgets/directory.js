@@ -5,7 +5,6 @@
 
 class Directory {
     constructor() {
-        console.log('✅ [directory.js] Directory widget initialized');
         this.loadStyles();
     }
 
@@ -15,7 +14,6 @@ class Directory {
             link.rel = 'stylesheet';
             link.href = '/css/widgets/directory.css';
             document.head.appendChild(link);
-            console.log('✅ [directory.js] Styles loaded');
         }
     }
 
@@ -28,7 +26,6 @@ class Directory {
     show(options = {}) {
         const { onSelect = null, onClose = null } = options;
         
-        console.log('📂 [directory.js] Showing directory');
         
         // Create overlay
         const overlay = document.createElement('div');
@@ -177,7 +174,6 @@ class Directory {
                 e.preventDefault();
                 const destination = card.getAttribute('data-destination');
                 const isNewTab = card.getAttribute('data-newtab') === 'true';
-                console.log('📂 [directory.js] Selected:', destination, isNewTab ? '(new tab)' : '');
                 
                 // Handle external links in new tab (keep widget open)
                 if (isNewTab) {
@@ -217,5 +213,4 @@ class Directory {
 // Auto-instantiate
 if (typeof window !== 'undefined') {
     window.Directory = Directory;
-    console.log('✅ [directory.js] Directory class registered on window');
 }

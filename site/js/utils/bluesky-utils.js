@@ -37,7 +37,6 @@ export async function resolveHandleToDid(handle) {
 export async function calculateFacets(text) {
     const facets = [];
     
-    console.log('🔍 [calculateFacets] Analyzing text:', text);
     
     // Match @mentions
     const mentionRegex = /@([a-zA-Z0-9.-]+)/g;
@@ -45,9 +44,7 @@ export async function calculateFacets(text) {
     
     while ((match = mentionRegex.exec(text)) !== null) {
         const handle = match[1];
-        console.log('👤 [calculateFacets] Found mention:', handle);
         const did = await resolveHandleToDid(handle);
-        console.log('🆔 [calculateFacets] Resolved DID:', did);
         
         if (did) {
             facets.push({
@@ -60,7 +57,6 @@ export async function calculateFacets(text) {
                     did: did
                 }]
             });
-            console.log('✅ [calculateFacets] Added mention facet for', handle);
         } else {
             console.warn('⚠️ [calculateFacets] Could not resolve DID for', handle);
         }
@@ -71,7 +67,6 @@ export async function calculateFacets(text) {
     
     while ((match = urlRegex.exec(text)) !== null) {
         let url = match[0];
-        console.log('🔗 [calculateFacets] Found URL:', url);
         // Add https:// if no protocol specified
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
             url = 'https://' + url;
@@ -87,10 +82,8 @@ export async function calculateFacets(text) {
                 uri: url
             }]
         });
-        console.log('✅ [calculateFacets] Added link facet for', url);
     }
     
-    console.log('📊 [calculateFacets] Total facets created:', facets.length);
     return facets;
 }
 

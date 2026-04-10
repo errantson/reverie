@@ -364,7 +364,7 @@ class DatabaseManager:
             cursor = self.execute("SELECT value FROM _metadata WHERE key = %s", ('schema_version',))
             row = cursor.fetchone()
             return row['value'] if row else '1.0.0'
-        except:
+        except Exception:
             return '1.0.0'
     
     def table_exists(self, table_name: str) -> bool:
@@ -416,7 +416,7 @@ class DatabaseManager:
                 cursor = self.execute(f"SELECT COUNT(*) as count FROM {table}")
                 row = cursor.fetchone()
                 stats[table] = row['count'] if row else 0
-            except:
+            except Exception:
                 stats[table] = 0
         
         return stats

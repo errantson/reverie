@@ -25,7 +25,6 @@ class Shadowbox {
         // Add this shadowbox to active stack
         Shadowbox.activeShadowboxes.push(this);
 
-        console.log(`🎭 [Shadowbox] Creating shadowbox at z-index ${this.zIndex} (stack level ${stackLevel})`);
 
         // Only prevent scroll if this is the first shadowbox
         if (stackLevel === 0) {
@@ -131,7 +130,6 @@ class Shadowbox {
         // Check for clicks on both overlay and contentContainer
         const handleOutsideClick = (e) => {
             if (e.target === this.overlay || e.target === this.contentContainer) {
-                console.log('🎭 [Shadowbox] Clicked outside dialogue, closing');
                 this.close();
             }
         };
@@ -234,7 +232,6 @@ class Shadowbox {
         }
 
         // Start the dialogue
-        console.log(`🎭 [Shadowbox] Starting dialogue: ${key}`);
         await this.dialogue.startFromKey(key);
     }
 
@@ -313,7 +310,6 @@ class Shadowbox {
         }
 
         // Start dialogue with pre-loaded data
-        console.log(`🎭 [Shadowbox] Starting dialogue from data:`, dialogueData.key);
         await this.dialogue.startFromData(dialogueData);
     }
 
@@ -321,7 +317,6 @@ class Shadowbox {
      * Close and remove the shadowbox
      */
     close() {
-        console.log(`🎭 [Shadowbox] Closing shadowbox at z-index ${this.zIndex}`);
         
         // Remove this shadowbox from active stack
         const index = Shadowbox.activeShadowboxes.indexOf(this);

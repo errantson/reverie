@@ -5,7 +5,6 @@
 
 class BlueskyComposer {
     constructor() {
-        console.log('✅ [bskycomposer.js] BlueskyComposer widget initialized');
         this.loadStyles();
     }
 
@@ -15,7 +14,6 @@ class BlueskyComposer {
             link.rel = 'stylesheet';
             link.href = '/css/widgets/bskycomposer.css';
             document.head.appendChild(link);
-            console.log('✅ [bskycomposer.js] Styles loaded');
         }
     }
 
@@ -28,7 +26,6 @@ class BlueskyComposer {
     show(options = {}) {
         const { onSuccess = null, onCancel = null } = options;
         
-        console.log('📝 [bskycomposer.js] Showing composer interface');
         
         // Get user session
         const session = window.oauthManager?.getSession();
@@ -148,7 +145,6 @@ class BlueskyComposer {
                 // Post to Bluesky
                 const result = await window.oauthManager.createPost(text);
                 
-                console.log('✅ [bskycomposer.js] Story posted:', result);
                 
                 // Close overlay
                 overlay.classList.remove('visible');
@@ -225,5 +221,4 @@ class BlueskyComposer {
 // Auto-instantiate
 if (typeof window !== 'undefined') {
     window.BlueskyComposer = BlueskyComposer;
-    console.log('✅ [bskycomposer.js] BlueskyComposer class registered on window');
 }

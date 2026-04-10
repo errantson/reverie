@@ -38,7 +38,6 @@ class EventStack {
      * @param {Object} options.columns - Column visibility configuration {type: true, epoch: true, canon: true, key: true, uri: true}
      */
     render(events, targetElement, options = {}) {
-        console.log('📜 [EventStack] Rendering', events?.length || 0, 'events with options:', options);
         
         this.container = targetElement;
         
@@ -793,4 +792,3 @@ class EventStack {
 
 // Make globally available
 window.EventStack = EventStack;
-console.log('✅ [EventStack] Widget loaded');

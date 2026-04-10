@@ -300,21 +300,24 @@ class ShareLore {
                 return; // Not logged in, hide character section
             }
             
-            // Fetch character status
-            const response = await fetch('/api/lore/character-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ did: session.did })
-            });
+            // Check character status via indexer API
+            const response = await fetch(
+                `${this.LORE_FARM_API}/api/worlds/${this.WORLD_DOMAIN}/characters/${session.did}/indexed`
+            );
             
-            if (response.ok) {
-                const data = await response.json();
-                const characterSection = document.getElementById('characterSection');
-                const characterCheck = document.getElementById('registerCharacterCheck');
-                
-                if (characterSection && characterCheck) {
-                    characterSection.style.display = 'block';
-                    characterCheck.checked = data.is_character || false;
+            const characterSection = document.getElementById('characterSection');
+            const characterCheck = document.getElementById('registerCharacterCheck');
+            
+            if (characterSection && characterCheck) {
+                characterSection.style.display = 'block';
+                if (response.ok) {
+                    const data = await response.json();
+                    characterCheck.checked = !!data.member;
+                    // Store the rkey if registered, needed for unregister
+                    this._characterRkey = data.rkey || null;
+                } else {
+                    characterCheck.checked = false;
+                    this._characterRkey = null;
                 }
             }
         } catch (error) {
@@ -335,33 +338,49 @@ class ShareLore {
         }
         
         try {
-            const endpoint = isChecked ? '/api/lore/register-character' : '/api/lore/unregister-character';
-            const token = localStorage.getItem('oauth_token');
-            
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    userDid: session.did,
-                    characterName: session.handle || session.did,
-                    worldDomain: this.WORLD_DOMAIN
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Failed to update character status');
+            if (isChecked) {
+                // Register: write farm.lore.character record to user's PDS
+                const result = await window.oauthManager.createRecord('farm.lore.character', {
+                    world: this.WORLD_DOMAIN,
+                    createdAt: new Date().toISOString(),
+                });
+                // Extract rkey from the returned URI for future unregister
+                const rkeyMatch = result.uri.match(/\/([^/]+)$/);
+                this._characterRkey = rkeyMatch ? rkeyMatch[1] : null;
+                // Notify lore.farm to index immediately
+                try {
+                    await fetch(`${this.LORE_FARM_API}/api/notify`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uri: result.uri }),
+                    });
+                } catch (e) {
+                    console.warn('Character notify failed:', e);
+                }
+            } else {
+                // Unregister: delete character record from user's PDS
+                if (!this._characterRkey) {
+                    // Try to fetch the rkey from the indexer
+                    const resp = await fetch(
+                        `${this.LORE_FARM_API}/api/worlds/${this.WORLD_DOMAIN}/characters/${session.did}/indexed`
+                    );
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        this._characterRkey = data.rkey;
+                    }
+                }
+                if (!this._characterRkey) {
+                    throw new Error('Could not find character record to remove');
+                }
+                await window.oauthManager.deleteRecord('farm.lore.character', this._characterRkey);
+                this._characterRkey = null;
             }
             
             if (statusEl) {
                 statusEl.className = 'share-modal-status success';
                 statusEl.textContent = isChecked 
-                    ? '✓ Applied as character for lore.farm' 
-                    : '✓ Removed from character applications';
+                    ? '✓ Registered as character for this world' 
+                    : '✓ Removed character registration';
                     
                 setTimeout(() => {
                     statusEl.textContent = '';
@@ -644,8 +663,9 @@ class ShareLore {
                 const post = data.thread?.post;
                 
                 if (post) {
-                    // Store the post author's DID for later validation
+                    // Store the post author's DID and CID for later use
                     this.currentPostAuthorDid = post.author.did;
+                    this.currentPostCid = post.cid;
                     
                     // Check if this post belongs to the logged-in user
                     const session = window.oauthManager ? window.oauthManager.getSession() : null;
@@ -766,85 +786,38 @@ class ShareLore {
             const atUri = typeof parsedUri === 'string'
                 ? parsedUri
                 : `at://${this.currentPostAuthorDid}/app.bsky.feed.post/${parsedUri.postId}`;
-            
 
-            
-            // Make request to Reverie proxy endpoint
-            // Prefer using the OAuth manager token set (handles refresh/DPoP),
-            // fall back to localStorage admin/oauth tokens.
-            let authHeader = null;
-            try {
-                if (window.oauthManager && typeof window.oauthManager.getTokenSet === 'function') {
-                    const tokenSet = await window.oauthManager.getTokenSet('auto');
-                    if (tokenSet && tokenSet.access_token) {
-                        const type = tokenSet.token_type || 'Bearer';
-                        authHeader = `${type} ${tokenSet.access_token}`;
-                    }
-                }
-            } catch (err) {
-                console.warn('Unable to retrieve token from oauthManager.getTokenSet():', err);
+            // Ensure we have the post CID (stored during preview)
+            if (!this.currentPostCid) {
+                throw new Error('Post CID not available. Please reload the preview.');
             }
 
-            if (!authHeader) {
-                // Try conventional localStorage keys used elsewhere in the app
-                const fallback = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token') || localStorage.getItem('reverie_token');
-                if (fallback) authHeader = `Bearer ${fallback}`;
-            }
-
-            if (!authHeader) {
-                throw new Error('Missing OAuth token; please log in again.');
-            }
-
-            // Some server endpoints in this project expect `X-Auth-Token` instead
-            // of or in addition to the Authorization header (see dashboard.js).
-            let xAuthToken = null;
-            try {
-                if (window.oauthManager && typeof window.oauthManager.getAuthToken === 'function') {
-                    xAuthToken = window.oauthManager.getAuthToken();
-                }
-            } catch (err) {
-                console.warn('Error calling oauthManager.getAuthToken():', err);
-            }
-
-            // Fallbacks for X-Auth-Token
-            if (!xAuthToken) {
-                const sessionObj = window.oauthManager ? window.oauthManager.getSession && window.oauthManager.getSession() : null;
-                if (sessionObj && sessionObj.accessJwt) {
-                    xAuthToken = sessionObj.accessJwt;
-                }
-            }
-            if (!xAuthToken) {
-                xAuthToken = localStorage.getItem('reverie_token') || localStorage.getItem('admin_token') || localStorage.getItem('oauth_token') || '';
-            }
-
-            const headers = {
-                'Content-Type': 'application/json'
-            };
-            if (authHeader) headers['Authorization'] = authHeader;
-            if (xAuthToken) headers['X-Auth-Token'] = xAuthToken;
-
-            const response = await fetch('/api/lore/apply-label', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
+            // Write farm.lore.content record directly to user's PDS
+            const result = await window.oauthManager.createRecord('farm.lore.content', {
+                subject: {
                     uri: atUri,
-                    userDid: userDid,
-                    label: 'lore:reverie.house'
-                })
+                    cid: this.currentPostCid,
+                },
+                world: this.WORLD_DOMAIN,
+                createdAt: new Date().toISOString(),
             });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `Server returned ${response.status}`);
-            }
-            
-            const result = await response.json();
             
             status.className = 'share-modal-status success';
             status.textContent = '✓ Your story has been added to the canon!';
             input.value = '';
             document.getElementById('postPreview').classList.remove('active');
-            
+
+            // Notify lore.farm to index the record immediately
+            try {
+                await fetch(`${this.LORE_FARM_API}/api/notify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uri: result.uri }),
+                });
+            } catch (e) {
+                console.warn('Notify hint failed (record will sync via Jetstream):', e);
+            }
+
             // Trigger success event
             window.dispatchEvent(new CustomEvent('sharelore:success', { detail: result }));
             
@@ -854,9 +827,9 @@ class ShareLore {
             }, 2000);
             
         } catch (error) {
-            console.error('Error applying label:', error);
+            console.error('Error creating lore record:', error);
             status.className = 'share-modal-status error';
-            status.textContent = error.message || 'Failed to apply label. Please try again.';
+            status.textContent = error.message || 'Failed to submit lore. Please try again.';
         } finally {
             btn.disabled = false;
             btn.innerHTML = `

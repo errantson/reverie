@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrum Timeline - Reverie House</title>
+    <meta name="description" content="Watch the Reverie spectrum unfold as dreamers appear across time.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/timeline">
+    <meta property="og:title" content="Spectrum Timeline - Reverie House">
+    <meta property="og:description" content="Watch the Reverie spectrum unfold as dreamers appear across time.">
+    <meta property="og:image" content="https://reverie.house/assets/og-image.png">
+
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/heraldry.css">
+    <link rel="stylesheet" href="/css/pages/spectrum.css">
+    <link rel="stylesheet" href="/css/octants.css">
+    <link rel="stylesheet" href="/css/widgets/spectrum-timeline.css">
+    <link rel="stylesheet" href="/css/widgets/login.css">
+    <link rel="stylesheet" href="/css/widgets/dreamer-hover.css">
+    <link rel="stylesheet" href="/css/utils/auth-gate.css">
+
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+
+    <script src="/js/core/world-config-cache.js"></script>
+    <script src="/js/core/color-manager.js"></script>
+    <script src="/js/utils/shadowbox.js"></script>
+    <script src="/js/utils/heraldry.js"></script>
+    <script src="/js/utils/orientation-handler.js"></script>
+    <script src="/js/widgets/background.js"></script>
+    <script src="/js/widgets/header.js" defer></script>
+    <script src="/js/utils/auth-gate.js" defer></script>
+    <script src="/js/widgets/login.js" defer></script>
+    <script src="/js/widgets/dreamer-hover.js" defer></script>
+    <script src="/js/widgets/spectrum-timeline.js" defer></script>
+
+    <style>
+        /* ── Layout: sidebar + main panel ── */
+        .spectrum-visualization {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        /* ── Event log sidebar (left) ── */
+        .event-sidebar {
+            width: 340px;
+            min-width: 340px;
+            display: flex;
+            flex-direction: column;
+            background: #faf9fc;
+            color: #333366;
+            border: 3px solid var(--user-color, var(--reverie-core-color, #734ba1));
+            border-right: none;
+            font-family: Arial, sans-serif;
+            font-size: 0.78rem;
+            overflow: hidden;
+        }
+        .event-sidebar-header {
+            background: linear-gradient(135deg, var(--reverie-core-color, #734ba1), color-mix(in srgb, var(--reverie-core-color, #734ba1) 80%, black));
+            color: white;
+            padding: 8px 20px;
+            font-weight: 600;
+            font-size: 0.8em;
+            flex-shrink: 0;
+        }
+        .event-sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(115,75,161,0.35) transparent;
+        }
+        .event-sidebar-body::-webkit-scrollbar { width: 4px; }
+        .event-sidebar-body::-webkit-scrollbar-thumb { background: rgba(115,75,161,0.35); }
+
+        .evt {
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            line-height: 1.4;
+            text-align: left;
+        }
+        .evt:nth-child(odd of .evt) { background: rgba(115,75,161,0.05); }
+        .evt:nth-child(even of .evt) { background: transparent; }
+        .evt-avatar {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            object-fit: cover;
+            border: 1px solid rgba(0,0,128,0.15);
+            background: #e8e4f0;
+        }
+        .evt-text {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .evt-text a {
+            font-weight: 700;
+            text-decoration: none;
+            max-width: 130px;
+            display: inline-block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: bottom;
+        }
+        .evt-text a:hover { text-decoration: underline; }
+        .evt-text .evt-verb {
+            color: #888;
+        }
+        .evt-text .evt-octant-name {
+            font-weight: 600;
+        }
+        .evt-text .evt-heading-val {
+            font-weight: 600;
+            font-style: italic;
+            color: #734ba1;
+        }
+        .evt-octant {
+            display: inline-block;
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin: 0 2px;
+        }
+
+        /* ── Control bar — single row ── */
+        .timeline-control-bar {
+            background: linear-gradient(135deg, var(--reverie-core-color, #734ba1), color-mix(in srgb, var(--reverie-core-color, #734ba1) 80%, black));
+            color: white;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+        .tl-spacer { flex: 1; }
+        .tl-btn {
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.15s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .tl-btn:hover { background: rgba(255,255,255,0.3); }
+        .tl-btn.active { background: white; color: var(--reverie-core-color, #734ba1); }
+        .tl-btn.playing { background: white; color: var(--reverie-core-color, #734ba1); }
+        .tl-btn-icon { padding: 5px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
+        .tl-toggle { opacity: 0.7; }
+        .tl-toggle.active { opacity: 1; background: rgba(255,255,255,0.35); }
+        .tl-speed {
+            font-size: 0.78em;
+            padding: 3px 5px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .tl-speed option { color: #333; background: white; }
+        .tl-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.25); flex-shrink: 0; margin: 0 4px; }
+
+        /* ── Scrubber strip ── */
+        .timeline-scrubber {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 20px;
+            background: rgba(0,0,0,0.04);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            flex-shrink: 0;
+            height: 32px;
+            box-sizing: border-box;
+        }
+        .scrub-slider {
+            flex: 1;
+            min-width: 60px;
+            height: 4px;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #d0c7f0, var(--reverie-core-color, #734ba1));
+            cursor: pointer;
+        }
+        .scrub-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px; height: 14px;
+            background: var(--reverie-core-color, #734ba1);
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        .scrub-slider::-moz-range-thumb {
+            width: 14px; height: 14px;
+            background: var(--reverie-core-color, #734ba1);
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        .scrub-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75rem;
+            color: #666;
+            white-space: nowrap;
+        }
+        .scrub-pos {
+            font-weight: 700;
+            color: var(--reverie-core-color, #734ba1);
+            min-width: 56px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .scrub-count { min-width: 90px; font-variant-numeric: tabular-nums; }
+
+        /* ── Hidden ── */
+        .timeline-sidebar { display: none; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1200px) {
+            .event-sidebar { width: 280px; min-width: 280px; }
+            .timeline-control-bar { padding: 8px 14px; }
+            .timeline-scrubber { padding: 6px 14px; }
+        }
+        @media (max-width: 768px) {
+            .event-sidebar { display: none; }
+            .timeline-control-bar { gap: 4px; padding: 6px 10px; flex-wrap: wrap; }
+            .tl-btn { padding: 4px 8px; font-size: 0.75em; }
+            .timeline-scrubber { padding: 6px 10px; gap: 8px; }
+            .scrub-count { display: none; }
+        }
+        @media (max-width: 480px) {
+            .tl-btn { padding: 3px 6px; font-size: 0.72em; }
+            .scrub-meta { font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="fullscreen-background">
+        <div class="scene-background">
+            <img src="/souvenirs/residence/phanera.png" alt="Phanera Residence" class="scene-layer background-layer">
+        </div>
+    </div>
+
+    <div id="header-container"></div>
+
+    <div class="main-content">
+        <div class="spectrum-visualization">
+            <!-- Event log sidebar (left) -->
+            <div class="event-sidebar">
+                <div class="event-sidebar-header">Event Log</div>
+                <div class="event-sidebar-body" id="eventLog"></div>
+            </div>
+
+            <div class="spectrum-container deluxe-mode">
+                <!-- Control bar — single row -->
+                <div class="timeline-control-bar">
+                    <button class="tl-btn" id="btnPlay">▶ Play</button>
+                    <button class="tl-btn tl-btn-icon" id="btnPrev" title="Previous (←)">◀</button>
+                    <button class="tl-btn tl-btn-icon" id="btnNext" title="Next (→)">▶</button>
+                    <select class="tl-speed" id="speed" title="Playback speed">
+                        <option value="2000">Slow</option>
+                        <option value="800" selected>Normal</option>
+                        <option value="300">Fast</option>
+                        <option value="80">Rush</option>
+                    </select>
+                    <div class="tl-sep"></div>
+                    <button class="tl-btn tl-toggle active" id="btnAxisNames">Axes</button>
+                    <button class="tl-btn tl-toggle" id="btnDreamerNames">Names</button>
+                    <div class="tl-spacer"></div>
+                    <button class="tl-btn active" data-view="3d">Balance</button>
+                    <button class="tl-btn" data-view="power-structure">Force</button>
+                    <button class="tl-btn" data-view="belief-agency">Agency</button>
+                    <button class="tl-btn" data-view="change-freedom">Position</button>
+                    <div class="tl-sep"></div>
+                    <button class="tl-btn" id="btnFitZoom">Fit</button>
+                </div>
+
+                <!-- Scrubber strip -->
+                <div class="timeline-scrubber">
+                    <input type="range" class="scrub-slider" id="slider" min="0" max="0" value="0">
+                    <div class="scrub-meta">
+                        <span class="scrub-pos" id="sliderPos">1 / 1</span>
+                        <span class="scrub-count" id="infoCount"></span>
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="canvas-container">
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="loading-content">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">Loading the timeline...</div>
+                        </div>
+                    </div>
+                    <canvas id="spectrumCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Hidden (SpectrumTimelineViewer sidebar target) -->
+            <div class="timeline-sidebar" id="timelineSidebar"></div>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('spectrumCanvas');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (!canvas) return;
+
+        let viewer = null;
+        let snapshots = [];
+        let snapshotCache = {};
+        let nameMap = {};            // handle → display_name
+        let currentIdx = 0;
+        let playing = false;
+        let playTimer = null;
+        let prevDreamerMap = {};     // did → {handle, octant, spectrum}
+
+        const slider = document.getElementById('slider');
+        const btnPlay = document.getElementById('btnPlay');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+        const speedSel = document.getElementById('speed');
+        const infoCount = document.getElementById('infoCount');
+        const sliderPos = document.getElementById('sliderPos');
+        const eventLog = document.getElementById('eventLog');
+        const btnAxisNames = document.getElementById('btnAxisNames');
+        const btnDreamerNames = document.getElementById('btnDreamerNames');
+        const btnFitZoom = document.getElementById('btnFitZoom');
+
+        // ── Octant colors (matching octants.css) ──
+        const OCTANT_COLORS = {
+            adaptive:    '#64ffc8', chaotic:     '#64c8ff',
+            prepared:    '#ffb464', intended:    '#ff6496',
+            contented:   '#ff96ff', assertive:   '#9696ff',
+            ordered:     '#ffff64', guarded:     '#a955d6',
+            equilibrium: '#c8c8c8', confused:    '#7f7d69',
+            singling:    '#c8b4b4'
+        };
+
+        function spectrumTo3D(s) {
+            return {
+                x: (s.entropy || 0) - (s.oblivion || 0),
+                y: (s.liberty || 0) - (s.authority || 0),
+                z: (s.receptive || 0) - (s.skeptic || 0)
+            };
+        }
+
+        function computeOctant(spectrum) {
+            const p = spectrumTo3D(spectrum);
+            const bx = p.x === 0, by = p.y === 0, bz = p.z === 0;
+            const balanced = (bx ? 1 : 0) + (by ? 1 : 0) + (bz ? 1 : 0);
+            if (balanced === 3) return 'equilibrium';
+            if (balanced === 2) return 'singling';
+            if (balanced === 1) return 'confused';
+            const xs = p.x > 0 ? '+' : '-', ys = p.y > 0 ? '+' : '-', zs = p.z > 0 ? '+' : '-';
+            return { '+++':'adaptive', '++-':'chaotic', '+-+':'prepared', '+--':'intended',
+                     '-++':'contented', '-+-':'assertive', '--+':'ordered', '---':'guarded' }[xs+ys+zs] || 'guarded';
+        }
+
+        function displayName(handle) {
+            const info = nameMap[handle];
+            return info ? info.name : handle;
+        }
+
+        function avatarUrl(handle) {
+            const info = nameMap[handle];
+            return info ? info.avatar : '';
+        }
+
+        function userColor(handle) {
+            const info = nameMap[handle];
+            return info ? info.color : '';
+        }
+
+        function profileLink(handle, text) {
+            const href = `/dreamer?handle=${encodeURIComponent(handle)}`;
+            const color = userColor(handle) || '#000080';
+            return `<a href="${href}" style="color:${color}">${text}</a>`;
+        }
+
+        function octantDot(name) {
+            return `<span class="evt-octant" style="background:${OCTANT_COLORS[name] || '#999'}"></span>`;
+        }
+
+        function formatTime(epoch) {
+            if (!epoch) return '';
+            const d = new Date(epoch * 1000);
+            const mon = d.toLocaleString('en-US', { month: 'short' });
+            const day = d.getDate();
+            const h = d.getHours().toString().padStart(2, '0');
+            const m = d.getMinutes().toString().padStart(2, '0');
+            return `${mon} ${day}, ${h}:${m}`;
+        }
+
+        let lastLoggedTime = '';
+
+        function addEvent(handle, text) {
+            const el = document.createElement('div');
+            el.className = 'evt';
+            const av = avatarUrl(handle);
+            const avImg = `<img class="evt-avatar" src="${av || ''}" alt="" onerror="this.src='';this.onerror=null">`;
+            el.innerHTML = `${avImg}<span class="evt-text">${text}</span>`;
+            // Newest at top: insert after any existing events in the current batch
+            eventLog.prepend(el);
+        }
+
+        function clearEvents() { eventLog.innerHTML = ''; lastLoggedTime = ''; }
+
+        function diffSnapshots(rawDreamers, epoch) {
+            const events = [];
+            const newMap = {};
+            const time = formatTime(epoch);
+
+            for (const d of rawDreamers) {
+                if (!d.spectrum) continue;
+                const octant = d.octant || computeOctant(d.spectrum);
+                const prev = prevDreamerMap[d.did];
+                // Carry forward heading across backfill gaps (backfills lack heading data)
+                const heading = d.heading || (prev ? prev.heading : null);
+                newMap[d.did] = { handle: d.handle, octant, spectrum: d.spectrum, heading };
+
+                if (!prev) {
+                    events.push({ type: 'arrival', handle: d.handle, octant, time });
+                } else {
+                    if (prev.octant && octant !== prev.octant) {
+                        events.push({ type: 'octant', handle: d.handle, from: prev.octant, to: octant, time });
+                    }
+                    // Only fire heading event when the snapshot explicitly provides a new heading
+                    if (d.heading && d.heading !== prev.heading) {
+                        events.push({ type: 'heading', handle: d.handle, heading: d.heading, time });
+                    }
+                }
+            }
+            prevDreamerMap = newMap;
+            return events;
+        }
+
+        function updateInfo() {
+            const snap = snapshots[currentIdx];
+            if (!snap) return;
+            infoCount.textContent = `${snap.total_dreamers} dreamer${snap.total_dreamers !== 1 ? 's' : ''}`;
+            sliderPos.textContent = `${currentIdx + 1} / ${snapshots.length}`;
+            slider.value = currentIdx;
+        }
+
+        async function loadSnapshot(idx) {
+            const snap = snapshots[idx];
+            if (!snap) return;
+            if (!snapshotCache[snap.id]) {
+                const res = await fetch(`/api/snapshots/${snap.id}`);
+                snapshotCache[snap.id] = await res.json();
+            }
+            const data = snapshotCache[snap.id];
+            const rawDreamers = data.data?.dreamers || [];
+            const dreamers = rawDreamers
+                .filter(d => d.spectrum)
+                .map(d => {
+                    const pos = spectrumTo3D(d.spectrum);
+                    return {
+                        did: d.did, name: d.handle, handle: d.handle,
+                        spectrum: d.spectrum,
+                        octant: d.octant || computeOctant(d.spectrum),
+                        heading: d.heading || null,
+                        x: pos.x, y: pos.y, z: pos.z
+                    };
+                });
+            viewer.loadSnapshot(dreamers);
+            updateInfo();
+
+            // Diff and log events
+            const evts = diffSnapshots(rawDreamers, snap.epoch);
+            for (const e of evts) {
+                const name = displayName(e.handle);
+                const link = profileLink(e.handle, name);
+                if (e.type === 'arrival') {
+                    addEvent(e.handle,
+                        `${link} <span class="evt-verb">appeared</span> ${octantDot(e.octant)} <span class="evt-octant-name" style="color:var(--octant-${e.octant}-dark)">${e.octant}</span>`);
+                } else if (e.type === 'octant') {
+                    addEvent(e.handle,
+                        `${link} ${octantDot(e.from)} <span class="evt-octant-name" style="color:var(--octant-${e.from}-dark)">${e.from}</span> ⟶ ${octantDot(e.to)} <span class="evt-octant-name" style="color:var(--octant-${e.to}-dark)">${e.to}</span>`);
+                } else if (e.type === 'heading') {
+                    addEvent(e.handle,
+                        `${link} <span class="evt-verb">set heading to</span> <span class="evt-heading-val">${e.heading}</span>`);
+                }
+            }
+        }
+
+        function goTo(idx) {
+            if (idx < 0 || idx >= snapshots.length) return;
+            currentIdx = idx;
+            loadSnapshot(currentIdx);
+        }
+
+        function play() {
+            playing = true;
+            btnPlay.textContent = '⏸ Pause';
+            btnPlay.classList.add('playing');
+            advance();
+        }
+        function pause() {
+            playing = false;
+            clearTimeout(playTimer);
+            btnPlay.textContent = '▶ Play';
+            btnPlay.classList.remove('playing');
+        }
+        function advance() {
+            if (!playing) return;
+            if (currentIdx < snapshots.length - 1) {
+                currentIdx++;
+                loadSnapshot(currentIdx).then(() => {
+                    playTimer = setTimeout(advance, parseInt(speedSel.value));
+                });
+            } else {
+                pause();
+            }
+        }
+
+        btnPlay.addEventListener('click', () => playing ? pause() : play());
+        btnPrev.addEventListener('click', () => { pause(); goTo(currentIdx - 1); });
+        btnNext.addEventListener('click', () => { pause(); goTo(currentIdx + 1); });
+        slider.addEventListener('input', () => {
+            pause();
+            prevDreamerMap = {};
+            clearEvents();
+            goTo(parseInt(slider.value));
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (e.key === ' ' || e.key === 'k') { e.preventDefault(); playing ? pause() : play(); }
+            if (e.key === 'ArrowLeft' || e.key === 'j') { e.preventDefault(); pause(); goTo(currentIdx - 1); }
+            if (e.key === 'ArrowRight' || e.key === 'l') { e.preventDefault(); pause(); goTo(currentIdx + 1); }
+            if (e.key === 'Home') { e.preventDefault(); pause(); prevDreamerMap = {}; clearEvents(); goTo(0); }
+            if (e.key === 'End') { e.preventDefault(); pause(); goTo(snapshots.length - 1); }
+        });
+
+        async function init() {
+            let attempts = 0;
+            while (typeof SpectrumTimelineViewer === 'undefined' && attempts++ < 40) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+            if (typeof SpectrumTimelineViewer === 'undefined') {
+                loadingOverlay.querySelector('.loading-text').textContent = 'Failed to load viewer';
+                return;
+            }
+
+            viewer = new SpectrumTimelineViewer(canvas, {
+                showLabels: true,
+                showAllNames: false,
+                initialZoom: 1.2,
+                showControls: false
+            });
+
+            // Control bar wiring
+            btnAxisNames.addEventListener('click', () => {
+                viewer.options.showLabels = !viewer.options.showLabels;
+                btnAxisNames.classList.toggle('active', viewer.options.showLabels);
+            });
+            btnDreamerNames.addEventListener('click', () => {
+                viewer.options.showAllNames = !viewer.options.showAllNames;
+                btnDreamerNames.classList.toggle('active', viewer.options.showAllNames);
+            });
+            btnFitZoom.addEventListener('click', () => viewer.fitZoomToDreamers());
+            const viewBtns = document.querySelectorAll('.timeline-control-bar [data-view]');
+            viewBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    viewer.snapToView(btn.dataset.view);
+                    viewBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => viewer.resize());
+            });
+
+            // Fetch names + snapshots in parallel
+            const [namesRes, snapRes] = await Promise.all([
+                fetch('/api/dreamer-names'),
+                fetch('/api/snapshots')
+            ]);
+            nameMap = await namesRes.json();
+            snapshots = await snapRes.json();
+
+            if (!snapshots.length) {
+                infoCount.textContent = 'No snapshots';
+                loadingOverlay.classList.add('hidden');
+                return;
+            }
+            slider.max = snapshots.length - 1;
+            slider.value = 0;
+            currentIdx = 0;
+            await loadSnapshot(0);
+            setTimeout(() => loadingOverlay.classList.add('hidden'), 800);
+        }
+
+        init();
+
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => viewer?.resize(), 100);
+        });
+        window.orientationHandler?.subscribe(() => viewer?.resize());
+    });
+    </script>
+</body>
+</html>

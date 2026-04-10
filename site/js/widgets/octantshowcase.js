@@ -175,11 +175,6 @@ class OctantShowcase {
      * @param {Function} isNearCenter - Optional function to check if dreamer is near center
      */
     async showPopup(triggerElement, color = null, octantDreamers = null, allDreamers = null, isNearCenter = null) {
-        console.log('[OctantShowcase] showPopup called', { 
-            hasOctantDreamers: !!octantDreamers, 
-            hasAllDreamers: !!allDreamers,
-            hasIsNearCenter: !!isNearCenter
-        });
         
         this.hidePopup();
 
@@ -195,17 +190,13 @@ class OctantShowcase {
 
         // Fetch dreamer data if not provided
         if (!octantDreamers || !allDreamers) {
-            console.log('[OctantShowcase] Fetching dreamers from /api/dreamers...');
             try {
                 const response = await fetch('/api/dreamers');
-                console.log('[OctantShowcase] Fetch response:', response.status, response.ok);
                 if (response.ok) {
                     allDreamers = await response.json();
-                    console.log('[OctantShowcase] Fetched dreamers:', allDreamers?.length);
                     // Categorize dreamers by octant
                     octantDreamers = this.categorizeDreamers(allDreamers);
                     isNearCenter = (d) => this.isNearCenter(d);
-                    console.log('[OctantShowcase] Categorized into octants:', Object.keys(octantDreamers).map(k => `${k}: ${octantDreamers[k].length}`).join(', '));
                 } else {
                     console.warn('[OctantShowcase] Failed to fetch dreamers:', response.status);
                     octantDreamers = {};
@@ -217,7 +208,6 @@ class OctantShowcase {
                 allDreamers = [];
             }
         } else {
-            console.log('[OctantShowcase] Using provided dreamer data');
         }
 
         // Create overlay
@@ -247,12 +237,6 @@ class OctantShowcase {
             console.warn('[OctantShowcase] allDreamers is still null, initializing to empty');
             allDreamers = [];
         }
-
-        console.log('[OctantShowcase] Building popup with:', {
-            octantDreamersKeys: Object.keys(octantDreamers),
-            octantDreamersCounts: Object.keys(octantDreamers).map(k => `${k}:${octantDreamers[k]?.length || 0}`).join(', '),
-            allDreamersCount: allDreamers?.length || 0
-        });
 
         const cardsHTML = order.map(octantKey => {
             const definition = definitions[octantKey];
@@ -346,7 +330,6 @@ class OctantShowcase {
      * Attach click handler to trigger popup
      */
     attach(element, color = null) {
-        console.log('[OctantShowcase] attach() called on element:', element);
         element.classList.add('octant-showcase-trigger');
         element.style.cursor = 'pointer';
 
@@ -355,7 +338,6 @@ class OctantShowcase {
         }
 
         element.addEventListener('click', (e) => {
-            console.log('[OctantShowcase] Click event triggered on element');
             e.stopPropagation();
             this.showPopup(element, color);
         });
@@ -484,7 +466,6 @@ class OctantShowcase {
 // Initialize global instance
 if (!window.octantShowcaseWidget) {
     window.octantShowcaseWidget = new OctantShowcase();
-    console.log('✅ [OctantShowcase] Octant showcase widget loaded');
 }
 
 window.OctantShowcase = OctantShowcase;

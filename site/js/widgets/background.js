@@ -57,14 +57,12 @@ class Background {
             return;
         }
         
-        console.log('[background] Found fullscreen background container');
         
         this.backgroundLayer = fullscreenBg.querySelector('.background-layer');
         
         if (!this.backgroundLayer) {
             console.warn('[background] Background layer not found');
         } else {
-            console.log('[background] Found background layer element');
         }
     }
 
@@ -179,14 +177,11 @@ class Background {
      * Load background for static mode (shows a specific phanera)
      */
     loadStaticMode() {
-        console.log('[background] Loading static mode with options:', this.options);
         // Support both phaneraUrl (full URL) and phaneraKey (key to construct path)
         if (this.options.phaneraUrl) {
-            console.log('[background] Using phaneraUrl:', this.options.phaneraUrl);
             this.showPhaneraBackgroundUrl(this.options.phaneraUrl);
         } else {
             const phaneraKey = this.options.phaneraKey || 'residence/home';
-            console.log('[background] Using phaneraKey:', phaneraKey);
             this.showPhaneraBackground(phaneraKey);
         }
     }
@@ -195,7 +190,6 @@ class Background {
      * Show phanera background image from full URL
      */
     showPhaneraBackgroundUrl(phaneraUrl) {
-        console.log('[background] showPhaneraBackgroundUrl called with:', phaneraUrl);
         
         if (!this.backgroundLayer) {
             console.warn('[background] Cannot show background - backgroundLayer not initialized');
@@ -352,4 +346,3 @@ class Background {
     }
 }
 
-console.log('✅ [background.js] Universal background widget loaded');

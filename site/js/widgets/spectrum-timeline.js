@@ -7,7 +7,10 @@ if (typeof window.OCTANT_RGB === 'undefined') {
         '-++': { r: 255, g: 150, b: 255 },
         '-+-': { r: 150, g: 150, b: 255 },
         '--+': { r: 255, g: 255, b: 100 },
-        '---': { r: 200, g: 100, b: 255 }
+        '---': { r: 200, g: 100, b: 255 },
+        'equilibrium': { r: 200, g: 200, b: 200 },
+        'confused': { r: 127, g: 125, b: 105 },
+        'singling': { r: 200, g: 180, b: 180 }
     };
 }
 if (typeof window.ROTATION_LIMIT === 'undefined') {
@@ -794,11 +797,22 @@ class SpectrumTimelineViewer {
         }
     }
     getOctantColor(x, y, z) {
-        const xSign = x > 0 ? '+' : '-';
-        const ySign = y > 0 ? '+' : '-';
-        const zSign = z > 0 ? '+' : '-';
-        const key = xSign + ySign + zSign;
-        const baseColor = OCTANT_RGB[key];
+        const bx = x === 0, by = y === 0, bz = z === 0;
+        const balanced = (bx ? 1 : 0) + (by ? 1 : 0) + (bz ? 1 : 0);
+        let key;
+        if (balanced >= 3) {
+            key = 'equilibrium';
+        } else if (balanced === 2) {
+            key = 'singling';
+        } else if (balanced === 1) {
+            key = 'confused';
+        } else {
+            const xSign = x > 0 ? '+' : '-';
+            const ySign = y > 0 ? '+' : '-';
+            const zSign = z > 0 ? '+' : '-';
+            key = xSign + ySign + zSign;
+        }
+        const baseColor = OCTANT_RGB[key] || OCTANT_RGB['---'];
         let { r, g, b } = baseColor;
         const distance = Math.sqrt(x*x + y*y + z*z);
         const maxDistance = 173;

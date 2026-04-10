@@ -133,7 +133,7 @@ class PDSAdmin:
                 try:
                     with open(dreamers_file, 'r') as f:
                         dreamers = json.load(f)
-                except:
+                except Exception:
                     pass
         
         results = []
@@ -223,7 +223,7 @@ def main():
         from core.database import DatabaseManager
         db = DatabaseManager()
         db.execute(
-            "INSERT OR REPLACE INTO world_state (key, value, updated_at) VALUES (?, ?, ?)",
+            "INSERT INTO world_state (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
             ('discrete_dreamweavers', str(discrete_count), int(time.time()))
         )
     except Exception as e:

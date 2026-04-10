@@ -39,7 +39,6 @@ class BskyExplainModal {
      */
     open() {
         if (this.isOpen) {
-            console.log('⚠️ Bluesky explanation modal already open');
             return;
         }
         
@@ -186,5 +185,4 @@ if (typeof window !== 'undefined') {
     // Create a global instance for easy access
     window.bskyExplainModal = new BskyExplainModal();
     
-    console.log('✅ [BskyExplainModal] Widget loaded');
 }

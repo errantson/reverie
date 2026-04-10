@@ -108,9 +108,7 @@ class HomepageScene {
                 if (this.lastUpdateTime) {
                     this.lastUpdateTime = Date.now();
                 }
-                console.log('🌟 [homepage.js] Page visible - resetting particle timers');
             } else {
-                console.log('💤 [homepage.js] Page hidden - aggressive cleanup');
                 
                 // MEMORY LEAK FIX: Aggressive particle cleanup when page hidden
                 const particlesToKeep = 10; // Keep minimal particles
@@ -135,7 +133,6 @@ class HomepageScene {
                     particle.element?.remove();
                 }
                 
-                console.log(`🧹 Cleaned up particles - kept ${particlesToKeep} of each type`);
             }
         });
         
@@ -710,7 +707,6 @@ class HomepageScene {
      * Call this when navigating away from homepage
      */
     destroy() {
-        console.log('🧹 Cleaning up HomepageScene...');
         
         this.stopPhysicsLoop();
         
@@ -744,7 +740,6 @@ class HomepageScene {
             this.bubbleSystem.destroy();
         }
         
-        console.log('✅ HomepageScene cleanup complete');
     }
     
     updateWildParticles() {
@@ -1737,9 +1732,7 @@ class HomepageScene {
         const waitForDirectory = () => {
             if (window.Directory) {
                 this.directoryWidget = new window.Directory();
-                console.log('✅ [homepage.js] Directory initialized');
             } else {
-                console.log('⏳ [homepage.js] Waiting for Directory...');
                 setTimeout(waitForDirectory, 100);
             }
         };
@@ -1749,9 +1742,7 @@ class HomepageScene {
         const waitForShareLore = () => {
             if (window.ShareLore) {
                 this.shareLoreWidget = new window.ShareLore();
-                console.log('✅ [homepage.js] ShareLore initialized');
             } else {
-                console.log('⏳ [homepage.js] Waiting for ShareLore...');
                 setTimeout(waitForShareLore, 100);
             }
         };
@@ -1759,7 +1750,6 @@ class HomepageScene {
         
         // Expose globally for header to use
         window.homepageScene = this;
-        console.log('✅ [homepage.js] HomepageScene exposed globally');
         
         // DISABLED: Auto-start dialogue experience
         // Errantson only appears when clicking the header icon
@@ -1806,10 +1796,8 @@ class HomepageScene {
         const session = window.oauthManager?.getSession();
         
         if (session) {
-            console.log('✅ [homepage.js] User logged in, showing returning user dialogue');
             this.startReturningUserDialogue(session);
         } else {
-            console.log('✅ [homepage.js] User not logged in, showing new user dialogue');
             this.startNewUserDialogue();
         }
     }
@@ -2217,12 +2205,10 @@ class HomepageScene {
             }
             
             if (!this.directoryWidget) {
-                console.log('⏳ [homepage.js] Waiting for Directory widget...');
                 setTimeout(showDir, 100);
                 return;
             }
             
-            console.log('✅ [homepage.js] Showing Directory');
             
             // Show directory - let it handle navigation itself
             this.directoryWidget.show();

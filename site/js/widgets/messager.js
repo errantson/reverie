@@ -39,7 +39,6 @@ class Messager {
         // Load custom messages if available
         this.loadCustomMessages();
         
-        console.log('✉️ Messager initialized with', this.messages.length, 'messages');
     }
     
     async loadCustomMessages() {
@@ -51,7 +50,6 @@ class Messager {
                 if (data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
                     // Use messages from world data
                     this.messages = data.messages.map(m => m.text || m);
-                    console.log('✉️ Loaded custom messages from world data');
                 }
             }
         } catch (error) {
@@ -71,7 +69,6 @@ class Messager {
             this.rotateToNext();
         }, this.rotationDuration);
         
-        console.log('✉️ Messager rotation started');
     }
     
     stop() {
@@ -89,7 +86,6 @@ class Messager {
             this.container.style.transform = 'translateY(-10px)';
         }
         
-        console.log('✉️ Messager rotation stopped');
     }
     
     rotateToNext() {
@@ -133,13 +129,11 @@ class Messager {
             this.start();
         }
         
-        console.log('✉️ Messager messages updated:', this.messages.length);
     }
     
     addMessage(message) {
         if (!message) return;
         this.messages.push(message);
-        console.log('✉️ Message added:', message);
     }
     
     showTemporary(message, duration = 5000) {

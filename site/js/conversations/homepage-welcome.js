@@ -90,7 +90,6 @@ const HomepageWelcomeTree = {
             contextProviders: ['userSession'],
             onEnter: async (tree) => {
                 const isLoggedIn = tree.getVariable('isLoggedIn');
-                console.log('🏠 Welcome! User logged in:', isLoggedIn);
             },
             target: (tree) => {
                 return tree.getVariable('isLoggedIn') ? 'returning_user' : 'new_user';
@@ -442,7 +441,6 @@ const HomepageWelcomeTree = {
                 const newcomerCount = tree.getVariable('newcomerCount');
                 const octant = tree.getVariable('octant');
                 
-                console.log(`👋 Welcome back: ${userName}, Greeter: ${isGreeter}, Newcomers: ${newcomerCount}`);
             },
             dialogue: [
                 {
@@ -885,7 +883,6 @@ const HomepageWelcomeTree = {
 // Register the tree when loaded
 if (window.ConversationTree) {
     window.HomepageWelcomeTree = HomepageWelcomeTree;
-    console.log('✅ [homepage-welcome.js] Conversation tree definition loaded');
 } else {
     console.warn('⚠️ [homepage-welcome.js] ConversationTree not yet loaded');
 }

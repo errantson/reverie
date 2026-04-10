@@ -184,13 +184,14 @@ class DreamerHandler(EventHandler):
                 return
             
             updates = {}
-            if 'displayName' in profile:
+            if 'displayName' in profile and profile['displayName']:
                 updates['display_name'] = profile['displayName']
             if 'description' in profile:
+                # Description can legitimately be empty
                 updates['description'] = profile['description']
-            if 'avatar' in profile:
+            if 'avatar' in profile and profile['avatar']:
                 updates['avatar'] = normalize_avatar_url(profile['avatar'], did, 'avatar')
-            if 'banner' in profile:
+            if 'banner' in profile and profile['banner']:
                 updates['banner'] = normalize_avatar_url(profile['banner'], did, 'banner')
             if 'followersCount' in profile:
                 updates['followers_count'] = profile['followersCount']
@@ -201,6 +202,15 @@ class DreamerHandler(EventHandler):
                 values = list(updates.values()) + [did]
                 sql = f"UPDATE dreamers SET {', '.join(set_parts)} WHERE did = %s"
                 db.execute(sql, tuple(values))
+                
+                # Cache avatar locally for posterity
+                avatar_url = updates.get('avatar')
+                if avatar_url:
+                    try:
+                        from utils.refresh_profiles import cache_avatar
+                        cache_avatar(did, avatar_url)
+                    except Exception:
+                        pass
                 
                 if did in self.dreamer_by_did:
                     self.dreamer_by_did[did].update(updates)
@@ -219,6 +229,10 @@ class DreamerHandler(EventHandler):
             self.log(f"   ✅ Database updated: @{old_handle} → @{new_handle}")
         except Exception as e:
             self.log(f"   ❌ Failed to update handle: {e}")
+
+    def refresh_dreamers(self):
+        """Reload dreamer list (call when community changes)."""
+        self._load_dreamers()
 
 
 # ============================================================================
@@ -405,7 +419,7 @@ class KindredHandler(EventHandler):
                     break
             
             return False
-        except:
+        except Exception:
             return False
     
     def _unpair_kindred(self, did_a: str, did_b: str, unfollower_handle: str, other_handle: str):

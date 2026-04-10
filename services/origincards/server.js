@@ -119,11 +119,18 @@ app.post('/generate', async (req, res) => {
                 const http = require('http');
                 const url = require('url');
                 
+                // Bluesky CDN returns WebP by default which canvas doesn't support
+                // Append @jpeg to force JPEG format from the CDN
+                let avatarUrl = avatar;
+                if (avatarUrl.includes('cdn.bsky.app') && !avatarUrl.match(/@(jpeg|png|webp)$/)) {
+                    avatarUrl += '@jpeg';
+                }
+                
                 const avatarData = await new Promise((resolve, reject) => {
-                    const parsedUrl = url.parse(avatar);
+                    const parsedUrl = url.parse(avatarUrl);
                     const protocol = parsedUrl.protocol === 'https:' ? https : http;
                     
-                    protocol.get(avatar, (response) => {
+                    protocol.get(avatarUrl, (response) => {
                         const chunks = [];
                         response.on('data', (chunk) => chunks.push(chunk));
                         response.on('end', () => resolve(Buffer.concat(chunks)));
@@ -205,21 +212,21 @@ app.post('/generate', async (req, res) => {
         
         // Display name
         ctx.fillStyle = 'rgba(232, 213, 196, 0.95)';
-        ctx.font = 'bold 39px system-ui, -apple-system, sans-serif';
+        ctx.font = 'bold 55px system-ui, -apple-system, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(displayName || handle, profileTextX, textY + 32);
+        ctx.fillText(displayName || handle, profileTextX, textY + 43);
         
         // Handle
-        textY += 53;
+        textY += 77;
         ctx.fillStyle = 'rgba(201, 184, 168, 0.75)';
-        ctx.font = '31px system-ui, -apple-system, sans-serif';
-        ctx.fillText(`@${handle}`, profileTextX, textY + 19);
+        ctx.font = '43px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`@${handle}`, profileTextX, textY + 26);
         
         // Coordinates
-        textY += 39;
+        textY += 54;
         ctx.fillStyle = 'rgba(232, 213, 196, 0.95)';
-        ctx.font = 'bold 26px "Courier New", monospace';
-        ctx.fillText(coordinateText, profileTextX, textY + 16);
+        ctx.font = 'bold 30px "Courier New", monospace';
+        ctx.fillText(coordinateText, profileTextX, textY + 20);
         
         // Octant name below avatar
         profileY = avatarY + avatarSize + 44;
@@ -251,18 +258,21 @@ app.post('/generate', async (req, res) => {
         const barHeight = 81;
         const barSpacing = 36;
         
+        // Helper to resolve axis value from origin_ or base keys
+        const axis = (name) => spectrum[`origin_${name}`] ?? spectrum[name] ?? 50;
+        
         const axisPairs = [
             {
-                left: { name: 'Oblivion', value: spectrum.oblivion || 50, color: AXIS_COLORS.oblivion },
-                right: { name: 'Entropy', value: spectrum.entropy || 50, color: AXIS_COLORS.entropy }
+                left: { name: 'Oblivion', value: axis('oblivion'), color: AXIS_COLORS.oblivion },
+                right: { name: 'Entropy', value: axis('entropy'), color: AXIS_COLORS.entropy }
             },
             {
-                left: { name: 'Authority', value: spectrum.authority || 50, color: AXIS_COLORS.authority },
-                right: { name: 'Liberty', value: spectrum.liberty || 50, color: AXIS_COLORS.liberty }
+                left: { name: 'Authority', value: axis('authority'), color: AXIS_COLORS.authority },
+                right: { name: 'Liberty', value: axis('liberty'), color: AXIS_COLORS.liberty }
             },
             {
-                left: { name: 'Skeptic', value: spectrum.skeptic || 50, color: AXIS_COLORS.skeptic },
-                right: { name: 'Receptive', value: spectrum.receptive || 50, color: AXIS_COLORS.receptive }
+                left: { name: 'Skeptic', value: axis('skeptic'), color: AXIS_COLORS.skeptic },
+                right: { name: 'Receptive', value: axis('receptive'), color: AXIS_COLORS.receptive }
             }
         ];
         

@@ -146,4 +146,3 @@ class SouvenirBox {
 
 // Make globally available
 window.SouvenirBox = SouvenirBox;
-console.log('✅ [SouvenirBox] Widget loaded');

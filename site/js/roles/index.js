@@ -11,63 +11,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeRoles = () => {
         // Check if RoleConfigs is available
         if (typeof RoleConfigs === 'undefined') {
-            console.log('⏳ Roles: Waiting for RoleConfigs...');
             setTimeout(initializeRoles, 100);
             return;
         }
         
-        console.log('🎭 Roles: Initializing role components...');
         
         // Initialize work core first
         if (window.WorkCore && !window.workCore) {
             window.workCore = new WorkCore();
             window.workCore.init();
-            console.log('✅ Roles: WorkCore initialized');
         }
         
         // Initialize sidebar
         if (window.WorkSidebar) {
             window.workSidebar = new WorkSidebar();
             window.workSidebar.init();
-            console.log('✅ Roles: WorkSidebar initialized');
         }
         
         // Initialize roles header
         if (window.RolesHeader) {
             window.rolesHeader = new RolesHeader();
             window.rolesHeader.init();
-            console.log('✅ Roles: RolesHeader initialized');
         }
         
         // Initialize individual role components
         if (window.GreeterRole) {
             window.greeterRole = new GreeterRole();
             window.greeterRole.init();
-            console.log('✅ Roles: GreeterRole initialized');
         }
         
         if (window.MapperRole) {
             window.mapperRole = new MapperRole();
             window.mapperRole.init();
-            console.log('✅ Roles: MapperRole initialized');
         }
         
         if (window.CogitarianRole) {
             window.cogitarianRole = new CogitarianRole();
             window.cogitarianRole.init();
-            console.log('✅ Roles: CogitarianRole initialized');
         }
         
         if (window.ProvisionerRole) {
             window.provisionerRole = new ProvisionerRole();
             window.provisionerRole.init();
-            console.log('✅ Roles: ProvisionerRole initialized');
         }
         
         if (window.DreamstylerRole) {
             window.dreamstylerRole = new DreamstylerRole();
             window.dreamstylerRole.init();
-            console.log('✅ Roles: DreamstylerRole initialized');
         }
         
         if (window.BursarRole) {
@@ -106,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Expose a function to manually trigger re-initialization if needed
 window.reinitializeRoles = function() {
-    console.log('🔄 Roles: Re-initializing components...');
     
     if (window.workCore) window.workCore.init();
     if (window.workSidebar) window.workSidebar.init();
@@ -120,5 +109,4 @@ window.reinitializeRoles = function() {
     if (window.cheerfulRole) window.cheerfulRole.init();
     if (window.guardianRole) window.guardianRole.init();
     
-    console.log('🔄 Roles: Re-initialization complete');
 };

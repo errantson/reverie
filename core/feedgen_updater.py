@@ -74,8 +74,11 @@ class FeedUpdater:
                 
                 self.log(f"\n🔄 Update cycle #{self.stats['cycles']} starting", force=True)
                 
-                # 1. Sync labels from lore.farm
-                self.sync_labels()
+                # 1. Sync labels from lore.farm (every 5 cycles = ~5 min)
+                # Lore feed now proxies to lore.farm directly; this sync is
+                # only needed for the events/history system on reverie.house.
+                if self.stats['cycles'] % 5 == 1:
+                    self.sync_labels()
                 
                 # 2. Fetch recent posts from community members
                 self.update_community_posts()

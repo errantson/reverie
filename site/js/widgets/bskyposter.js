@@ -5,7 +5,6 @@
 
 class BlueskyPoster {
     constructor() {
-        console.log('✅ [bskyposter.js] BlueskyPoster widget initialized');
         this.loadStyles();
     }
 
@@ -15,7 +14,6 @@ class BlueskyPoster {
             link.rel = 'stylesheet';
             link.href = '/css/widgets/bskyposter.css';
             document.head.appendChild(link);
-            console.log('✅ [bskyposter.js] Styles loaded');
         }
     }
 
@@ -29,7 +27,6 @@ class BlueskyPoster {
      * @param {string} options.descriptionText - Custom description (default: "Share your name...")
      */
     async promptAndPost(threadUri, options = {}) {
-        console.log('🔵 [bskyposter.js] promptAndPost called', { threadUri, options });
         
         const {
             onSuccess = null,
@@ -42,17 +39,14 @@ class BlueskyPoster {
 
         // Check if user is already authenticated
         const session = window.oauthManager?.getSession();
-        console.log('🔵 [bskyposter.js] Session check:', session ? `Found: ${session.handle || session.did}` : 'Not found');
         
         if (!session) {
             // Not logged in - need to authenticate first
-            console.log('🔵 [bskyposter.js] Showing auth prompt');
             this.showAuthPrompt(threadUri, options);
             return;
         }
 
         // User is logged in - show the input prompt
-        console.log('🔵 [bskyposter.js] Showing input prompt');
         this.showInputPrompt(threadUri, session, {
             onSuccess,
             onCancel,
@@ -234,9 +228,7 @@ class BlueskyPoster {
             
             try {
                 // Post using oauth-manager
-                console.log('🔵 [bskyposter.js] Posting to Bluesky...', { text, threadUri });
                 const result = await window.oauthManager.createPost(text, threadUri);
-                console.log('✅ [bskyposter.js] Post successful:', result);
                 
                 // Success!
                 overlay.classList.remove('visible');
@@ -297,5 +289,4 @@ class BlueskyPoster {
 // Auto-instantiate
 if (typeof window !== 'undefined') {
     window.BlueskyPoster = BlueskyPoster;
-    console.log('✅ [bskyposter.js] BlueskyPoster class registered on window');
 }

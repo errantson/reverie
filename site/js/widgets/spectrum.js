@@ -1940,9 +1940,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Only auto-initialize if SpectrumDeluxe hasn't been loaded
     // (SpectrumDeluxe will handle initialization for spectrum.html)
     if (canvas && typeof SpectrumDeluxe === 'undefined') {
-        console.log('🎨 [spectrum.js] Auto-initializing base SpectrumVisualizer');
         new SpectrumVisualizer(canvas);
     } else if (canvas) {
-        console.log('🎨 [spectrum.js] Skipping auto-init (SpectrumDeluxe will handle it)');
     }
 });

@@ -460,12 +460,10 @@ class OrderWidget {
                         reaction_to: null
                     };
 
-                    console.log('[Order] Synthetic event:', syntheticEvent);
 
                     // Build HTML using EventStack's builder so markup matches exactly
                     const liveRowHtml = eventStack.buildEventRow(syntheticEvent, 0);
                     
-                    console.log('[Order] Generated row HTML:', liveRowHtml);
 
                     // Prepend to container so it appears above recent events
                     container.insertAdjacentHTML('afterbegin', liveRowHtml);
@@ -1081,7 +1079,6 @@ class OrderWidget {
     }
 
     async showSuccessMessage(sessionId) {
-        console.log('Order success:', sessionId);
         
         const session = window.oauthManager?.getSession();
         const checkbox = document.getElementById('anonymize-order');
@@ -1142,7 +1139,6 @@ class OrderWidget {
     }
 
     showCancelMessage() {
-        console.log('Order canceled');
         
         // Show cancel popup
         if (window.Popup) {
@@ -1166,5 +1162,4 @@ class OrderWidget {
 document.addEventListener('DOMContentLoaded', () => {
     window.orderWidget = new OrderWidget();
     window.orderWidget.init();
-    console.log('✅ Order widget initialized');
 });

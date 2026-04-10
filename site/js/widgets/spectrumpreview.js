@@ -48,8 +48,6 @@ class SpectrumPreview {
         
         // Secret message for console explorers
         if (this.options.isMapper && !window._spectrumPreviewMessageShown) {
-            console.log('%cSpectrum Calculator Unlocked', 'color: #734ba1; font-size: 14px; font-weight: bold;');
-            console.log('%cIt\'s okay that you did this.', 'color: #999; font-style: italic;');
             window._spectrumPreviewMessageShown = true;
         }
         
@@ -94,7 +92,6 @@ class SpectrumPreview {
                         };
                         img.onerror = () => {
                             // Keep "No preview yet" if image doesn't exist
-                            console.log('[SpectrumPreview] Preview image not found:', imageUrl);
                         };
                         img.src = imageUrl;
                     }
@@ -245,19 +242,12 @@ class SpectrumPreview {
             calculateBtn.addEventListener('click', async (e) => {
                 e.preventDefault(); // Prevent any default behavior
                 
-                console.log('🖱️ [Button] Clicked - State check:');
-                console.log('  hasCalculated:', this.hasCalculated);
-                console.log('  currentHandle:', this.currentHandle);
-                console.log('  octantDisplay exists:', !!this.octantDisplay);
-                console.log('  octantDisplay.dreamer exists:', !!(this.octantDisplay && this.octantDisplay.dreamer));
                 
                 // Check if we're in "invite" mode (after calculation)
                 if (this.hasCalculated && this.currentHandle && this.octantDisplay && this.octantDisplay.dreamer) {
-                    console.log('✅ [Button] Entering INVITE mode - composing origin post');
                     
                     // Close the parent modal if it exists (to let user see the post modal)
                     if (this.options.parentModal && typeof this.options.parentModal.close === 'function') {
-                        console.log('🚪 [Button] Closing spectrum calculator modal');
                         this.options.parentModal.close();
                     }
                     // If an image was already generated, open the Bluesky compose flow in a new tab
@@ -326,7 +316,6 @@ What kind of dreamer are you?
 ${originUrl}`;
                             const composeUrl = createBlueskyComposeUrl(composeText);
                             window.open(composeUrl, '_blank', 'noopener');
-                            console.log('🔗 [Button] Opened Bluesky compose in new tab:', composeUrl);
                         } catch (e) {
                             console.warn('🔗 [Button] Failed to open Bluesky compose:', e);
                         }
@@ -340,18 +329,14 @@ ${originUrl}`;
                     this.hasCalculated = false;
                     calculateBtn.textContent = 'Calculate Origin';
                 } else if (!this.isLoading) {
-                    console.log('🔄 [Button] Entering CALCULATE mode - fetching spectrum');
-                    console.log('  Reason: Missing required state for INVITE mode');
                     // Calculate spectrum
                     this.calculateSpectrum().then(handle => {
                         if (handle) {
                             this.hasCalculated = true;
                             calculateBtn.textContent = `Invite @${handle}`;
-                            console.log('✅ [Button] Calculation complete, button now says "Invite @' + handle + '"');
                         }
                     });
                 } else {
-                    console.log('⏳ [Button] Already loading, ignoring click');
                 }
             });
             
@@ -379,7 +364,6 @@ ${originUrl}`;
     
     async calculateSpectrum() {
         if (this.isLoading) {
-            console.log('⏳ [Calculate] Already loading, aborting');
             return null;
         }
         
@@ -388,17 +372,14 @@ ${originUrl}`;
         const calculateBtn = document.getElementById('spectrum-calculate-btn');
         
         if (!input || !resultsContainer) {
-            console.log('❌ [Calculate] Missing input or results container');
             return null;
         }
         
         let identifier = input.value.trim();
-        console.log('📝 [Calculate] Input value:', identifier);
         
         // If input is empty, use the placeholder (logged-in user's handle)
         if (!identifier && input.placeholder) {
             identifier = input.placeholder.replace(/^@/, '');
-            console.log('📝 [Calculate] Using placeholder handle:', identifier);
         }
         
         if (!identifier || identifier === 'handle.bsky.social') {
@@ -411,7 +392,6 @@ ${originUrl}`;
             identifier = identifier.substring(1);
         }
         
-        console.log('🚀 [Calculate] Starting calculation for:', identifier);
         
         this.isLoading = true;
         calculateBtn.textContent = 'Processing...';
@@ -423,7 +403,6 @@ ${originUrl}`;
             const queryParam = isHandle ? `handle=${encodeURIComponent(identifier)}` : `did=${encodeURIComponent(identifier)}`;
             
             // Single API call to calculate spectrum, store data, and generate image
-            console.log('📡 [Calculate] Fetching spectrum data...');
             calculateBtn.textContent = 'Calculating spectrum...';
             
             const spectrumResponse = await fetch(`/api/spectrum/calculate?${queryParam}`);
@@ -433,7 +412,6 @@ ${originUrl}`;
             }
             
             const spectrumData = await spectrumResponse.json();
-            console.log('✅ [Calculate] Received spectrum data:', spectrumData);
             
             // Store current dreamer info including image URL
             this.currentDid = spectrumData.did;
@@ -441,7 +419,6 @@ ${originUrl}`;
             this.currentHandle = spectrumData.handle;
             this.currentSpectrumImageUrl = spectrumData.spectrum_image_url; // Store for later use
             
-            console.log('💾 [Calculate] Stored dreamer data');
             
             // Show results with OctantDisplay widget first
             this.displayResults(spectrumData);
@@ -462,7 +439,6 @@ ${originUrl}`;
                     this.currentSpectrumImageUrl = imageResult.url;
                     // Render preview into the right-hand mapper column
                     this.renderOriginPreview(imageResult.url);
-                    console.log('✅ [Calculate] Image generated and uploaded:', imageResult.url);
                     calculateBtn.textContent = 'Ready ✓';
                 } else {
                     console.warn('⚠️  [Calculate] Image generation failed, will generate on invite');
@@ -582,7 +558,6 @@ ${originUrl}`;
     
     async composeOriginPost(handle) {
         try {
-            console.log('🎨 [Compose] Starting origin post composition for @' + handle);
             
             const calculateBtn = document.getElementById('spectrum-calculate-btn');
             calculateBtn.textContent = 'Composing...';
@@ -597,7 +572,6 @@ ${originUrl}`;
                 throw new Error('Please calculate a spectrum first');
             }
             
-            console.log('✅ [Compose] Data validated');
             
             // Get dreamer data
             const spectrum = this.octantDisplay?.dreamer?.spectrum;
@@ -605,8 +579,6 @@ ${originUrl}`;
             const octantName = spectrum?.octant || 'equilibrium';
             const coordinateText = this.getCoordinateString();
             
-            console.log('📊 [Compose] Octant: ' + octantName + ', Display name: ' + displayName);
-            console.log('📊 [Compose] Spectrum values:', spectrum);
             
             // Check if we have a pre-generated server image
             let blob = null;
@@ -614,7 +586,6 @@ ${originUrl}`;
             
             if (this.currentSpectrumImageUrl) {
                 this.updateProgress('Using pre-generated image...', 60);
-                console.log('✅ [Compose] Using pre-generated server image:', this.currentSpectrumImageUrl);
                 
                 try {
                     // Fetch the pre-generated image
@@ -622,7 +593,6 @@ ${originUrl}`;
                     if (imageResponse.ok) {
                         blob = await imageResponse.blob();
                         dataUrl = this.currentSpectrumImageUrl;
-                        console.log('✅ [Compose] Loaded server image (' + (blob.size / 1024).toFixed(2) + ' KB)');
                         this.updateProgress('Image loaded!', 100);
                     } else {
                         console.warn('⚠️ [Compose] Server image not ready, falling back to client generation');
@@ -639,7 +609,6 @@ ${originUrl}`;
             // Fall back to client-side generation if no server image
             if (!blob || !dataUrl) {
                 this.updateProgress('Generating image...', 20);
-                console.log('🎨 [Compose] Generating image client-side...');
                 
                 const result = await this.generateOriginImageCanvas(handle, displayName, octantName, spectrum);
                 blob = result.blob;
@@ -687,7 +656,6 @@ ${originUrl}`;
             // Configure for pixel-perfect rendering
             configurePixelPerfectCanvas(ctx);
             
-            console.log(`🎨 [Compose] Canvas created: 1280x720 (landscape, pixel-perfect mode)`);
             this.updateProgress('Loading background image...', 60);
             
             // Load and draw the landscape background (originBG.png)
@@ -695,7 +663,6 @@ ${originUrl}`;
             try {
                 bgImage = await loadImageUtil('/assets/entrance.png?v=' + Date.now());
                 ctx.drawImage(bgImage, 0, 0, finalCanvas.width, finalCanvas.height);
-                console.log('✅ [Compose] Landscape background (originBG) drawn');
             } catch (e) {
                 console.warn('⚠️ [Compose] Could not load background, using fallback:', e);
                 // Fallback: Dark gradient background
@@ -793,7 +760,6 @@ ${originUrl}`;
                         console.warn('Could not load souvenir icon:', souvenir.icon);
                     }
                 }
-                console.log(`✅ [Compose] Drew ${bubbleCount} souvenir bubbles (homepage style)`);
             } catch (e) {
                 console.warn('⚠️ [Compose] Could not load souvenir bubbles, using fallback:', e);
                 // Fallback: simple bubbles
@@ -817,7 +783,6 @@ ${originUrl}`;
             let logo;
             try {
                 logo = await loadImageUtil('/assets/logo.png?v=' + Date.now());
-                console.log('✅ [Compose] Logo loaded');
             } catch (e) {
                 console.warn('⚠️ [Compose] Could not load logo:', e);
             }
@@ -829,14 +794,11 @@ ${originUrl}`;
             try {
                 const avatarUrl = this.octantDisplay?.dreamer?.avatar;
                 if (avatarUrl) {
-                    console.log('🔍 [Compose] Attempting to load avatar:', avatarUrl);
                     // Try proxy first (correct endpoint: /api/avatar-proxy)
                     const proxyUrl = `/api/avatar-proxy?url=${encodeURIComponent(avatarUrl)}`;
                     try {
                         avatarImage = await loadImageUtil(proxyUrl);
-                        console.log('✅ [Compose] Avatar loaded via proxy');
                     } catch (proxyError) {
-                        console.log('⚠️ [Compose] Proxy failed, trying CORS direct load');
                         avatarImage = await new Promise((resolve, reject) => {
                             const img = new Image();
                             img.crossOrigin = 'anonymous';
@@ -844,15 +806,12 @@ ${originUrl}`;
                             img.onerror = () => reject(new Error('Failed to load avatar'));
                             img.src = avatarUrl;
                         });
-                        console.log('✅ [Compose] Avatar loaded directly');
                     }
                 }
             } catch (e) {
-                console.log('⚠️ [Compose] Could not load avatar:', e.message);
             }
             
             this.updateProgress('Drawing octant display...', 80);
-            console.log('🎨 [Compose] Drawing octant display (left and down)');
             
             // Get coordinate string
             const coordinateText = this.getCoordinateString();
@@ -913,7 +872,6 @@ ${originUrl}`;
             const avatarY = profileY - 4;  // Raised 4px
             
             if (avatarImage) {
-                console.log('🖼️ [Compose] Drawing avatar at', avatarX, avatarY, 'size:', avatarSize);
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
@@ -928,7 +886,6 @@ ${originUrl}`;
                 ctx.beginPath();
                 ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
                 ctx.stroke();
-                console.log('✅ [Compose] Avatar drawn successfully');
             } else {
                 console.warn('⚠️ [Compose] No avatar image available');
             }
@@ -1091,13 +1048,10 @@ ${originUrl}`;
                 ctx.shadowOffsetX = 0;
                 ctx.shadowOffsetY = 0;
                 
-                console.log('✅ [Compose] Logo added to bottom-right');
             }
             
-            console.log('✅ [Compose] Octant display complete');
             const blob = await new Promise(resolve => finalCanvas.toBlob(resolve, 'image/png'));
             const dataUrl = finalCanvas.toDataURL('image/png');
-            console.log('✅ [Compose] Image created (' + (blob.size / 1024).toFixed(2) + ' KB)');
             
             return { blob, dataUrl };
         } catch (error) {
@@ -1113,7 +1067,6 @@ ${originUrl}`;
          * falling back to client-side canvas generation if the service is unavailable.
          */
         try {
-            console.log('🎨 [Upload] Generating origin card via origincards service...');
 
             // Try the origincards backend service first (produces the canonical card)
             try {
@@ -1132,7 +1085,6 @@ ${originUrl}`;
                 if (genResponse.ok) {
                     const result = await genResponse.json();
                     if (result.success && result.url) {
-                        console.log('✅ [Upload] Origin card generated via backend:', result.url);
                         return { success: true, url: result.url };
                     }
                 }
@@ -1142,7 +1094,6 @@ ${originUrl}`;
             }
 
             // Fallback: generate client-side via canvas and upload
-            console.log('🔁 [Upload] Falling back to canvas generator');
             const { blob, dataUrl } = await this.generateOriginImageCanvas(handle, displayName, octantName, spectrum);
 
             // Upload to server
@@ -1150,7 +1101,6 @@ ${originUrl}`;
             formData.append('image', blob, `${handle}.png`);
             formData.append('handle', handle);
 
-            console.log('📤 [Upload] Uploading generated image to server...');
             const uploadResponse = await fetch('/api/spectrum/save-image', {
                 method: 'POST',
                 body: formData
@@ -1158,7 +1108,6 @@ ${originUrl}`;
 
             if (uploadResponse.ok) {
                 const result = await uploadResponse.json();
-                console.log('✅ [Upload] Image uploaded successfully:', result.url);
                 return { success: true, url: result.url };
             } else {
                 const error = await uploadResponse.json();
@@ -1264,7 +1213,6 @@ ${octantMessage}
 What kind of dreamer are you?
 ${originUrl}`;
         
-        console.log('📝 [Post] Generated post text:', postText);
         
         // Create modal overlay
         const overlay = document.createElement('div');
@@ -1519,7 +1467,6 @@ ${originUrl}`;
         if (barEl) barEl.style.width = percent + '%';
         if (percentEl) percentEl.textContent = Math.round(percent) + '%';
         
-        console.log(`📊 [Progress] ${percent}% - ${message}`);
     }
     
     hideProgressModal() {
@@ -1547,7 +1494,6 @@ ${originUrl}`;
         previewContainer.appendChild(img);
         previewContainer.style.display = 'block';
         
-        console.log('👁️ [Compose] Preview displayed in progress modal');
     }
 }
 

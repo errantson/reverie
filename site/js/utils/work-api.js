@@ -349,4 +349,3 @@ class WorkAPI {
 
 // Export singleton instance
 window.WorkAPI = new WorkAPI();
-console.log('✅ [WorkAPI] Unified work API client loaded');

@@ -200,4 +200,3 @@ class PopupWidget {
 // Create global singleton instance
 window.Popup = new PopupWidget();
 
-console.log('✅ [Popup] Simple popup widget loaded');

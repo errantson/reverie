@@ -85,7 +85,6 @@ class Inbox {
      * Open the inbox and load messages
      */
     async open() {
-        console.log('📬 [inbox.js] Opening inbox...');
         
         if (!this.container) {
             this.createElements();
@@ -224,7 +223,6 @@ class Inbox {
      * View a message (displays it in dialogue widget)
      */
     async viewMessage(messageId) {
-        console.log(`📖 [inbox.js] Viewing message ${messageId}`);
         
         try {
             // Fetch full message
@@ -251,14 +249,12 @@ class Inbox {
                 
                 // Show in dialogue widget
                 if (window.dialogue) {
-                    console.log(`� [inbox.js] Displaying message dialogue: ${msg.dialogue_key}`);
                     
                     // Store original onComplete callback
                     const originalOnComplete = window.dialogue.onComplete;
                     
                     // Set temporary onComplete to update badge after dialogue closes
                     window.dialogue.onComplete = () => {
-                        console.log('✅ [inbox.js] Message dialogue completed');
                         
                         // Update badge count
                         if (window.header && window.header.updateMessageBadge) {
@@ -420,4 +416,3 @@ class Inbox {
 // Create global instance
 window.inbox = new Inbox();
 
-console.log('✅ [inbox.js] Inbox widget loaded');

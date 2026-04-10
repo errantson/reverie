@@ -178,20 +178,15 @@ class Dashboard {
         // First try to get the backend session token (most reliable)
         const oauthToken = localStorage.getItem('oauth_token');
         const adminToken = localStorage.getItem('admin_token');
-        console.log('[Dashboard] getOAuthToken check:');
-        console.log('   - oauth_token:', oauthToken ? oauthToken.substring(0, 20) + '...' : 'NULL');
-        console.log('   - admin_token:', adminToken ? adminToken.substring(0, 20) + '...' : 'NULL');
         
         const backendToken = oauthToken || adminToken;
         if (backendToken) {
-            console.log('[Dashboard] Using backend token');
             return backendToken;
         }
         
         // Fall back to PDS accessJwt if no backend token
         const session = window.oauthManager?.getSession();
         if (session && session.accessJwt) {
-            console.log('[Dashboard] Using accessJwt from session (no backend token found)');
             return session.accessJwt;
         }
         
@@ -201,7 +196,6 @@ class Dashboard {
             try {
                 const pdsSession = JSON.parse(pdsSessionStr);
                 if (pdsSession.accessJwt) {
-                    console.log('[Dashboard] Using accessJwt from PDS session');
                     return pdsSession.accessJwt;
                 }
             } catch (e) {
@@ -234,16 +228,11 @@ class Dashboard {
      * @returns {boolean} True if user logged in via Side Door
      */
     isSideDoorUser() {
-        // PDS session (app password) always has full access
-        if (localStorage.getItem('pds_session')) {
-            return false;
-        }
-        // Main door login has full access
-        if (localStorage.getItem('mainDoorLogin') === 'true') {
-            return false;
-        }
-        // Check if explicitly side door
-        return localStorage.getItem('sideDoorLogin') === 'true';
+        return window.AuthGate ? window.AuthGate.isSideDoorUser() : (
+            localStorage.getItem('sideDoorLogin') === 'true' &&
+            !localStorage.getItem('pds_session') &&
+            localStorage.getItem('mainDoorLogin') !== 'true'
+        );
     }
 
     /**
@@ -265,7 +254,7 @@ class Dashboard {
                     <button class="permission-btn-cancel" onclick="this.closest('.permission-request-modal').remove()">
                         Cancel
                     </button>
-                    <button class="permission-btn-grant" onclick="window.location.href='/login.html'">
+                    <button class="permission-btn-grant" onclick="this.closest('.permission-request-modal').remove(); if (window.loginWidget) window.loginWidget.showLoginPopup();">
                         Log In
                     </button>
                 </div>
@@ -314,7 +303,6 @@ class Dashboard {
      * @param {string} action - Action that triggered the request (for analytics)
      */
     async grantWritePermission(action) {
-        console.log(`[Dashboard] Requesting write permission for: ${action}`);
         
         // Store the action in sessionStorage so we can resume after OAuth redirect
         sessionStorage.setItem('oauth_pending_action', action);
@@ -336,7 +324,6 @@ class Dashboard {
         const pendingAction = sessionStorage.getItem('oauth_pending_action');
         if (!pendingAction) return;
         
-        console.log(`[Dashboard] Resuming action after OAuth grant: ${pendingAction}`);
         sessionStorage.removeItem('oauth_pending_action');
         
         // Show success notification
@@ -413,44 +400,37 @@ class Dashboard {
         
         // Listen for greeter status changes from work.html
         window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_ACTIVATED, () => {
-            console.log('🔔 [Dashboard] Greeter activated - refreshing roles section');
             this.renderRolesCharacterSection();
             this.refreshUserStatus();
         });
         
         window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_STEPPED_DOWN, () => {
-            console.log('🔔 [Dashboard] Greeter stepped down - refreshing roles section');
             this.renderRolesCharacterSection();
             this.refreshUserStatus();
         });
         
         window.WorkEvents.on(window.WorkEvents.EVENTS.GREETER_STATUS_CHANGED, () => {
-            console.log('🔔 [Dashboard] Greeter status changed - refreshing roles section');
             this.renderRolesCharacterSection();
             this.refreshUserStatus();
         });
         
         // Listen for mapper status changes from work.html
         window.WorkEvents.on(window.WorkEvents.EVENTS.MAPPER_ACTIVATED, () => {
-            console.log('🔔 [Dashboard] Mapper activated - refreshing roles section');
             this.renderRolesCharacterSection();
             this.refreshUserStatus();
         });
         
         window.WorkEvents.on(window.WorkEvents.EVENTS.MAPPER_STEPPED_DOWN, () => {
-            console.log('🔔 [Dashboard] Mapper stepped down - refreshing roles section');
             this.renderRolesCharacterSection();
             this.refreshUserStatus();
         });
         
         window.WorkEvents.on(window.WorkEvents.EVENTS.MAPPER_STATUS_CHANGED, () => {
-            console.log('🔔 [Dashboard] Mapper status changed - refreshing roles section');
             this.renderRolesCharacterSection();
             this.refreshUserStatus();
         });
         
         window.WorkEvents.on(window.WorkEvents.EVENTS.CREDENTIALS_CONNECTED, () => {
-            console.log('🔔 [Dashboard] Credentials connected - refreshing roles section');
             this.renderRolesCharacterSection();
             this.updateStatusDisplay();
             // Update schedule input state to reflect credentials are now available
@@ -460,7 +440,6 @@ class Dashboard {
         });
         
         window.WorkEvents.on(window.WorkEvents.EVENTS.CREDENTIALS_DISCONNECTED, () => {
-            console.log('🔔 [Dashboard] Credentials disconnected - refreshing roles section');
             this.renderRolesCharacterSection();
             this.updateStatusDisplay();
             // Update schedule input state to reflect credentials are no longer available
@@ -469,30 +448,20 @@ class Dashboard {
             }
         });
         
-        console.log('✅ [Dashboard] Work event listeners set up');
     }
     
     async loadData() {
-        console.log('🔄 [Dashboard] loadData() called');
         try {
-            console.log('🌐 [Dashboard] Fetching /api/dreamers');
             const response = await fetch('/api/dreamers');
             if (!response.ok) throw new Error('Failed to load dreamer data');
             
             const allDreamers = await response.json();
-            console.log('📥 [Dashboard] Received', allDreamers.length, 'dreamers from API');
             
             this.dreamerData = allDreamers.find(d => d.did === this.session.did);
             
             if (!this.dreamerData) {
                 throw new Error('Your profile was not found in the database. You may need to register.');
             }
-            
-            console.log('✅ [Dashboard] Found dreamer data:', {
-                display_name: this.dreamerData.display_name,
-                avatar: this.dreamerData.avatar?.substring(0, 60) + '...',
-                handle: this.dreamerData.handle
-            });
             
             // Update color manager with fresh user color
             const userColor = this.dreamerData.color_hex || '#734ba1';
@@ -520,7 +489,6 @@ class Dashboard {
             }
             
             await this.loadLoreCount();
-            console.log('✅ [Dashboard] loadData() complete');
         } catch (error) {
             console.error('❌ [Dashboard] Error in loadData():', error);
             this.renderError(error);
@@ -529,25 +497,39 @@ class Dashboard {
     
     async loadLoreCount() {
         try {
-            // PERFORMANCE: Add 2 second timeout to prevent hanging
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
             
-            const handle = this.dreamerData.handle;
-            const response = await fetch(
-                `https://lore.farm/xrpc/com.atproto.label.queryLabels?limit=5000`,
-                { signal: controller.signal }
-            );
+            const did = this.dreamerData.did;
+            
+            // Fetch content and canon counts from lore.farm indexer API
+            const [contentResp, canonResp] = await Promise.all([
+                fetch(
+                    `https://lore.farm/api/worlds/reverie.house/content/indexed?did=${encodeURIComponent(did)}&limit=1`,
+                    { signal: controller.signal }
+                ),
+                fetch(
+                    `https://lore.farm/api/worlds/reverie.house/canon/indexed?limit=500`,
+                    { signal: controller.signal }
+                )
+            ]);
             clearTimeout(timeoutId);
             
-            if (!response.ok) throw new Error('Failed to load labels');
+            let loreCount = 0;
+            let canonCount = 0;
             
-            const data = await response.json();
-            const labels = data.labels || [];
+            if (contentResp.ok) {
+                const contentData = await contentResp.json();
+                loreCount = contentData.count || 0;
+            }
             
-            const userLabels = labels.filter(label => label.uri && label.uri.includes(this.dreamerData.did));
-            const loreCount = userLabels.filter(l => l.val && l.val.startsWith('lore:')).length;
-            const canonCount = userLabels.filter(l => l.val && l.val.startsWith('canon:')).length;
+            if (canonResp.ok) {
+                const canonData = await canonResp.json();
+                // Count canon entries that reference this user's posts
+                canonCount = (canonData.canon || []).filter(c => 
+                    c.subjectUri && c.subjectUri.startsWith(`at://${did}/`)
+                ).length;
+            }
             
             this.loreCount = loreCount;
             this.canonCount = canonCount;
@@ -644,17 +626,10 @@ class Dashboard {
     }
 
     async render() {
-        console.log('🎨 [Dashboard] render() called');
         if (!this.dreamerData) {
             console.warn('⚠️ [Dashboard] render() called but dreamerData is null/undefined');
             return;
         }
-
-        console.log('🎨 [Dashboard] Rendering with data:', {
-            display_name: this.dreamerData.display_name,
-            avatar: this.dreamerData.avatar?.substring(0, 60) + '...',
-            handle: this.dreamerData.handle
-        });
 
         const d = this.dreamerData;
         
@@ -690,14 +665,14 @@ class Dashboard {
                         <div class="system-controls-content">
                             <div class="system-control-section">
                                 <div class="dashboard-tabs">
-                                    <button class="dashboard-tab ${isSideDoor ? 'disabled-tab' : 'active'}" id="composeTab" onclick="window.dashboardWidget.switchTab('compose')">
+                                    <button class="dashboard-tab ${isSideDoor ? 'disabled-tab gated-tab' : 'active'}" id="composeTab" onclick="window.dashboardWidget.switchTab('compose')">
                                         <svg class="tab-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: relative; top: 3px;">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                         </svg>
                                         Compose
                                     </button>
-                                    <button class="dashboard-tab ${isSideDoor ? 'disabled-tab' : ''}" id="detailsTab" onclick="window.dashboardWidget.switchTab('details')">
+                                    <button class="dashboard-tab ${isSideDoor ? 'disabled-tab gated-tab' : ''}" id="detailsTab" onclick="window.dashboardWidget.switchTab('details')">
                                         <svg class="tab-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: relative; top: 3px;">
                                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                             <circle cx="12" cy="7" r="4"></circle>
@@ -1205,13 +1180,13 @@ class Dashboard {
     }
     
     handleShareLore() {
-        console.log('📝 [Dashboard] Share Lore button clicked');
         
         // Check if Side Door user - prompt for credentials
         if (this.isSideDoorUser()) {
-            console.log('🚪 Side Door user - prompting for credentials for share lore');
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
+            if (window.AuthGate) {
+                window.AuthGate.requireWriteAccess({ feature: 'Share Lore' });
+            } else if (window.oauthManager?.upgradeToMainDoor) {
+                window.oauthManager.upgradeToMainDoor();
             }
             return;
         }
@@ -1219,7 +1194,6 @@ class Dashboard {
         // Check if user is logged in
         const session = window.oauthManager?.getSession?.();
         if (!session) {
-            console.log('⚠️ [Dashboard] No session, showing login');
             // Trigger login
             if (window.loginWidget && window.loginWidget.showLoginPopup) {
                 window.loginWidget.showLoginPopup();
@@ -1229,20 +1203,16 @@ class Dashboard {
         
         // Open share lore modal - create widget instance if needed
         if (window.shareLoreWidget) {
-            console.log('✅ [Dashboard] Opening share lore modal (existing instance)');
             window.shareLoreWidget.show();
         } else if (window.ShareLore) {
             // Create a new instance if the class is loaded but no widget exists
-            console.log('🔄 [Dashboard] Creating new ShareLore instance');
             window.shareLoreWidget = new window.ShareLore();
             window.shareLoreWidget.show();
         } else {
             // Script not loaded yet, try loading it
-            console.log('⏳ [Dashboard] ShareLore not loaded, attempting to load...');
             const script = document.createElement('script');
             script.src = '/js/widgets/sharelore.js';
             script.onload = () => {
-                console.log('✅ [Dashboard] ShareLore script loaded');
                 if (window.ShareLore) {
                     window.shareLoreWidget = new window.ShareLore();
                     window.shareLoreWidget.show();
@@ -1259,12 +1229,10 @@ class Dashboard {
     }
     
     handleDeleteAccount() {
-        console.log('🗑️ [Dashboard] Delete Account button clicked');
         
         // Check if user is logged in
         const session = window.oauthManager?.getSession?.();
         if (!session) {
-            console.log('⚠️ [Dashboard] No session, cannot delete account');
             return;
         }
         
@@ -1272,18 +1240,15 @@ class Dashboard {
         const handle = this.dreamerData?.handle || '';
         const isResident = handle === 'reverie.house' || handle.endsWith('.reverie.house');
         if (!isResident) {
-            console.log('⚠️ [Dashboard] Delete account only available for reverie.house users');
             return;
         }
         
         // Ensure modal is loaded and initialized
         const openModal = () => {
             if (window.deleteAccountModal) {
-                console.log('✅ [Dashboard] Opening delete account modal');
                 window.deleteAccountModal.open(session);
             } else if (window.DeleteAccountModal) {
                 // Class is loaded but not instantiated yet
-                console.log('🔄 [Dashboard] Initializing delete account modal');
                 window.deleteAccountModal = new window.DeleteAccountModal();
                 window.deleteAccountModal.open(session);
             } else {
@@ -1376,15 +1341,24 @@ class Dashboard {
                 return;
             }
             
-            resultsDiv.innerHTML = filtered.map(d => `
-                <div class="dreamer-search-result" onclick="window.dashboardWidget.selectDreamerHeading('${d.did}', '${d.name.replace(/'/g, "\\'")}')">
-                    <img src="${d.avatar || '/assets/icon_face.png'}" alt="${d.name}" class="dreamer-result-avatar" onerror="this.src='/assets/icon_face.png'">
+            resultsDiv.innerHTML = filtered.map(d => {
+                const safeDid = d.did.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+                const safeName = d.name.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+                const safeHandle = d.handle.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+                return `
+                <div class="dreamer-search-result" data-did="${safeDid}" data-name="${safeName}">
+                    <img src="${d.avatar || '/assets/icon_face.png'}" alt="${safeName}" class="dreamer-result-avatar" onerror="this.src='/assets/icon_face.png'">
                     <div class="dreamer-result-info">
-                        <div class="dreamer-result-name">${d.name}</div>
-                        <div class="dreamer-result-handle">@${d.handle}</div>
+                        <div class="dreamer-result-name">${safeName}</div>
+                        <div class="dreamer-result-handle">@${safeHandle}</div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
+            resultsDiv.querySelectorAll('.dreamer-search-result').forEach(el => {
+                el.addEventListener('click', () => {
+                    window.dashboardWidget.selectDreamerHeading(el.dataset.did, el.dataset.name);
+                });
+            });
         };
         
         input.addEventListener('input', (e) => showResults(e.target.value));
@@ -1416,14 +1390,6 @@ class Dashboard {
         if (confirmBtn) confirmBtn.disabled = false;
     }
 
-    async renderSouvenirs() {
-        try {
-            return '';
-        } catch (error) {
-            return '';
-        }
-    }
-    
     async renderCanonLog() {
         try {
             const response = await fetch('/api/canon');
@@ -1902,7 +1868,6 @@ class Dashboard {
                 throw new Error(error.message || 'Failed to update phanera');
             }
 
-            console.log('✅ [Dashboard] Phanera saved to server:', phaneraKey);
             this.dreamerData.phanera = phaneraKey;
             
             const phaneraImageDisplay = document.querySelector('.phanera-preview-image');
@@ -2281,7 +2246,7 @@ class Dashboard {
     }
 
     async formatContribution(dreamer) {
-        // Fetch real canon and lore counts from lore.farm labels
+        // Fetch real canon and lore counts from lore.farm indexer API
         let canonCount = 0;
         let loreCount = 0;
         
@@ -2296,41 +2261,38 @@ class Dashboard {
             } else {
                 // Cache expired, fetch fresh data
                 try {
-                    // PERFORMANCE: Add 2 second timeout
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 2000);
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
                     
-                    const labelsResponse = await fetch(
-                        `https://lore.farm/xrpc/com.atproto.label.queryLabels?uriPatterns=at://${dreamer.did}/*&limit=1000`,
-                        { signal: controller.signal }
-                    );
+                    const [contentResp, canonResp] = await Promise.all([
+                        fetch(
+                            `https://lore.farm/api/worlds/reverie.house/content/indexed?did=${encodeURIComponent(dreamer.did)}&limit=1`,
+                            { signal: controller.signal }
+                        ),
+                        fetch(
+                            `https://lore.farm/api/worlds/reverie.house/canon/indexed?limit=500`,
+                            { signal: controller.signal }
+                        )
+                    ]);
                     clearTimeout(timeoutId);
                     
-                    if (labelsResponse.ok) {
-                        const labelsData = await labelsResponse.json();
-                        const labels = labelsData.labels || [];
-                        
-                        // Count canon and lore labels that belong to this user
-                        labels.forEach(label => {
-                            if (label.uri && label.uri.startsWith(`at://${dreamer.did}/`)) {
-                                if (label.val === 'canon:reverie.house') {
-                                    canonCount++;
-                                } else if (label.val === 'lore:reverie.house') {
-                                    loreCount++;
-                                }
-                            }
-                        });
-                        
-                        // Cache the results
-                        sessionStorage.setItem(cacheKey, JSON.stringify({
-                            timestamp: Date.now(),
-                            data: { canonCount, loreCount }
-                        }));
+                    if (contentResp.ok) {
+                        loreCount = (await contentResp.json()).count || 0;
                     }
+                    if (canonResp.ok) {
+                        const canonData = await canonResp.json();
+                        canonCount = (canonData.canon || []).filter(c =>
+                            c.subjectUri && c.subjectUri.startsWith(`at://${dreamer.did}/`)
+                        ).length;
+                    }
+                    
+                    sessionStorage.setItem(cacheKey, JSON.stringify({
+                        timestamp: Date.now(),
+                        data: { canonCount, loreCount }
+                    }));
                 } catch (error) {
-                    // Silent fail if lore.farm is down - use fallback
                     if (error.name !== 'AbortError') {
-                        console.error('Error fetching label counts:', error);
+                        console.error('Error fetching contribution counts:', error);
                     }
                     canonCount = dreamer.canon_contribution || 0;
                     loreCount = dreamer.lore_contribution || 0;
@@ -2340,38 +2302,37 @@ class Dashboard {
             // No cache, fetch fresh data
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
                 
-                const labelsResponse = await fetch(
-                    `https://lore.farm/xrpc/com.atproto.label.queryLabels?uriPatterns=at://${dreamer.did}/*&limit=1000`,
-                    { signal: controller.signal }
-                );
+                const [contentResp, canonResp] = await Promise.all([
+                    fetch(
+                        `https://lore.farm/api/worlds/reverie.house/content/indexed?did=${encodeURIComponent(dreamer.did)}&limit=1`,
+                        { signal: controller.signal }
+                    ),
+                    fetch(
+                        `https://lore.farm/api/worlds/reverie.house/canon/indexed?limit=500`,
+                        { signal: controller.signal }
+                    )
+                ]);
                 clearTimeout(timeoutId);
                 
-                if (labelsResponse.ok) {
-                    const labelsData = await labelsResponse.json();
-                    const labels = labelsData.labels || [];
-                    
-                    labels.forEach(label => {
-                        if (label.uri && label.uri.startsWith(`at://${dreamer.did}/`)) {
-                            if (label.val === 'canon:reverie.house') {
-                                canonCount++;
-                            } else if (label.val === 'lore:reverie.house') {
-                                loreCount++;
-                            }
-                        }
-                    });
-                    
-                    // Cache the results
-                    sessionStorage.setItem(cacheKey, JSON.stringify({
-                        timestamp: Date.now(),
-                        data: { canonCount, loreCount }
-                    }));
+                if (contentResp.ok) {
+                    loreCount = (await contentResp.json()).count || 0;
                 }
+                if (canonResp.ok) {
+                    const canonData = await canonResp.json();
+                    canonCount = (canonData.canon || []).filter(c =>
+                        c.subjectUri && c.subjectUri.startsWith(`at://${dreamer.did}/`)
+                    ).length;
+                }
+                
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                    timestamp: Date.now(),
+                    data: { canonCount, loreCount }
+                }));
             } catch (error) {
-                // Silent fail if lore.farm is down
                 if (error.name !== 'AbortError') {
-                    console.error('Error fetching label counts:', error);
+                    console.error('Error fetching contribution counts:', error);
                 }
                 canonCount = dreamer.canon_contribution || 0;
                 loreCount = dreamer.lore_contribution || 0;
@@ -2674,7 +2635,6 @@ class Dashboard {
                     throw new Error(error.message || 'Failed to update color');
                 }
 
-                console.log('✅ [Dashboard] Color saved to server:', hexColor);
                 this.dreamerData.color_hex = hexColor;
                 
             } catch (error) {
@@ -2745,7 +2705,6 @@ class Dashboard {
                 window.colorManager.setColor(hexColor, 'user');
             }
             
-            console.log('✅ [Dashboard] Color saved:', hexColor);
             
             // Reset button after delay
             setTimeout(() => {
@@ -2928,11 +2887,12 @@ class Dashboard {
     }
 
     async changeHandle() {
-        // Check if Side Door user - prompt for credentials
+        // Check if Side Door user - prompt for write access
         if (this.isSideDoorUser()) {
-            console.log('🚪 Side Door user - prompting for credentials for handle change');
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
+            if (window.AuthGate) {
+                window.AuthGate.requireWriteAccess({ feature: 'Handle Change' });
+            } else if (window.oauthManager?.upgradeToMainDoor) {
+                window.oauthManager.upgradeToMainDoor();
             }
             return;
         }
@@ -2954,11 +2914,6 @@ class Dashboard {
         // Extract the name portion from handle (e.g., "libre" from "libre.reverie.house")
         const name = selectedHandle.replace('.reverie.house', '');
         
-        console.log('🔄 [Dashboard] changeHandle() called');
-        console.log('   Selected handle:', selectedHandle);
-        console.log('   Extracted name:', name);
-        console.log('   Current dreamerData.name:', this.dreamerData.name);
-        console.log('   Current dreamerData.handle:', this.dreamerData.handle);
         
         btn.disabled = true;
         btn.textContent = 'ADOPT';
@@ -2970,8 +2925,6 @@ class Dashboard {
                 throw new Error('Please login');
             }
             
-            console.log('📤 [Dashboard] Sending request to /api/user/set-primary-name');
-            console.log('   Payload:', { name: name });
             
             const response = await fetch('/api/user/set-primary-name', {
                 method: 'POST',
@@ -2982,7 +2935,6 @@ class Dashboard {
                 body: JSON.stringify({ name: name })
             });
             
-            console.log('📥 [Dashboard] Response status:', response.status);
             
             if (!response.ok) {
                 const error = await response.json();
@@ -3000,11 +2952,9 @@ class Dashboard {
             }
             
             const result = await response.json();
-            console.log('✅ [Dashboard] API response:', result);
             
             // Check if PDS was updated
             if (result.pds_updated) {
-                console.log('✅ [Dashboard] Handle updated on PDS!');
             }
             
             // Update all local data
@@ -3012,10 +2962,6 @@ class Dashboard {
             this.dreamerData.handle = result.handle || selectedHandle;
             this.dreamerData.alt_names = result.alt_names;
             
-            console.log('📋 [Dashboard] Updated local data:');
-            console.log('   name:', this.dreamerData.name);
-            console.log('   handle:', this.dreamerData.handle);
-            console.log('   alt_names:', this.dreamerData.alt_names);
             
             // Update visible UI elements
             this.updateHandleDisplays(result.handle || selectedHandle, result.primary_name, result.alt_names);
@@ -3053,10 +2999,6 @@ class Dashboard {
      * Update all visible handle/name displays after a handle change
      */
     updateHandleDisplays(newHandle, newName, newAlts) {
-        console.log('🎨 [Dashboard] Updating UI displays:');
-        console.log('   newHandle:', newHandle);
-        console.log('   newName:', newName);
-        console.log('   newAlts:', newAlts);
         
         // Update handle in details tab - use DID for link stability
         const did = this.dreamerData?.did;
@@ -3068,7 +3010,6 @@ class Dashboard {
                 if (did) {
                     link.href = `https://bsky.app/profile/${did}`;
                 }
-                console.log('   Updated handle link:', newHandle);
             }
         });
         
@@ -3082,14 +3023,12 @@ class Dashboard {
                 const valueEl = row.querySelector('.dashboard-info-value');
                 if (valueEl) {
                     valueEl.textContent = newName;
-                    console.log('   Updated Name field:', newName);
                 }
             } else if (label.textContent === 'Pseudonyms') {
                 const valueEl = row.querySelector('.dashboard-info-value');
                 if (valueEl) {
                     valueEl.innerHTML = this.renderAltNames(newAlts);
                     valueEl.title = newAlts || 'none';
-                    console.log('   Updated Pseudonyms:', newAlts);
                 }
             }
         }
@@ -3259,11 +3198,9 @@ class Dashboard {
         // Display designation in uppercase
         const designation = (this.dreamerData.designation || 'Dreamer').toUpperCase();
         statusEl.textContent = designation;
-        console.log(`[Dashboard] Designation displayed: ${designation}`);
     }
     
     async refreshUserStatus() {
-        console.log('🔄 [Dashboard] refreshUserDesignation() called');
         const token = await this.getOAuthToken();
         if (!token) {
             console.warn('⚠️ [Dashboard] No auth token for designation refresh');
@@ -3278,7 +3215,6 @@ class Dashboard {
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ [Dashboard] Designation refreshed from server:', data.designation);
                 
                 // Update local dreamer data
                 if (this.dreamerData) {
@@ -3345,16 +3281,14 @@ class Dashboard {
                 console.warn('Failed to fetch worker roles:', error);
             }
             
-            // Fetch character status
+            // Fetch character status via indexer API
             try {
-                const statusResponse = await fetch('/api/lore/character-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ did: this.session.did })
-                });
+                const statusResponse = await fetch(
+                    `https://lore.farm/api/worlds/reverie.house/characters/${this.session.did}/indexed`
+                );
                 if (statusResponse.ok) {
                     const statusData = await statusResponse.json();
-                    isCharacter = statusData.is_character || false;
+                    isCharacter = !!statusData.member;
                 }
             } catch (error) {
                 console.warn('Failed to fetch character status:', error);
@@ -3363,24 +3297,19 @@ class Dashboard {
             // Fetch app password status - simple check: does user have credentials?
             try {
                 let token = await this.getOAuthToken();
-                console.log('🔐 [Dashboard] Credentials check - token:', token ? token.substring(0, 20) + '...' : 'NULL');
                 
                 if (token) {
                     const credResponse = await fetch('/api/user/credentials/status', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
-                    console.log('🔐 [Dashboard] Credentials response status:', credResponse.status);
                     
                     if (credResponse.ok) {
                         const credData = await credResponse.json();
-                        console.log('🔐 [Dashboard] Credentials data:', JSON.stringify(credData));
                         isConnected = credData.connected || false;
                         credentialUpdateDate = credData.created_at || null;
-                        console.log('🔐 [Dashboard] isConnected set to:', isConnected);
                     } else if (credResponse.status === 401) {
                         // Token expired - try to refresh by calling autoRegister
-                        console.log('🔐 [Dashboard] Token expired, attempting to refresh...');
                         const session = this.session || window.oauthManager?.getSession();
                         if (session && session.did && window.oauthManager?.autoRegister) {
                             try {
@@ -3388,7 +3317,6 @@ class Dashboard {
                                 // Try again with new token
                                 token = await this.getOAuthToken();
                                 if (token) {
-                                    console.log('🔐 [Dashboard] Token refreshed, retrying credentials check');
                                     const retryResponse = await fetch('/api/user/credentials/status', {
                                         headers: { 'Authorization': `Bearer ${token}` }
                                     });
@@ -3396,7 +3324,6 @@ class Dashboard {
                                         const credData = await retryResponse.json();
                                         isConnected = credData.connected || false;
                                         credentialUpdateDate = credData.created_at || null;
-                                        console.log('🔐 [Dashboard] Retry successful, isConnected:', isConnected);
                                     }
                                 }
                             } catch (refreshError) {
@@ -3439,7 +3366,7 @@ class Dashboard {
             // Share Lore & Find Origin - both buttons in one row
             html += `
                 <div class="tool-row" style="justify-content: flex-start; gap: 8px;">
-                    <button class="tool-btn ${isSideDoor ? 'unavailable' : ''}" 
+                    <button class="tool-btn ${isSideDoor ? 'gated-feature' : ''}" 
                             onclick="window.dashboardWidget.handleShareLore()">
                         SHARE LORE
                     </button>
@@ -3452,11 +3379,6 @@ class Dashboard {
             
             // Handle Selector Tool FIRST - build available handles from name + alts
             const availableHandles = [];
-            console.log('🔧 [Dashboard] Building handle list from:', {
-                name: this.dreamerData.name,
-                alt_names: this.dreamerData.alt_names,
-                current_handle: this.dreamerData.handle
-            });
             
             if (this.dreamerData.name) {
                 availableHandles.push(`${this.dreamerData.name}.reverie.house`);
@@ -3467,22 +3389,20 @@ class Dashboard {
             }
             const currentHandle = this.dreamerData.handle || '';
             
-            console.log('🔧 [Dashboard] Available handles:', availableHandles);
             
             if (availableHandles.length > 0) {
                 html += `
-                    <div class="tool-row handle-tool ${isSideDoor ? 'disabled-tool' : ''}">
+                    <div class="tool-row handle-tool ${isSideDoor ? 'gated-feature' : ''}">
                         <span class="tool-label">Handle</span>
-                        <select class="handle-select" id="handleSelect">
+                        <select class="handle-select" id="handleSelect" ${isSideDoor ? 'disabled' : ''}>
                             ${availableHandles.map(h => `<option value="${h}" ${h === currentHandle ? 'selected' : ''}>@${h}</option>`).join('')}
                         </select>
-                        <button class="tool-btn handle-set-btn ${isSideDoor ? 'unavailable' : ''}" id="handleConfirmBtn" onclick="window.dashboardWidget.changeHandle()">
+                        <button class="tool-btn handle-set-btn ${isSideDoor ? 'gated-feature' : ''}" id="handleConfirmBtn" onclick="window.dashboardWidget.changeHandle()">
                             ${isSideDoor ? 'VISITING' : 'CHANGE'}
                         </button>
                     </div>
                 `;
             } else {
-                console.log('⚠️ [Dashboard] No handles available - Handle tool not shown');
             }
             
             // Heading Selector Tool
@@ -3515,10 +3435,10 @@ class Dashboard {
             
             // Invites Tool - user's personal invite codes
             html += `
-                <div class="tool-row invites-tool ${isSideDoor ? 'disabled-tool' : ''}">
+                <div class="tool-row invites-tool ${isSideDoor ? 'gated-feature' : ''}">
                     <span class="tool-label">Create Invites</span>
                     <span class="invites-counter" id="invitesCounter">—/— redeemed</span>
-                    <button class="tool-btn ${isSideDoor ? 'unavailable' : ''}" 
+                    <button class="tool-btn ${isSideDoor ? 'gated-feature' : ''}" 
                             onclick="window.dashboardWidget.openInvitesPopup()">
                         GET CODE
                     </button>
@@ -3533,7 +3453,7 @@ class Dashboard {
             
             // Show character toggle at the top - greyed for Side Door users but clickable
             html += `
-                <div class="character-row ${isSideDoor ? 'disabled-tool' : ''}">
+                <div class="character-row ${isSideDoor ? 'gated-feature' : ''}">
                     <span class="character-label">Approved for Lore</span>
                     <label class="character-toggle ${isSideDoor ? 'disabled' : ''}">
                         <input type="checkbox" 
@@ -3549,9 +3469,9 @@ class Dashboard {
             const shieldEnabled = this.dreamerData?.community_shield !== false;
             const shieldUnlocked = this.dreamerData?.shield_unlocked === true;
             html += `
-                <div class="character-row ${isSideDoor ? 'disabled-tool' : ''}">
+                <div class="character-row">
                     <span class="character-label">Community Shield</span>
-                    <label class="character-toggle ${isSideDoor ? 'disabled' : ''}">
+                    <label class="character-toggle">
                         <input type="checkbox" 
                                id="communityShieldToggle" 
                                ${shieldEnabled ? 'checked' : ''}
@@ -3674,14 +3594,15 @@ class Dashboard {
     }
     
     async toggleCharacter(enabled) {
-        // Check if Side Door user - prompt for credentials
+        // Check if Side Door user - prompt for write access
         if (this.isSideDoorUser()) {
-            console.log('🚪 Side Door user - prompting for credentials for character toggle');
             // Revert the checkbox to its previous state
             const checkbox = document.getElementById('characterToggle');
             if (checkbox) checkbox.checked = !enabled;
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
+            if (window.AuthGate) {
+                window.AuthGate.requireWriteAccess({ feature: 'Character Toggle' });
+            } else if (window.oauthManager?.upgradeToMainDoor) {
+                window.oauthManager.upgradeToMainDoor();
             }
             return;
         }
@@ -3695,57 +3616,29 @@ class Dashboard {
             }
             
             if (enabled) {
-                const payload = {
-                    userDid: this.session.did,
-                    characterName: this.session.handle || this.session.did
-                };
-                console.log('🎭 Registering character:', payload);
                 
-                const response = await fetch('/api/lore/register-character', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(payload)
+                const result = await window.oauthManager.createRecord('farm.lore.character', {
+                    world: 'reverie.house',
+                    createdAt: new Date().toISOString(),
                 });
-                
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error('Register character failed:', response.status, errorData);
-                    throw new Error(errorData.error || 'Failed to register as character');
-                }
-                
-                const result = await response.json();
-                console.log('✅ Character registered:', result);
             } else {
-                const payload = { 
-                    userDid: this.session.did,
-                    characterName: this.session.handle || this.session.did
-                };
-                console.log('🎭 Unregistering character:', payload);
                 
-                const response = await fetch('/api/lore/unregister-character', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error('Unregister character failed:', response.status, errorData);
-                    throw new Error(errorData.error || 'Failed to unregister as character');
+                // Look up the rkey from the indexer
+                const lookupResp = await fetch(
+                    `https://lore.farm/api/worlds/reverie.house/characters/${this.session.did}/indexed`
+                );
+                if (!lookupResp.ok) {
+                    throw new Error('Could not find character record');
+                }
+                const lookupData = await lookupResp.json();
+                if (!lookupData.rkey) {
+                    throw new Error('Character record key not found');
                 }
                 
-                const result = await response.json();
-                console.log('✅ Character unregistered:', result);
+                await window.oauthManager.deleteRecord('farm.lore.character', lookupData.rkey);
             }
             
             // Refresh user designation in database
-            console.log('🔄 [Dashboard] Refreshing user designation after character toggle');
             try {
                 const statusResponse = await fetch('/api/user/refresh-designation', {
                     method: 'POST',
@@ -3754,7 +3647,6 @@ class Dashboard {
                 
                 if (statusResponse.ok) {
                     const statusData = await statusResponse.json();
-                    console.log('✅ [Dashboard] Designation refreshed:', statusData.designation);
                     
                     // Update local dreamer data
                     if (this.dreamerData) {
@@ -3786,17 +3678,6 @@ class Dashboard {
     }
     
     async toggleCommunityShield(enabled) {
-        // Check if Side Door user - prompt for credentials
-        if (this.isSideDoorUser()) {
-            console.log('🚪 Side Door user - prompting for credentials for shield toggle');
-            const checkbox = document.getElementById('communityShieldToggle');
-            if (checkbox) checkbox.checked = !enabled;
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
-            }
-            return;
-        }
-        
         try {
             const token = await this.getOAuthToken();
             if (!token) {
@@ -3840,7 +3721,6 @@ class Dashboard {
                 throw new Error(result.error || 'Failed to update shield');
             }
             
-            console.log(`🛡️ Community Shield ${enabled ? 'enabled' : 'disabled'}`);
             
             // Update local data
             if (this.dreamerData) {
@@ -4046,7 +3926,6 @@ class Dashboard {
                     }
                     
                     // Refresh user designation in database
-                    console.log('🔄 [Dashboard] Refreshing user designation after stepping down');
                     try {
                         const statusResponse = await fetch('/api/user/refresh-designation', {
                             method: 'POST',
@@ -4055,7 +3934,6 @@ class Dashboard {
                         
                         if (statusResponse.ok) {
                             const statusData = await statusResponse.json();
-                            console.log('✅ [Dashboard] Designation refreshed:', statusData.designation);
                             
                             // Update local dreamer data and display
                             if (this.dreamerData) {
@@ -4105,7 +3983,6 @@ class Dashboard {
                     }
                     
                     // Refresh user designation in database
-                    console.log('🔄 [Dashboard] Refreshing user designation after stepping down');
                     try {
                         const statusResponse = await fetch('/api/user/refresh-designation', {
                             method: 'POST',
@@ -4114,7 +3991,6 @@ class Dashboard {
                         
                         if (statusResponse.ok) {
                             const statusData = await statusResponse.json();
-                            console.log('✅ [Dashboard] Designation refreshed:', statusData.designation);
                             
                             // Update local dreamer data and display
                             if (this.dreamerData) {
@@ -4211,13 +4087,13 @@ class Dashboard {
      * Open the invites popup to show/reveal user's personal invite codes
      */
     async openInvitesPopup() {
-        console.log('🎫 [Dashboard] Opening invites popup');
         
         // Check if Side Door user
         if (this.isSideDoorUser()) {
-            console.log('🚪 Side Door user - prompting for credentials');
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
+            if (window.AuthGate) {
+                window.AuthGate.requireWriteAccess({ feature: 'Invite Codes' });
+            } else if (window.oauthManager?.upgradeToMainDoor) {
+                window.oauthManager.upgradeToMainDoor();
             }
             return;
         }
@@ -4225,7 +4101,6 @@ class Dashboard {
         // Check if logged in
         const session = window.oauthManager?.getSession?.();
         if (!session) {
-            console.log('⚠️ [Dashboard] No session, showing login');
             if (window.loginWidget && window.loginWidget.showLoginPopup) {
                 window.loginWidget.showLoginPopup();
             }
@@ -4405,7 +4280,6 @@ class Dashboard {
      * Reveal an invite code (generates it from PDS if needed)
      */
     async revealInviteCode(slot, buttonElement) {
-        console.log(`🎫 [Dashboard] Revealing invite slot ${slot}`);
         
         // Show loading state
         buttonElement.disabled = true;
@@ -4553,7 +4427,6 @@ class Dashboard {
             const token = await this.getOAuthToken();
             // Only proceed if we have a valid-looking token (at least 20 chars)
             if (!token || token.length < 20) {
-                console.log('[Dashboard] Skipping invites counter - no valid token');
                 return;
             }
             
@@ -4569,7 +4442,6 @@ class Dashboard {
             }
         } catch (error) {
             // Silently fail - this is just updating a counter
-            console.log('[Dashboard] Invites counter load skipped:', error.message);
         }
     }
     
@@ -4892,7 +4764,6 @@ class Dashboard {
     }
 
     async saveDisplayName() {
-        console.log('🔄 [Dashboard] saveDisplayName() called');
         const input = document.getElementById('displayNameInput');
         const statusEl = document.getElementById('editNameStatus');
         const newName = input.value.trim().toLowerCase();
@@ -4916,13 +4787,11 @@ class Dashboard {
             return;
         }
 
-        console.log('📝 [Dashboard] Updating name to:', newName);
         statusEl.textContent = 'Updating name...';
         statusEl.className = 'edit-name-status uploading';
 
         try {
             const token = await this.getOAuthToken();
-            console.log('🌐 [Dashboard] Sending API request to /api/user/update-name');
             const response = await fetch('/api/user/update-name', {
                 method: 'POST',
                 headers: {
@@ -4933,7 +4802,6 @@ class Dashboard {
             });
 
             const data = await response.json();
-            console.log('📥 [Dashboard] API response:', data);
 
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Failed to update name');
@@ -4943,10 +4811,8 @@ class Dashboard {
             statusEl.className = 'edit-name-status success';
 
             // Update the display name in the dashboard immediately
-            console.log('🔄 [Dashboard] Updating display name in DOM');
             const displayNameEl = document.querySelector('.dashboard-display-name');
             if (displayNameEl) {
-                console.log('✅ [Dashboard] Found .dashboard-display-name, updating to:', newName);
                 displayNameEl.textContent = newName;
             } else {
                 console.warn('⚠️ [Dashboard] Could not find .dashboard-display-name element');
@@ -4955,37 +4821,29 @@ class Dashboard {
             // Update in drawer if it exists
             const drawerNameEl = document.querySelector('.drawer-display-name');
             if (drawerNameEl) {
-                console.log('✅ [Dashboard] Found .drawer-display-name, updating to:', newName);
                 drawerNameEl.textContent = newName;
             } else {
                 console.warn('⚠️ [Dashboard] Could not find .drawer-display-name element');
             }
             
             // Reload dreamer data from database to refresh all displays
-            console.log('🔄 [Dashboard] Calling loadData() to refresh from database');
             await this.loadData();
-            console.log('✅ [Dashboard] loadData() complete, new dreamerData:', this.dreamerData);
             
             // Refresh OAuth session to update drawer
             if (window.oauthManager && window.oauthManager.loadProfile) {
-                console.log('🔄 [Dashboard] Refreshing OAuth session for drawer update');
                 const session = window.oauthManager.getSession();
                 if (session) {
                     await window.oauthManager.loadProfile(session);
-                    console.log('✅ [Dashboard] OAuth session refreshed');
                 }
             }
             
             // Update profile widget if it exists
             if (window.profileWidget && window.profileWidget.refresh) {
-                console.log('🔄 [Dashboard] Refreshing profile widget');
                 await window.profileWidget.refresh();
-                console.log('✅ [Dashboard] Profile widget refreshed');
             } else {
                 console.warn('⚠️ [Dashboard] Profile widget not available for refresh');
             }
 
-            console.log('✅ [Dashboard] Display name update complete, closing modal in 1.5s');
             setTimeout(() => {
                 document.querySelector('.edit-name-modal').remove();
             }, 1500);
@@ -5048,7 +4906,6 @@ class Dashboard {
                             // Still too large, reduce quality
                             tryCompress(q - 0.1);
                         } else {
-                            console.log(`📐 [Dashboard] Resized: ${img.width}x${img.height} → ${width}x${height}, quality: ${q.toFixed(1)}, size: ${(blob.size/1024).toFixed(1)}KB`);
                             resolve(blob);
                         }
                     }, 'image/jpeg', q);
@@ -5063,7 +4920,6 @@ class Dashboard {
     }
 
     async uploadAvatar() {
-        console.log('🔄 [Dashboard] uploadAvatar() called');
         const fileInput = document.getElementById('avatarFileInput');
         const statusEl = document.getElementById('avatarUploadStatus');
 
@@ -5074,7 +4930,6 @@ class Dashboard {
         }
 
         const file = fileInput.files[0];
-        console.log('📁 [Dashboard] Selected file:', file.name, 'Size:', file.size, 'bytes');
 
         statusEl.textContent = 'Processing image...';
         statusEl.className = 'avatar-upload-status uploading';
@@ -5082,7 +4937,6 @@ class Dashboard {
         try {
             // Resize image to fit Bluesky's ~1MB limit
             const resizedBlob = await this.resizeImageForUpload(file, 800, 0.9);
-            console.log('📐 [Dashboard] Resized image size:', resizedBlob.size, 'bytes');
             
             const token = await this.getOAuthToken();
             const formData = new FormData();
@@ -5096,7 +4950,6 @@ class Dashboard {
                     if (pdsSession.accessJwt) {
                         formData.append('access_jwt', pdsSession.accessJwt);
                         formData.append('pds_endpoint', pdsSession.serviceEndpoint || pdsSession.pdsEndpoint || 'https://reverie.house');
-                        console.log('🔑 [Dashboard] Including PDS session for avatar upload');
                     }
                 } catch (e) {
                     console.warn('[Dashboard] Failed to parse pds_session:', e);
@@ -5104,7 +4957,6 @@ class Dashboard {
             }
 
             statusEl.textContent = 'Uploading avatar...';
-            console.log('🌐 [Dashboard] Sending API request to /api/user/update-avatar');
             const response = await fetch('/api/user/update-avatar', {
                 method: 'POST',
                 headers: {
@@ -5114,7 +4966,6 @@ class Dashboard {
             });
 
             const data = await response.json();
-            console.log('📥 [Dashboard] API response:', data);
 
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Failed to update avatar');
@@ -5124,35 +4975,26 @@ class Dashboard {
             statusEl.className = 'avatar-upload-status success';
 
             // Reload dreamer data to get updated avatar URL from database
-            console.log('🔄 [Dashboard] Calling loadData() to refresh from database');
             await this.loadData();
-            console.log('✅ [Dashboard] loadData() complete, new avatar URL:', this.dreamerData.avatar);
             
             // Re-render the dashboard with new data
-            console.log('🔄 [Dashboard] Calling render() to update dashboard display');
             this.render();
-            console.log('✅ [Dashboard] Dashboard re-rendered');
             
             // Refresh OAuth session to update drawer
             if (window.oauthManager && window.oauthManager.loadProfile) {
-                console.log('🔄 [Dashboard] Refreshing OAuth session for drawer update');
                 const session = window.oauthManager.getSession();
                 if (session) {
                     await window.oauthManager.loadProfile(session);
-                    console.log('✅ [Dashboard] OAuth session refreshed, drawer should update');
                 }
             }
             
             // Update profile widget if it exists
             if (window.profileWidget && window.profileWidget.refresh) {
-                console.log('🔄 [Dashboard] Refreshing profile widget');
                 await window.profileWidget.refresh();
-                console.log('✅ [Dashboard] Profile widget refreshed');
             } else {
                 console.warn('⚠️ [Dashboard] Profile widget not available for refresh');
             }
 
-            console.log('✅ [Dashboard] Avatar update complete, closing modal in 1.5s');
             setTimeout(() => {
                 document.querySelector('.avatar-upload-modal').remove();
             }, 1500);
@@ -5199,7 +5041,6 @@ class Dashboard {
     }
 
     async swapNameWithAlt(altName) {
-        console.log(`🔄 [Dashboard] Swapping primary name with alt: ${altName}`);
 
         try {
             const token = await this.getOAuthToken();
@@ -5223,7 +5064,6 @@ class Dashboard {
             }
 
             const result = await response.json();
-            console.log('✅ [Dashboard] Name swapped successfully:', result);
 
             // Update local data without full reload
             this.dreamerData.name = result.primary_name;
@@ -5239,14 +5079,12 @@ class Dashboard {
                     const valueEl = row.querySelector('.dashboard-info-value');
                     if (valueEl) {
                         valueEl.textContent = result.primary_name;
-                        console.log('✅ [Dashboard] Updated Name field to:', result.primary_name);
                     }
                 } else if (label.textContent === 'Pseudonyms') {
                     const valueEl = row.querySelector('.dashboard-info-value');
                     if (valueEl) {
                         valueEl.innerHTML = this.renderAltNames(result.alt_names);
                         valueEl.title = result.alt_names || 'none';
-                        console.log('✅ [Dashboard] Updated Pseudonyms list to:', result.alt_names);
                     }
                 }
             }
@@ -5258,13 +5096,14 @@ class Dashboard {
     }
     
     switchTab(tabName) {
-        console.log(`🔄 [Dashboard] Switching to ${tabName} tab`);
         
         // Check if Side Door user is trying to access write-only tabs
         if (this.isSideDoorUser() && (tabName === 'compose' || tabName === 'details')) {
-            console.log('🚪 Side Door user - prompting for credentials to access', tabName);
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
+            const featureName = tabName === 'compose' ? 'Compose' : 'Details';
+            if (window.AuthGate) {
+                window.AuthGate.showUpgradeHint(null, featureName);
+            } else if (window.oauthManager?.upgradeToMainDoor) {
+                window.oauthManager.upgradeToMainDoor();
             }
             return;
         }
@@ -5273,7 +5112,6 @@ class Dashboard {
         if (this.currentTab === 'compose' && tabName !== 'compose' && this.scheduleRefreshInterval) {
             clearInterval(this.scheduleRefreshInterval);
             this.scheduleRefreshInterval = null;
-            console.log('🗑️ [Compose] Cleared schedule auto-refresh');
         }
         
         this.currentTab = tabName;
@@ -5369,7 +5207,6 @@ class Dashboard {
                 return;
             }
             
-            console.log(`📬 [Dashboard] Loading messages for ${userDid.substring(0, 30)}...`);
             
             // Fetch all messages (both active and dismissed)
             const response = await fetch(`/api/messages/inbox?user_did=${encodeURIComponent(userDid)}`);
@@ -5657,19 +5494,15 @@ class Dashboard {
                 return;
             }
             
-            console.log(`🗑️ [Dashboard] Dismissing message ${messageId}...`);
             
             // Dismiss with user_did parameter
             const response = await fetch(`/api/messages/${messageId}/dismiss?user_did=${encodeURIComponent(userDid)}`, { method: 'POST' });
             
-            console.log(`📡 [Dashboard] Dismiss response status: ${response.status}`);
             
             const result = await response.json();
             
-            console.log('📊 [Dashboard] Dismiss result:', result);
             
             if (result.status === 'success') {
-                console.log('✅ [Dashboard] Dismiss succeeded, reloading messages...');
                 // Reload messages
                 await this.loadMessagesTab();
                 
@@ -5694,7 +5527,6 @@ class Dashboard {
                 return;
             }
             
-            console.log(`♻️ [Dashboard] Restoring message ${messageId}...`);
             
             // Mark as read to un-dismiss (restore to read status)
             const response = await fetch(`/api/messages/${messageId}/read?user_did=${encodeURIComponent(userDid)}`, {
@@ -5705,7 +5537,6 @@ class Dashboard {
             const result = await response.json();
             
             if (result.status === 'success') {
-                console.log('✅ [Dashboard] Restore succeeded, reloading messages...');
                 // Reload messages
                 await this.loadMessagesTab();
                 
@@ -5746,16 +5577,13 @@ class Dashboard {
             // Get user DID from OAuth session
             const userDid = window.oauthManager?.currentSession?.did;
             if (!userDid) {
-                console.log('ℹ️ [Dashboard] No user DID for initial badge check');
                 return;
             }
             
-            console.log('📬 [Dashboard] Checking initial message count...');
             const response = await fetch(`/api/messages/count?user_did=${encodeURIComponent(userDid)}`);
             const result = await response.json();
             
             if (result.status === 'success' && result.data) {
-                console.log('📊 [Dashboard] Initial message count:', result.data);
                 this.updateMessagesBadge(result.data.unread);
                 
                 // Also update header badge
@@ -5796,11 +5624,12 @@ class Dashboard {
      * Save bio to Reverie database (and optionally to Bluesky if app password connected)
      */
     async saveBio() {
-        // Check if Side Door user - prompt for credentials
+        // Check if Side Door user - prompt for write access
         if (this.isSideDoorUser()) {
-            console.log('🚪 Side Door user - prompting for credentials for save bio');
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
+            if (window.AuthGate) {
+                window.AuthGate.requireWriteAccess({ feature: 'Save Bio' });
+            } else if (window.oauthManager?.upgradeToMainDoor) {
+                window.oauthManager.upgradeToMainDoor();
             }
             return;
         }
@@ -5850,7 +5679,6 @@ class Dashboard {
             }
             
             const result = await response.json();
-            console.log('✅ [Dashboard] Bio saved:', result);
             
             // Update local data
             this.dreamerData.description = newDescription;
@@ -5880,11 +5708,12 @@ class Dashboard {
      * Sync bio from user's current Bluesky profile
      */
     async syncBioFromBluesky() {
-        // Check if Side Door user - prompt for credentials
+        // Check if Side Door user - prompt for write access
         if (this.isSideDoorUser()) {
-            console.log('🚪 Side Door user - prompting for credentials for sync bio');
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
+            if (window.AuthGate) {
+                window.AuthGate.requireWriteAccess({ feature: 'Sync Bio' });
+            } else if (window.oauthManager?.upgradeToMainDoor) {
+                window.oauthManager.upgradeToMainDoor();
             }
             return;
         }
@@ -5937,7 +5766,6 @@ class Dashboard {
             statusEl.textContent = 'Synced! Click Save to keep changes';
             statusEl.style.color = '#f59e0b';
             
-            console.log('✅ [Dashboard] Bio synced from Bluesky:', blueskyBio.substring(0, 50) + '...');
             
         } catch (error) {
             console.error('❌ [Dashboard] Error syncing bio from Bluesky:', error);
@@ -6124,11 +5952,12 @@ class Dashboard {
     }
     
     async addBook() {
-        // Check if Side Door user - prompt for credentials
+        // Check if Side Door user - prompt for write access
         if (this.isSideDoorUser()) {
-            console.log('🚪 Side Door user - prompting for credentials for add book');
-            if (window.oauthManager?._promptForCredentials) {
-                window.oauthManager._promptForCredentials();
+            if (window.AuthGate) {
+                window.AuthGate.requireWriteAccess({ feature: 'Add Book' });
+            } else if (window.oauthManager?.upgradeToMainDoor) {
+                window.oauthManager.upgradeToMainDoor();
             }
             return;
         }
@@ -6156,11 +5985,9 @@ class Dashboard {
             
             // FIXED: Check for stored credentials first (like scheduled posts do)
             const hasStoredCredentials = await this.hasAppPassword();
-            console.log('📚 [Dashboard] Has stored credentials:', hasStoredCredentials);
             
             if (hasStoredCredentials) {
                 // Use server-side API with stored credentials
-                console.log('📚 [Dashboard] Using server-side API with stored credentials');
                 
                 const token = await this.getOAuthToken();
                 if (!token) {
@@ -6184,14 +6011,12 @@ class Dashboard {
                 if (!response.ok) {
                     // Check if credentials need to be reconnected
                     if (result.needs_credentials) {
-                        console.log('🔑 [Dashboard] Stored credentials invalid, prompting for new ones');
                         this.showAppPasswordModalForBooks();
                         return;
                     }
                     throw new Error(result.error || 'Failed to add book');
                 }
                 
-                console.log('✅ [Dashboard] Book created via server:', result);
                 
                 // Reload to update button text and currentBookUri
                 await this.loadRecentlyReadBooks();
@@ -6204,7 +6029,6 @@ class Dashboard {
             const session = window.oauthManager?.getSession();
             if (!session || !session.accessJwt) {
                 // No stored credentials AND no OAuth session - prompt for app password
-                console.log('📚 [Dashboard] No credentials available, prompting user');
                 this.showAppPasswordModalForBooks();
                 return;
             }
@@ -6218,7 +6042,6 @@ class Dashboard {
                 'createdAt': now
             };
             
-            console.log('📚 [Dashboard] Creating book record (client-side):', record);
             
             addButton.disabled = true;
             addButton.textContent = 'Adding...';
@@ -6244,7 +6067,6 @@ class Dashboard {
                 if (error.message && (error.message.includes('Token could not be verified') || 
                     error.message.includes('Invalid token') || 
                     error.message.includes('ExpiredToken'))) {
-                    console.log('🔑 [Dashboard] Token verification failed, showing credentials modal');
                     this.showAppPasswordModalForBooks('Your Bluesky credentials have expired. Please reconnect to continue adding books.');
                     return;
                 }
@@ -6253,7 +6075,6 @@ class Dashboard {
             }
             
             const result = await response.json();
-            console.log('✅ [Dashboard] Book created (client-side):', result);
             
             // Reload to update button text and currentBookUri
             await this.loadRecentlyReadBooks();
@@ -6272,7 +6093,6 @@ class Dashboard {
             if (error.message && (error.message.includes('Token could not be verified') || 
                 error.message.includes('Invalid token') || 
                 error.message.includes('ExpiredToken'))) {
-                console.log('🔑 [Dashboard] Token error caught, showing credentials modal');
                 this.showAppPasswordModalForBooks('Your Bluesky credentials have expired. Please reconnect to continue adding books.');
                 return;
             }
@@ -6282,12 +6102,21 @@ class Dashboard {
     }
     
     showAppPasswordModalForBooks(customMessage = null) {
+        // Books can be added via OAuth with transition:generic scope.
+        // If we're here, the user either has a Side Door login or expired credentials.
+        // Prompt to re-login via Main Door for full write access.
+        if (this.isSideDoorUser() && window.AuthGate) {
+            window.AuthGate.requireWriteAccess({ feature: 'Add Book' });
+            return;
+        }
+        // For Main Door users with expired tokens, show the app password option
+        // as a fallback for server-side operations
         if (window.appPasswordRequest) {
             window.appPasswordRequest.show({
-                title: 'Add Books via biblio.bond',
-                description: customMessage || 'To add books to your reading record, we need permission to create <strong>biblio.bond.book</strong> records in your Bluesky repository.',
+                title: 'Reconnect Account',
+                description: customMessage || 'Your session needs to be refreshed to add books. Please provide an app password to reconnect.',
                 featureName: 'biblio.bond',
-                buttonText: 'CONNECT ACCOUNT'
+                buttonText: 'RECONNECT'
             }, async (appPassword) => {
                 try {
                     const token = await this.getOAuthToken();
@@ -6305,10 +6134,7 @@ class Dashboard {
                         throw new Error(errorData.error || 'Failed to connect credentials');
                     }
                     
-                    console.log('✅ [Dashboard] Credentials connected, retrying add book');
                     window.appPasswordRequest.close();
-                    
-                    // Retry the add book operation
                     await this.addBook();
                 } catch (error) {
                     console.error('❌ [Dashboard] Error connecting credentials:', error);
@@ -6316,7 +6142,7 @@ class Dashboard {
                 }
             });
         } else {
-            alert('Please connect your Bluesky credentials in Workshop > Credentials');
+            alert('Please log out and log back in with full access to add books.');
         }
     }
     
@@ -6325,7 +6151,6 @@ class Dashboard {
     // ========================================================================
     
     async setupComposeTab() {
-        console.log('📝 [Dashboard] Setting up Compose tab');
         
         // Check if user has app password for scheduling
         const hasAppPassword = await this.hasAppPassword();
@@ -6810,7 +6635,6 @@ class Dashboard {
             const hasPassword = await this.hasAppPassword();
             
             if (!hasPassword) {
-                console.log('⚠️ [Courier] No valid credentials, showing app password modal');
                 
                 // Show app password request modal
                 if (window.appPasswordRequest) {
@@ -6820,7 +6644,6 @@ class Dashboard {
                         featureName: 'courier scheduling',
                         buttonText: 'CONNECT ACCOUNT'
                     }, async (appPassword) => {
-                        console.log('📝 [Courier] App password provided, saving...');
                         
                         // Save the app password using OAuth-authenticated endpoint
                         try {
@@ -6839,7 +6662,6 @@ class Dashboard {
                                 throw new Error(errorData.error || 'Failed to save credentials');
                             }
                             
-                            console.log('✅ [Courier] Credentials saved, showing schedule view');
                             window.appPasswordRequest.close();
                             
                             // Now show the schedule view
@@ -6874,9 +6696,6 @@ class Dashboard {
      * Load courier schedule (scheduled posts)
      */
     async loadCourierSchedule(page = 1) {
-        console.log('🔄 [Courier] === LOADING SCHEDULE ===');
-        console.log('🔄 [Courier] Page:', page);
-        console.log('🔄 [Courier] Session exists:', !!this.session);
         
         if (!this.session) {
             console.warn('⚠️ [Courier] No session, aborting');
@@ -6904,15 +6723,12 @@ class Dashboard {
                 throw new Error('User session not found');
             }
             
-            console.log('🔄 [Courier] User DID:', userDid);
             const url = `/api/courier/scheduled?user_did=${encodeURIComponent(userDid)}&status=pending&limit=20`;
-            console.log('🔄 [Courier] Request URL:', url);
             
             const response = await fetch(url, {
                 credentials: 'include'
             });
             
-            console.log('🔄 [Courier] Response status:', response.status, response.statusText);
             
             if (!response.ok) {
                 const errorText = await response.text();
@@ -6921,11 +6737,8 @@ class Dashboard {
             }
             
             const data = await response.json();
-            console.log('🔄 [Courier] Response data:', data);
             
             const scheduledPosts = data.posts || [];
-            console.log('🔄 [Courier] Scheduled posts count:', scheduledPosts.length);
-            console.log('🔄 [Courier] Scheduled posts:', scheduledPosts);
             
             // Update count
             if (countDisplay) {
@@ -7068,8 +6881,6 @@ class Dashboard {
             }
             
             const data = await response.json();
-            console.log('📋 [Dashboard] Fetched posts:', data.posts?.length, 'posts');
-            console.log('🔍 [Dashboard] Looking for post ID:', postIdNum);
             
             const post = data.posts.find(p => p.id === postIdNum);
             
@@ -7078,7 +6889,6 @@ class Dashboard {
                 throw new Error('Post not found');
             }
             
-            console.log('✅ [Dashboard] Found post:', post);
             
             // Open composer widget with pre-filled data
             if (!window.ComposerWidget) {
@@ -7095,7 +6905,6 @@ class Dashboard {
                 scheduledFor: post.scheduled_for,
                 isLore: post.is_lore || false,
                 onSuccess: () => {
-                    console.log('✅ [Dashboard] Post edited successfully');
                     this.loadCourierSchedule(this.courierSchedulePage || 1);
                 }
             });
@@ -7110,38 +6919,27 @@ class Dashboard {
      * Delete a scheduled post (immediate, no confirmation)
      */
     async deleteScheduledPost(postId) {
-        console.log('🗑️ [Dashboard] deleteScheduledPost called - deleting immediately');
-        console.log('   postId:', postId);
         
         try {
             const userDid = this.session?.did || window.oauthManager?.currentSession?.did;
-            console.log('👤 [Dashboard] User DID:', userDid);
             
             if (!userDid) {
                 throw new Error('User session not found');
             }
             
             const deleteUrl = `/api/courier/${postId}?user_did=${encodeURIComponent(userDid)}`;
-            console.log('🔍 [Dashboard] DELETE URL:', deleteUrl);
-            console.log('📡 [Dashboard] Sending DELETE request...');
             
             const response = await fetch(deleteUrl, {
                 method: 'DELETE',
                 credentials: 'include'
             });
             
-            console.log('📡 [Dashboard] Delete response received');
-            console.log('   Status:', response.status);
-            console.log('   OK:', response.ok);
-            console.log('   Headers:', [...response.headers.entries()]);
             
             const responseText = await response.text();
-            console.log('📡 [Dashboard] Response text:', responseText);
             
             let data;
             try {
                 data = JSON.parse(responseText);
-                console.log('📡 [Dashboard] Response JSON:', data);
             } catch (e) {
                 console.error('❌ [Dashboard] Failed to parse response as JSON:', e);
                 data = { error: responseText };
@@ -7153,13 +6951,10 @@ class Dashboard {
                 throw new Error(data.error || 'Failed to delete post');
             }
             
-            console.log('✅ [Dashboard] Delete successful:', data);
-            console.log('🔄 [Dashboard] Reloading schedule...');
             
             // Reload the schedule
             this.loadCourierSchedule(this.courierSchedulePage || 1);
             
-            console.log('✅ [Dashboard] Schedule reload initiated');
             
         } catch (error) {
             console.error('❌ [Dashboard] Error in confirmDeleteScheduledPost:', error);
@@ -7473,34 +7268,19 @@ class Dashboard {
             // Check if scheduling (has a datetime value)
             const isScheduling = scheduleTime && scheduleTime.value;
             
-            console.log('🔍 [Compose] Schedule check:', {
-                hasScheduleTimeElement: !!scheduleTime,
-                scheduleTimeValue: scheduleTime?.value,
-                scheduleTimeType: typeof scheduleTime?.value,
-                isScheduling: isScheduling
-            });
-            
             if (isScheduling) {
                 // SCHEDULING PATH - requires app password
                 // Check if user has valid credentials before proceeding (unless just saved)
                 if (this._credentialsJustSaved) {
-                    console.log('✅ [Compose] Credentials just saved, skipping check');
                     delete this._credentialsJustSaved;
                 } else {
                     // Use the existing hasAppPassword() method which uses OAuth-authenticated endpoint
                     const hasPassword = await this.hasAppPassword();
                         
                     if (!hasPassword) {
-                        console.log('⚠️ [Compose] No valid credentials for scheduling, showing app password modal');
-                        console.log('⚠️ [Compose] window.appPasswordRequest exists:', !!window.appPasswordRequest);
-                        console.log('⚠️ [Compose] window.appPasswordRequest type:', typeof window.appPasswordRequest);
-                        console.log('⚠️ [Compose] AppPasswordRequest class exists:', !!window.AppPasswordRequest);
                         
                         // Show app password request modal
                         if (window.appPasswordRequest) {
-                            console.log('✅ [Compose] Calling window.appPasswordRequest.show()');
-                            console.log('✅ [Compose] appPasswordRequest.show method exists:', !!window.appPasswordRequest.show);
-                            console.log('✅ [Compose] appPasswordRequest.show type:', typeof window.appPasswordRequest.show);
                             
                             try {
                                 window.appPasswordRequest.show({
@@ -7509,7 +7289,6 @@ class Dashboard {
                                     featureName: 'courier scheduling',
                                     buttonText: 'CONNECT ACCOUNT'
                                 }, async (appPassword) => {
-                                    console.log('📝 [Compose] App password provided, saving...');
                                     
                                     // Save the app password using OAuth-authenticated endpoint
                                     try {
@@ -7528,7 +7307,6 @@ class Dashboard {
                                             throw new Error(errorData.error || 'Failed to save credentials');
                                         }
                                         
-                                        console.log('✅ [Compose] Credentials saved, retrying schedule...');
                                         window.appPasswordRequest.close();
                                         
                                         // Mark that credentials were just saved to skip check
@@ -7543,7 +7321,6 @@ class Dashboard {
                                         submitBtn.textContent = 'Schedule';
                                     }
                                 });
-                                console.log('✅ [Compose] Modal show() called successfully');
                             } catch (error) {
                                 console.error('❌ [Compose] Error calling modal.show():', error);
                                 console.error('❌ [Compose] Error stack:', error.stack);
@@ -7574,13 +7351,6 @@ class Dashboard {
                 let scheduledFor;
                 const storedValue = scheduleTime.value;
                 
-                console.log('🔍 [Compose] Converting schedule time:', {
-                    storedValue: storedValue,
-                    storedValueType: typeof storedValue,
-                    isNumeric: !isNaN(storedValue),
-                    parsedInt: parseInt(storedValue)
-                });
-                
                 if (!isNaN(storedValue) && storedValue !== '') {
                     // Already a timestamp
                     scheduledFor = parseInt(storedValue);
@@ -7591,15 +7361,6 @@ class Dashboard {
                 }
                 
                 const now = Math.floor(Date.now() / 1000);
-                
-                console.log('🔍 [Compose] Schedule validation:', {
-                    scheduledFor: scheduledFor,
-                    scheduledForType: typeof scheduledFor,
-                    isNaN: isNaN(scheduledFor),
-                    now: now,
-                    difference: scheduledFor - now,
-                    scheduledDate: new Date(scheduledFor * 1000).toISOString()
-                });
                 
                 if (isNaN(scheduledFor) || scheduledFor <= now) {
                     const errorMsg = isNaN(scheduledFor) 
@@ -7619,7 +7380,6 @@ class Dashboard {
                 // Prepare image data for scheduling
                 let imageData = null;
                 if (this.selectedImages && this.selectedImages.length > 0) {
-                    console.log('📷 [Compose] Preparing', this.selectedImages.length, 'images for scheduling');
                     imageData = this.selectedImages.map(img => ({
                         dataUrl: img.dataUrl,
                         alt: img.alt || '',
@@ -7635,12 +7395,6 @@ class Dashboard {
                     post_images: imageData
                 };
                 
-                console.log('📬 [Compose] === SCHEDULING POST ===');
-                console.log('📬 [Compose] User DID:', userDid);
-                console.log('📬 [Compose] Has Token:', !!token);
-                console.log('📬 [Compose] Has Images:', !!imageData, imageData?.length || 0);
-                console.log('📬 [Compose] Payload:', payload);
-                console.log('📬 [Compose] URL:', `/api/courier/schedule?user_did=${encodeURIComponent(userDid)}`);
                 
                 const response = await fetch(`/api/courier/schedule?user_did=${encodeURIComponent(userDid)}`, {
                     method: 'POST',
@@ -7651,16 +7405,12 @@ class Dashboard {
                     body: JSON.stringify(payload)
                 });
                 
-                console.log('📬 [Compose] Response status:', response.status, response.statusText);
-                console.log('📬 [Compose] Response headers:', [...response.headers.entries()]);
                 
                 const responseText = await response.text();
-                console.log('📬 [Compose] Response body (raw):', responseText);
                 
                 let result;
                 try {
                     result = JSON.parse(responseText);
-                    console.log('📬 [Compose] Response body (parsed):', result);
                 } catch (e) {
                     console.error('❌ [Compose] Failed to parse response as JSON:', e);
                     throw new Error(`Server returned invalid JSON: ${responseText}`);
@@ -7678,9 +7428,6 @@ class Dashboard {
                     throw new Error(result.error || 'Failed to schedule post');
                 }
                 
-                console.log('✅ [Compose] Post scheduled successfully!');
-                console.log('✅ [Compose] Courier ID:', result.courier_id);
-                console.log('✅ [Compose] Scheduled for:', result.scheduled_for);
                 
                 // Clear the form
                 textarea.value = '';
@@ -7692,21 +7439,15 @@ class Dashboard {
                 this.showSuccessNotification('Post scheduled successfully!');
                 
                 // ALWAYS reload courier schedule after successful scheduling
-                console.log('🔄 [Compose] Reloading courier schedule...');
                 await this.loadCourierSchedule(1);
-                console.log('✅ [Compose] Courier schedule reloaded');
                 
                 // Switch to courier schedule view so user can see their scheduled post
-                console.log('📬 [Compose] Switching to courier schedule view...');
                 this.toggleCourierScheduleView();
-                console.log('✅ [Compose] Switched to courier schedule view');
                 
             } else {
                 // IMMEDIATE POST PATH
                 submitBtn.textContent = 'Posting...';
                 
-                console.log('📬 [Compose] Posting immediately');
-                console.log('📬 [Compose] User DID:', userDid);
                 
                 // Check session type: OAuth or PDS
                 const pdsSessionStr = localStorage.getItem('pds_session');
@@ -7716,23 +7457,19 @@ class Dashboard {
                 
                 if (isOAuthSession) {
                     // OAuth path - post directly via OAuth client
-                    console.log('📬 [Compose] Using OAuth client');
                     
                     // Detect facets for the post (mentions and links)
                     const facets = await this.detectFacets(postText);
                     if (facets && facets.length > 0) {
-                        console.log('🔗 [Compose] Detected facets for OAuth post:', facets.length);
                     }
                     
                     // Build custom record with facets if detected
                     const customRecord = facets ? { facets: facets } : null;
                     
                     result = await window.oauthManager.createPost(postText, customRecord);
-                    console.log('✅ [Compose] Post created via OAuth:', result);
                 } else if (pdsSessionStr) {
                     // PDS session - post directly to PDS using stored accessJwt
                     // Note: PDS URL comes from didDoc.service, NOT from handle domain
-                    console.log('📬 [Compose] Using PDS session (direct posting)');
                     try {
                         const pdsSession = JSON.parse(pdsSessionStr);
                         const accessJwt = pdsSession.accessJwt;
@@ -7743,23 +7480,18 @@ class Dashboard {
                             throw new Error('No access token found in PDS session. Please log in again.');
                         }
                         
-                        console.log('📬 [Compose] Handle:', handle);
-                        console.log('📬 [Compose] PDS Server (from didDoc):', pdsUrl);
                         
                         // Upload images if any
                         let embedImages = null;
                         if (this.selectedImages && this.selectedImages.length > 0) {
-                            console.log('📷 [Compose] Uploading', this.selectedImages.length, 'image(s)...');
                             embedImages = await this.uploadImages(pdsUrl, accessJwt);
                             if (embedImages) {
-                                console.log('✅ [Compose] Images uploaded:', embedImages.length);
                             }
                         }
                         
                         // Detect facets (mentions and links)
                         const facets = await this.detectFacets(postText);
                         if (facets) {
-                            console.log('🔗 [Compose] Detected facets:', facets.length);
                         }
                         
                         // Create post record
@@ -7801,7 +7533,6 @@ class Dashboard {
                             
                             // Check if token expired
                             if (errorData.error === 'ExpiredToken' || errorData.message?.includes('expired')) {
-                                console.log('🔄 [Compose] Token expired, attempting refresh...');
                                 
                                 // Try to refresh the session
                                 const refreshJwt = pdsSession.refreshJwt;
@@ -7822,7 +7553,6 @@ class Dashboard {
                                             pdsSession.refreshJwt = refreshData.refreshJwt;
                                             localStorage.setItem('pds_session', JSON.stringify(pdsSession));
                                             
-                                            console.log('✅ [Compose] Session refreshed, retrying post...');
                                             
                                             // Retry the post with new token
                                             const retryResponse = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.createRecord`, {
@@ -7844,7 +7574,6 @@ class Dashboard {
                                             }
                                             
                                             result = await retryResponse.json();
-                                            console.log('✅ [Compose] Post created after token refresh:', result);
                                         } else {
                                             throw new Error('Session refresh failed. Please log in again.');
                                         }
@@ -7860,7 +7589,6 @@ class Dashboard {
                             }
                         } else {
                             result = await response.json();
-                            console.log('✅ [Compose] Post created via PDS session:', result);
                         }
                     } catch (error) {
                         console.error('❌ [Compose] PDS posting error:', error);
@@ -7871,32 +7599,16 @@ class Dashboard {
                     throw new Error('No valid session found. Please log in again.');
                 }
                 
-                // If lore checkbox is checked, apply the lore label via backend API
-                // (Works for both OAuth and PDS sessions)
-                if (isLore?.checked && result.uri) {
-                    console.log('🏷️ [Compose] Applying lore label to post:', result.uri);
+                // If lore checkbox is checked, write farm.lore.content record to user's PDS
+                if (isLore?.checked && result.uri && result.cid) {
                     try {
-                        const token = await this.getOAuthToken();
-                        const labelResponse = await fetch('/api/lore/apply-label', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                            },
-                            body: JSON.stringify({
-                                uri: result.uri,
-                                userDid: userDid,
-                                label: 'lore:reverie.house'
-                            })
+                        await window.oauthManager.createRecord('farm.lore.content', {
+                            subject: { uri: result.uri, cid: result.cid },
+                            world: 'reverie.house',
+                            createdAt: new Date().toISOString(),
                         });
-                        
-                        if (labelResponse.ok) {
-                            console.log('✅ [Compose] Lore label applied');
-                        } else {
-                            console.warn('⚠️ [Compose] Failed to apply lore label, but post was successful');
-                        }
                     } catch (labelError) {
-                        console.warn('⚠️ [Compose] Error applying lore label:', labelError);
+                        console.warn('⚠️ [Compose] Error creating lore record:', labelError);
                     }
                 }
                 
@@ -8061,15 +7773,12 @@ class Dashboard {
      * Open custom calendar picker
      */
     async openCalendarPicker() {
-        console.log('📅 [Compose] openCalendarPicker() called');
         
         // Check if user has valid credentials using the existing hasAppPassword() method
         // which uses the OAuth-authenticated endpoint
         const hasPassword = await this.hasAppPassword();
-        console.log('📅 [Compose] hasAppPassword result:', hasPassword);
         
         if (!hasPassword) {
-            console.log('⚠️ [Compose] No valid credentials, showing app password modal');
             
             // Show app password request modal
             if (window.appPasswordRequest) {
@@ -8079,7 +7788,6 @@ class Dashboard {
                     featureName: 'courier scheduling',
                     buttonText: 'CONNECT ACCOUNT'
                 }, async (appPassword) => {
-                    console.log('📝 [Compose] App password provided, saving...');
                     
                     // Save the app password using OAuth-authenticated endpoint
                     try {
@@ -8098,7 +7806,6 @@ class Dashboard {
                             throw new Error(errorData.error || 'Failed to save credentials');
                         }
                         
-                        console.log('✅ [Compose] Credentials saved, reloading compose tab...');
                         window.appPasswordRequest.close();
                         
                         // Reload the compose tab to show connected state
@@ -8119,11 +7826,8 @@ class Dashboard {
             }
         }
         
-        console.log('📅 [Compose] window.calendarWidget exists:', !!window.calendarWidget);
-        console.log('📅 [Compose] window.calendarWidget type:', typeof window.calendarWidget);
         
         if (window.calendarWidget) {
-            console.log('📅 [Compose] window.calendarWidget.show exists:', typeof window.calendarWidget.show);
         }
         
         if (!window.calendarWidget || typeof window.calendarWidget.show !== 'function') {
@@ -8137,55 +7841,37 @@ class Dashboard {
             return;
         }
         
-        console.log('✅ [Compose] Calendar widget is functional, opening picker...');
         
         const scheduleTime = document.getElementById('composeScheduleTime');
         const currentValue = scheduleTime ? scheduleTime.value : null;
         
-        console.log('📅 [Compose] Current schedule value:', currentValue);
         
         // Parse current value if exists
         let initialDate = null;
         if (currentValue) {
             initialDate = new Date(parseInt(currentValue) * 1000);
-            console.log('📅 [Compose] Parsed initial date:', initialDate);
         }
         
         // Show calendar with callback (bind context to preserve 'this')
         const self = this;
-        console.log('📅 [Compose] Setting up calendar callback, self context:', typeof self);
         
         window.calendarWidget.show(initialDate, (selectedDate) => {
-            console.log('📅 [Compose] ===== CALLBACK TRIGGERED =====');
-            console.log('📅 [Compose] selectedDate received:', selectedDate);
-            console.log('📅 [Compose] selectedDate type:', typeof selectedDate);
-            console.log('📅 [Compose] self context available:', typeof self);
-            console.log('📅 [Compose] self.updateScheduleDisplay:', typeof self.updateScheduleDisplay);
-            console.log('📅 [Compose] self.updateScheduleButton:', typeof self.updateScheduleButton);
             
             if (selectedDate) {
                 // Store as Unix timestamp
                 const timestamp = Math.floor(selectedDate.getTime() / 1000);
-                console.log('📅 [Compose] Calculated timestamp:', timestamp);
-                console.log('📅 [Compose] scheduleTime element:', scheduleTime);
                 
                 scheduleTime.value = timestamp;
-                console.log('📅 [Compose] Set scheduleTime.value to:', scheduleTime.value);
                 
                 // Update display
-                console.log('📅 [Compose] Calling updateScheduleDisplay...');
                 self.updateScheduleDisplay(selectedDate);
-                console.log('📅 [Compose] Calling updateScheduleButton...');
                 self.updateScheduleButton();
-                console.log('✅ [Compose] Display updates complete');
             } else {
                 // Clear
-                console.log('📅 [Compose] Clearing schedule');
                 scheduleTime.value = '';
                 self.updateScheduleDisplay(null);
                 self.updateScheduleButton();
             }
-            console.log('📅 [Compose] ===== CALLBACK COMPLETE =====');
         });
     }
     
@@ -8193,9 +7879,7 @@ class Dashboard {
      * Update schedule display text
      */
     updateScheduleDisplay(date) {
-        console.log('📝 [Compose] updateScheduleDisplay called with:', date);
         const display = document.getElementById('composeScheduleDisplay');
-        console.log('📝 [Compose] Display element:', display);
         
         if (!display) {
             console.error('❌ [Compose] composeScheduleDisplay element not found!');
@@ -8213,18 +7897,14 @@ class Dashboard {
                 hour12: true
             };
             const formatted = date.toLocaleString('en-US', options);
-            console.log('📝 [Compose] Formatted date string:', formatted);
             
             display.innerHTML = `<span class="compose-schedule-text">${formatted}</span>`;
             display.classList.add('has-schedule');
-            console.log('✅ [Compose] Display updated with scheduled time');
         } else {
             display.innerHTML = '<span class="compose-schedule-placeholder">Click to Schedule</span>';
             display.classList.remove('has-schedule');
-            console.log('📝 [Compose] Display cleared (no schedule)');
         }
         
-        console.log('📝 [Compose] Final display.innerHTML:', display.innerHTML);
     }
     
     async loadScheduledPosts() {
@@ -8268,7 +7948,6 @@ class Dashboard {
     }
     
     setupComposeTab() {
-        console.log('🎨 [Compose] Setting up compose tab');
         
         // Set up auto-refresh for schedule viewer (every 30 seconds)
         if (this.scheduleRefreshInterval) {
@@ -8276,23 +7955,19 @@ class Dashboard {
         }
         this.scheduleRefreshInterval = setInterval(() => {
             if (this.currentTab === 'compose') {
-                console.log('🔄 [Compose] Auto-refreshing schedule viewer');
                 this.loadCourierSchedule(this.courierSchedulePage || 1);
             }
         }, 30000); // 30 seconds
         
         // Check calendar widget availability
         if (window.calendarWidget) {
-            console.log('✅ [Compose] Calendar widget available');
         } else {
             console.warn('⚠️ [Compose] Calendar widget not found, attempting to initialize...');
             // Try to load calendar.js if not already loaded
             if (!document.querySelector('script[src*="calendar.js"]')) {
-                console.log('📅 [Compose] Loading calendar.js...');
                 const script = document.createElement('script');
                 script.src = '/js/calendar.js';
                 script.onload = () => {
-                    console.log('✅ [Compose] Calendar.js loaded, widget available:', !!window.calendarWidget);
                 };
                 script.onerror = () => {
                     console.error('❌ [Compose] Failed to load calendar.js');
@@ -8416,13 +8091,11 @@ class Dashboard {
                 scheduleTime.style.opacity = '1';
                 scheduleTime.style.cursor = 'pointer';
                 scheduleTime.title = 'Schedule this post for later';
-                console.log('✅ [Compose] Schedule input enabled - credentials connected');
             } else {
                 // Keep enabled but show modal on click (handled by existing click listener)
                 scheduleTime.disabled = false;
                 scheduleTime.style.opacity = '0.7';
                 scheduleTime.title = 'Connect app password to schedule posts';
-                console.log('ℹ️ [Compose] Schedule input ready - will prompt for credentials on click');
             }
         } catch (error) {
             console.error('❌ [Compose] Error updating schedule input state:', error);

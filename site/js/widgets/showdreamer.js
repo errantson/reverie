@@ -34,34 +34,28 @@ class ShowDreamer {
      * @param {string} did - DID of the dreamer (did:plc:...)
      */
     async show(did) {
-        console.log(`🎨 [ShowDreamer] show() called with DID: ${did}`);
         
         if (!did || !did.startsWith('did:')) {
             console.error('[ShowDreamer] Invalid DID:', did);
             return;
         }
 
-        console.log('🎨 [ShowDreamer] Creating shadowbox...');
         
         // Create shadowbox
         this.shadowbox = new Shadowbox({
             showCloseButton: true,
             onClose: () => {
-                console.log('🎨 [ShowDreamer] Shadowbox closing');
                 this.cleanup();
             }
         });
         this.shadowbox.create();
         
-        console.log('🎨 [ShowDreamer] Shadowbox created, fetching dreamer data...');
 
         // Fetch dreamer data and color BEFORE creating visible container
         try {
             const dreamerData = await this.fetchDreamer(did);
-            console.log('🎨 [ShowDreamer] Dreamer data fetched:', dreamerData);
             
             const dreamerColor = dreamerData.color_hex || '#d0c7f0';
-            console.log(`🎨 [ShowDreamer] Using color: ${dreamerColor}`);
             
             // Now create dreamer container with correct color from the start
             this.container = document.createElement('div');
@@ -82,19 +76,16 @@ class ShowDreamer {
             
             this.shadowbox.contentContainer.appendChild(this.container);
             
-            console.log('🎨 [ShowDreamer] Container created, rendering content...');
             
             // Render content
             await this.renderDreamer(dreamerData, dreamerColor);
             
-            console.log('🎨 [ShowDreamer] Content rendered, fading in...');
             
             // Fade in smoothly
             requestAnimationFrame(() => {
                 this.container.style.opacity = '1';
             });
             
-            console.log('✅ [ShowDreamer] Popup fully displayed');
         } catch (error) {
             console.error('[ShowDreamer] Error fetching dreamer:', error);
             console.error('[ShowDreamer] Error stack:', error.stack);            // Create container for error message
@@ -122,7 +113,6 @@ class ShowDreamer {
      * Fetch dreamer data from Reverie API
      */
     async fetchDreamer(did) {
-        console.log(`🌐 [ShowDreamer] Fetching dreamer data for ${did}...`);
         
         const response = await fetch('/api/dreamers');
         if (!response.ok) {
@@ -131,17 +121,14 @@ class ShowDreamer {
         }
 
         const dreamers = await response.json();
-        console.log(`🌐 [ShowDreamer] Received ${dreamers.length} dreamers from API`);
         
         const dreamer = dreamers.find(d => d.did === did);
         
         if (!dreamer) {
             console.error(`[ShowDreamer] Dreamer not found with DID: ${did}`);
-            console.log('[ShowDreamer] Available DIDs:', dreamers.map(d => d.did).slice(0, 5));
             throw new Error('Dreamer not found');
         }
         
-        console.log('✅ [ShowDreamer] Dreamer found:', dreamer.name || dreamer.handle);
         return dreamer;
     }
 
@@ -358,7 +345,6 @@ window.ShowDreamer = ShowDreamer;
 
 // Helper function for easy access
 window.showDreamer = function(did) {
-    console.log(`🎯 [ShowDreamer] window.showDreamer() called with:`, did);
     
     // Handle event object being passed (from inline onclick)
     if (did instanceof Event || (typeof did === 'object' && did?.target)) {
@@ -372,11 +358,9 @@ window.showDreamer = function(did) {
         return;
     }
     
-    console.log(`✨ [ShowDreamer] Creating ShowDreamer instance for DID: ${did}`);
     
     const widget = new ShowDreamer();
     window.showDreamerWidget = widget; // Store globally so close button can access it
     widget.show(did);
 };
 
-console.log('✅ [ShowDreamer] Widget loaded and available');

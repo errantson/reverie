@@ -141,7 +141,7 @@ class CheerwatchMonitor:
                 WHERE cheered_at > NOW() - INTERVAL '24 hours' AND success = TRUE
             """)
             self.cheered_posts = {row['post_uri'] for row in cursor.fetchall()}
-        except:
+        except Exception:
             pass
     
     def _fetch_community_posts(self) -> List[Dict]:
@@ -163,11 +163,11 @@ class CheerwatchMonitor:
                         author = post.get('author', {})
                         if uri and cid and uri not in self.cheered_posts and author.get('did') in self.community_dids:
                             posts.append({'uri': uri, 'cid': cid, 'author_did': author.get('did')})
-                except:
+                except Exception:
                     continue
             random.shuffle(posts)
             return posts[:POSTS_PER_POLL]
-        except:
+        except Exception:
             return []
     
     def _perform_cheer(self, worker: CheerfulWorker, post: Dict) -> bool:
@@ -200,7 +200,7 @@ class CheerwatchMonitor:
                 ON CONFLICT (cheerful_did, post_uri) DO UPDATE SET
                     success = EXCLUDED.success, error_message = EXCLUDED.error_message, cheered_at = CURRENT_TIMESTAMP
             """, (worker_did, post_uri, author_did, like_uri, success, error))
-        except:
+        except Exception:
             pass
     
     def _poll(self):

@@ -497,15 +497,31 @@ class SpectrumManager:
         }
     
     def _save_spectrum(self, did: str, spectrum: Dict[str, int], epoch: int = None):
-        """Save spectrum to database with timestamp and calculated octant"""
+        """Save spectrum movement to database. Preserves origin values."""
         from utils.octant import calculate_octant_code
         
         timestamp = epoch if epoch else int(time.time())
-        
-        # Calculate octant from spectrum values
         octant = calculate_octant_code(spectrum)
         
-        # For initial spectrum generation, set both origin and current
+        self.db.execute("""
+            UPDATE spectrum SET
+                entropy = %s, oblivion = %s, liberty = %s,
+                authority = %s, receptive = %s, skeptic = %s,
+                octant = %s, updated_at = %s
+            WHERE did = %s
+        """, (
+            spectrum['entropy'], spectrum['oblivion'], spectrum['liberty'],
+            spectrum['authority'], spectrum['receptive'], spectrum['skeptic'],
+            octant, timestamp, did
+        ))
+    
+    def _save_spectrum_initial(self, did: str, spectrum: Dict[str, int], epoch: int = None):
+        """Save initial spectrum generation. Sets both current and origin values."""
+        from utils.octant import calculate_octant_code
+        
+        timestamp = epoch if epoch else int(time.time())
+        octant = calculate_octant_code(spectrum)
+        
         self.db.execute("""
             INSERT INTO spectrum 
             (did, entropy, oblivion, liberty, authority, receptive, skeptic, octant,
@@ -530,23 +546,34 @@ class SpectrumManager:
                 updated_at = EXCLUDED.updated_at
         """, (
             did,
-            spectrum['entropy'],
-            spectrum['oblivion'],
-            spectrum['liberty'],
-            spectrum['authority'],
-            spectrum['receptive'],
-            spectrum['skeptic'],
+            spectrum['entropy'], spectrum['oblivion'], spectrum['liberty'],
+            spectrum['authority'], spectrum['receptive'], spectrum['skeptic'],
             octant,
-            # Origin values (same as current initially)
-            spectrum['entropy'],
-            spectrum['oblivion'],
-            spectrum['liberty'],
-            spectrum['authority'],
-            spectrum['receptive'],
-            spectrum['skeptic'],
-            octant,  # origin_octant
-            timestamp
+            spectrum['entropy'], spectrum['oblivion'], spectrum['liberty'],
+            spectrum['authority'], spectrum['receptive'], spectrum['skeptic'],
+            octant, timestamp
         ))
+    
+    def _get_origin_spectrum(self, did: str) -> Optional[Dict[str, int]]:
+        """Get a dreamer's stored origin spectrum values."""
+        cursor = self.db.execute("""
+            SELECT origin_entropy, origin_oblivion, origin_liberty,
+                   origin_authority, origin_receptive, origin_skeptic
+            FROM spectrum WHERE did = ?
+        """, (did,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return None
+        
+        return {
+            'entropy': row['origin_entropy'],
+            'oblivion': row['origin_oblivion'],
+            'liberty': row['origin_liberty'],
+            'authority': row['origin_authority'],
+            'receptive': row['origin_receptive'],
+            'skeptic': row['origin_skeptic']
+        }
     
     def _calculate_distance(self, spectrum_a: Dict[str, int], spectrum_b: Dict[str, int],
                            axes: Optional[List[str]] = None) -> float:
@@ -897,8 +924,8 @@ class SpectrumManager:
         # Calculate distance moved
         distance = self._calculate_distance(old_spectrum, new_spectrum)
         
-        # Save to database
-        self._save_spectrum(did, new_spectrum, epoch)
+        # Save to database (including origin reset)
+        self._save_spectrum_initial(did, new_spectrum, epoch)
         
         return {
             'success': True,

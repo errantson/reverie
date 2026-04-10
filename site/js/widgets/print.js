@@ -17,15 +17,12 @@ class PrintWidget {
         this.attachEventListeners();
         this.handleUrlParams();
         window.addEventListener('oauth:login', () => {
-            console.log('🔔 print.js received oauth:login event');
             this.updateCanonPreview();
         });
         window.addEventListener('oauth:logout', () => {
-            console.log('🔔 print.js received oauth:logout event');
             this.updateCanonPreview();
         });
         window.addEventListener('oauth:profile-loaded', () => {
-            console.log('🔔 print.js received oauth:profile-loaded event');
             this.updateCanonPreview();
         });
     }
@@ -449,17 +446,13 @@ class PrintWidget {
         });
     }
     async updateCanonPreview() {
-        console.log('🎨 updateCanonPreview() called');
         const container = document.getElementById('canon-preview-container');
-        console.log('   Container element:', container);
         if (!container) return;
         let session = null;
         if (window.oauthManager) {
             try {
                 session = window.oauthManager.getSession();
-                console.log('   Session:', session);
             } catch (e) {
-                console.log('   Error getting session:', e);
             }
         }
         container.style.display = 'block';
@@ -470,7 +463,6 @@ class PrintWidget {
         const nameSpan = document.getElementById('canon-preview-name');
         const checkboxLabel = document.querySelector('label[for="anonymize-order"]');
         if (!session || !session.did) {
-            console.log('❌ Not logged in - showing anonymous mode');
             if (anonymizeCheckbox) {
                 anonymizeCheckbox.checked = true;
                 anonymizeCheckbox.disabled = true;
@@ -522,7 +514,6 @@ class PrintWidget {
             this.updateCanonPreviewQuantity();
             return;
         }
-        console.log('✅ Showing canon preview for', session.did);
         if (anonymizeCheckbox) {
             anonymizeCheckbox.disabled = false;
             anonymizeCheckbox.style.opacity = '1';
@@ -839,21 +830,16 @@ class PrintWidget {
                             anonymizeOrder = true;
                             customerDid = null;
                             customerHandle = null;
-                            console.log('🔒 Order will be anonymous (user opted out)');
                         } else {
-                            console.log('📝 Order attribution: DID =', customerDid, '| Handle =', customerHandle);
                         }
                     } else {
                         anonymizeOrder = true;
-                        console.log('🔒 Order will be anonymous (no login)');
                     }
                 } catch (e) {
                     anonymizeOrder = true;
-                    console.log('🔒 Order will be anonymous (no login)');
                 }
             } else {
                 anonymizeOrder = true;
-                console.log('🔒 Order will be anonymous (no login)');
             }
             const response = await fetch('/api/stripe/create-checkout-session', {
                 method: 'POST',
@@ -930,5 +916,4 @@ class PrintWidget {
 document.addEventListener('DOMContentLoaded', () => {
     window.printWidget = new PrintWidget();
     window.printWidget.init();
-    console.log('✅ Print widget initialized globally');
 });

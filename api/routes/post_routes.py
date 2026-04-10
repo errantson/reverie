@@ -47,7 +47,7 @@ def get_user_credentials(user_did):
         
         if row and row.get('app_password_encrypted'):
             return row['app_password_encrypted'], row['handle'], None
-    except:
+    except Exception:
         pass
     
     return None, None, None
@@ -143,42 +143,50 @@ def create_post_with_token(access_jwt, pds, did, text, facets=None, reply_to=Non
         traceback.print_exc()
         return None
 
-def apply_lore_label(post_uri, user_did, lore_type='observation', canon_id=None):
-    """Apply lore label to a post via lore.farm and queue celebration"""
+def apply_lore_label(post_uri, post_cid, user_did, access_jwt, pds, lore_type='observation', canon_id=None):
+    """Write a farm.lore.content record to the user's PDS so Jetstream indexes it"""
     try:
-        # Construct label value
-        label_val = f'lore:reverie.house'
-        if lore_type and lore_type != 'observation':
-            label_val = f'lore:{lore_type}'
-        
-        # Apply label via lore.farm
+        import uuid
+        record = {
+            '$type': 'farm.lore.content',
+            'subject_uri': post_uri,
+            'subject_cid': post_cid or '',
+            'world': 'reverie.house',
+            'created_at': datetime.utcnow().isoformat() + 'Z',
+        }
+
         response = requests.post(
-            'https://lore.farm/xrpc/com.atproto.label.subscribeLabels',
-            json={
-                'uri': post_uri,
-                'val': label_val
+            f'{pds}/xrpc/com.atproto.repo.createRecord',
+            headers={
+                'Authorization': f'Bearer {access_jwt}',
+                'Content-Type': 'application/json',
             },
-            timeout=10
+            json={
+                'repo': user_did,
+                'collection': 'farm.lore.content',
+                'record': record,
+            },
+            timeout=10,
         )
-        
-        print(f"✅ [Post] Lore label applied: {label_val} to {post_uri}")
-        
+
+        if response.status_code == 200:
+            print(f"✅ [Post] farm.lore.content record written for {post_uri}")
+        else:
+            print(f"❌ [Post] farm.lore.content write failed: {response.status_code} {response.text}")
+
         # Queue celebration for lore/canon
         try:
             from core.celebration import queue_lore_added, queue_canon_added
             from core.database import DatabaseManager
             
-            # Get user handle
             db = DatabaseManager()
             dreamer = db.fetch_one("SELECT handle FROM dreamers WHERE did = %s", (user_did,))
             handle = dreamer['handle'] if dreamer else ''
             
             if canon_id:
-                # This is a canon post
                 queue_canon_added(user_did, handle, post_uri, canon_id=canon_id)
                 print(f"🎉 [Post] Canon celebration queued for {post_uri}")
             else:
-                # This is a lore post
                 queue_lore_added(user_did, handle, post_uri, lore_type=lore_type)
                 print(f"🎉 [Post] Lore celebration queued for {post_uri}")
         except Exception as ce:
@@ -186,7 +194,7 @@ def apply_lore_label(post_uri, user_did, lore_type='observation', canon_id=None)
         
         return True
     except Exception as e:
-        print(f"❌ [Post] Lore label failed: {e}")
+        print(f"❌ [Post] Lore record write failed: {e}")
         return False
 
 @bp.route('/post', methods=['POST'])
@@ -285,9 +293,9 @@ def create_immediate_post():
         
         print(f"✅ [Post] Created: {post_uri}")
         
-        # Apply lore label if requested
+        # Write farm.lore.content record if requested
         if is_lore and post_uri:
-            apply_lore_label(post_uri, user_did, lore_type, canon_id)
+            apply_lore_label(post_uri, post_cid, user_did, access_jwt, pds, lore_type, canon_id)
         
         return jsonify({
             'status': 'success',

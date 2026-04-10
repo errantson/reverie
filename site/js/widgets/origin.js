@@ -5,19 +5,12 @@
 
 class OriginScene {
     constructor() {
-        console.log('🔵 [Origin] ===== CONSTRUCTOR START =====');
-        console.log('🔵 [Origin] Document ready state:', document.readyState);
-        console.log('🔵 [Origin] Body classes:', document.body.className);
         
         this.canvas = document.getElementById('origin-canvas');
         this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
         
-        console.log('🔵 [Origin] Canvas element found:', !!this.canvas);
-        console.log('🔵 [Origin] Canvas context:', !!this.ctx);
         
         if (this.canvas) {
-            console.log('🔵 [Origin] Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
-            console.log('🔵 [Origin] Canvas parent:', this.canvas.parentElement);
         }
         
         this.bubbleSystem = null;
@@ -53,7 +46,6 @@ class OriginScene {
         
         // Initialize
         this.init();
-        console.log('🔵 [Origin] ===== CONSTRUCTOR END =====');
     }
     
     parseUrl() {
@@ -63,11 +55,9 @@ class OriginScene {
         if (urlHandle) {
             // Explicit handle in URL - use it
             this.handle = urlHandle;
-            console.log('🟢 [Origin] Using handle from URL:', this.handle);
         } else {
             // No handle in URL - will try to detect from session in init()
             this.handle = null;
-            console.log('🟢 [Origin] No handle in URL, will check for active session');
         }
     }
     
@@ -77,7 +67,6 @@ class OriginScene {
      * to automatically show the logged-in user's spectrum origin
      */
     async detectSessionHandle() {
-        console.log('🔍 [Origin] Checking for active Bluesky session...');
         
         // Wait briefly for OAuth manager to initialize if needed
         let attempts = 0;
@@ -89,7 +78,6 @@ class OriginScene {
         }
         
         if (!window.oauthManager) {
-            console.log('🔍 [Origin] OAuth manager not available');
             return;
         }
         
@@ -99,15 +87,12 @@ class OriginScene {
             
             if (session && session.handle) {
                 this.handle = session.handle;
-                console.log('✅ [Origin] Found active session, using handle:', this.handle);
                 
                 // Update URL to include handle (without triggering reload)
                 const newUrl = new URL(window.location.href);
                 newUrl.searchParams.set('handle', this.handle);
                 window.history.replaceState({}, '', newUrl.toString());
-                console.log('📝 [Origin] Updated URL with handle');
             } else {
-                console.log('🔍 [Origin] No active session found');
             }
         } catch (error) {
             console.error('❌ [Origin] Error checking session:', error);
@@ -115,7 +100,6 @@ class OriginScene {
     }
     
     async init() {
-        console.log('🟡 [Origin] ===== INIT START =====');
         
         // If no handle from URL, try to get from active Bluesky session
         if (!this.handle) {
@@ -125,10 +109,8 @@ class OriginScene {
         // Fallback to demo if still no handle
         if (!this.handle) {
             this.handle = 'demo';
-            console.log('🟡 [Origin] No session found, using demo mode');
         }
         
-        console.log('🟡 [Origin] Initializing for handle:', this.handle);
         
         // Ensure canvas is hidden initially
         this.canvas.style.display = 'none';
@@ -136,30 +118,24 @@ class OriginScene {
         // Set canvas size - 10% smaller than spectrum preview (880x630 -> 792x567)
         this.canvas.width = 792;
         this.canvas.height = 567;
-        console.log('🟡 [Origin] Canvas size set to:', this.canvas.width, 'x', this.canvas.height);
-        console.log('🟡 [Origin] Canvas display:', this.canvas.style.display);
         
         // Initialize bubbles for ambiance
         this.initBubbles();
-        console.log('🟡 [Origin] Bubbles initialized');
         
         // Add window resize listener for responsive canvas
         window.addEventListener('resize', () => {
             if (this.canvas && this.canvas.style.display !== 'none') {
-                console.log('📐 [Origin] Window resized, re-rendering canvas');
                 this.render();
             }
         });
         
         // Listen for OAuth events to update buttons or reload with user's handle
         window.addEventListener('oauth:login', (event) => {
-            console.log('🔐 [Origin] User logged in');
             
             // If we're on the landing page (demo mode), reload with user's handle
             if (this.handle === 'demo' || !this.handle.includes('.')) {
                 const session = event.detail?.session;
                 if (session && session.handle) {
-                    console.log('🔐 [Origin] Redirecting to user origin page:', session.handle);
                     window.location.href = `/origin.html?handle=${encodeURIComponent(session.handle)}`;
                     return;
                 }
@@ -169,18 +145,15 @@ class OriginScene {
         });
         
         window.addEventListener('oauth:logout', () => {
-            console.log('🔓 [Origin] User logged out, updating buttons...');
             this.addActionButtons();
         });
         
         window.addEventListener('oauth:profile-loaded', (event) => {
-            console.log('👤 [Origin] Profile loaded');
             
             // If we're on the landing page (demo mode), reload with user's handle
             if (this.handle === 'demo' || !this.handle.includes('.')) {
                 const session = event.detail?.session;
                 if (session && session.handle) {
-                    console.log('👤 [Origin] Redirecting to user origin page:', session.handle);
                     window.location.href = `/origin.html?handle=${encodeURIComponent(session.handle)}`;
                     return;
                 }
@@ -192,16 +165,12 @@ class OriginScene {
         // Start with carousel
         await this.showCarousel();
         
-        console.log('🟡 [Origin] ===== INIT END =====');
-        console.log('🟡 [Origin] Final canvas display:', this.canvas.style.display);
     }
     
     async showCarousel() {
-        console.log('🎠 [Origin] Starting carousel...');
         
         // Check if we're in demo/landing mode (no valid handle)
         if (this.handle === 'demo' || !this.handle.includes('.')) {
-            console.log('🎠 [Origin] No valid handle, showing landing page');
             this.showLandingPage();
             return;
         }
@@ -413,7 +382,6 @@ class OriginScene {
     }
     
     async showSpectrumCard() {
-        console.log('🎬 [Origin] showSpectrumCard() called');
         // Skip carousel card 2, go directly to final canvas display
         const carousel = document.getElementById('origin-carousel');
         if (!carousel) {
@@ -421,7 +389,6 @@ class OriginScene {
             return;
         }
         
-        console.log('🎬 [Origin] Carousel found, fading out welcome card...');
         // Fade out welcome card
         const currentCard = carousel.querySelector('.carousel-card');
         if (currentCard) {
@@ -429,14 +396,12 @@ class OriginScene {
             await new Promise(resolve => setTimeout(resolve, 400));
         }
         
-        console.log('🎬 [Origin] Hiding carousel, showing canvas...');
         // Hide carousel, show canvas
         carousel.style.display = 'none';
         
         // Get fresh canvas reference and show it
         this.canvas = document.getElementById('origin-canvas');
         if (this.canvas) {
-            console.log('🎬 [Origin] Canvas element found, setting display:block');
             this.canvas.style.display = 'block';
         } else {
             console.error('❌ [Origin] Canvas element not found!');
@@ -451,14 +416,11 @@ class OriginScene {
         this.animating = true;
         this.animationStartTime = Date.now();
         
-        console.log('🎬 [Origin] Starting animation loop...');
         // Start animation loop
         this.animateSpectrum();
         
-        console.log('🎬 [Origin] Adding action buttons...');
         // Add action buttons
         this.addActionButtons();
-        console.log('🎬 [Origin] showSpectrumCard() complete');
     }
     
     // Easing function for smooth animation
@@ -512,7 +474,6 @@ class OriginScene {
         
         // Debug logging for final phase
         if (progress > 0.85) {
-            console.log(`🎬 [Pendulum] Progress: ${(progress * 100).toFixed(2)}%`);
         }
         
         let allSettled = true;
@@ -536,7 +497,6 @@ class OriginScene {
                 this.animatedValues[pair.right] = rightTarget;
                 
                 if (progress > 0.85) {
-                    console.log(`  ${pair.left}/${pair.right}: SETTLED (offset=${pushPullOffset.toFixed(3)})`);
                 }
             } else {
                 allSettled = false;
@@ -550,7 +510,6 @@ class OriginScene {
                 
                 // Debug logging for final phase
                 if (progress > 0.85) {
-                    console.log(`  ${pair.left}/${pair.right}: offset=${pushPullOffset.toFixed(3)}, left=${leftValue.toFixed(2)} (target=${leftTarget}), right=${rightValue.toFixed(2)} (target=${rightTarget})`);
                 }
             }
         });
@@ -562,15 +521,10 @@ class OriginScene {
         if (!allSettled) {
             requestAnimationFrame(() => this.animateSpectrum());
         } else {
-            console.log('🎬 [Pendulum] All axes settled - animation complete!');
             this.animating = false;
             
             // Log final spectrum values
-            console.log('🏁 [Origin] ===== ANIMATION COMPLETE =====');
-            console.log('🏁 [Origin] Final spectrum values:', this.spectrum);
             const finalOctant = this.calculateOctant(this.spectrum);
-            console.log(`🏁 [Origin] Final octant will be: ${finalOctant.toUpperCase()}`);
-            console.log('🏁 [Origin] ===================================');
             
             // Final render with exact values
             this.render();
@@ -601,7 +555,6 @@ class OriginScene {
     
     async loadSpectrumData() {
         try {
-            console.log(`🔍 [Origin] Fetching/calculating spectrum for handle: ${this.handle}`);
             
             // Normalize handle (remove @ if present only)
             // Do NOT strip domain - require full handle
@@ -621,7 +574,6 @@ class OriginScene {
             }
             
             const data = await response.json();
-            console.log('📊 [Origin] API response:', data);
             
             // Check if we have valid spectrum data (don't check success field, check actual data)
             if (!data.spectrum || !data.spectrum.octant) {
@@ -634,7 +586,6 @@ class OriginScene {
             this.did = data.did;
             this.handle = data.handle || cleanHandle; // Use the full handle from response
             
-            console.log('✅ [Origin] Loaded spectrum data:', this.spectrum);
             
             // Check if spectrum image exists, generate if not
             await this.ensureSpectrumImage();
@@ -658,11 +609,9 @@ class OriginScene {
             const checkResponse = await fetch(imageUrl, { method: 'HEAD' });
             
             if (checkResponse.ok) {
-                console.log('✅ [Origin] Spectrum image already exists:', imageUrl);
                 return;
             }
             
-            console.log('🎨 [Origin] Image does not exist, requesting generation via origincards service...');
             
             // Ask the backend to generate the card via the origincards service
             try {
@@ -680,7 +629,6 @@ class OriginScene {
                 if (genResponse.ok) {
                     const result = await genResponse.json();
                     if (result.success) {
-                        console.log('✅ [Origin] Card generated via backend:', result.url);
                         return;
                     }
                 }
@@ -789,15 +737,12 @@ class OriginScene {
             scaleFactor = availableWidth / baseWidth;
             // Clamp to reasonable bounds
             scaleFactor = Math.max(0.5, Math.min(1.0, scaleFactor));
-            console.log(`📏 [Origin] Viewport: ${viewportWidth}px, Available: ${availableWidth}px, Scale: ${scaleFactor.toFixed(3)}`);
         }
         
         // Set canvas to scaled dimensions
         this.canvas.width = baseWidth;
         this.canvas.height = baseHeight;
         
-        console.log(`📏 [Origin] Canvas base size: ${this.canvas.width}x${this.canvas.height}`);
-        console.log(`📏 [Origin] Scale transform: ${scaleFactor.toFixed(3)}`);
         
         // Apply CSS transform to scale the canvas itself
         this.canvas.style.width = `${Math.floor(baseWidth * scaleFactor)}px`;
@@ -971,8 +916,6 @@ class OriginScene {
         ctx.font = 'bold 32px system-ui, -apple-system, sans-serif';  // 40 * 0.8
         ctx.textAlign = 'left';
         
-        console.log(`🎨 [Origin] Drawing octant name: ${octantName.toUpperCase()}`);
-        console.log(`🎨 [Origin] Octant color: ${octantColor.base}`);
         
         ctx.fillText(octantName.toUpperCase(), boxX + 34, profileY);  // 43 * 0.8
         
@@ -980,8 +923,6 @@ class OriginScene {
         profileY += 32;  // 37 * 0.8 + 2
         const octantInfo = this.getOctantInfo(octantName);
         
-        console.log(`🎨 [Origin] Octant description: "${octantInfo.desc}"`);
-        console.log(`🎨 [Origin] Octant full text: "${octantInfo.full}"`);
         
         ctx.fillStyle = octantColor.base;
         ctx.font = 'italic 18px Georgia, serif';  // 23 * 0.8
@@ -1188,31 +1129,25 @@ class OriginScene {
         // Use provided values or fall back to this.spectrum
         const s = values || this.spectrum;
         
-        console.log('🎯 [Origin] calculateOctant called with values:', s);
         
         // Calculate xyz coordinates
         const x = (s.entropy || 0) - (s.oblivion || 0);
         const y = (s.liberty || 0) - (s.authority || 0);
         const z = (s.receptive || 0) - (s.skeptic || 0);
         
-        console.log(`🎯 [Origin] Axis differences: x=${x}, y=${y}, z=${z}`);
         
         // Count balanced axes (difference of 0)
         const balancedCount = (x === 0 ? 1 : 0) + (y === 0 ? 1 : 0) + (z === 0 ? 1 : 0);
         
-        console.log(`🎯 [Origin] Balanced axes count: ${balancedCount}`);
         
         // Handle special cases
         if (balancedCount === 3) {
-            console.log('🎯 [Origin] → EQUILIBRIUM (all 3 axes balanced)');
             return 'equilibrium';
         }
         if (balancedCount === 2) {
-            console.log('🎯 [Origin] → SINGLING (2 axes balanced)');
             return 'singling';
         }
         if (balancedCount === 1) {
-            console.log('🎯 [Origin] → CONFUSED (1 axis balanced)');
             return 'confused';
         }
         
@@ -1222,7 +1157,6 @@ class OriginScene {
         const zSign = z >= 0 ? '+' : '-';
         
         const code = xSign + ySign + zSign;
-        console.log(`🎯 [Origin] Sign code: ${code}`);
         
         // Map to octant names
         const octantMap = {
@@ -1237,7 +1171,6 @@ class OriginScene {
         };
         
         const octantName = octantMap[code] || 'equilibrium';
-        console.log(`🎯 [Origin] → Final octant: ${octantName.toUpperCase()}`);
         
         return octantName;
     }
@@ -1404,7 +1337,6 @@ class OriginScene {
     
     initBubbles() {
         // Initialize magic dust particles (homepage-style ambient particles)
-        console.log('🫧 [Origin] Initializing ambient particles');
         this.initMagicDust();
     }
     
@@ -1416,7 +1348,6 @@ class OriginScene {
             return;
         }
         
-        console.log('✨ [Origin] Initializing ambient wind particles');
         
         // Create ambient particles that drift across screen
         setInterval(() => {
@@ -1537,7 +1468,6 @@ class OriginScene {
             const canvasDisplayWidth = this.canvas.style.width;
             if (canvasDisplayWidth) {
                 actionsContainer.style.maxWidth = canvasDisplayWidth;
-                console.log(`🎯 [Origin] Set actions width to match canvas: ${canvasDisplayWidth}`);
             }
         }
         
@@ -1548,12 +1478,10 @@ class OriginScene {
         if (window.oauthManager && typeof window.oauthManager.getSession === 'function') {
             const session = window.oauthManager.getSession();
             isLoggedIn = !!(session && session.handle);
-            console.log('🔐 [Origin] OAuth session check:', isLoggedIn, session?.handle);
         } else {
             // Fallback to localStorage
             const currentUserHandle = localStorage.getItem('bsky_handle');
             isLoggedIn = !!currentUserHandle;
-            console.log('🔐 [Origin] localStorage check:', isLoggedIn, currentUserHandle);
         }
         
         // Button 1: Read More - go to library
@@ -1619,34 +1547,20 @@ class OriginScene {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀🚀🚀 [Origin] ===== DOM CONTENT LOADED =====');
-    console.log('🚀 [Origin] Document ready state:', document.readyState);
-    console.log('🚀 [Origin] Body element:', document.body);
-    console.log('🚀 [Origin] Body classes:', document.body.className);
     
     const canvas = document.getElementById('origin-canvas');
     const container = document.getElementById('origin-display-container');
     const fullscreen = document.querySelector('.fullscreen-background');
     const bubbles = document.querySelector('.floating-elements');
     
-    console.log('🚀 [Origin] Canvas exists:', !!canvas);
-    console.log('🚀 [Origin] Container exists:', !!container);
-    console.log('🚀 [Origin] Fullscreen bg exists:', !!fullscreen);
-    console.log('🚀 [Origin] Floating elements exists:', !!bubbles);
     
     if (container) {
         const styles = window.getComputedStyle(container);
-        console.log('🚀 [Origin] Container z-index:', styles.zIndex);
-        console.log('🚀 [Origin] Container position:', styles.position);
-        console.log('🚀 [Origin] Container display:', styles.display);
     }
     
     if (bubbles) {
         const styles = window.getComputedStyle(bubbles);
-        console.log('🚀 [Origin] Bubbles z-index:', styles.zIndex);
     }
     
-    console.log('🚀 [Origin] Creating new OriginScene instance...');
     window.originScene = new OriginScene();
-    console.log('🚀 [Origin] OriginScene instance created');
 });

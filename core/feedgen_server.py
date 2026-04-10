@@ -12,6 +12,8 @@ Endpoints:
 
 import sys
 import json
+import time
+import requests as http_requests
 from pathlib import Path
 from flask import Flask, request, jsonify
 
@@ -27,6 +29,33 @@ app.config['JSON_AS_ASCII'] = False
 
 generator = FeedGenerator()
 rate_limiter = PersistentRateLimiter()
+
+# ── Lore feed proxy to lore.farm ─────────────────────────────────
+LOREFARM_FEED_URL = 'https://lore.farm/xrpc/app.bsky.feed.getFeedSkeleton'
+LOREFARM_LORE_FEED_URI = 'at://did:plc:pfyyashnoatlhgwwfq7ut64l/app.bsky.feed.generator/reverie-lore'
+_lore_cache = {'data': None, 'params': None, 'expires': 0}
+
+
+def _proxy_lore_feed(limit, cursor):
+    """Proxy the lore feed to lore.farm's reverie-lore feed with brief caching."""
+    params = {'feed': LOREFARM_LORE_FEED_URI, 'limit': limit}
+    if cursor:
+        params['cursor'] = cursor
+
+    cache_key = f"{limit}:{cursor}"
+    now = time.time()
+    if _lore_cache['data'] and _lore_cache['params'] == cache_key and now < _lore_cache['expires']:
+        return _lore_cache['data']
+
+    resp = http_requests.get(LOREFARM_FEED_URL, params=params, timeout=10)
+    resp.raise_for_status()
+    result = resp.json()
+
+    _lore_cache['data'] = result
+    _lore_cache['params'] = cache_key
+    _lore_cache['expires'] = now + 30  # 30s cache
+
+    return result
 
 
 def get_client_ip():
@@ -57,45 +86,9 @@ def did_document():
                 "id": "#bsky_fg",
                 "type": "BskyFeedGenerator",
                 "serviceEndpoint": "https://reverie.house"
-            },
-            {
-                "id": "#atproto_labeler",
-                "type": "AtprotoLabeler",
-                "serviceEndpoint": "https://reverie.house"
             }
         ]
     }
-    
-    # Try to load labeler signing key for verification method
-    try:
-        import os
-        from cryptography.hazmat.primitives import serialization
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-        import base58
-        
-        key_file = os.getenv('LABELER_SIGNING_KEY_FILE', '/srv/secrets/reverie.labeler.pem')
-        if os.path.exists(key_file):
-            with open(key_file, 'rb') as f:
-                private_key = serialization.load_pem_private_key(f.read(), password=None)
-            
-            if isinstance(private_key, Ed25519PrivateKey):
-                public_key = private_key.public_key()
-                public_bytes = public_key.public_bytes(
-                    encoding=serialization.Encoding.Raw,
-                    format=serialization.PublicFormat.Raw
-                )
-                # Multicodec prefix for ed25519-pub is 0xed01
-                multicodec_key = bytes([0xed, 0x01]) + public_bytes
-                multibase_key = 'z' + base58.b58encode(multicodec_key).decode('utf-8')
-                
-                did_doc['verificationMethod'].append({
-                    'id': '#atproto_label',
-                    'type': 'Multikey',
-                    'controller': 'did:web:reverie.house',
-                    'publicKeyMultibase': multibase_key
-                })
-    except Exception as e:
-        print(f"[FeedGen] Could not load labeler signing key: {e}")
     
     return jsonify(did_doc)
 
@@ -132,11 +125,21 @@ def get_feed_skeleton():
         }), 429
     
     feed = request.args.get('feed', '')
-    limit = min(int(request.args.get('limit', 30)), 20)  # Cap at 20 for faster hydration
+    limit = min(int(request.args.get('limit', 30)), 100)
     cursor = request.args.get('cursor')
     
     if not feed:
         return jsonify({'error': 'MissingFeed'}), 400
+    
+    # Proxy lore feed to lore.farm (source of truth for indexed records)
+    feed_name = feed.split('/')[-1]
+    if feed_name == 'lore':
+        try:
+            result = _proxy_lore_feed(limit, cursor)
+            return jsonify(result)
+        except Exception as e:
+            print(f"✗ Lore proxy failed, falling back to local: {e}")
+            # Fall through to local feed on proxy failure
     
     result = generator.get_feed_skeleton(feed, limit, cursor)
     

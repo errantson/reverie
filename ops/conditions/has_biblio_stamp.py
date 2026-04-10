@@ -41,7 +41,7 @@ def evaluate(thread_result: Dict, quest_config: Dict, list_identifier: str) -> D
         # Extract rkey from URI: at://did:plc:xxx/biblio.bond.list/RKEY
         try:
             rkey = list_uri.split('/')[-1]
-        except:
+        except Exception:
             rkey = list_identifier
     else:
         # Just rkey provided

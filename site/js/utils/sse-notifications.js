@@ -22,7 +22,6 @@ class SSENotificationClient {
         this.reconnectDelay = 1000; // Start with 1 second
         this.connected = false;
         
-        console.log('🔔 [SSE] Client initialized for', userDid.substring(0, 30) + '...');
     }
     
     /**
@@ -58,19 +57,16 @@ class SSENotificationClient {
      */
     connect() {
         if (this.eventSource) {
-            console.log('⚠️ [SSE] Already connected');
             return;
         }
         
         const url = `/api/notifications/stream?user_did=${encodeURIComponent(this.userDid)}`;
-        console.log('🔌 [SSE] Connecting to', url);
         
         try {
             this.eventSource = new EventSource(url);
             
             // Connection opened
             this.eventSource.addEventListener('connected', (e) => {
-                console.log('✅ [SSE] Connected');
                 this.connected = true;
                 this.reconnectAttempts = 0;
                 this.reconnectDelay = 1000;
@@ -80,14 +76,12 @@ class SSENotificationClient {
             // New message event
             this.eventSource.addEventListener('new_message', (e) => {
                 const data = JSON.parse(e.data);
-                console.log('📨 [SSE] New message:', data);
                 this.trigger('new_message', data);
             });
             
             // Message count event
             this.eventSource.addEventListener('message_count', (e) => {
                 const data = JSON.parse(e.data);
-                console.log('📊 [SSE] Message count:', data);
                 this.trigger('message_count', data);
             });
             
@@ -111,7 +105,6 @@ class SSENotificationClient {
                     this.disconnect();
                 } else {
                     const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
-                    console.log(`🔄 [SSE] Will retry connection (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
                 }
             };
             
@@ -124,7 +117,6 @@ class SSENotificationClient {
      * Disconnect from SSE stream
      */
     disconnect() {
-        console.log('🔌 [SSE] Disconnecting...');
         if (this.eventSource) {
             this.eventSource.close();
             this.eventSource = null;
@@ -144,4 +136,3 @@ class SSENotificationClient {
 // Make globally available
 window.SSENotificationClient = SSENotificationClient;
 
-console.log('✅ [SSE] Notification client loaded');

@@ -264,7 +264,7 @@ class ReactionsManager:
                     
                     if Config.DEBUG:
                         print(f"❌ Like failed: {error_msg}")
-                except:
+                except Exception:
                     if Config.DEBUG:
                         print(f"❌ Like failed: {response.text}")
                 return False
@@ -274,7 +274,7 @@ class ReactionsManager:
                     try:
                         error_data = response.json()
                         print(f"   Error: {error_data.get('message', 'Unknown')}")
-                    except:
+                    except Exception:
                         pass
                 return False
                 
@@ -443,7 +443,7 @@ class ReactionsManager:
                                 try:
                                     retry_error = retry_response.json()
                                     print(f"   • Retry error: {retry_error}")
-                                except:
+                                except Exception:
                                     print(f"   • Retry response: {retry_response.text}")
                         else:
                             print(f"❌ Could not get fresh token for retry")
@@ -452,7 +452,7 @@ class ReactionsManager:
                     if "already exists" in error_msg.lower() or "duplicate" in error_msg.lower():
                         print(f"💭 Already following user - treating as success")
                         return True
-                except:
+                except Exception:
                     print(f"   • Response text: {response.text}")
                 return False
             else:
@@ -463,7 +463,7 @@ class ReactionsManager:
                     error_msg = error_data.get('message', 'Unknown error')
                     print(f"   • Error message: {error_msg}")
                     print(f"   • Full error data: {error_data}")
-                except:
+                except Exception:
                     print(f"   • Response text: {response.text}")
                 return False
                 
@@ -605,7 +605,7 @@ class ReactionsManager:
                                 try:
                                     retry_error = retry_response.json()
                                     print(f"   • Retry error: {retry_error}")
-                                except:
+                                except Exception:
                                     print(f"   • Retry response: {retry_response.text}")
                         else:
                             print(f"❌ Could not get fresh token for retry")
@@ -614,7 +614,7 @@ class ReactionsManager:
                     if "not found" in error_msg.lower() or "does not exist" in error_msg.lower():
                         print(f"💭 Follow record doesn't exist - treating as success")
                         return True
-                except:
+                except Exception:
                     print(f"   • Response text: {response.text}")
                 return False
             else:
@@ -625,7 +625,7 @@ class ReactionsManager:
                     error_msg = error_data.get('message', 'Unknown error')
                     print(f"   • Error message: {error_msg}")
                     print(f"   • Full error data: {error_data}")
-                except:
+                except Exception:
                     print(f"   • Response text: {response.text}")
                 return False
                 
@@ -830,7 +830,7 @@ class ReactionsManager:
                                 print(f"❌ Retry failed: {retry_response.status_code}")
                         else:
                             print(f"❌ Could not refresh token")
-                except:
+                except Exception:
                     print(f"   • Response text: {response.text}")
                 return None
             else:
@@ -839,7 +839,7 @@ class ReactionsManager:
                 try:
                     error_data = response.json()
                     print(f"   • Error: {error_data}")
-                except:
+                except Exception:
                     print(f"   • Response text: {response.text}")
                 return None
                 
@@ -1026,7 +1026,7 @@ class ReactionsManager:
                 try:
                     error_data = response.json()
                     print(f"   • Error: {error_data}")
-                except:
+                except Exception:
                     print(f"   • Response: {response.text}")
                 return None
                 

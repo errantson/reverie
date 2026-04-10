@@ -12,7 +12,6 @@ class Sidebar {
         this.guardianRulesLoaded = false; // Track if guardian rules have been loaded
         this.communityShieldEnabled = true; // Default ON, will be updated when user data loads
         this.searchOperationId = 0; // Prevent race conditions in search
-        this.searchOperationId = 0; // Prevent race conditions in search
         this.render();
         this.initialize();
     }
@@ -618,12 +617,14 @@ class Sidebar {
             // Ensure guardian rules are loaded before filtering
             await this.ensureGuardianRulesLoaded();
             
-            // Fetch labels from lore.farm to find recent canon and lore posts
-            const labelsResponse = await fetch('https://lore.farm/xrpc/com.atproto.label.queryLabels?uriPatterns=*&limit=100');
-            if (!labelsResponse.ok) throw new Error('Failed to fetch labels');
+            // Fetch recent content and canon from the indexer
+            const [contentResp, canonResp] = await Promise.all([
+                fetch('https://lore.farm/api/worlds/reverie.house/content/indexed?limit=20'),
+                fetch('https://lore.farm/api/worlds/reverie.house/canon/indexed?limit=10'),
+            ]);
             
-            const labelsData = await labelsResponse.json();
-            const labels = labelsData.labels || [];
+            const contentRecords = contentResp.ok ? (await contentResp.json()).content || [] : [];
+            const canonRecords = canonResp.ok ? (await canonResp.json()).canon || [] : [];
             
             // Fetch all dreamers to match DIDs
             const dreamersResponse = await fetch('/api/dreamers');
@@ -637,63 +638,32 @@ class Sidebar {
             const reverieDreamer = allDreamers.find(d => d.handle === 'reverie.house');
             const reverieDid = reverieDreamer?.did;
             
-            // Find most recent canon post (excluding @reverie.house)
-            const canonLabels = labels
-                .filter(l => l.val === 'canon:reverie.house')
-                .sort((a, b) => new Date(b.cts) - new Date(a.cts));
-            
-            console.log('[Active Dreamweavers] Canon labels found:', canonLabels.length);
-            
-            let canonDreamer = null;
-            for (const label of canonLabels) {
-                const uri = label.uri;
-                const did = uri.split('/')[2]; // Extract DID from at://did/...
-                console.log('[Active Dreamweavers] Checking canon label:', did, 'reverieDid:', reverieDid);
-                if (did !== reverieDid) {
-                    canonDreamer = allDreamers.find(d => d.did === did);
-                    if (canonDreamer) {
-                        console.log('[Active Dreamweavers] Found canon dreamer:', canonDreamer.name);
-                        break;
-                    }
+            // Build set of canonized post author DIDs from subjectUri
+            const canonSubjectDids = new Set();
+            for (const rec of canonRecords) {
+                const subjectDid = rec.subjectUri?.split('/')[2];
+                if (subjectDid && subjectDid !== reverieDid) {
+                    canonSubjectDids.add(subjectDid);
                 }
             }
             
-            // Find two most recent lore posts (excluding @reverie.house and canon dreamer)
-            const loreLabels = labels
-                .filter(l => l.val.startsWith('lore:') && l.val !== 'canon:reverie.house')
-                .sort((a, b) => new Date(b.cts) - new Date(a.cts));
-            
-            console.log('[Active Dreamweavers] Lore labels found:', loreLabels.length);
-            
-            const loreDreamers = [];
+            // Collect unique active dreamweavers from content records
+            // Tag each as 'canon' if their post was canonized, otherwise 'lore'
+            const activeDreamers = [];
             const seenDids = new Set();
             
-            // Add canon dreamer to seenDids so they don't appear twice
-            if (canonDreamer) {
-                seenDids.add(canonDreamer.did);
-                console.log('[Active Dreamweavers] Excluding canon dreamer from lore:', canonDreamer.name);
-            }
-            
-            for (const label of loreLabels) {
-                if (loreDreamers.length >= 2) break;
-                const uri = label.uri;
-                const did = uri.split('/')[2];
-                if (did !== reverieDid && !seenDids.has(did)) {
-                    const dreamer = allDreamers.find(d => d.did === did);
-                    if (dreamer) {
-                        console.log('[Active Dreamweavers] Adding lore dreamer:', dreamer.name);
-                        loreDreamers.push(dreamer);
-                        seenDids.add(did);
-                    }
+            for (const rec of contentRecords) {
+                if (activeDreamers.length >= 3) break;
+                const did = rec.did;
+                if (did === reverieDid || seenDids.has(did)) continue;
+                const dreamer = allDreamers.find(d => d.did === did);
+                if (dreamer) {
+                    const type = canonSubjectDids.has(did) ? 'canon' : 'lore';
+                    activeDreamers.push({ dreamer, type });
+                    seenDids.add(did);
                 }
             }
             
-            console.log('[Active Dreamweavers] Final count - Canon:', canonDreamer ? 1 : 0, 'Lore:', loreDreamers.length);
-            
-            // Combine: 1 canon + 2 lore
-            const activeDreamers = [];
-            if (canonDreamer) activeDreamers.push({ dreamer: canonDreamer, type: 'canon' });
-            loreDreamers.forEach(d => activeDreamers.push({ dreamer: d, type: 'lore' }));
             
             const container = this.container.querySelector('.carousel-container') || this.container.querySelector('.active-dreamweavers-container');
             if (!container) return;
@@ -802,8 +772,8 @@ class Sidebar {
             });
             
             // Shuffle for display variety but show all guests
-            const selectedGuests = guests.sort(() => Math.random() - 0.5);
-            
+            const selectedGuests = [...guests].sort(() => Math.random() - 0.5).slice(0, 3);
+
             const container = this.container.querySelector('.carousel-container') || this.container.querySelector('.honoured-guests-container');
             if (!container) return;
             
@@ -832,7 +802,6 @@ class Sidebar {
                 const serverIconSrc = this.getServerIcon(dreamer);
                 const serverIconStyle = '';
                 
-                console.log(`[Honoured Guest] ${dreamer.name} (${dreamer.handle}) - Server: ${dreamer.server} - Icon: ${serverIconSrc}`);
                 
                 return `
                     <div class="honoured-guest-item" data-did="${encodeURIComponent(dreamer.did)}" style="background-color: ${userColorBg};">
@@ -1080,7 +1049,6 @@ class Sidebar {
         if (foundDreamer) {
             // Check if user is allowed to see this dreamer
             if (!this.isDreamerAllowed(foundDreamer)) {
-                console.log(`[Sidebar] User not allowed to view ${foundDreamer.handle}, redirecting to guardian`);
                 const guardian = this.getGuardianDreamer();
                 if (guardian) {
                     // Update URL to guardian's page
@@ -1101,7 +1069,6 @@ class Sidebar {
         
         // Check if user is allowed to view this dreamer (unless we're already redirecting)
         if (!skipGuardianCheck && !this.isDreamerAllowed(dreamer)) {
-            console.log(`[Sidebar] User not allowed to view ${dreamer?.handle}, redirecting to guardian`);
             const guardian = this.getGuardianDreamer();
             if (guardian && guardian.did !== dreamer?.did) {
                 // Update URL to guardian's page
@@ -1319,25 +1286,44 @@ class Sidebar {
     
     // Auto-rotation removed for snappier UX
     
+    _dreamerScore(d) {
+        let score = 0;
+        if (d.avatar)                                     score += 3;
+        if (d.description)                                score += 2;
+        if (d.posts_count > 5)                            score += 2;
+        else if (d.posts_count > 0)                       score += 1;
+        if (d.kindred && d.kindred.length > 0)            score += 2;
+        if (d.souvenirs && Object.keys(d.souvenirs).length > 0) score += 2;
+        if ((d.canon_score || 0) + (d.lore_score || 0) +
+            (d.contribution_score || 0) + (d.patron_score || 0) > 0) score += 2;
+        if (d.spectrum && d.spectrum.octant)              score += 1;
+        if (d.followers_count > 5)                        score += 1;
+        if (d.heading)                                    score += 1;
+        if (d.phanera)                                    score += 1;
+        return score;
+    }
+
     displayRandomProfile() {
         // Filter dreamers by guardian rules first
-        let allowedDreamers = this.filterDreamersByGuardian(this.dreamers);
-        
-        // Prefer reverie.house dreamers
-        const reverieDreamers = allowedDreamers.filter(d => d.server === 'https://reverie.house');
-        if (reverieDreamers.length > 0) {
-            const randomDreamer = reverieDreamers[Math.floor(Math.random() * reverieDreamers.length)];
-            this.displayDreamer(randomDreamer);
-        } else if (allowedDreamers.length > 0) {
-            const randomDreamer = allowedDreamers[Math.floor(Math.random() * allowedDreamers.length)];
-            this.displayDreamer(randomDreamer);
-        } else {
-            // No allowed dreamers - show guardian if available
+        const pool = this.filterDreamersByGuardian(this.dreamers);
+
+        if (pool.length === 0) {
             const guardian = this.getGuardianDreamer();
-            if (guardian) {
-                this.displayDreamer(guardian);
-            }
+            if (guardian) this.displayDreamer(guardian);
+            return;
         }
+
+        // Score profiles by how inhabited they are; degrade gracefully through tiers
+        // so truly empty accounts are only surfaced as a last resort.
+        const scored = pool.map(d => ({ d, s: this._dreamerScore(d) }));
+        const richPool  = scored.filter(x => x.s >= 7).map(x => x.d);
+        const lightPool = scored.filter(x => x.s >= 3).map(x => x.d);
+        const selected  = richPool.length  >= 5 ? richPool
+                        : lightPool.length >= 5 ? lightPool
+                        : pool;
+
+        const randomDreamer = selected[Math.floor(Math.random() * selected.length)];
+        this.displayDreamer(randomDreamer);
     }
 }
 

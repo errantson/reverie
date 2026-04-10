@@ -578,7 +578,9 @@ class AviaryRunner:
     
     def user_stat_threshold(self, user_did: str, stat: str, threshold: float, operator: str) -> bool:
         """Check if user's stat meets threshold"""
-        # Get stat value (followers, posts, etc.)
+        VALID_STATS = {'followers_count', 'follows_count', 'posts_count', 'arrival'}
+        if stat not in VALID_STATS:
+            return False
         row = self.db.fetch_one('''
             SELECT {} FROM dreamers WHERE did = %s
         '''.format(stat), (user_did,))

@@ -313,7 +313,7 @@ class ThreadsManager:
             with open(self.auth.session_cache, 'r') as f:
                 cache_data = json.load(f)
                 return cache_data.get('pdsUrl')
-        except:
+        except Exception:
             return None
     
     def _empty_reply_result(self) -> Dict:

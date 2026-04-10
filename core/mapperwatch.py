@@ -192,10 +192,8 @@ class MapperMonitor:
             if self.mapper_client and author_did == self.mapper_client.me.did:
                 return
             
-            # Skip if this DID already has origin declared (database is source of truth)
+            # Skip if already declared (CRITICAL: prevents duplicate processing)
             if author_did in self.declared_dids:
-                if self.verbose:
-                    print(f"   ⏭️  Skipping @{author_handle} - already has origin")
                 return
             
             # Skip if this is a reply to a reply (not direct to origin quest)
@@ -245,6 +243,12 @@ class MapperMonitor:
             
             db = DatabaseManager()
             
+            # Safety check: if origin event already exists, skip (prevents duplicates if restarted)
+            cursor = db.execute("SELECT id FROM events WHERE did = %s AND key = 'origin'", (author_did,))
+            if cursor.fetchone():
+                print(f"   ⏭️  Origin already declared for this DID (skipping)")
+                return False
+            
             # 1. Register dreamer if needed
             cursor = db.execute("SELECT did FROM dreamers WHERE did = %s", (author_did,))
             if not cursor.fetchone():
@@ -268,123 +272,150 @@ class MapperMonitor:
                 print("   ❌ No mapper client - cannot post reply")
                 return False
             
+            # Build origin URL and text (needed for both posting and database)
             origin_url = f"reverie.house/origin/{author_handle}"
             full_text = f"@{author_handle} origin located:\n\n{spectrum_text}\n\n{origin_url}"
             
-            # Build facets for mention and link
-            facets = []
-            
-            # Mention facet
-            mention_end = len(f"@{author_handle}")
-            facets.append({
-                "index": {"byteStart": 0, "byteEnd": mention_end},
-                "features": [{"$type": "app.bsky.richtext.facet#mention", "did": author_did}]
-            })
-            
-            # Link facet
-            link_start = full_text.find(origin_url)
-            link_end = link_start + len(origin_url)
-            facets.append({
-                "index": {"byteStart": link_start, "byteEnd": link_end},
-                "features": [{"$type": "app.bsky.richtext.facet#link", "uri": f"https://{origin_url}"}]
-            })
-            
-            # Get CIDs for proper reply threading
-            parent_cid = reply_cid
-            root_uri = self.origin_uri
-            root_cid = None
-            
-            try:
-                resp = requests.get(
-                    f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris={root_uri}",
-                    timeout=10
-                )
-                if resp.status_code == 200:
-                    posts = resp.json().get('posts', [])
-                    if posts:
-                        root_cid = posts[0].get('cid')
-            except:
-                pass
-            
-            # 4. Generate origin image via origincards service
+            # 4. Generate origin image via origincards service (only if we'll post new reply)
             thumb_blob = None
+            
+            # Guard: check if mapper already replied to this post on Bluesky
+            mapper_reply_uri = None
             try:
-                print(f"   🎨 Generating origin image...")
-                gen_response = requests.post(
-                    'http://localhost:3050/generate',
-                    json={
-                        'handle': author_handle,
-                        'displayName': display_name,
-                        'spectrum': spectrum_values,
-                        'avatar': avatar_url
-                    },
-                    timeout=30
-                )
-                
-                if gen_response.status_code == 200:
-                    result = gen_response.json()
-                    image_url = result.get('url')
-                    print(f"   ✅ Image generated: {image_url}")
-                    
-                    # 5. Fetch image and upload as blob
-                    if image_url:
-                        img_response = requests.get(image_url, timeout=15)
-                        if img_response.status_code == 200:
-                            # Upload the image to get a blob reference
-                            upload_result = self.mapper_client.com.atproto.repo.upload_blob(
-                                img_response.content
-                            )
-                            thumb_blob = upload_result.blob
-                            print(f"   📤 Uploaded image as blob")
-                        else:
-                            print(f"   ⚠️  Could not fetch image: {img_response.status_code}")
-                else:
-                    print(f"   ⚠️  Image generation failed: {gen_response.status_code}")
+                thread_resp = self.client.app.bsky.feed.get_post_thread({
+                    'uri': reply_uri,
+                    'depth': 1
+                })
+                mapper_did = self.mapper_client.me.did
+                replies = getattr(thread_resp.thread, 'replies', None) or []
+                for tr in replies:
+                    if hasattr(tr, 'post') and hasattr(tr.post, 'author'):
+                        if tr.post.author.did == mapper_did:
+                            print(f"   ⏭️  Mapper already replied on Bluesky - recording in database")
+                            mapper_reply_uri = tr.post.uri
+                            break
             except Exception as e:
-                print(f"   ⚠️  Image generation error: {e}")
+                print(f"   ⚠️  Could not check for existing reply: {e}")
             
-            # Build external embed for rich link preview
-            external_data = {
-                "uri": f"https://{origin_url}",
-                "title": f"{author_handle} origin",
-                "description": f"Spectrum coordinates: {spectrum_text}"
-            }
-            
-            # Add thumb if we got it
-            if thumb_blob:
-                external_data["thumb"] = thumb_blob
-            
-            embed = {
-                "$type": "app.bsky.embed.external",
-                "external": external_data
-            }
-            
-            # Build reply record
-            reply_record = {
-                "$type": "app.bsky.feed.post",
-                "text": full_text,
-                "facets": facets,
-                "embed": embed,
-                "createdAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                "reply": {
-                    "root": {"uri": root_uri, "cid": root_cid} if root_cid else {"uri": root_uri},
-                    "parent": {"uri": reply_uri, "cid": parent_cid} if parent_cid else {"uri": reply_uri}
+            # Build reply record and post as mapper (if not already posted)
+            if mapper_reply_uri:
+                # Mapper already replied - use existing reply
+                print(f"   💬 Using existing mapper reply: {mapper_reply_uri}")
+            else:
+                # Post new reply as mapper
+                print(f"   💬 Creating new mapper reply...")
+                
+                # Generate origin image via origincards service
+                try:
+                    print(f"   🎨 Generating origin image...")
+                    gen_response = requests.post(
+                        'http://localhost:3050/generate',
+                        json={
+                            'handle': author_handle,
+                            'displayName': display_name,
+                            'spectrum': spectrum_values,
+                            'avatar': avatar_url
+                        },
+                        timeout=30
+                    )
+                    
+                    if gen_response.status_code == 200:
+                        result = gen_response.json()
+                        image_url = result.get('url')
+                        print(f"   ✅ Image generated: {image_url}")
+                        
+                        # Fetch image and upload as blob
+                        if image_url:
+                            img_response = requests.get(image_url, timeout=15)
+                            if img_response.status_code == 200:
+                                # Upload the image to get a blob reference
+                                upload_result = self.mapper_client.com.atproto.repo.upload_blob(
+                                    img_response.content
+                                )
+                                thumb_blob = upload_result.blob
+                                print(f"   📤 Uploaded image as blob")
+                            else:
+                                print(f"   ⚠️  Could not fetch image: {img_response.status_code}")
+                    else:
+                        print(f"   ⚠️  Image generation failed: {gen_response.status_code}")
+                except Exception as e:
+                    print(f"   ⚠️  Image generation error: {e}")
+                
+                # Build external embed with image if available
+                external_data = {
+                    "uri": f"https://{origin_url}",
+                    "title": f"{author_handle} origin",
+                    "description": f"Spectrum coordinates: {spectrum_text}"
                 }
-            }
-            
-            # Post as mapper
-            post_result = self.mapper_client.com.atproto.repo.create_record({
-                "repo": self.mapper_client.me.did,
-                "collection": "app.bsky.feed.post",
-                "record": reply_record
-            })
-            
-            if not post_result:
-                print(f"   ❌ Failed to post reply")
-                return False
-            
-            mapper_post_uri = post_result.uri
-            print(f"   💬 Posted origin reply as mapper: {mapper_post_uri}")
+                if thumb_blob:
+                    external_data["thumb"] = thumb_blob
+                
+                embed = {
+                    "$type": "app.bsky.embed.external",
+                    "external": external_data
+                }
+                
+                # Build facets for mention and link
+                facets = []
+                
+                # Mention facet
+                mention_end = len(f"@{author_handle}")
+                facets.append({
+                    "index": {"byteStart": 0, "byteEnd": mention_end},
+                    "features": [{"$type": "app.bsky.richtext.facet#mention", "did": author_did}]
+                })
+                
+                # Link facet
+                link_start = full_text.find(origin_url)
+                link_end = link_start + len(origin_url)
+                facets.append({
+                    "index": {"byteStart": link_start, "byteEnd": link_end},
+                    "features": [{"$type": "app.bsky.richtext.facet#link", "uri": f"https://{origin_url}"}]
+                })
+                
+                # Get CIDs for proper reply threading
+                parent_cid = reply_cid
+                root_uri = self.origin_uri
+                root_cid = None
+                
+                try:
+                    resp = requests.get(
+                        f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris={root_uri}",
+                        timeout=10
+                    )
+                    if resp.status_code == 200:
+                        posts = resp.json().get('posts', [])
+                        if posts:
+                            root_cid = posts[0].get('cid')
+                except Exception:
+                    pass
+                
+                # Build reply record
+                reply_record = {
+                    "$type": "app.bsky.feed.post",
+                    "text": full_text,
+                    "facets": facets,
+                    "embed": embed,
+                    "createdAt": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    "reply": {
+                        "root": {"uri": root_uri, "cid": root_cid} if root_cid else {"uri": root_uri},
+                        "parent": {"uri": reply_uri, "cid": parent_cid} if parent_cid else {"uri": reply_uri}
+                    }
+                }
+                
+                # Post as mapper
+                post_result = self.mapper_client.com.atproto.repo.create_record({
+                    "repo": self.mapper_client.me.did,
+                    "collection": "app.bsky.feed.post",
+                    "record": reply_record
+                })
+                
+                if not post_result:
+                    print(f"   ❌ Failed to post reply")
+                    return False
+                
+                mapper_reply_uri = post_result.uri
+                print(f"   ✅ Posted mapper reply: {mapper_reply_uri}")
             
             # Helper to convert AT URI to bsky.app URL
             def at_uri_to_bsky_url(uri):
@@ -397,9 +428,41 @@ class MapperMonitor:
                     return f'https://bsky.app/profile/{did}/post/{rkey}'
                 return None
             
+            # Get the actual post's createdAt timestamp instead of using current time
+            def get_post_epoch(uri):
+                """Fetch a post's createdAt timestamp from Bluesky"""
+                try:
+                    parts = uri.replace('at://', '').split('/')
+                    did = parts[0]
+                    rkey = parts[-1]
+                    
+                    resp = requests.get(
+                        'https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord',
+                        params={
+                            'repo': did,
+                            'collection': 'app.bsky.feed.post',
+                            'rkey': rkey
+                        },
+                        timeout=10
+                    )
+                    
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        created_str = data['value']['createdAt']
+                        dt = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                        return int(dt.timestamp())
+                except Exception as e:
+                    print(f"   ⚠️  Could not fetch post timestamp: {e}")
+                
+                return None
+            
             # 7. Add origin event for the USER (their origin declaration)
             # Use color_source='octant' for the user's origin event (styled by their octant)
-            epoch = int(time.time())
+            epoch = get_post_epoch(reply_uri)
+            if not epoch:
+                # Fallback to current time if we can't fetch from Bluesky
+                epoch = int(time.time())
+            
             user_post_url = at_uri_to_bsky_url(reply_uri)
             cursor = db.execute("""
                 INSERT INTO events (did, key, event, type, uri, url, epoch, created_at, color_source, color_intensity)
@@ -411,13 +474,18 @@ class MapperMonitor:
             
             # 8. Add mapper event (mappy's work, linked to user's origin)
             # Use color_source='role' for mapper events (styled by mapper role)
+            # The mapper event should use the mapper post's timestamp, not the origin post's
+            mapper_epoch = get_post_epoch(mapper_reply_uri)
+            if not mapper_epoch:
+                mapper_epoch = epoch  # Fallback to origin epoch if we can't fetch mapper post
+            
             mapper_did = self.mapper_client.me.did
-            mapper_post_url = at_uri_to_bsky_url(mapper_post_uri)
+            mapper_post_url = at_uri_to_bsky_url(mapper_reply_uri)
             db.execute("""
                 INSERT INTO events (did, key, event, type, uri, url, epoch, created_at, reaction_to, color_source, color_intensity, others)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ARRAY[%s])
             """, (mapper_did, 'mapper', f"mapped {dreamer_name}'s coordinates", 'spectrum', 
-                  mapper_post_uri, mapper_post_url, epoch, epoch, user_origin_event_id, 'role', 'highlight', author_did))
+                  mapper_reply_uri, mapper_post_url, mapper_epoch, mapper_epoch, user_origin_event_id, 'role', 'highlight', author_did))
             print(f"   📝 Added mapper event (reaction_to={user_origin_event_id}, others=[{author_did}])")
             
             # 9. Like the user's post (as mapper)

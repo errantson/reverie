@@ -11,7 +11,6 @@
 
 // 1. Get a rowstyle definition by name
 const style = window.getRowStyle('strangewave');
-console.log(style);
 // Returns: { name: "strangewave", color: {...}, highlight: "highlight", ... }
 
 // 2. Get rowstyle from event (computes if needed)
@@ -22,15 +21,12 @@ const event = {
     // ... other event fields
 };
 const computedStyle = window.getRowStyle(event);
-console.log(computedStyle.name); // "strangewave"
 
 // 3. Generate classes for a row
 const classes = window.rowStyleEngine.getRowClasses(event);
-console.log(classes); // "row-entry souvenir-strange intensity-highlight"
 
 // 4. Generate inline styles for a row
 const styles = window.rowStyleEngine.getRowStyles(event);
-console.log(styles); // "--strange-purple: #7B5A9E; --strange-dark: #4A2D5F; ..."
 
 // 5. Apply effects to rendered rows
 const container = document.getElementById('rows-container');
@@ -115,11 +111,9 @@ window.rowStyleEngine.registerEffect('goldenshimmer', (rows, options) => {
 
 // List all available rowstyles
 const allStyles = window.listRowStyles();
-console.log(allStyles); // ["default", "userbasic", "userhighlight", ...]
 
 // Get all souvenir styles
 const souvenirStyles = window.getRowStylesByCategory('souvenir');
-console.log(souvenirStyles); // [{ name: "strangewave", ... }, { name: "arrivalwelcome", ... }]
 
 // ============================================================================
 // BACKWARD COMPATIBILITY
@@ -134,7 +128,6 @@ const legacyEvent = {
 };
 
 const computedStyleName = window.computeRowStyle(legacyEvent);
-console.log(computedStyleName); // "usercanon"
 
 // ============================================================================
 // MIGRATION EXAMPLE

@@ -70,8 +70,6 @@ class ChangeHandleWidget {
             const userDid = session.sub || session.did;
             this.currentHandle = session.profile?.handle || session.handle;
             
-            console.log('🔍 [ChangeHandle] Fetching handles for DID:', userDid);
-            console.log('   Current handle:', this.currentHandle);
             
             // Fetch dreamer data to get name and alts
             const response = await fetch(`/api/dreamers/${userDid}`);
@@ -82,7 +80,6 @@ class ChangeHandleWidget {
             }
             
             const dreamer = await response.json();
-            console.log('📋 [ChangeHandle] Dreamer data:', dreamer);
             
             // Build list of available handles
             const handles = [];
@@ -101,7 +98,6 @@ class ChangeHandleWidget {
                 }
             }
             
-            console.log('✅ [ChangeHandle] Available handles:', handles);
             return handles;
             
         } catch (error) {
@@ -231,7 +227,6 @@ class ChangeHandleWidget {
     }
 
     async switchHandle(name, handle) {
-        console.log('🔄 [ChangeHandle] Switching to:', name, handle);
         
         try {
             const token = localStorage.getItem('oauth_token') || localStorage.getItem('admin_token');
@@ -261,7 +256,6 @@ class ChangeHandleWidget {
             }
             
             const result = await response.json();
-            console.log('✅ [ChangeHandle] Handle adopted:', result);
             
             // Update the session with new handle if possible
             if (window.oauthManager) {
@@ -548,7 +542,6 @@ class ChangeHandleWidget {
 // Initialize widget on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     window.changeHandleWidget = new ChangeHandleWidget();
-    console.log('✅ ChangeHandleWidget initialized');
 });
 
 // Export for module usage

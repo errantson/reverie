@@ -1,4 +1,3 @@
-console.log('🔐 Loading login.js...');
 class LoginWidget {
     constructor() {
         this.coreColor = '#87408d';
@@ -16,18 +15,15 @@ class LoginWidget {
         // Check if ?login=true is in URL (e.g., from Heraldry redirect)
         const params = new URLSearchParams(window.location.search);
         if (params.get('login') === 'true') {
-            console.log('🔐 Login param detected, opening login popup');
             // Store returnTo URL if provided
             const returnTo = params.get('returnTo');
             if (returnTo) {
                 sessionStorage.setItem('login_returnTo', returnTo);
-                console.log('🔐 Return URL stored:', returnTo);
             }
             // Store handle if provided (for prefilling)
             const handle = params.get('handle');
             if (handle) {
                 sessionStorage.setItem('login_prefillHandle', handle);
-                console.log('🔐 Prefill handle stored:', handle);
             }
             // Clean up the URL to remove the params
             const url = new URL(window.location.href);
@@ -48,7 +44,6 @@ class LoginWidget {
             const session = e.detail?.session;
             if (session && (session.did || session.sub)) {
                 const userDid = session.did || session.sub;
-                console.log('🔑 oauth:login event received, triggering user_login pigeons');
                 await this.triggerUserLogin(userDid);
             }
         });
@@ -57,7 +52,6 @@ class LoginWidget {
         const tryGetOAuthManager = (attempts = 0) => {
             if (window.oauthManager) {
                 this.oauthManager = window.oauthManager;
-                console.log('✅ Login widget: OAuth manager connected');
             } else if (attempts < 50) {
                 setTimeout(() => tryGetOAuthManager(attempts + 1), 20);
             } else {
@@ -100,7 +94,6 @@ class LoginWidget {
             return;
         }
         
-        console.log(`🕊️ Triggering user_login pigeons for ${userDid}`);
         
         try {
             // Get auth token
@@ -117,7 +110,6 @@ class LoginWidget {
             
             if (response.ok) {
                 const result = await response.json();
-                console.log('✅ User login pigeons triggered:', result);
             } else {
                 console.warn('⚠️ Failed to trigger user_login pigeons:', response.status);
             }
@@ -129,12 +121,10 @@ class LoginWidget {
         const returnTo = sessionStorage.getItem('login_returnTo');
         if (returnTo) {
             sessionStorage.removeItem('login_returnTo');
-            console.log('🔐 Redirecting to:', returnTo);
             window.location.href = returnTo;
         }
     }
     showLoginPopup() {
-        console.log('🔐 showLoginPopup() called');
         
         // Hide any active dialogues (login has higher priority)
         if (window.DialogueManager && window.DialogueManager.hideActive) {
@@ -144,13 +134,10 @@ class LoginWidget {
         // Debounce: prevent rapid double-calls
         const now = Date.now();
         if (now - this.lastPopupTime < this.popupDebounceMs) {
-            console.log('⚠️ Debounced - popup called too quickly after previous call');
             return;
         }
         this.lastPopupTime = now;
         
-        console.log('   this.oauthManager:', this.oauthManager);
-        console.log('   this.loginsEnabled:', this.loginsEnabled);
         
         // Only block if a login / logout overlay is already up (prevents
         // double-open). Don't block on unrelated overlays like share-modal,
@@ -173,13 +160,10 @@ class LoginWidget {
             }
         }
         const session = this.oauthManager.getSession();
-        console.log('   Current session:', session);
         if (session) {
-            console.log('✅ User is logged in, showing logout popup');
             this.showLogoutPopup(session);
             return;
         }
-        console.log(`📋 Showing ${this.loginsEnabled ? 'ENABLED' : 'DISABLED'} login popup`);
         if (this.loginsEnabled) {
             this.showLoginPopupEnabled();
         } else {
@@ -187,7 +171,6 @@ class LoginWidget {
         }
     }
     showLoginPopupDisabled() {
-        console.log('🚫 showLoginPopupDisabled() called');
         
         // Hide any active dialogues (login has higher priority)
         if (window.DialogueManager && window.DialogueManager.hideActive) {
@@ -196,13 +179,10 @@ class LoginWidget {
         
         const overlay = document.createElement('div');
         overlay.className = 'login-overlay';
-        console.log('   Created overlay:', overlay);
         const loginBox = document.createElement('div');
         loginBox.className = 'login-box login-disabled';
-        console.log('   Created login box:', loginBox);
         const coreColor = getComputedStyle(document.documentElement)
             .getPropertyValue('--reverie-core-color').trim() || this.coreColor || '#87408d';
-        console.log('   Using core color:', coreColor);
         loginBox.innerHTML = `
             <button class="login-close-btn" id="loginDisabledClose" aria-label="Close">×</button>
             <div class="login-content">
@@ -220,11 +200,9 @@ class LoginWidget {
         loginBox.style.borderColor = coreColor;
         overlay.appendChild(loginBox);
         document.body.appendChild(overlay);
-        console.log('   Added overlay to document.body');
         setTimeout(() => {
             overlay.classList.add('visible');
             loginBox.classList.add('visible');
-            console.log('✅ Login popup should now be visible');
         }, 10);
         
         // Close button handler
@@ -690,9 +668,10 @@ class LoginWidget {
                     
                     <div class="login-buttons-row">
                         <button id="loginSideDoor" class="login-side-door-btn" disabled>
-                            <span id="loginSideDoorText">side door</span>
-                            <span class="login-side-door-sub">(read only)</span>
+                            <span id="loginSideDoorText">Side Door</span>
+                            <span class="login-side-door-sub">browse read-only</span>
                         </button>
+                        <span class="login-buttons-divider">or</span>
                         <button id="loginSubmit" class="login-method-btn login-main-btn" disabled>
                             <span id="loginSubmitText">Enter</span>
                         </button>
@@ -792,12 +771,12 @@ class LoginWidget {
         if (prefillHandle) {
             sessionStorage.removeItem('login_prefillHandle');
             handleInput.value = prefillHandle;
-            console.log('🔐 Prefilled handle:', prefillHandle);
             // Trigger the handle check after a brief delay
             setTimeout(() => checkHandle(prefillHandle), 100);
         }
         
         // Check handle as user types
+        let dbCache = null; // Cache database across checkHandle calls
         const checkHandle = async (inputValue) => {
             let handle = inputValue.replace(/^@/, '').trim();
             if (!handle) {
@@ -819,19 +798,24 @@ class LoginWidget {
             }
             
             try {
-                // Check database for name match first (only for inputs without a dot)
-                if (!handle.includes('.') && !handle.startsWith('did:')) {
+                // Ensure database is cached (single fetch, reused across calls)
+                if (!dbCache) {
                     const dbResponse = await fetch('/api/database/all');
                     if (dbResponse.ok) {
                         const dbData = await dbResponse.json();
-                        const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
-                        const dreamerByName = dreamers.find(d => d.name && d.name.toLowerCase() === handle.toLowerCase());
+                        dbCache = dbData.tables?.dreamers || dbData.dreamers || [];
+                    }
+                }
+                
+                // Check database for name match first (only for inputs without a dot)
+                if (!handle.includes('.') && !handle.startsWith('did:')) {
+                    if (dbCache) {
+                        const dreamerByName = dbCache.find(d => d.name && d.name.toLowerCase() === handle.toLowerCase());
                         if (dreamerByName && dreamerByName.handle) {
                             // Found exact name match in database - use their handle
                             handle = dreamerByName.handle;
                         } else {
                             // No name match found - wait for user to type a complete handle
-                            // Don't auto-append .bsky.social for partial input
                             statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
                             statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
                             statusMessage.style.color = '#888';
@@ -845,7 +829,7 @@ class LoginWidget {
                             return;
                         }
                     } else {
-                        // Database check failed - require full handle
+                        // Database fetch failed - require full handle
                         statusMessage.style.background = 'rgba(135, 64, 141, 0.05)';
                         statusMessage.style.border = '1px solid rgba(135, 64, 141, 0.2)';
                         statusMessage.style.color = '#888';
@@ -860,87 +844,89 @@ class LoginWidget {
                     }
                 }
                 
-                // Resolve handle to DID
-                // Try handle's domain first for non-bsky handles, then fallback to bsky.social
-                let didResponse;
-                const handleParts = handle.split('.');
-                const handleDomain = handleParts.slice(1).join('.'); // e.g., 'reverie.house' from 'user.reverie.house'
+                // Fast path: check if this handle belongs to a known dreamweaver
+                // If so, skip external handle resolution + DID doc fetch entirely
+                const knownDreamer = dbCache?.find(d => d.handle === handle);
+                let did, serviceEndpoint, isDreamweaver = false, isResident = false;
                 
-                // For handles that aren't .bsky.social, try their own domain first
-                if (handleDomain && !handleDomain.endsWith('bsky.social')) {
-                    try {
-                        didResponse = await fetch(`https://${handleDomain}/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
-                    } catch (e) {
-                        console.log(`[Login] Could not resolve via ${handleDomain}, trying bsky.social`);
+                if (knownDreamer && knownDreamer.did && knownDreamer.server) {
+                    // Known dreamweaver — use cached data directly (no external calls)
+                    did = knownDreamer.did;
+                    serviceEndpoint = knownDreamer.server;
+                    resolvedHandle = handle;
+                    isDreamweaver = true;
+                } else {
+                    // Unknown user — resolve via external APIs
+                    let didResponse;
+                    const handleParts = handle.split('.');
+                    const handleDomain = handleParts.slice(1).join('.');
+                    
+                    // For handles that aren't .bsky.social, try their own domain first
+                    if (handleDomain && !handleDomain.endsWith('bsky.social')) {
+                        try {
+                            didResponse = await fetch(`https://${handleDomain}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+                        } catch (e) {
+                        }
+                    }
+                    
+                    // Fallback to bsky.social if handle's domain failed or wasn't tried
+                    if (!didResponse || !didResponse.ok) {
+                        didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+                    }
+                    
+                    if (!didResponse.ok) {
+                        showNotFound();
+                        return;
+                    }
+                    
+                    const didData = await didResponse.json();
+                    did = didData.did;
+                    resolvedHandle = handle;
+                    
+                    // Fetch DID document to find PDS
+                    let didDocResponse;
+                    if (did.startsWith('did:web:')) {
+                        const domain = did.replace('did:web:', '');
+                        didDocResponse = await fetch(`https://${domain}/.well-known/did.json`);
+                    } else {
+                        didDocResponse = await fetch(`https://plc.directory/${did}`);
+                    }
+                    
+                    if (!didDocResponse.ok) {
+                        showNotFound();
+                        return;
+                    }
+                    
+                    const didDoc = await didDocResponse.json();
+                    const service = didDoc.service?.find(s => s.id === '#atproto_pds');
+                    serviceEndpoint = service?.serviceEndpoint || '';
+                    
+                    // Check if this resolved user is actually a known dreamweaver (matched by DID)
+                    const dreamerByDid = dbCache?.find(d => d.did === did);
+                    if (dreamerByDid) {
+                        isDreamweaver = true;
                     }
                 }
-                
-                // Fallback to bsky.social if handle's domain failed or wasn't tried
-                if (!didResponse || !didResponse.ok) {
-                    didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
-                }
-                
-                if (!didResponse.ok) {
-                    showNotFound();
-                    return;
-                }
-                
-                const didData = await didResponse.json();
-                const did = didData.did;
-                resolvedHandle = handle;
-                
-                // Fetch DID document to find PDS
-                let didDocResponse;
-                if (did.startsWith('did:web:')) {
-                    const domain = did.replace('did:web:', '');
-                    didDocResponse = await fetch(`https://${domain}/.well-known/did.json`);
-                } else {
-                    didDocResponse = await fetch(`https://plc.directory/${did}`);
-                }
-                
-                if (!didDocResponse.ok) {
-                    showNotFound();
-                    return;
-                }
-                
-                const didDoc = await didDocResponse.json();
-                const service = didDoc.service?.find(s => s.id === '#atproto_pds');
-                const serviceEndpoint = service?.serviceEndpoint || '';
                 
                 // Get heraldry from the heraldry system (includes reverie.house and bsky.network)
                 let heraldry = window.heraldrySystem ? window.heraldrySystem.getByServer(serviceEndpoint) : null;
                 let accountIcon = heraldry ? heraldry.icon : '/assets/wild_mindscape.png';
                 let accountColor = heraldry ? heraldry.color : '#2d3748';
-                // Use heraldry fullName for the welcome message (e.g., 'Awakened Dreamweaver', 'Honoured Guest')
                 const heraldryName = heraldry ? heraldry.fullName : 'Honoured Guest';
                 let accountName = `welcome, ${heraldryName.toLowerCase()}`;
-                let isDreamweaver = false;
-                let isResident = false;
                 
-                // Check if user is a known dreamweaver in our database
-                try {
-                    const dbResponse = await fetch('/api/database/all');
-                    if (dbResponse.ok) {
-                        const dbData = await dbResponse.json();
-                        const dreamers = dbData.tables?.dreamers || dbData.dreamers || [];
-                        const dreamer = dreamers.find(d => d.did === did);
-                        if (dreamer) {
-                            isDreamweaver = true;
-                            if (dreamer.color_hex) {
-                                accountColor = dreamer.color_hex;
-                                console.log(`🎨 [Login] Found dreamweaver color: ${accountColor}`);
-                            }
-                            // Check if they're a resident
-                            if (serviceEndpoint === 'https://reverie.house') {
-                                isResident = true;
-                                accountName = 'welcome home, dreamweaver';
-                            } else {
-                                accountName = 'welcome back, dreamweaver';
-                            }
-                        }
+                // Apply dreamweaver-specific overrides
+                if (isDreamweaver) {
+                    const dreamer = dbCache?.find(d => d.did === did);
+                    if (dreamer?.color_hex) {
+                        accountColor = dreamer.color_hex;
                     }
-                } catch (colorError) {
-                    console.warn('🎨 [Login] Could not fetch dreamweaver data:', colorError);
+                    if (serviceEndpoint === 'https://reverie.house') {
+                        isResident = true;
+                        accountName = 'welcome home, dreamweaver';
+                    } else {
+                        accountName = 'welcome back, dreamweaver';
+                    }
                 }
                 
                 
@@ -959,6 +945,7 @@ class LoginWidget {
                     // Show side door for OAuth users (guests/awakened)
                     sideDoorBtn.classList.add('visible');
                     sideDoorBtn.disabled = false;
+                    sideDoorBtn.title = 'Browse without granting write access. You can log in again later for full access.';
                     // Tinting is handled by CSS: .login-box-found .login-side-door-btn.visible
                 }
                 
@@ -981,7 +968,6 @@ class LoginWidget {
                 submitBtn.style.background = accountColor;
                 submitBtn.style.borderColor = accountColor;
                 submitBtn.style.color = 'white';
-                console.log(`🎨 [Login] Applied heraldry color: ${accountColor}`);
                 
                 // Determine button text based on account type
                 if (serviceEndpoint === 'https://reverie.house') {
@@ -1224,8 +1210,8 @@ class LoginWidget {
             if (window.CreateDreamer) {
                 const createDreamer = new window.CreateDreamer();
                 createDreamer.show({
-                    onSuccess: (result) => console.log('✅ Account created:', result),
-                    onCancel: () => console.log('❌ Account creation cancelled')
+                    onSuccess: () => {},
+                    onCancel: () => {}
                 });
             } else {
                 alert('Account creation system not available. Please refresh the page.');
@@ -1309,12 +1295,24 @@ class LoginWidget {
             overlay.classList.remove('visible');
             logoutBox.classList.remove('visible');
             setTimeout(() => overlay.remove(), 300);
+            document.removeEventListener('keydown', escHandler);
         });
         cancelBtn.addEventListener('click', () => {
             overlay.classList.remove('visible');
             logoutBox.classList.remove('visible');
             setTimeout(() => overlay.remove(), 300);
+            document.removeEventListener('keydown', escHandler);
         });
+        // Escape key handler
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.classList.remove('visible');
+                logoutBox.classList.remove('visible');
+                setTimeout(() => overlay.remove(), 300);
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
         // Delay click-outside handler to prevent mobile touch-to-click ghost click
         setTimeout(() => {
             overlay.addEventListener('click', (e) => {
@@ -1322,10 +1320,10 @@ class LoginWidget {
                     overlay.classList.remove('visible');
                     logoutBox.classList.remove('visible');
                     setTimeout(() => overlay.remove(), 300);
+                    document.removeEventListener('keydown', escHandler);
                 }
             });
         }, 400);
     }
 }
 window.loginWidget = new LoginWidget();
-console.log('🔐 Login widget loaded (OAuth)');

@@ -156,7 +156,6 @@ class StatusExplainer {
 // Initialize global instance
 if (!window.statusExplainerWidget) {
     window.statusExplainerWidget = new StatusExplainer();
-    console.log('✅ [StatusExplainer] Status explainer widget loaded');
 }
 
 window.StatusExplainer = StatusExplainer;

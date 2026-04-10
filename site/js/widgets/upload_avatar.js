@@ -6,11 +6,9 @@
 class UploadAvatar {
     constructor() {
         this.modal = null;
-        console.log('✅ [UploadAvatar] Avatar upload widget initialized');
     }
 
     async initiate() {
-        console.log('🖼️ [UploadAvatar] Initiate called');
         
         // Get PDS session from login (try multiple sources)
         const pdsSessionStr = localStorage.getItem('pds_session');
@@ -18,7 +16,6 @@ class UploadAvatar {
             try {
                 const pdsSession = JSON.parse(pdsSessionStr);
                 if (pdsSession.accessJwt && pdsSession.did) {
-                    console.log('🔑 [UploadAvatar] Using pds_session for avatar upload');
                     this.pdsSession = pdsSession;
                     this.showAvatarUpload();
                     return;
@@ -31,7 +28,6 @@ class UploadAvatar {
         // Try OAuth session
         const oauthSession = window.oauthManager?.getSession?.() || window.oauthManager?.currentSession;
         if (oauthSession?.accessJwt && (oauthSession.did || oauthSession.sub)) {
-            console.log('🔑 [UploadAvatar] Using OAuth session for avatar upload');
             this.pdsSession = {
                 accessJwt: oauthSession.accessJwt,
                 did: oauthSession.did || oauthSession.sub,
@@ -43,7 +39,6 @@ class UploadAvatar {
 
         // Try MePage session
         if (window.MePage?.session && window.MePage?.getToken?.()) {
-            console.log('🔑 [UploadAvatar] Using MePage session for avatar upload');
             this.pdsSession = {
                 accessJwt: window.MePage.getToken(),
                 did: window.MePage.session.did,
@@ -164,7 +159,6 @@ class UploadAvatar {
                         if (blob.size > 900000 && q > 0.5) {
                             tryCompress(q - 0.1);
                         } else {
-                            console.log(`📐 [UploadAvatar] Resized: ${img.width}x${img.height} → ${width}x${height}, quality: ${q.toFixed(1)}, size: ${(blob.size/1024).toFixed(1)}KB`);
                             resolve(blob);
                         }
                     }, 'image/jpeg', q);
@@ -196,7 +190,6 @@ class UploadAvatar {
         try {
             // Resize image to fit Bluesky's ~1MB limit
             const resizedBlob = await this.resizeImageForUpload(file, 800, 0.9);
-            console.log('📐 [UploadAvatar] Resized image size:', resizedBlob.size, 'bytes');
             
             const token = localStorage.getItem('oauth_token');
             const formData = new FormData();

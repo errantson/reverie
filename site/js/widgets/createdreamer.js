@@ -315,10 +315,8 @@ class CreateDreamer {
                 // Store the full invite code
                 if (value.length >= 10) { // At least xxxxx-xxxx
                     this.inviteCode = 'reverie-house-' + value;
-                    console.log('✅ Invite code set:', this.inviteCode);
                 } else {
                     this.inviteCode = null;
-                    console.log('⚠️ Invite code cleared (value too short):', value);
                 }
             });
             
@@ -389,14 +387,12 @@ class CreateDreamer {
             }
             
             const data = await response.json();
-            console.log('🔑 Invite code data received:', data);
             
             const keysRemaining = document.getElementById('keys-remaining');
             if (keysRemaining) {
                 // Zero-pad single digit numbers (0-9 becomes 00-09)
                 const availableFormatted = data.available.toString().padStart(2, '0');
                 keysRemaining.textContent = `${availableFormatted} / 10 left`;
-                console.log('✅ Updated keys remaining display:', availableFormatted);
             } else {
                 console.warn('⚠️ Element #keys-remaining not found in DOM');
             }
@@ -570,7 +566,6 @@ class CreateDreamer {
             return;
         }
         
-        console.log('✅ Using invite code:', this.inviteCode);
         
         // Ensure invite code has the proper format
         let inviteCode = this.inviteCode;
@@ -629,7 +624,6 @@ class CreateDreamer {
                         
                         // CRITICAL: Register the dreamer BEFORE triggering oauth:login
                         // This ensures the profile exists before dashboard tries to load
-                        console.log('🎫 Registering new dreamer...');
                         const registerResponse = await fetch('/api/register', {
                             method: 'POST',
                             headers: {
@@ -643,7 +637,6 @@ class CreateDreamer {
                         
                         if (registerResponse.ok) {
                             const registerResult = await registerResponse.json();
-                            console.log('✅ Registration complete:', registerResult);
                             
                             // Enrich session with profile data from registration
                             if (registerResult.dreamer) {
@@ -657,9 +650,6 @@ class CreateDreamer {
                                 
                                 // Update stored session
                                 localStorage.setItem('pds_session', JSON.stringify(session));
-                                console.log('✅ Session enriched with profile data');
-                                console.log('   Display Name:', session.displayName);
-                                console.log('   Avatar:', session.avatar);
                             }
                         } else {
                             console.warn('⚠️ Registration failed, but continuing:', await registerResponse.text());
@@ -766,7 +756,6 @@ class CreateDreamer {
                 const retryDelays = [2000, 4000, 8000];
                 
                 for (let attempt = 0; attempt < retryDelays.length; attempt++) {
-                    console.log(`⏳ Backend unavailable, retry ${attempt + 1}/${retryDelays.length} in ${retryDelays[attempt]}ms...`);
                     await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
                     
                     try {
@@ -784,7 +773,6 @@ class CreateDreamer {
                         }
                         
                         const retryResult = await retryResponse.json();
-                        console.log('✅ Backend recovered, account created on retry');
                         return retryResult;
                     } catch (retryError) {
                         if (retryError.message && !retryError.message.includes('fetch') && retryError.message !== 'BACKEND_DOWN') {
@@ -839,4 +827,3 @@ class CreateDreamer {
 // Export to window
 window.CreateDreamer = CreateDreamer;
 
-console.log('✅ CreateDreamer widget loaded');

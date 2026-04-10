@@ -15,7 +15,6 @@
     }
     
     function initSidebar() {
-        console.log('🎨 [Work] Initializing sidebar extensions');
         
         // Hook into OAuth events to update sidebar
         window.addEventListener('oauth:profile-loaded', handleProfileLoaded);
@@ -43,7 +42,6 @@
     }
     
     function handleProfileLoaded(event) {
-        console.log('🎨 [Work] Profile loaded event received');
         const session = event.detail.session;
         updateSidebarUser(session);
         // Update work status after a short delay to let role statuses load
@@ -51,12 +49,10 @@
     }
     
     function handleLogin(event) {
-        console.log('🎨 [Work] Login event received');
         // Wait for profile to load before updating
     }
     
     function handleLogout() {
-        console.log('🎨 [Work] Logout event received');
         showSidebarGuest();
     }
     
@@ -176,7 +172,6 @@
         if (mobileGuestEl) mobileGuestEl.style.display = 'none';
         if (mobileUserEl) mobileUserEl.style.display = 'flex';
         
-        console.log('🎨 [Work] Sidebar user updated:', displayName, 'color:', userColor);
     }
     
     function updateSidebarWorkStatus() {
@@ -192,8 +187,6 @@
         // Need at least one target element
         if (!statusContentEl && !mobileStatusContentEl) return;
         
-        console.log('🎨 [Work] updateSidebarWorkStatus called, checking roleStatuses...');
-        console.log('🎨 [Work] roleStatuses.cheerful:', roleStatuses.cheerful);
         
         // Find which role the user has
         let userRole = null;
@@ -225,14 +218,12 @@
             roleStatus = roleStatuses.guardian;
         }
         
-        console.log('🎨 [Work] Detected userRole:', userRole, 'roleStatus:', roleStatus);
         
         if (!userRole) {
             // Not working - show as DREAMWEAVER
             const badgeHtml = `<span class="status-badge not-working">DREAMWEAVER</span>`;
             if (statusContentEl) statusContentEl.innerHTML = badgeHtml;
             if (mobileStatusContentEl) mobileStatusContentEl.innerHTML = badgeHtml;
-            console.log('🎨 [Work] Sidebar status: Dreamweaver');
             return;
         }
 
@@ -300,12 +291,10 @@
         if (mobileStatusContentEl) {
             mobileStatusContentEl.innerHTML = `<span class="status-badge ${statusClass} role-${userRole}">${roleTitle}</span>`;
         }
-        console.log('🎨 [Work] Sidebar status updated:', statusText, roleTitle);
     }
     
     // Listen for custom work status update events
     window.addEventListener('work:status-updated', function() {
-        console.log('🎨 [Work] Work status updated, refreshing sidebar');
         setTimeout(updateSidebarWorkStatus, 100);
     });
     
@@ -315,7 +304,6 @@
         Object.keys(window.WorkEvents.EVENTS).forEach(eventKey => {
             const eventName = window.WorkEvents.EVENTS[eventKey];
             window.WorkEvents.on(eventName, () => {
-                console.log('🎨 [Work] WorkEvent received:', eventName);
                 setTimeout(updateSidebarWorkStatus, 200);
                 
                 // Dispatch a custom event so work.html can also react

@@ -428,8 +428,6 @@ class ComposerWidget {
     }
     
     openCalendarPicker() {
-        console.log('📅 [Composer] openCalendarPicker() called');
-        console.log('📅 [Composer] window.calendarWidget exists:', !!window.calendarWidget);
         
         if (!window.calendarWidget) {
             console.error('❌ [Composer] Calendar widget not available');
@@ -437,18 +435,12 @@ class ComposerWidget {
             return;
         }
         
-        console.log('📅 [Composer] window.calendarWidget.show exists:', !!window.calendarWidget.show);
-        console.log('✅ [Composer] Calendar widget is functional, opening picker...');
         
         const self = this;
         // Pass existing scheduledDate or null (not undefined)
         const initialDate = self.scheduledDate || null;
-        console.log('📅 [Composer] Passing initialDate:', initialDate);
         
         window.calendarWidget.show(initialDate, (selectedDate) => {
-            console.log('📅 [Composer] ===== CALLBACK TRIGGERED =====');
-            console.log('📅 [Composer] selectedDate received:', selectedDate);
-            console.log('📅 [Composer] selectedDate type:', typeof selectedDate);
             
             if (!selectedDate) {
                 console.warn('⚠️ [Composer] No date selected');
@@ -458,17 +450,13 @@ class ComposerWidget {
             self.scheduledDate = selectedDate;
             const timestamp = Math.floor(selectedDate.getTime() / 1000);
             
-            console.log('📅 [Composer] Calculated timestamp:', timestamp);
             
             const scheduleTimeInput = document.getElementById('composerScheduleTime');
             if (scheduleTimeInput) {
                 scheduleTimeInput.value = timestamp;
-                console.log('📅 [Composer] Set scheduleTime.value to:', timestamp);
             }
             
-            console.log('📅 [Composer] Calling updateScheduleDisplay...');
             self.updateScheduleDisplay();
-            console.log('📅 [Composer] ===== CALLBACK COMPLETE =====');
         });
     }
     
@@ -559,11 +547,9 @@ class ComposerWidget {
                     throw new Error(data.error || 'Failed to schedule post');
                 }
                 
-                console.log('✅ [Composer] Post scheduled successfully');
                 
             } else {
                 // Immediate post via oauth-manager's createPost method
-                console.log('📤 [Composer] Posting immediately');
                 
                 if (!window.oauthManager) {
                     throw new Error('OAuth manager not available');
@@ -577,7 +563,6 @@ class ComposerWidget {
                 
                 // Add reply if in reply mode
                 if (this.options.mode === 'reply' && this.options.replyTo) {
-                    console.log('💬 [Composer] Adding reply reference:', this.options.replyTo);
                     record.reply = {
                         root: this.options.replyTo.root || {
                             uri: this.options.replyTo.uri,
@@ -614,7 +599,6 @@ class ComposerWidget {
                 // Create the post using oauth-manager's createPost method
                 // This handles both PDS and OAuth sessions correctly
                 await window.oauthManager.createPost(postText, record);
-                console.log('✅ [Composer] Post created successfully');
             }
             
             // Success callback
@@ -690,7 +674,6 @@ class ComposerWidget {
                 throw new Error(data.error || 'Failed to update post');
             }
             
-            console.log('✅ [Composer] Post updated successfully');
             
             // Success callback
             if (this.options.onSuccess) {
@@ -727,4 +710,3 @@ class ComposerWidget {
 
 // Export for global use
 window.ComposerWidget = ComposerWidget;
-console.log('✅ [composer.js] ComposerWidget loaded');

@@ -45,11 +45,10 @@ class OAuthManager {
                         window.dispatchEvent(new CustomEvent('oauth:login', { 
                             detail: { session: this.currentSession } 
                         }))
-                        // Check if this was a Main Door login - prompt for credentials
+                        // Main Door login completed — sideDoorLogin flag cleared by login.js
                         if (localStorage.getItem('mainDoorLogin') === 'true') {
                             localStorage.removeItem('mainDoorLogin')
-                            console.log('🚪 Main Door login - prompting for credentials')
-                            setTimeout(() => this._promptForCredentials(), 500)
+                            console.log('🚪 Main Door login complete')
                         }
                     } else {
                         console.log(`✅ ${session.sub} restored (previous session)`)
@@ -185,10 +184,14 @@ class OAuthManager {
     }
 
     async checkIfReverieAccount(did) {
-        // Quick check: reverie.house DIDs are served by our PDS
+        // Check if this DID's PDS is reverie.house
         try {
-            const response = await fetch(`https://reverie.house/xrpc/com.atproto.identity.resolveHandle?handle=${did}`)
-            return response.ok
+            const didDoc = await this._resolveDIDDocument(did)
+            if (didDoc?.service) {
+                const pds = didDoc.service.find(s => s.id === '#atproto_pds')
+                return pds?.serviceEndpoint === 'https://reverie.house'
+            }
+            return false
         } catch {
             return false
         }
@@ -406,7 +409,7 @@ class OAuthManager {
                         'Authorization': token ? `Bearer ${token}` : ''
                     },
                     body: JSON.stringify({
-                        user_did: userDid,
+                        user_did: this.currentSession.sub || this.currentSession.did,
                         record: record
                     })
                 });
@@ -592,8 +595,13 @@ class OAuthManager {
     async _resolveDIDDocument(did) {
         try {
             if (did.startsWith('did:plc:')) {
-                const plcUrl = `https://plc.directory/${did}`
-                const response = await fetch(plcUrl)
+                const response = await fetch(`https://plc.directory/${did}`)
+                if (response.ok) {
+                    return await response.json()
+                }
+            } else if (did.startsWith('did:web:')) {
+                const host = did.replace('did:web:', '').replace(/%3A/g, ':')
+                const response = await fetch(`https://${host}/.well-known/did.json`)
                 if (response.ok) {
                     return await response.json()
                 }
@@ -627,6 +635,156 @@ class OAuthManager {
         } catch (error) {
             console.error('Error getting post CID:', error)
             return null
+        }
+    }
+
+    /**
+     * Generic createRecord — writes any AT Proto record to the user's PDS.
+     * Supports both OAuth DPoP sessions and PDS app-password sessions.
+     * @param {string} collection - e.g. 'farm.lore.content'
+     * @param {object} record - Record fields (without $type, added automatically)
+     * @param {string} [rkey] - Optional record key
+     * @returns {{ uri: string, cid: string }}
+     */
+    async createRecord(collection, record, rkey) {
+        await this.ensureInitialized();
+        if (!this.currentSession) {
+            throw new Error('Not logged in');
+        }
+
+        const did = this.currentSession.sub || this.currentSession.did;
+        const payload = {
+            repo: did,
+            collection,
+            record: { $type: collection, ...record },
+        };
+        if (rkey) payload.rkey = rkey;
+
+        // Check for PDS session (app password) first
+        const pdsSession = localStorage.getItem('pds_session');
+        if (pdsSession) {
+            const session = JSON.parse(pdsSession);
+            const didDoc = await this._resolveDIDDocument(did);
+            const pdsService = didDoc?.service?.find(s => s.id === '#atproto_pds');
+            const pdsUrl = pdsService?.serviceEndpoint;
+            if (!pdsUrl) throw new Error('Could not resolve PDS endpoint');
+
+            const response = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.createRecord`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.accessJwt}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.status === 401) {
+                throw new Error('Session expired. Please log in again.');
+            }
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`createRecord failed (${response.status}): ${error}`);
+            }
+
+            const result = await response.json();
+            console.log(`✅ Record created [${collection}]:`, result.uri);
+            return { uri: result.uri, cid: result.cid };
+        }
+
+        // OAuth DPoP session
+        try {
+            const session = await this.client.restore(did);
+            const response = await session.fetchHandler('/xrpc/com.atproto.repo.createRecord', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`createRecord failed (${response.status}): ${error}`);
+            }
+
+            const result = await response.json();
+            console.log(`✅ Record created [${collection}]:`, result.uri);
+            return { uri: result.uri, cid: result.cid };
+        } catch (error) {
+            if (error.message?.includes('deleted') || error.message?.includes('expired')) {
+                this.currentSession = null;
+                window.dispatchEvent(new CustomEvent('oauth:logout', {
+                    detail: { sub: did, cause: error.message }
+                }));
+                throw new Error('Your session has expired. Please log in again.');
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Generic deleteRecord — removes a record from the user's PDS.
+     * Supports both OAuth DPoP sessions and PDS app-password sessions.
+     * @param {string} collection - e.g. 'farm.lore.character'
+     * @param {string} rkey - The record key to delete
+     */
+    async deleteRecord(collection, rkey) {
+        await this.ensureInitialized();
+        if (!this.currentSession) {
+            throw new Error('Not logged in');
+        }
+
+        const did = this.currentSession.sub || this.currentSession.did;
+
+        // Check for PDS session (app password) first
+        const pdsSession = localStorage.getItem('pds_session');
+        if (pdsSession) {
+            const session = JSON.parse(pdsSession);
+            const didDoc = await this._resolveDIDDocument(did);
+            const pdsService = didDoc?.service?.find(s => s.id === '#atproto_pds');
+            const pdsUrl = pdsService?.serviceEndpoint;
+            if (!pdsUrl) throw new Error('Could not resolve PDS endpoint');
+
+            const response = await fetch(`${pdsUrl}/xrpc/com.atproto.repo.deleteRecord`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.accessJwt}`,
+                },
+                body: JSON.stringify({ repo: did, collection, rkey }),
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`deleteRecord failed (${response.status}): ${error}`);
+            }
+
+            console.log(`✅ Record deleted [${collection}]: ${rkey}`);
+            return;
+        }
+
+        // OAuth DPoP session
+        try {
+            const session = await this.client.restore(did);
+            const response = await session.fetchHandler('/xrpc/com.atproto.repo.deleteRecord', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ repo: did, collection, rkey }),
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`deleteRecord failed (${response.status}): ${error}`);
+            }
+
+            console.log(`✅ Record deleted [${collection}]: ${rkey}`);
+        } catch (error) {
+            if (error.message?.includes('deleted') || error.message?.includes('expired')) {
+                this.currentSession = null;
+                window.dispatchEvent(new CustomEvent('oauth:logout', {
+                    detail: { sub: did, cause: error.message }
+                }));
+                throw new Error('Your session has expired. Please log in again.');
+            }
+            throw error;
         }
     }
 
@@ -714,6 +872,44 @@ class OAuthManager {
                 window.location.reload()
             }, 100) // Small delay to allow logout event handlers to complete
         }
+    }
+
+    /**
+     * Upgrade a Side Door session to Main Door by logging out and
+     * immediately re-initiating OAuth with full scope.
+     * The user is seamlessly redirected to authorize with write access.
+     */
+    async upgradeToMainDoor() {
+        const handle = this.currentSession?.handle || this.currentSession?.sub
+        if (!handle) {
+            console.warn('⚠️ No session to upgrade')
+            return
+        }
+        console.log('⬆️ Upgrading Side Door to Main Door for:', handle)
+
+        try {
+            await this.ensureInitialized()
+            // Revoke the existing read-only session
+            if (this.client && !localStorage.getItem('pds_session')) {
+                await this.client.revoke(this.currentSession.sub)
+            }
+        } catch (error) {
+            console.error('⚠️ Revoke during upgrade failed (continuing):', error)
+        }
+
+        // Clear session state
+        this.currentSession = null
+        localStorage.removeItem('oauth_token')
+        localStorage.removeItem('admin_token')
+        localStorage.removeItem('BSKY_AGENT(sub)')
+        sessionStorage.removeItem('admin_session')
+
+        // Set flags for Main Door re-login
+        localStorage.setItem('mainDoorLogin', 'true')
+        localStorage.removeItem('sideDoorLogin')
+
+        // Immediately re-initiate OAuth with full scope — redirects the browser
+        await this.login(handle, null, { scope: 'atproto transition:generic' })
     }
 
     async ensureInitialized() {

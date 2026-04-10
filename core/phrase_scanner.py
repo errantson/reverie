@@ -172,7 +172,7 @@ class PhraseScanner:
                 if isinstance(trigger_config, str):
                     try:
                         trigger_config = json.loads(trigger_config)
-                    except:
+                    except Exception:
                         trigger_config = {}
                 
                 phrases = trigger_config.get('phrases', [])
@@ -267,6 +267,10 @@ class PhraseScanner:
         """Handle a Jetstream event."""
         self.stats['total_events'] += 1
         
+        # Skip non-dict events (Jetstream may send booleans or other literals)
+        if not isinstance(event, dict):
+            return
+        
         # Save cursor periodically
         time_us = event.get('time_us')
         if time_us and self.stats['total_events'] % 1000 == 0:
@@ -288,6 +292,8 @@ class PhraseScanner:
             return
         
         commit = event.get('commit', {})
+        if not isinstance(commit, dict):
+            return
         if commit.get('collection') != 'app.bsky.feed.post':
             return
         if commit.get('operation') != 'create':
@@ -541,6 +547,10 @@ class PhraseScanner:
                             except json.JSONDecodeError as e:
                                 if self.verbose:
                                     print(f"⚠️ JSON error: {e}")
+                            except Exception as e:
+                                self.stats['errors'] += 1
+                                if self.verbose:
+                                    print(f"⚠️ Event handling error: {e}")
                                     
                 except websockets.exceptions.ConnectionClosed as e:
                     self.stats['reconnects'] += 1

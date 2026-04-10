@@ -133,7 +133,6 @@ class ATProtoInteractions {
                         throw new Error(error.error || 'Failed to store credentials');
                     }
                     
-                    console.log('✅ [ATProto] Credentials stored successfully');
                     this._credentialsCache = true;
                     this._credentialsCacheTime = Date.now();
                     resolve(true);
@@ -167,14 +166,19 @@ class ATProtoInteractions {
             return true;
         }
         
-        // OAuth sessions need stored credentials for write operations
+        // Side Door users should upgrade to Main Door via OAuth re-login
+        if (window.AuthGate?.isSideDoorUser()) {
+            const granted = await window.AuthGate.requireWriteAccess({ feature: 'Interactions' });
+            return granted;
+        }
+        
+        // Main Door OAuth sessions need stored credentials for server-side operations
         const hasCredentials = await this.hasStoredCredentials();
         if (hasCredentials) {
             return true;
         }
         
-        // Prompt for app password
-        console.log('🔐 [ATProto] OAuth-only session, requesting app password for write access');
+        // Prompt Main Door users for app password (needed for server-side writes)
         return await this.requestAndStoreCredentials();
     }
 
@@ -219,7 +223,6 @@ class ATProtoInteractions {
         }
 
         try {
-            console.log('🔄 [ATProto] Refreshing PDS token...');
             const pdsEndpoint = this.getPdsEndpoint(session);
             
             const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.server.refreshSession`, {
@@ -252,7 +255,6 @@ class ATProtoInteractions {
                 window.oauthManager.session = updatedSession;
             }
             
-            console.log('✅ [ATProto] PDS token refreshed successfully');
             return updatedSession;
         } catch (error) {
             console.error('❌ [ATProto] Token refresh error:', error);
@@ -303,7 +305,6 @@ class ATProtoInteractions {
                 if (response.status === 400) {
                     const errorData = await response.json();
                     if (errorData.error === 'ExpiredToken') {
-                        console.log('🔄 [ATProto] Token expired, refreshing...');
                         session = await this.refreshPdsToken(session);
                         
                         // Retry the request with new token

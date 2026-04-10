@@ -139,7 +139,6 @@ class AxisExplainer {
 // Initialize global instance
 if (!window.axisExplainerWidget) {
     window.axisExplainerWidget = new AxisExplainer();
-    console.log('✅ [AxisExplainer] Axis explainer widget loaded');
 }
 
 window.AxisExplainer = AxisExplainer;

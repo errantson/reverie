@@ -101,7 +101,7 @@ def update_profile(did: str, display_name: str = None) -> dict:
             try:
                 error_data = session_response.json()
                 error_msg = error_data.get('message', error_msg)
-            except:
+            except Exception:
                 pass
             return {"success": False, "error": f"Authentication failed: {error_msg}"}
         
@@ -276,7 +276,7 @@ def update_avatar(did: str, image_data: bytes) -> dict:
             try:
                 error_data = session_response.json()
                 error_msg = error_data.get('message', error_msg)
-            except:
+            except Exception:
                 pass
             return {"success": False, "error": f"Authentication failed: {error_msg}"}
         

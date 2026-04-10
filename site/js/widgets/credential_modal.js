@@ -196,8 +196,6 @@ class AppPasswordModal {
 
         try {
             const token = localStorage.getItem('oauth_token');
-            console.log('🔐 [AppPasswordModal] Connecting with password:', password.substring(0, 4) + '-****-****-****');
-            console.log('🔐 [AppPasswordModal] Token:', token ? 'present' : 'missing');
             
             const response = await fetch('/api/user/credentials/connect', {
                 method: 'POST',
@@ -208,9 +206,7 @@ class AppPasswordModal {
                 body: JSON.stringify({ app_password: password })
             });
 
-            console.log('🔐 [AppPasswordModal] Response status:', response.status);
             const data = await response.json();
-            console.log('🔐 [AppPasswordModal] Response data:', data);
             
             if (!response.ok || !data.success) {
                 // Show detailed error if available

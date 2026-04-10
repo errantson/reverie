@@ -1,0 +1,147 @@
+/**
+ * Auth Gate Styles
+ * Consistent gating visuals for Side Door (read-only) users across the site.
+ */
+
+/* ── Upgrade Modal ── */
+.auth-gate-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+.auth-gate-modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+.auth-gate-modal {
+    background: #ffffff;
+    color: #333;
+    border: 2px solid var(--reverie-core-color, #734ba1);
+    border-radius: 0;
+    padding: 28px 32px 24px;
+    max-width: 380px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+.auth-gate-modal-overlay.visible .auth-gate-modal {
+    transform: scale(1);
+}
+.auth-gate-modal-icon {
+    color: var(--reverie-core-color, #734ba1);
+    margin-bottom: 12px;
+}
+.auth-gate-modal-title {
+    margin: 0 0 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: Arial, sans-serif;
+    color: #333;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.auth-gate-modal-text {
+    margin: 0 0 22px;
+    font-size: 0.8rem;
+    line-height: 1.55;
+    font-family: Arial, sans-serif;
+    color: #555;
+}
+.auth-gate-modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.auth-gate-modal-close,
+.auth-gate-modal-login {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: Arial, sans-serif;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-radius: 0;
+    cursor: pointer;
+    min-width: 120px;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.auth-gate-modal-close {
+    background: white;
+    color: var(--reverie-core-color, #734ba1);
+    border: 2px solid var(--reverie-core-color, #734ba1);
+}
+.auth-gate-modal-close:hover {
+    background: var(--reverie-core-color, #734ba1);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+.auth-gate-modal-login {
+    background: var(--reverie-core-color, #734ba1);
+    color: #fff;
+    border: 2px solid var(--reverie-core-color, #734ba1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.auth-gate-modal-login:hover {
+    background: white;
+    color: var(--reverie-core-color, #734ba1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Gated Feature Indicator ── */
+/* Use .gated-feature on any element that requires write access for Side Door users */
+.gated-feature {
+    position: relative;
+    opacity: 0.45;
+    cursor: not-allowed !important;
+    transition: opacity 0.2s ease;
+}
+.gated-feature:hover {
+    opacity: 0.6;
+}
+.gated-feature * {
+    pointer-events: none;
+}
+/* Re-enable pointer on the container so click handler fires */
+.gated-feature {
+    pointer-events: auto;
+}
+
+/* ── Gated Tab ── */
+.gated-tab {
+    opacity: 0.45 !important;
+    cursor: pointer !important;
+}
+.gated-tab:hover {
+    opacity: 0.6 !important;
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 600px) {
+    .auth-gate-modal {
+        padding: 22px 20px 20px;
+        max-width: 320px;
+    }
+    .auth-gate-modal-close,
+    .auth-gate-modal-login {
+        min-width: 100px;
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    .auth-gate-modal-title {
+        font-size: 0.92rem;
+    }
+    .auth-gate-modal-text {
+        font-size: 0.75rem;
+    }
+}

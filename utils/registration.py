@@ -213,7 +213,22 @@ def register_dreamer(
                     print(f"   ℹ️  Proceeding with minimal registration data")
                 # Create empty profile dict to avoid errors below
                 profile = {}
-        
+        elif not profile.get('createdAt') and not profile.get('created_at'):
+            # Partial profile provided (e.g. from rpg.actor auto-register) without
+            # createdAt — fetch the full profile so we can use the real account
+            # creation date as the arrival timestamp instead of falling back to now.
+            if verbose:
+                print(f"   🔍 Partial profile provided without createdAt — fetching from network...")
+            try:
+                full_profile = network.get_profile(did)
+                if full_profile and (full_profile.get('createdAt') or full_profile.get('created_at')):
+                    profile['createdAt'] = full_profile.get('createdAt') or full_profile.get('created_at')
+                    if verbose:
+                        print(f"   📅 Supplemented createdAt from network: {profile['createdAt']}")
+            except Exception as e:
+                if verbose:
+                    print(f"   ⚠️  Could not fetch createdAt from network: {e}")
+
         # For brand new reverie.house accounts, the profile may have just been initialized
         # Refetch after a short delay to get the avatar and display name
         if handle and handle.endswith('.reverie.house') and not profile.get('avatar'):
@@ -383,6 +398,14 @@ def register_dreamer(
                 updated_at = EXCLUDED.updated_at
         """, (did, handle, dreamer_name, display_name, description, avatar, banner, default_color,
               followers_count, follows_count, posts_count, server, arrival_timestamp, created_at_str, now))
+        
+        # Cache avatar locally for posterity
+        if avatar and avatar.startswith('https://cdn.bsky.app/'):
+            try:
+                from utils.refresh_profiles import cache_avatar
+                cache_avatar(did, avatar, verbose=verbose)
+            except Exception:
+                pass  # Non-critical
         
         if verbose:
             action = "UPDATED (stub completed)" if _completing_stub else "CREATED"

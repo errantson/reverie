@@ -471,4 +471,3 @@ class AppPasswordRequest {
 window.AppPasswordRequest = AppPasswordRequest;
 window.appPasswordRequest = new AppPasswordRequest();
 
-console.log('✅ [AppPasswordRequest] Widget loaded');

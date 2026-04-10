@@ -42,7 +42,6 @@ class SpectrumCalculatorModal {
      */
     async open(isMapper = false, showDeluxe = false) {
         if (this.isOpen) {
-            console.log('⚠️ Spectrum calculator modal already open');
             return;
         }
         
@@ -207,7 +206,6 @@ class SpectrumCalculatorModal {
             });
         } else {
             // Load the script as a MODULE since spectrumpreview.js uses ES6 imports
-            console.log('⏳ Loading SpectrumPreview widget as module...');
             try {
                 // Use dynamic import to load the ES6 module
                 const module = await import('/js/widgets/spectrumpreview.js?v=' + Date.now());
@@ -296,7 +294,6 @@ if (typeof window !== 'undefined') {
     }
     
     window.dialogueCallbacks.openSpectrumCalculator = async function() {
-        console.log('🔢 Opening Spectrum Calculator from dialogue');
         await window.spectrumCalculatorModal.open();
     };
 }

@@ -5,11 +5,9 @@
  * Architecture: Uses site-wide OAuth for authentication (no separate session)
  */
 
-console.log('[Heraldry] Loading heraldry.js...');
 
 class Heraldry {
     constructor() {
-        console.log('[Heraldry] Constructor called');
         this.currentHerald = null;
         this.currentHeraldry = null;
         this.coterie = [];
@@ -25,20 +23,17 @@ class Heraldry {
     }
 
     async init() {
-        console.log('[Heraldry] Initializing...');
         
         // Wait for OAuth manager (site-wide authentication)
         await this.waitForOAuthManager();
         
         // Get current OAuth session (if logged in site-wide)
         const session = this.oauthManager?.getSession();
-        console.log('[Heraldry] OAuth session:', session ? { did: session.did, handle: session.handle } : null);
         
         // If user is logged in and is a herald, load their dashboard directly
         if (session?.did) {
             const heraldry = await this.checkHeraldByDid(session.did);
             if (heraldry) {
-                console.log('[Heraldry] User is herald, loading dashboard');
                 await this.loadDashboard({
                     did: session.did,
                     handle: session.handle,
@@ -49,17 +44,14 @@ class Heraldry {
         }
         
         // Otherwise show the search/browse interface
-        console.log('[Heraldry] Showing search form');
         this.setupEventListeners();
     }
 
     async waitForOAuthManager() {
-        console.log('[Heraldry] Waiting for OAuth manager...');
         return new Promise((resolve) => {
             const check = (attempts = 0) => {
                 if (window.oauthManager) {
                     this.oauthManager = window.oauthManager;
-                    console.log('[Heraldry] OAuth manager connected');
                     resolve();
                 } else if (attempts < 50) {
                     setTimeout(() => check(attempts + 1), 20);
@@ -73,7 +65,6 @@ class Heraldry {
     }
 
     setupEventListeners() {
-        console.log('[Heraldry] Setting up event listeners');
         
         // Show logged-in status if applicable
         this.updateLoggedInStatus();
@@ -194,7 +185,6 @@ class Heraldry {
         // REMOVED - no longer needed
         // If user is logged in but not a herald, they just see the search form
         // with a notice that they're logged in
-        console.log('[Heraldry] User logged in but not herald, showing search form');
         this.setupEventListeners();
     }
 
@@ -211,7 +201,6 @@ class Heraldry {
         
         // Sign out
         setupButton('signOutBtn', () => {
-            console.log('[Heraldry] Sign out button clicked');
             this.logout();
         });
         
@@ -224,14 +213,12 @@ class Heraldry {
             iconFileInput.parentNode.replaceChild(newInput, iconFileInput);
             iconFileInput = newInput;  // Update reference to the new input
             iconFileInput.addEventListener('change', (e) => {
-                console.log('[Heraldry] File input change event fired');
                 this.handleIconUpload(e);
             });
         }
         
         // Now set up buttons with the correct reference
         setupButton('uploadIconBtn', () => {
-            console.log('[Heraldry] Upload button clicked');
             if (iconFileInput) {
                 iconFileInput.click();
             } else {
@@ -283,7 +270,6 @@ class Heraldry {
     }
 
     logout() {
-        console.log('[Heraldry] Logging out - redirecting to home');
         
         // Clear internal state
         this.currentHerald = null;
@@ -631,7 +617,6 @@ class Heraldry {
     // =========================================================================
 
     async loadDashboard(session) {
-        console.log('[Heraldry] Loading dashboard for:', session);
         
         const loginView = document.getElementById('heraldryLogin');
         const dashboardView = document.getElementById('heraldryDashboard');
@@ -640,39 +625,31 @@ class Heraldry {
         if (dashboardView) dashboardView.style.display = 'block';
         
         try {
-            console.log('[Heraldry] Fetching heraldry data...');
             // Load heraldry
             const heraldryResponse = await fetch(`/api/heraldry/${session.heraldryId}`);
             if (!heraldryResponse.ok) {
                 throw new Error('Could not load heraldry');
             }
             this.currentHeraldry = await heraldryResponse.json();
-            console.log('[Heraldry] Heraldry loaded:', this.currentHeraldry.name);
             
             // Apply heraldry colors to the entire page (including header)
             this.applyHeraldryColors(this.currentHeraldry);
             
             // Load ambassador profile
-            console.log('[Heraldry] Fetching ambassador profile...');
             const profileResponse = await fetch(`/api/dreamer/did/${encodeURIComponent(session.did)}`);
             if (profileResponse.ok) {
                 this.currentHerald = await profileResponse.json();
-                console.log('[Heraldry] Ambassador profile loaded:', this.currentHerald.handle);
             } else {
-                console.log('[Heraldry] Could not fetch full profile, using session data');
                 this.currentHerald = { did: session.did, handle: session.handle };
             }
             
             // Load coterie
-            console.log('[Heraldry] Fetching coterie...');
             const coterieResponse = await fetch(`/api/heraldry/${session.heraldryId}/coterie`);
             if (coterieResponse.ok) {
                 this.coterie = await coterieResponse.json();
-                console.log('[Heraldry] Coterie loaded:', this.coterie.length, 'members');
             }
             
             // Render dashboard
-            console.log('[Heraldry] Rendering dashboard...');
             this.renderHeraldProfile();
             this.renderHeraldryPreview();
             this.renderHeraldryControls();
@@ -682,7 +659,6 @@ class Heraldry {
             // Setup dashboard button listeners
             this.setupDashboardListeners();
             
-            console.log('[Heraldry] Dashboard loaded successfully');
             
         } catch (error) {
             console.error('[Heraldry] Error loading dashboard:', error);
@@ -933,14 +909,11 @@ class Heraldry {
     // =========================================================================
 
     async handleIconUpload(e) {
-        console.log('[Heraldry] handleIconUpload called');
         const file = e.target.files[0];
         if (!file) {
-            console.log('[Heraldry] No file selected');
             return;
         }
         
-        console.log('[Heraldry] File:', file.name, 'Size:', file.size, 'Type:', file.type);
         
         // Validate
         if (!file.type.includes('png')) {
@@ -953,22 +926,18 @@ class Heraldry {
             return;
         }
         
-        console.log('[Heraldry] File validation passed, creating preview');
         
         // Preview
         const reader = new FileReader();
         reader.onload = (e) => {
-            console.log('[Heraldry] File read complete, updating preview');
             const iconPreview = document.getElementById('heraldryIconPreview');
             if (iconPreview) {
                 iconPreview.src = e.target.result;
-                console.log('[Heraldry] Preview updated');
             }
             // Show save button when icon changes
             const saveBtn = document.getElementById('saveIconBtn');
             if (saveBtn) {
                 saveBtn.style.display = 'inline-flex';
-                console.log('[Heraldry] Save button shown');
             }
         };
         reader.readAsDataURL(file);
@@ -994,12 +963,9 @@ class Heraldry {
     }
 
     async saveIcon() {
-        console.log('[Heraldry] saveIcon called');
         const fileInput = document.getElementById('iconFileInput');
         const saveBtn = document.getElementById('saveIconBtn');
         
-        console.log('[Heraldry] pendingIconClear:', this.pendingIconClear);
-        console.log('[Heraldry] fileInput.files:', fileInput?.files?.length);
         
         saveBtn.disabled = true;
         const originalText = saveBtn.textContent;
@@ -1007,10 +973,8 @@ class Heraldry {
         
         try {
             const session = this.getSession();
-            console.log('[Heraldry] Session DID:', session?.did);
             
             if (this.pendingIconClear) {
-                console.log('[Heraldry] Clearing icon...');
                 // Clear the icon by sending a DELETE or empty update
                 const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/icon`, {
                     method: 'DELETE',
@@ -1019,7 +983,6 @@ class Heraldry {
                     }
                 });
                 
-                console.log('[Heraldry] Clear response:', response.status);
                 
                 if (!response.ok) {
                     const error = await response.json();
@@ -1029,7 +992,6 @@ class Heraldry {
                 this.currentHeraldry.icon_path = '/assets/heraldry/default.png';
                 this.pendingIconClear = false;
             } else if (fileInput.files[0]) {
-                console.log('[Heraldry] Uploading icon...');
                 // Upload new icon
                 const formData = new FormData();
                 formData.append('icon', fileInput.files[0]);
@@ -1042,7 +1004,6 @@ class Heraldry {
                     body: formData
                 });
                 
-                console.log('[Heraldry] Upload response:', response.status);
                 
                 if (!response.ok) {
                     const error = await response.json();
@@ -1050,10 +1011,8 @@ class Heraldry {
                 }
                 
                 const result = await response.json();
-                console.log('[Heraldry] Upload result:', result);
                 this.currentHeraldry.icon_path = result.icon_path;
             } else {
-                console.log('[Heraldry] Nothing to save');
             }
             
             this.renderHeraldryPreview();
@@ -1110,14 +1069,11 @@ class Heraldry {
     }
 
     async transferHerald() {
-        console.log('[Heraldry] transferHerald called');
         const select = document.getElementById('transferSelect');
         const newDid = select.value;
         
-        console.log('[Heraldry] Selected new ambassador DID:', newDid);
         
         if (!newDid) {
-            console.log('[Heraldry] No DID selected');
             return;
         }
         
@@ -1127,7 +1083,6 @@ class Heraldry {
         
         try {
             const session = this.getSession();
-            console.log('[Heraldry] Sending transfer request...');
             const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/transfer-ambassador`, {
                 method: 'POST',
                 headers: {
@@ -1137,7 +1092,6 @@ class Heraldry {
                 body: JSON.stringify({ new_ambassador_did: newDid })
             });
             
-            console.log('[Heraldry] Transfer response:', response.status);
             
             if (!response.ok) {
                 const error = await response.json();
@@ -1145,7 +1099,6 @@ class Heraldry {
             }
             
             const result = await response.json();
-            console.log('[Heraldry] Transfer successful:', result);
             alert(`Herald role transferred successfully to @${result.new_ambassador_handle}!`);
             this.logout();
             
@@ -1156,17 +1109,14 @@ class Heraldry {
     }
 
     async stepDown() {
-        console.log('[Heraldry] stepDown called');
         
         const confirmed = await this.showConfirmModal('Are you sure you want to step down as herald? The most active community member will be promoted.');
         if (!confirmed) {
-            console.log('[Heraldry] Step down cancelled by user');
             return;
         }
         
         try {
             const session = this.getSession();
-            console.log('[Heraldry] Sending step-down request...');
             const response = await fetch(`/api/heraldry/${this.currentHeraldry.id}/step-down`, {
                 method: 'POST',
                 headers: {
@@ -1174,7 +1124,6 @@ class Heraldry {
                 }
             });
             
-            console.log('[Heraldry] Step-down response:', response.status);
             
             if (!response.ok) {
                 const error = await response.json();
@@ -1182,7 +1131,6 @@ class Heraldry {
             }
             
             const result = await response.json();
-            console.log('[Heraldry] Step-down successful:', result);
             
             if (result.new_ambassador_did) {
                 alert(`You have stepped down. @${result.new_ambassador_handle} is now the herald.`);

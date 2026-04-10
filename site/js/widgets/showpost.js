@@ -551,4 +551,3 @@ window.showPost = function(uriOrUrl) {
     widget.show(uriOrUrl);
 };
 
-console.log('✅ [ShowPost] Widget loaded and available');

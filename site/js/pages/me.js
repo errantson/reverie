@@ -456,6 +456,12 @@ const MePage = {
         const scheduleInput = document.getElementById('meScheduleTime');
         if (!textarea?.value.trim()) return;
 
+        // Check if Side Door user needs write access
+        if (window.AuthGate?.isSideDoorUser()) {
+            const granted = await window.AuthGate.requireWriteAccess({ feature: 'Post' });
+            if (!granted) return;
+        }
+
         const scheduleVal = scheduleInput?.value;
         const scheduledFor = scheduleVal ? Math.floor(new Date(scheduleVal).getTime() / 1000) : null;
 
@@ -1327,24 +1333,29 @@ const MePage = {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000);
-            const resp = await fetch(
-                `https://lore.farm/xrpc/com.atproto.label.queryLabels?uriPatterns=at://${d.did}/*&limit=1000`,
-                { signal: controller.signal }
-            );
+
+            // Fetch content and canon counts from the indexer
+            const [contentResp, canonResp] = await Promise.all([
+                fetch(`https://lore.farm/api/worlds/reverie.house/content/indexed?did=${d.did}&limit=1`, { signal: controller.signal }),
+                fetch(`https://lore.farm/api/worlds/reverie.house/canon/indexed?limit=500`, { signal: controller.signal }),
+            ]);
             clearTimeout(timeoutId);
 
-            if (resp.ok) {
-                const data = await resp.json();
-                (data.labels || []).forEach(label => {
-                    if (label.uri?.startsWith(`at://${d.did}/`)) {
-                        if (label.val === 'canon:reverie.house') canonCount++;
-                        else if (label.val === 'lore:reverie.house') loreCount++;
-                    }
-                });
-                sessionStorage.setItem(cacheKey, JSON.stringify({
-                    timestamp: Date.now(), data: { canonCount, loreCount }
-                }));
+            if (contentResp.ok) {
+                const data = await contentResp.json();
+                loreCount = data.count || (data.content || []).length;
             }
+            if (canonResp.ok) {
+                const data = await canonResp.json();
+                // Filter canon records by the user's DID
+                canonCount = (data.canon || []).filter(r =>
+                    r.subjectUri?.startsWith(`at://${d.did}/`)
+                ).length;
+            }
+
+            sessionStorage.setItem(cacheKey, JSON.stringify({
+                timestamp: Date.now(), data: { canonCount, loreCount }
+            }));
         } catch (_) {
             canonCount = d.canon_contribution || 0;
             loreCount = d.lore_contribution || 0;
@@ -1944,15 +1955,11 @@ const MePage = {
             const did = this.session?.did;
             if (!token || !did) return;
 
-            // Check character status
+            // Check character status via indexer API
             let isCharacter = false;
             try {
-                const r = await fetch('/api/lore/character-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ did })
-                });
-                if (r.ok) { const d = await r.json(); isCharacter = d.is_character || false; }
+                const r = await fetch(`https://lore.farm/api/worlds/reverie.house/characters/${did}/indexed`);
+                if (r.ok) { const d = await r.json(); isCharacter = !!d.member; }
             } catch (_) {}
 
             const shieldEnabled = this.dreamer?.community_shield !== false;

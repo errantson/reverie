@@ -18,7 +18,6 @@ class Header {
             if (window.colorManager) {
                 await window.colorManager.init();
                 this.coreColor = window.colorManager.getColor();
-                console.log('🎨 Header: Color loaded from color manager:', this.coreColor);
                 
                 // Apply color to DOM
                 document.documentElement.style.setProperty('--reverie-core-color', this.coreColor);
@@ -37,7 +36,6 @@ class Header {
             // Listen for color changes
             window.addEventListener('reverie:color-changed', (event) => {
                 this.coreColor = event.detail.color;
-                console.log('🎨 Header: Color updated to', this.coreColor);
             });
         } catch (error) {
             console.warn('Header: Could not load config:', error);
@@ -453,7 +451,6 @@ class Header {
             const script = document.createElement('script');
             script.src = '/js/utils/sse-notifications.js';
             script.onload = () => {
-                console.log('✅ [Header] SSE client loaded');
                 this.setupSSENotifications();
             };
             document.head.appendChild(script);
@@ -466,10 +463,8 @@ class Header {
         // Get user DID from OAuth
         const userDid = window.oauthManager?.currentSession?.did;
         if (!userDid) {
-            console.log('ℹ️ [Header] No user DID yet, waiting for OAuth...');
             // Listen for OAuth profile loaded event
             window.addEventListener('oauth:profile-loaded', () => {
-                console.log('🔐 [Header] OAuth profile loaded, setting up SSE');
                 this.setupSSENotifications();
             }, { once: true });
             return;
@@ -477,18 +472,15 @@ class Header {
         
         // Don't setup twice
         if (this.sseClient) {
-            console.log('⚠️ [Header] SSE already setup');
             return;
         }
         
-        console.log('🔌 [Header] Setting up SSE notifications for', userDid.substring(0, 30) + '...');
         
         // Create SSE client
         this.sseClient = new window.SSENotificationClient(userDid);
         
         // Handle new message events
         this.sseClient.on('new_message', (data) => {
-            console.log('📨 [Header] New message via SSE:', data);
             this.updateMessageBadge();
             
             // Update dashboard badge (regardless of which tab is open)
@@ -504,17 +496,14 @@ class Header {
         
         // Handle message count updates
         this.sseClient.on('message_count', (data) => {
-            console.log('📊 [Header] Message count via SSE:', data);
             this.updateMessageBadgeFromData(data);
         });
         
         // Handle connection events
         this.sseClient.on('connected', () => {
-            console.log('✅ [Header] SSE connected');
         });
         
         this.sseClient.on('disconnected', () => {
-            console.log('🔌 [Header] SSE disconnected');
         });
         
         // Connect
@@ -587,7 +576,6 @@ class Header {
                 const data = await response.json();
                 if (data.messages && data.messages.length > 0) {
                     messages = data.messages;
-                    console.log('🔄 Header: Loaded', messages.length, 'rotator messages from API');
                 }
             }
         } catch (error) {
@@ -934,7 +922,6 @@ class Header {
     }
     
     async openErrantsonHelp() {
-        console.log('🧙 [Header] Errantson button clicked');
         
         // FLOW: Check for unread messages first
         // - If unread messages exist: Open oldest unread message directly
@@ -950,7 +937,6 @@ class Header {
                 throw new Error('Not authenticated');
             }
             
-            console.log('📬 [Header] Checking for unread messages...');
             const response = await fetch(`/api/messages/inbox?user_did=${encodeURIComponent(userDid)}`);
             const result = await response.json();
             
@@ -963,7 +949,6 @@ class Header {
                     unreadMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
                     const oldestMessage = unreadMessages[0];
                     
-                    console.log(`📬 [Header] Opening oldest unread message (ID: ${oldestMessage.id})`);
                     
                     // Fetch full message details
                     const msgResponse = await fetch(`/api/messages/${oldestMessage.id}?user_did=${encodeURIComponent(userDid)}`);
@@ -987,7 +972,6 @@ class Header {
                             handle: session.handle || 'reverie.house',
                             did: userDid
                         };
-                        console.log('👤 [Header] User context:', userContext);
                         
                         // Show the message in a dialogue
                         if (window.Shadowbox) {
@@ -1000,7 +984,6 @@ class Header {
                                             method: 'POST'
                                         });
                                         if (readResponse.ok) {
-                                            console.log(`✅ [Header] Marked message ${oldestMessage.id} as read`);
                                             // Update badge after marking as read
                                             this.updateMessageBadge();
                                         } else {
@@ -1027,37 +1010,80 @@ class Header {
                         }
                     }
                 } else {
-                    console.log('ℹ️ [Header] No unread messages - showing default dialogue');
                 }
             } else {
-                console.log('ℹ️ [Header] No messages found - showing default dialogue');
             }
         } catch (error) {
             console.error('❌ [Header] Error checking messages:', error);
         }
         
-        // No unread messages (or error) - show default core:welcome dialogue
-        console.log('🎭 [Header] Opening default shadowbox dialogue');
+        // No unread messages (or error) - show appropriate dialogue
         if (window.Shadowbox) {
-            const shadowbox = new window.Shadowbox({
-                showCloseButton: false
-            });
-            
-            await shadowbox.showDialogue('core:welcome');
+            // If user is logged in, show returning-user dialogue instead of new-user onboarding
+            const session = window.oauthManager?.getSession();
+            if (session?.did) {
+                const userName = session.displayName || session.handle || 'dreamer';
+                const shadowbox = new window.Shadowbox({
+                    showCloseButton: true
+                });
+                const dialogueData = {
+                    key: 'core:returning',
+                    messages: [
+                        {
+                            sequence: 0,
+                            speaker: 'errantson',
+                            avatar: '/souvenirs/dream/strange/icon.png',
+                            text: `Hello, ${userName}.\nWelcome home.`,
+                            buttons: null
+                        },
+                        {
+                            sequence: 1,
+                            speaker: 'errantson',
+                            avatar: '/souvenirs/dream/strange/icon.png',
+                            text: 'No new messages right now.\n\nWhat news of our wild mindscape?',
+                            buttons: [
+                                { text: 'SHARE STORY', secondary: false, callback: 'handleShareStory' },
+                                { text: 'SHOW GUIDE', secondary: false, popup: 'directory' }
+                            ]
+                        }
+                    ],
+                    userContext: {
+                        name: userName,
+                        handle: session.handle || 'reverie.house',
+                        did: session.did
+                    }
+                };
+                await shadowbox.showDialogueData(dialogueData, this);
+            } else {
+                const shadowbox = new window.Shadowbox({
+                    showCloseButton: false
+                });
+                await shadowbox.showDialogue('core:welcome');
+            }
         } else {
             console.error('❌ [Header] Shadowbox utility not loaded');
         }
     }
     
     // Dialogue button callbacks
+    handleShareStory() {
+        if (window.ShareLore) {
+            const shareLore = new window.ShareLore();
+            shareLore.show();
+        } else if (window.homepageScene?.shareLoreWidget) {
+            window.homepageScene.shareLoreWidget.show();
+        } else {
+            // Navigate to homepage where share lore is available
+            window.location.href = '/#share';
+        }
+    }
+    
     showDirectory() {
-        console.log('📂 Showing directory...');
         // TODO: Implement directory view
         alert('Directory feature coming soon!');
     }
     
     showRealityQuestion() {
-        console.log('🤔 Are you real?');
         const shadowbox = new window.Shadowbox({
             showCloseButton: true
         });
@@ -1098,7 +1124,6 @@ class Header {
     }
     
     showSharedReality() {
-        console.log('🌍 Shared reality...');
         const shadowbox = new window.Shadowbox({
             showCloseButton: true
         });
@@ -1269,19 +1294,16 @@ class Header {
     }
     
     handleAdminLogout() {
-        console.log('🔓 Admin logout clicked');
         localStorage.removeItem('admin_token');
         // Redirect to home page
         window.location.href = '/';
     }
     
     handleLogin() {
-        console.log('🚪 Login clicked - showing login popup');
         
         // Check if login widget is ready
         const checkAndShow = () => {
             if (window.loginWidget && typeof window.loginWidget.showLoginPopup === 'function') {
-                console.log('✅ Calling loginWidget.showLoginPopup()');
                 window.loginWidget.showLoginPopup();
                 return true;
             }
@@ -1378,17 +1400,10 @@ class Header {
         const prevBtn = document.getElementById('prev-chapter-btn');
         const nextBtn = document.getElementById('next-chapter-btn');
         const readingControls = document.querySelector('.reading-controls');
-        console.log('🎮 Reading controls initialized:', {
-            backBtn: !!backBtn,
-            prevBtn: !!prevBtn,
-            nextBtn: !!nextBtn,
-            readingControls: !!readingControls
-        });
         if (!readingControls) return;
         readingControls.style.display = 'none';
         if (backBtn) {
             backBtn.addEventListener('click', () => {
-                console.log('📖 Back to library clicked');
                 if (window.returnToLibrary) {
                     window.returnToLibrary();
                     this.hideReadingControls();
@@ -1397,7 +1412,6 @@ class Header {
         }
         if (prevBtn) {
             prevBtn.addEventListener('click', () => {
-                console.log('⬅️ Previous chapter clicked');
                 if (window.loadPreviousChapter) {
                     window.loadPreviousChapter();
                 }
@@ -1405,13 +1419,11 @@ class Header {
         }
         if (nextBtn) {
             nextBtn.addEventListener('click', () => {
-                console.log('➡️ Next chapter clicked');
                 if (window.loadNextChapter) {
                     window.loadNextChapter();
                 }
             });
         }
-        console.log('✅ Header reading controls ready (methods will be exposed by constructor)');
     }
     toggleLock() {
         const currentLock = sessionStorage.getItem('LOCK') === 'true';
@@ -1421,7 +1433,6 @@ class Header {
         if (lockToggleBtn) {
             this.updateLockButton(lockToggleBtn, newLock);
         }
-        console.log('🔒 Lock toggled:', newLock ? 'LOCKED' : 'UNLOCKED');
         window.dispatchEvent(new CustomEvent('lockToggled', { 
             detail: { locked: newLock } 
         }));
@@ -1472,7 +1483,6 @@ class Header {
             script.src = '/js/widgets/messager.js';
             script.defer = true;
             document.head.appendChild(script);
-            console.log('✉️ Messager script loaded');
         }
     }
     
@@ -1483,7 +1493,6 @@ class Header {
             link.rel = 'stylesheet';
             link.href = '/css/widgets/login.css';
             document.head.appendChild(link);
-            console.log('🎨 Login CSS loaded');
         }
         
         // Load login widget script if not already loaded
@@ -1492,7 +1501,6 @@ class Header {
             script.src = '/js/widgets/login.js';
             script.defer = true;
             document.head.appendChild(script);
-            console.log('🚪 Login script loaded');
         }
     }
     
@@ -1505,7 +1513,6 @@ class Header {
             // Get user DID from OAuth session
             const userDid = window.oauthManager?.currentSession?.did;
             if (!userDid) {
-                console.log('ℹ️ [Header] No user DID, skipping badge update');
                 return;
             }
             
@@ -1513,7 +1520,6 @@ class Header {
             const result = await response.json();
             
             if (result.status === 'success') {
-                console.log('📬 [Header] Badge updated:', result.data);
                 this.updateMessageBadgeFromData(result.data);
             }
         } catch (error) {
@@ -1526,24 +1532,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.querySelector('#enhanced-reader')) {
         const widget = window.headerWidget;
         widget.showReadingControls = function() {
-            console.log('👁 Showing reading controls');
             const readingControls = document.querySelector('.reading-controls');
             if (readingControls) {
                 readingControls.style.display = 'flex';
-                console.log('✅ Reading controls visible');
             } else {
                 console.warn('⚠️ Reading controls element not found');
             }
         };
         widget.hideReadingControls = function() {
-            console.log('🙈 Hiding reading controls');
             const readingControls = document.querySelector('.reading-controls');
             if (readingControls) {
                 readingControls.style.display = 'none';
             }
         };
         widget.updateReadingButtons = function(canGoPrev, canGoNext) {
-            console.log('🔄 Updating reading buttons:', { canGoPrev, canGoNext });
             const prevBtn = document.getElementById('prev-chapter-btn');
             const nextBtn = document.getElementById('next-chapter-btn');
             if (prevBtn) {
@@ -1555,7 +1557,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 nextBtn.style.opacity = canGoNext ? '1' : '0.3';
             }
         };
-        console.log('✅ Header reading control methods exposed on window.headerWidget');
     }
 });
 window.Header = Header;

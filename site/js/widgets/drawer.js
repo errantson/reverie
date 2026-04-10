@@ -45,7 +45,6 @@ class Drawer {
                 // Apply color immediately to DOM before rendering
                 document.documentElement.style.setProperty('--reverie-core-color', this.coreColor);
                 document.documentElement.style.setProperty('--user-color', this.coreColor);
-                console.log('🎨 Drawer: Initial color loaded:', this.coreColor);
             }
             
             // Load world config for logins flag
@@ -59,7 +58,6 @@ class Drawer {
             // Listen for color changes
             window.addEventListener('reverie:color-changed', (event) => {
                 this.coreColor = event.detail.color;
-                console.log('🎨 Drawer: Color changed to', this.coreColor, 'from source:', event.detail.source);
                 // Force a repaint by updating a CSS variable
                 document.documentElement.style.setProperty('--reverie-core-color', this.coreColor);
             });
@@ -195,7 +193,6 @@ class Drawer {
 
                 // Check if dialogue is active - don't allow interaction during dialogue
                 if (window.DialogueManager && window.DialogueManager.isBlocked) {
-                    console.log('🚫 [Drawer] Click blocked - dialogue is active');
                     return;
                 }
 
@@ -218,7 +215,6 @@ class Drawer {
                 if (e.key === 'Escape' && this.isOpen) {
                     // Check if dialogue is active - Escape should close dialogue, not drawer
                     if (window.DialogueManager && window.DialogueManager.isBlocked) {
-                        console.log('🚫 [Drawer] Escape blocked - dialogue is active');
                         return;
                     }
                     this.close();
@@ -252,6 +248,11 @@ class Drawer {
                     return;
                 }
 
+                // Don't close drawer if clicking on auth gate modal
+                if (e.target.closest('.auth-gate-modal-overlay')) {
+                    return;
+                }
+
                 // Don't close drawer if clicking on spectrum calculator modal
                 if (e.target.closest('.spectrum-calculator-overlay, .spectrum-calculator-modal')) {
                     return;
@@ -265,21 +266,18 @@ class Drawer {
             this.backdrop.addEventListener('click', () => {
                 // Check if dialogue is active before allowing backdrop close
                 if (window.DialogueManager && window.DialogueManager.isBlocked) {
-                    console.log('🚫 [Drawer] Backdrop click blocked - dialogue is active');
                     return;
                 }
                 
                 // Check if login/logout overlay is visible - don't close drawer
                 const loginOverlay = document.querySelector('.login-overlay, .logout-overlay');
                 if (loginOverlay && loginOverlay.classList.contains('visible')) {
-                    console.log('🚫 [Drawer] Backdrop click blocked - login overlay is active');
                     return;
                 }
                 
-                // Check if any modal overlays are open (invites, spectrum calculator, etc.)
-                const modalOverlay = document.querySelector('.invites-modal-overlay.visible, .spectrum-calculator-overlay.visible');
+                // Check if any modal overlays are open (invites, spectrum calculator, auth gate, etc.)
+                const modalOverlay = document.querySelector('.invites-modal-overlay.visible, .spectrum-calculator-overlay.visible, .auth-gate-modal-overlay.visible');
                 if (modalOverlay) {
-                    console.log('🚫 [Drawer] Backdrop click blocked - modal overlay is active');
                     return;
                 }
                 
@@ -316,7 +314,6 @@ class Drawer {
 
         // Listen for handle changes from dashboard
         window.addEventListener('handle-changed', (e) => {
-            console.log('🔄 [Drawer] Handle changed event received:', e.detail);
             // Refresh the avatar/name display
             this.updateAvatarButton();
         });
@@ -418,7 +415,6 @@ class Drawer {
             if (!this.wasSwiping) {
                 // Check if dialogue is active before toggling
                 if (window.DialogueManager && window.DialogueManager.isBlocked) {
-                    console.log('🚫 [Drawer] Touch toggle blocked - dialogue is active');
                     isDragging = false;
                     return;
                 }
@@ -447,7 +443,6 @@ class Drawer {
             if (isVerticalSwipe) {
                 // Check if dialogue is active before allowing swipe gestures
                 if (window.DialogueManager && window.DialogueManager.isBlocked) {
-                    console.log('🚫 [Drawer] Swipe gesture blocked - dialogue is active');
                     isDragging = false;
                     return;
                 }
@@ -463,7 +458,6 @@ class Drawer {
             } else {
                 // Check if dialogue is active before allowing horizontal swipe
                 if (window.DialogueManager && window.DialogueManager.isBlocked) {
-                    console.log('🚫 [Drawer] Swipe gesture blocked - dialogue is active');
                     isDragging = false;
                     return;
                 }
@@ -514,7 +508,6 @@ class Drawer {
 
         // Check if dialogue is active - don't allow drawer to open/close during dialogue
         if (window.DialogueManager && window.DialogueManager.isBlocked) {
-            console.log('🚫 [Drawer] Toggle blocked - dialogue is active');
             return;
         }
 
@@ -659,7 +652,6 @@ class Drawer {
             const appPassScript = document.createElement('script');
             appPassScript.src = '/js/widgets/apppassreq.js';
             appPassScript.onload = () => {
-                console.log('✅ [Drawer] AppPasswordRequest loaded');
                 this.loadDashboard();
             };
             document.head.appendChild(appPassScript);
@@ -809,7 +801,6 @@ class Drawer {
             const script = document.createElement('script');
             script.src = '/js/widgets/musicplayer.js';
             script.onload = () => {
-                console.log('🎵 [Drawer] Music player loaded');
             };
             document.head.appendChild(script);
         }
@@ -888,7 +879,6 @@ class Drawer {
         
         // Update avatar when profile is fully loaded (not on initial login event)
         window.addEventListener('oauth:profile-loaded', () => {
-            console.log('🎨 Drawer: Profile loaded, updating avatar button');
             this.updateAvatarButton();
         });
     }

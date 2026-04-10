@@ -318,7 +318,7 @@ def query_user_stamps(did: str) -> List[Dict]:
                 if response.ok:
                     stamps = response.json()
                     return stamps if isinstance(stamps, list) else [stamps]
-            except:
+            except Exception:
                 continue
         
         # Try AT Protocol direct query
@@ -337,7 +337,7 @@ def query_user_stamps(did: str) -> List[Dict]:
                     data = response.json()
                     records = data.get('records', [])
                     return [r.get('value', {}) for r in records]
-            except:
+            except Exception:
                 continue
         
         return []

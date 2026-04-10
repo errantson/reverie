@@ -10,6 +10,7 @@ import os
 import secrets
 import time
 import requests
+from urllib.parse import urlparse
 from functools import wraps
 from datetime import datetime, timedelta
 
@@ -31,6 +32,24 @@ audit_enabled = False  # Enable if audit module is available
 def audit_log(*args, **kwargs):
     if audit_enabled and audit:
         audit.log(*args, **kwargs)
+
+
+def _is_safe_pds_endpoint(endpoint):
+    """Validate that a PDS endpoint is a safe HTTPS URL (not internal/local)."""
+    try:
+        parsed = urlparse(endpoint)
+        if parsed.scheme != 'https':
+            return False
+        host = parsed.hostname or ''
+        if any(host.startswith(p) for p in ('127.', '10.', '192.168.', '172.', '169.254.', '0.', '[', 'localhost')):
+            return False
+        if host.endswith('.local') or host.endswith('.internal'):
+            return False
+        if '.' not in host:
+            return False
+        return True
+    except Exception:
+        return False
 
 def audit_log_error(*args, **kwargs):
     if audit_enabled and audit:
@@ -329,7 +348,6 @@ def serve_dreamer_profile(name):
     """Serve a dreamer's profile page with spectrum OG image"""
     try:
         import os
-        import subprocess
         from core.database import DatabaseManager
         
         # Look up dreamer in database
@@ -358,30 +376,53 @@ def serve_dreamer_profile(name):
         
         if not os.path.exists(image_path):
             print(f"🎨 [SUBDOMAIN] Image missing for {safe_handle}, using placeholder")
-            # Use placeholder and trigger async generation
+            # Use placeholder and trigger async generation via origincards service
             image_url = f"https://reverie.house/assets/og-image.png"
             
-            # Trigger async generation (don't wait)
             try:
                 import threading
                 def generate_async():
                     try:
-                        import subprocess
-                        result = subprocess.run(
-                            ['python3', '/srv/reverie.house/utils/generate_spectrum_image.py', handle, image_path],
-                            timeout=45,
-                            capture_output=True,
-                            text=True
+                        _db = DatabaseManager()
+                        _cur = _db.execute("""
+                            SELECT d.handle, d.display_name, d.avatar,
+                                   s.oblivion, s.authority, s.skeptic, s.receptive, s.liberty, s.entropy, s.octant,
+                                   s.origin_oblivion, s.origin_authority, s.origin_skeptic,
+                                   s.origin_receptive, s.origin_liberty, s.origin_entropy, s.origin_octant
+                            FROM dreamers d
+                            LEFT JOIN spectrum s ON d.did = s.did
+                            WHERE d.handle = %s
+                        """, (safe_handle,))
+                        row = _cur.fetchone()
+                        if not row:
+                            return
+                        spectrum_payload = {
+                            k: (row[k] or 0) for k in (
+                                'oblivion','authority','skeptic','receptive','liberty','entropy',
+                                'origin_oblivion','origin_authority','origin_skeptic',
+                                'origin_receptive','origin_liberty','origin_entropy',
+                            )
+                        }
+                        spectrum_payload['octant'] = row['octant'] or 'equilibrium'
+                        spectrum_payload['origin_octant'] = row['origin_octant'] or 'equilibrium'
+                        gen_resp = requests.post(
+                            'http://localhost:3050/generate',
+                            json={
+                                'handle': row['handle'],
+                                'displayName': row['display_name'] or row['handle'],
+                                'avatar': row['avatar'],
+                                'spectrum': spectrum_payload,
+                            },
+                            timeout=20
                         )
-                        if result.returncode == 0:
-                            print(f"[SUBDOMAIN] Background generation completed for {safe_handle}")
+                        if gen_resp.status_code == 200:
+                            print(f"[SUBDOMAIN] Background card generated for {safe_handle}")
                         else:
-                            print(f"[SUBDOMAIN] Background generation failed: {result.stderr}")
+                            print(f"[SUBDOMAIN] Card generation failed ({gen_resp.status_code}) for {safe_handle}")
                     except Exception as e:
                         print(f"[SUBDOMAIN] Background generation error: {e}")
                 
-                thread = threading.Thread(target=generate_async, daemon=True)
-                thread.start()
+                threading.Thread(target=generate_async, daemon=True).start()
                 print(f"📤 [SUBDOMAIN] Background generation queued for {safe_handle}")
                 
             except Exception as e:
@@ -492,6 +533,147 @@ def work_html():
 def work_all_routes():
     """Work page - All routes serve work.html, JS detects URL path"""
     return send_from_directory('site', 'work.html')
+
+
+# ============================================================================
+# DREAMER PROFILE ROUTE - Dynamic OG preview with origin card image
+# ============================================================================
+
+@app.route('/dreamer')
+@app.route('/dreamer.html')
+def dreamer_page():
+    """
+    Serve dreamer.html with dynamic OG meta tags when ?handle= is provided.
+    Uses the pre-generated origin card image (spectrum/{handle}.png) as the
+    preview image so sharing a dreamer profile shows their origin card.
+    """
+    import html as html_lib
+    from urllib.parse import quote as url_quote
+
+    handle = request.args.get('handle', '').strip().lstrip('@')
+
+    # No handle - serve the static file as-is
+    if not handle or '.' not in handle:
+        return send_from_directory('site', 'dreamer.html')
+
+    try:
+        import os
+        from core.database import DatabaseManager
+
+        # Sanitize handle (strip path traversal chars)
+        safe_handle = handle.replace('/', '').replace('\\', '').replace('..', '')
+
+        # Look up dreamer in the database for display name
+        db = DatabaseManager()
+        cursor = db.execute(
+            "SELECT handle, display_name FROM dreamers WHERE handle = %s",
+            (safe_handle,)
+        )
+        dreamer = cursor.fetchone()
+
+        if dreamer:
+            display_name = dreamer['display_name'] or dreamer['handle']
+            db_handle = dreamer['handle']
+        else:
+            display_name = handle
+            db_handle = safe_handle
+
+        # Sanitize db_handle for use in file paths and URLs
+        safe_db_handle = db_handle.replace('/', '').replace('\\', '').replace('..', '')
+
+        # Check if the origin card image exists
+        spectrum_dir = '/srv/site/spectrum'
+        image_path = os.path.join(spectrum_dir, f"{safe_db_handle}.png")
+        if os.path.exists(image_path):
+            image_url = f"https://reverie.house/spectrum/{url_quote(safe_db_handle, safe='@.')}.png"
+        else:
+            image_url = "https://reverie.house/assets/og-image.png"
+            # Trigger async generation via origincards service if we have DB data
+            if dreamer:
+                import threading
+                def generate_card_async():
+                    try:
+                        from core.database import DatabaseManager as _DBM
+                        _db = _DBM()
+                        _cur = _db.execute("""
+                            SELECT d.handle, d.display_name, d.avatar,
+                                   s.oblivion, s.authority, s.skeptic, s.receptive, s.liberty, s.entropy, s.octant,
+                                   s.origin_oblivion, s.origin_authority, s.origin_skeptic,
+                                   s.origin_receptive, s.origin_liberty, s.origin_entropy, s.origin_octant
+                            FROM dreamers d
+                            LEFT JOIN spectrum s ON d.did = s.did
+                            WHERE d.handle = %s
+                        """, (safe_db_handle,))
+                        row = _cur.fetchone()
+                        if not row:
+                            return
+                        spectrum_payload = {
+                            k: (row[k] or 0) for k in (
+                                'oblivion','authority','skeptic','receptive','liberty','entropy',
+                                'origin_oblivion','origin_authority','origin_skeptic',
+                                'origin_receptive','origin_liberty','origin_entropy',
+                            )
+                        }
+                        spectrum_payload['octant'] = row['octant'] or 'equilibrium'
+                        spectrum_payload['origin_octant'] = row['origin_octant'] or 'equilibrium'
+                        gen_resp = requests.post(
+                            'http://localhost:3050/generate',
+                            json={
+                                'handle': row['handle'],
+                                'displayName': row['display_name'] or row['handle'],
+                                'avatar': row['avatar'],
+                                'spectrum': spectrum_payload,
+                            },
+                            timeout=20
+                        )
+                        if gen_resp.status_code == 200:
+                            print(f"[DREAMER] Background card generated for {safe_db_handle}")
+                        else:
+                            print(f"[DREAMER] Card generation failed ({gen_resp.status_code}) for {safe_db_handle}")
+                    except Exception as _e:
+                        print(f"[DREAMER] Background generation error for {safe_db_handle}: {_e}")
+                threading.Thread(target=generate_card_async, daemon=True).start()
+                print(f"[DREAMER] Background card generation queued for {safe_db_handle}")
+
+        profile_url = f"https://reverie.house/dreamer?handle={url_quote(safe_db_handle, safe='@.')}"
+        safe_display_name = html_lib.escape(display_name)
+
+        # Read dreamer.html and patch the static meta tags with per-dreamer values
+        with open('site/dreamer.html', 'r') as f:
+            html_content = f.read()
+
+        html_content = html_content.replace(
+            '<title>Dreamweavers - Reverie House</title>',
+            f'<title>{safe_display_name} - Reverie House</title>'
+        )
+        html_content = html_content.replace(
+            '<meta property="og:url" content="https://reverie.house/dreamer.html">',
+            f'<meta property="og:url" content="{profile_url}">'
+        )
+        html_content = html_content.replace(
+            '<meta property="og:title" content="Dreamweavers - Reverie House">',
+            f'<meta property="og:title" content="{safe_display_name}\'s Dreamer Profile">'
+        )
+        html_content = html_content.replace(
+            '<meta property="og:image" content="https://reverie.house/assets/og-image.png">',
+            f'<meta property="og:image" content="{image_url}">\n    <meta property="og:image:width" content="1280">\n    <meta property="og:image:height" content="720">'
+        )
+        html_content = html_content.replace(
+            '<meta name="twitter:title" content="Dreamweavers - Reverie House">',
+            f'<meta name="twitter:title" content="{safe_display_name}\'s Dreamer Profile">'
+        )
+        html_content = html_content.replace(
+            '<meta name="twitter:image" content="https://reverie.house/assets/og-image.png">',
+            f'<meta name="twitter:image" content="{image_url}">'
+        )
+
+        return Response(html_content, mimetype='text/html')
+
+    except Exception as e:
+        print(f"[DREAMER] Error serving dynamic OG preview for {handle}: {e}")
+        import traceback
+        traceback.print_exc()
+        return send_from_directory('site', 'dreamer.html')
 
 
 # ============================================================================
@@ -1409,6 +1591,76 @@ def get_table_data(table_name):
             'success': False,
             'error': str(e)
         }), 500
+
+
+@app.route('/api/snapshots')
+def list_snapshots():
+    """List all spectrum snapshots (PUBLIC READ-ONLY, lightweight index)"""
+    try:
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+        cursor = db.execute("""
+            SELECT id, epoch, operation, total_dreamers, created_at, notes
+            FROM spectrum_snapshots
+            ORDER BY epoch ASC
+        """)
+        snapshots = []
+        for row in cursor.fetchall():
+            snapshots.append({
+                'id': row['id'],
+                'epoch': row['epoch'],
+                'operation': row['operation'],
+                'total_dreamers': row['total_dreamers'],
+                'notes': row['notes'],
+            })
+        return jsonify(snapshots)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/dreamer-names')
+def dreamer_names():
+    """Handle→dreamer info mapping for all dreamers (PUBLIC READ-ONLY)"""
+    try:
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+        cursor = db.execute("SELECT handle, display_name, avatar, color_hex FROM dreamers")
+        names = {}
+        for row in cursor.fetchall():
+            names[row['handle']] = {
+                'name': row['display_name'] or row['handle'],
+                'avatar': row['avatar'] or '',
+                'color': row['color_hex'] or ''
+            }
+        return jsonify(names)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/snapshots/<int:snapshot_id>')
+def get_snapshot(snapshot_id):
+    """Get full data for a single spectrum snapshot (PUBLIC READ-ONLY)"""
+    try:
+        from core.database import DatabaseManager
+        import json as _json
+        db = DatabaseManager()
+        cursor = db.execute("""
+            SELECT id, epoch, operation, snapshot_data, created_at, notes
+            FROM spectrum_snapshots WHERE id = %s
+        """, (snapshot_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'error': 'Snapshot not found'}), 404
+        data = _json.loads(row['snapshot_data'])
+        return jsonify({
+            'id': row['id'],
+            'epoch': row['epoch'],
+            'operation': row['operation'],
+            'notes': row['notes'],
+            'data': data,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/database/snapshot/<int:snapshot_id>')
@@ -2682,21 +2934,16 @@ def get_library():
 def get_world():
     """Get world state from database and environment"""
     try:
-        print("DEBUG: Starting /api/world")
         import sys
         import json
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        print("DEBUG: Importing DatabaseManager")
         from core.database import DatabaseManager
         
-        print("DEBUG: Creating DatabaseManager")
         db = DatabaseManager()
         
-        print("DEBUG: Executing query")
         # Get all world state key-value pairs
         cursor = db.execute("SELECT key, value FROM world")
         rows = cursor.fetchall()
-        print(f"DEBUG: Got {len(rows)} rows")
         
         # Build world data object
         world_data = {}
@@ -2712,12 +2959,8 @@ def get_world():
         
         # Add environment flags
         world_data['force_record'] = os.getenv('FORCE_RECORD', 'false').lower() == 'true'
-        print(f"DEBUG: World data built: {world_data}")
         
-        print("DEBUG: Calling jsonify")
-        result = jsonify(world_data)
-        print("DEBUG: Jsonify successful")
-        return result
+        return jsonify(world_data)
         
     except Exception as e:
         print(f"Error in /api/world: {e}")
@@ -3572,12 +3815,13 @@ def set_heading():
             try:
                 epoch = int(time.time())
                 db.execute("""
-                    INSERT INTO heading_history (dreamer_did, target_did, previous_heading, set_at, source)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO heading_history (dreamer_did, target_did, previous_heading, new_heading, set_at, source)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                 """, (
                     did,
                     heading if heading and heading.startswith('did:') else None,
                     previous_heading,
+                    heading,
                     epoch,
                     'web_ui'
                 ))
@@ -3599,7 +3843,7 @@ def set_heading():
                     epoch,
                     'heading',
                     f'set heading toward {direction}',
-                    'heading_change',
+                    'change',
                     None,
                     None,
                     'octant',
@@ -4789,6 +5033,9 @@ def get_biblio_list_details(list_uri):
         if not pds:
             return jsonify({'error': 'No PDS found for this DID'}), 500
         
+        if not _is_safe_pds_endpoint(pds):
+            return jsonify({'error': 'Invalid PDS endpoint'}), 400
+        
         # Step 2: Fetch the record from the user's PDS
         response = requests.get(
             f'{pds}/xrpc/com.atproto.repo.getRecord',
@@ -4825,8 +5072,7 @@ def get_biblio_list_details(list_uri):
             'book_count': len(record.get('books', [])),
             'librarians': record.get('librarians', []),
             'created_at': record.get('createdAt', ''),
-            'cid': data.get('cid', ''),
-            'raw_record': record  # Include full record for debugging
+            'cid': data.get('cid', '')
         }
         
         return jsonify(list_info)
@@ -7833,11 +8079,8 @@ def get_mapper_status():
         if auth_header and auth_header.startswith('Bearer '):
             token = auth_header[7:]
         
-        print(f"[DEBUG] mapper/status: token present: {bool(token)}")
-        
         # Validate token (supports both admin sessions and OAuth JWT)
         valid, user_did, handle = validate_work_token(token)
-        print(f"[DEBUG] mapper/status: validate_work_token returned - valid: {valid}, did: {user_did}")
         
         db_manager = DatabaseManager()
         row = db_manager.fetch_one("""
@@ -11151,53 +11394,7 @@ def guardian_add_item():
             VALUES (%s, %s, %s)
         """, (user_did, value, reason))
         
-        # Sync label to lore.farm
-        label_result = None
-        try:
-            from core.guardian_labels import get_label_manager
-            label_manager = get_label_manager()
-            
-            # Determine URI and label type
-            # For users, we label their DID (account-level); for content, we label the post URI
-            if list_name in ('barred_users', 'barred_content'):
-                # Barred -> hide-{guardian} label
-                if list_name == 'barred_content':
-                    label_result = label_manager.apply_hide_label(
-                        uri=value,
-                        guardian_did=user_did,
-                        guardian_handle=guardian_handle,
-                        reason=reason
-                    )
-                else:
-                    # For barred users, apply account-level label
-                    label_result = label_manager.apply_hide_account_label(
-                        user_did=value,  # The barred user's DID
-                        guardian_did=user_did,  # The guardian's DID
-                        guardian_handle=guardian_handle,
-                        reason=reason
-                    )
-                    
-            else:
-                # Allowed lists - no labels (whitelist mode not supported in ATProto)
-                # Just record in database for reference
-                if list_name == 'allowed_content':
-                    print(f"  📝 Recorded allowed content: {value[:50]}... (whitelist labels not supported)")
-                else:
-                    print(f"  📝 Recorded allowed user: {value} (whitelist labels not supported)")
-            
-            if label_result and label_result.get('success'):
-                print(f"  🏷️ Applied label for {list_name}: {value[:50]}...")
-            elif label_result:
-                print(f"  ⚠️ Label sync failed: {label_result.get('error')}")
-                
-        except Exception as label_error:
-            print(f"  ⚠️ Label sync error: {label_error}")
-            label_result = {'success': False, 'error': str(label_error)}
-        
         response = {'success': True, 'message': f'Added to {list_name}'}
-        if label_result:
-            response['label_sync'] = label_result
-        
         return jsonify(response)
         
     except Exception as e:
@@ -11250,52 +11447,7 @@ def guardian_remove_item():
             DELETE FROM {list_name} WHERE guardian_did = %s AND {col} = %s
         """, (user_did, value))
         
-        # Negate label on lore.farm
-        label_result = None
-        try:
-            from core.guardian_labels import get_label_manager
-            label_manager = get_label_manager()
-            
-            if list_name in ('barred_users', 'barred_content'):
-                # Remove hide:{guardian} label
-                if list_name == 'barred_content':
-                    label_result = label_manager.remove_hide_label(
-                        uri=value,
-                        guardian_did=user_did,
-                        guardian_handle=guardian_handle
-                    )
-                else:
-                    # Negate account-level hide label
-                    label_result = label_manager.remove_hide_account_label(
-                        user_did=value,
-                        guardian_did=user_did,
-                        guardian_handle=guardian_handle
-                    )
-                    
-            else:
-                # Remove safe:{guardian} label
-                if list_name == 'allowed_content':
-                    label_result = label_manager.remove_safe_label(
-                        uri=value,
-                        guardian_did=user_did,
-                        guardian_handle=guardian_handle
-                    )
-                else:
-                    print(f"  📝 Removed allowed user record: {value}")
-            
-            if label_result and label_result.get('success'):
-                print(f"  🏷️ Negated label for {list_name}: {value[:50]}...")
-            elif label_result:
-                print(f"  ⚠️ Label negation failed: {label_result.get('error')}")
-                
-        except Exception as label_error:
-            print(f"  ⚠️ Label negation error: {label_error}")
-            label_result = {'success': False, 'error': str(label_error)}
-        
         response = {'success': True, 'message': f'Removed from {list_name}'}
-        if label_result:
-            response['label_sync'] = label_result
-        
         return jsonify(response)
         
     except Exception as e:
@@ -11307,11 +11459,7 @@ def guardian_remove_item():
 @app.route('/api/guardian/become', methods=['POST'])
 @rate_limit()
 def guardian_become_ward_or_charge():
-    """Become a ward or charge of a guardian
-    
-    Optionally configures labeler subscription if access_jwt and pds_endpoint provided.
-    This enables automatic content filtering based on guardian's curation.
-    """
+    """Become a ward or charge of a guardian."""
     try:
         from core.database import DatabaseManager
         
@@ -11326,10 +11474,6 @@ def guardian_become_ward_or_charge():
         data = request.get_json() or {}
         guardian_did = data.get('guardian_did', '').strip()
         role_type = data.get('type', '').strip()  # 'ward' or 'charge'
-        
-        # Optional: for labeler subscription configuration
-        access_jwt = data.get('access_jwt')
-        pds_endpoint = data.get('pds_endpoint')
         
         if not guardian_did:
             return jsonify({'error': 'Guardian DID required'}), 400
@@ -11373,45 +11517,11 @@ def guardian_become_ward_or_charge():
         
         print(f"  ✓ {user_did} is now a {role_type} of {guardian_did}")
         
-        # Get guardian's info for event text and labeler subscription
+        # Get guardian's info for event text
         guardian = db_manager.fetch_one("""
             SELECT d.name, d.handle FROM dreamers d WHERE d.did = %s
         """, (guardian_did,))
         guardian_name = guardian['name'] if guardian and guardian.get('name') else guardian['handle'] if guardian else 'Unknown'
-        guardian_handle = guardian['handle'] if guardian else 'unknown'
-        
-        # Configure labeler subscription if JWT provided
-        subscription_result = None
-        if access_jwt and pds_endpoint:
-            try:
-                from core.labeler_subscription import get_subscription_manager
-                sub_manager = get_subscription_manager()
-                
-                if role_type == 'ward':
-                    subscription_result = sub_manager.configure_ward_subscription(
-                        user_did=user_did,
-                        guardian_did=guardian_did,
-                        guardian_handle=guardian_handle,
-                        pds_endpoint=pds_endpoint,
-                        access_jwt=access_jwt
-                    )
-                else:
-                    subscription_result = sub_manager.configure_charge_subscription(
-                        user_did=user_did,
-                        guardian_did=guardian_did,
-                        guardian_handle=guardian_handle,
-                        pds_endpoint=pds_endpoint,
-                        access_jwt=access_jwt
-                    )
-                
-                if subscription_result.get('success'):
-                    print(f"  🛡️ Configured labeler subscription for {role_type}")
-                else:
-                    print(f"  ⚠️ Labeler subscription failed: {subscription_result.get('error')}")
-                    
-            except Exception as sub_error:
-                print(f"  ⚠️ Labeler subscription error: {sub_error}")
-                subscription_result = {'success': False, 'error': str(sub_error)}
         
         # Create event record for becoming a ward/charge
         import time
@@ -11442,9 +11552,6 @@ def guardian_become_ward_or_charge():
             'guardian_did': guardian_did
         }
         
-        if subscription_result:
-            response['labeler_subscription'] = subscription_result
-        
         return jsonify(response)
         
     except Exception as e:
@@ -11456,10 +11563,7 @@ def guardian_become_ward_or_charge():
 @app.route('/api/guardian/leave', methods=['POST'])
 @rate_limit()
 def guardian_leave_ward_or_charge():
-    """Leave a guardian's wards or charges
-    
-    Optionally removes labeler subscription if access_jwt and pds_endpoint provided.
-    """
+    """Leave a guardian's wards or charges."""
     try:
         from core.database import DatabaseManager
         
@@ -11470,12 +11574,6 @@ def guardian_leave_ward_or_charge():
         valid, user_did, handle = validate_work_token(token)
         if not valid or not user_did:
             return jsonify({'error': 'Invalid session'}), 401
-        
-        data = request.get_json() or {}
-        
-        # Optional: for labeler subscription removal
-        access_jwt = data.get('access_jwt')
-        pds_endpoint = data.get('pds_endpoint')
         
         db_manager = DatabaseManager()
         
@@ -11490,36 +11588,10 @@ def guardian_leave_ward_or_charge():
         
         print(f"  ✓ {user_did} has left all guardian relationships")
         
-        # Remove labeler subscription if JWT provided
-        subscription_result = None
-        if access_jwt and pds_endpoint:
-            try:
-                from core.labeler_subscription import get_subscription_manager
-                sub_manager = get_subscription_manager()
-                subscription_result = sub_manager.remove_subscription(
-                    user_did=user_did,
-                    pds_endpoint=pds_endpoint,
-                    access_jwt=access_jwt
-                )
-                
-                if subscription_result.get('success'):
-                    print(f"  🛡️ Removed labeler subscription")
-                else:
-                    print(f"  ⚠️ Labeler subscription removal failed: {subscription_result.get('error')}")
-                    
-            except Exception as sub_error:
-                print(f"  ⚠️ Labeler subscription error: {sub_error}")
-                subscription_result = {'success': False, 'error': str(sub_error)}
-        
-        response = {
+        return jsonify({
             'success': True,
             'message': 'You have left your guardian'
-        }
-        
-        if subscription_result:
-            response['labeler_subscription'] = subscription_result
-        
-        return jsonify(response)
+        })
         
     except Exception as e:
         import traceback
@@ -14569,6 +14641,9 @@ def update_user_avatar():
         
         if not access_jwt:
             return jsonify({'error': 'Session expired. Please log in again.'}), 401
+        
+        if not _is_safe_pds_endpoint(pds_endpoint):
+            return jsonify({'error': 'Invalid PDS endpoint'}), 400
         
         # Use direct JWT upload
         print(f"[API] Using session JWT for upload (endpoint: {pds_endpoint})")

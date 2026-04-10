@@ -42,7 +42,7 @@ def init_pds_profile(did: str, handle: str, password: str, pds_url: str = "https
             try:
                 error_data = session_response.json()
                 error_msg = error_data.get('message', error_msg)
-            except:
+            except Exception:
                 pass
             return {"success": False, "error": f"Authentication failed: {error_msg}"}
         
@@ -116,7 +116,7 @@ def init_pds_profile(did: str, handle: str, password: str, pds_url: str = "https
             try:
                 error_data = create_response.json()
                 error_msg = error_data.get('message', error_msg)
-            except:
+            except Exception:
                 pass
             return {"success": False, "error": f"Profile creation failed: {error_msg}"}
         

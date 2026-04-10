@@ -1,0 +1,24 @@
+[Unit]
+Description=Reverie House - Greeterwatch (Namegiver Quest Monitor)
+Documentation=https://github.com/reverie-house/reverie
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=errantson
+WorkingDirectory=/srv/reverie.house
+ExecStart=/usr/bin/python3 core/greeterwatch.py --verbose
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=reverie-greeterwatch
+Environment="PYTHONUNBUFFERED=1"
+
+# Security
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

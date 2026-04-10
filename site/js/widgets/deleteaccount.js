@@ -218,7 +218,6 @@ class DeleteAccountModal {
     }
     
     async processAccountDeletion() {
-        console.log('🗑️ [DeleteAccount] Processing account deletion for', this.session.handle);
         
         try {
             let token = null;

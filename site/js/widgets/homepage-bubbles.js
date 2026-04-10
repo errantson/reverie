@@ -160,7 +160,6 @@ class HomepageBubbles {
                 });
             }));
             
-            console.log(`🫧 [Bubbles] Loaded ${this.imageCache.size} images`);
             
             // Build souvenir keys list (excluding special _ prefixed ones)
             this.souvenirKeys = [...this.imageCache.keys()].filter(url => {
@@ -447,7 +446,6 @@ class HomepageBubbles {
             bubbleData.opacity = 0.9;
         });
         
-        console.log(`🫧 First-click bubble spawned: ${iconName} at (${x}, ${y})`);
         return true;
     }
 
@@ -587,7 +585,6 @@ class HomepageBubbles {
             bubbleData.opacity = 0.9;
         });
         
-        console.log(`🫧 Bonus bubble spawned: ${name} at (${x}, ${y})`);
         return true;
     }
 
@@ -779,7 +776,6 @@ class HomepageBubbles {
     }
 
     cleanup() {
-        console.log('🧹 Cleaning up HomepageBubbles...');
         
         this.isActive = false;
         
@@ -801,7 +797,6 @@ class HomepageBubbles {
             this.bubbleContainer = null;
         }
         
-        console.log('✅ HomepageBubbles cleanup complete');
     }
 }
 
@@ -818,4 +813,3 @@ if (typeof window !== 'undefined') {
     }
 }
 
-console.log('✅ [homepage-bubbles.js] Homepage bubbles widget loaded');

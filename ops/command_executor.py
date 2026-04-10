@@ -303,7 +303,14 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
             if forced_name:
                 proposed_name = forced_name.lower()
             else:
-                proposed_name = reply_text.strip().split('\n')[0][:50].strip().lower()
+                # Use NameManager to intelligently extract names from patterns like "My name is X", "Call me Y", comma-separated lists, etc.
+                name_manager = NameManager()
+                extracted = name_manager.extract_name_from_post_content(reply_text)
+                if extracted:
+                    proposed_name = extracted.lower()
+                else:
+                    # Fallback to first line if intelligent extraction fails
+                    proposed_name = reply_text.strip().split('\n')[0][:50].strip().lower()
             
             # Check if dreamer already has a "spoke their name" canon entry
             cursor = db.execute("""
@@ -1302,8 +1309,30 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
             
             # Post reply using mapper client
             try:
-                # Get parent post CID for proper reply threading
+                # Guard: check if mapper already replied to this post on Bluesky
                 import requests
+                already_replied = False
+                try:
+                    thread_resp = requests.get(
+                        f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri={reply_uri}&depth=1",
+                        timeout=10
+                    )
+                    if thread_resp.status_code == 200:
+                        thread_replies = thread_resp.json().get('thread', {}).get('replies', [])
+                        for tr in thread_replies:
+                            if tr.get('post', {}).get('author', {}).get('did') == mapper_client.me.did:
+                                already_replied = True
+                                break
+                except Exception:
+                    pass
+                
+                if already_replied:
+                    if verbose:
+                        print(f"   ⏭️  Mapper already replied on Bluesky - skipping post")
+                    result['success'] = True
+                    continue
+                
+                # Get parent post CID for proper reply threading
                 parent_cid = None
                 try:
                     resp = requests.get(
@@ -1314,7 +1343,7 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
                         posts = resp.json().get('posts', [])
                         if posts:
                             parent_cid = posts[0].get('cid')
-                except:
+                except Exception:
                     pass
                 
                 # Get root post info for threading
@@ -1329,7 +1358,7 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
                         posts = resp.json().get('posts', [])
                         if posts:
                             root_cid = posts[0].get('cid')
-                except:
+                except Exception:
                     pass
                 
                 # Build the reply record

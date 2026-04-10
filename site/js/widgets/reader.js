@@ -103,7 +103,6 @@ class ReaderWidget {
 
     async renderChapter(chapter) {
         try {
-            console.log(`📖 Loading chapter: ${chapter.title} (${chapter.file})`);
 
             // Show reader view
             this.showReaderView();

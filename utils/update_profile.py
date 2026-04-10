@@ -101,7 +101,7 @@ def update_profile_description(did: str, description: str) -> dict:
             try:
                 error_data = session_response.json()
                 error_msg = error_data.get('message', error_msg)
-            except:
+            except Exception:
                 pass
             return {"success": False, "error": f"Authentication failed: {error_msg}"}
         
@@ -193,7 +193,7 @@ def fix_profile_handle(did: str, handle: str) -> dict:
             try:
                 error_data = session_response.json()
                 error_msg = error_data.get('message', error_msg)
-            except:
+            except Exception:
                 pass
             return {"success": False, "error": f"Authentication failed: {error_msg}"}
         
@@ -303,7 +303,7 @@ def set_profile_banner(did: str, banner_path: str = None, pds_url: str = "https:
             try:
                 error_data = session_response.json()
                 error_msg = error_data.get('message', error_msg)
-            except:
+            except Exception:
                 pass
             return {"success": False, "error": f"Authentication failed: {error_msg}"}
         

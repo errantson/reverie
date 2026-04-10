@@ -66,7 +66,6 @@ class ConversationTree {
             this.rootNodeId = treeDefinition.rootNode;
         }
         
-        console.log(`✅ [ConversationTree] Registered tree: ${name}`);
     }
     
     /**
@@ -116,7 +115,6 @@ class ConversationTree {
      * @param {string} nodeId - Target node ID
      */
     async gotoNode(nodeId) {
-        console.log(`🔀 [ConversationTree] Navigating to node: ${nodeId}`);
         
         const node = this.nodes.get(nodeId);
         if (!node) {
@@ -325,7 +323,6 @@ class ConversationTree {
      * @param {Object} choice - Choice definition
      */
     async makeChoice(choice) {
-        console.log(`✅ [ConversationTree] Choice made: ${choice.id || choice.text}`);
         
         // Record choice in history
         this.choiceHistory.push({
@@ -652,4 +649,3 @@ class ConversationTree {
 // Export for use in other scripts
 window.ConversationTree = ConversationTree;
 
-console.log('✅ [conversation-tree.js] ConversationTree system loaded');

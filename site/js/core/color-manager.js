@@ -17,7 +17,6 @@ class ColorManager {
         }
 
         this.initPromise = (async () => {
-            console.log('🎨 Color Manager: Initializing...');
 
             // Wait for OAuth manager to be ready
             await this.waitForOAuthManager();
@@ -26,7 +25,6 @@ class ColorManager {
             await this.loadColor();
 
             this.isInitialized = true;
-            console.log('✅ Color Manager: Initialized with color', this.currentColor);
         })();
 
         return this.initPromise;
@@ -36,7 +34,6 @@ class ColorManager {
         // Quick check - if oauth-manager.js isn't even loaded, don't wait
         const hasOAuthScript = document.querySelector('script[src*="oauth-manager"]');
         if (!hasOAuthScript && !window.oauthManager) {
-            console.log('🎨 Color Manager: No OAuth manager script detected, skipping');
             return;
         }
         
@@ -46,10 +43,8 @@ class ColorManager {
             
             const checkOAuth = () => {
                 if (window.oauthManager) {
-                    console.log('🎨 Color Manager: OAuth manager found');
                     resolve();
                 } else if (attempts >= maxAttempts) {
-                    console.log('🎨 Color Manager: OAuth manager not found after 1s, continuing without it');
                     resolve(); // Continue anyway
                 } else {
                     attempts++;
@@ -64,10 +59,8 @@ class ColorManager {
         const session = window.oauthManager?.getSession();
 
         if (session && session.did) {
-            console.log('🎨 Color Manager: User logged in, loading user color...');
             await this.loadUserColor(session.did);
         } else {
-            console.log('🎨 Color Manager: No session, loading world color...');
             await this.loadWorldColor();
         }
     }
@@ -78,7 +71,6 @@ class ColorManager {
         const cachedColor = localStorage.getItem(cacheKey);
         
         if (cachedColor) {
-            console.log('🎨 Color Manager: Using cached user color', cachedColor);
             this.setColor(cachedColor, 'user');
         }
 
@@ -91,12 +83,10 @@ class ColorManager {
             const user = dreamers.find(d => d.did === did);
 
             if (user && user.color_hex) {
-                console.log('🎨 Color Manager: Loaded user color from API', user.color_hex);
                 this.setColor(user.color_hex, 'user');
                 localStorage.setItem(cacheKey, user.color_hex);
             } else if (!cachedColor) {
                 // No user color found, fall back to world color
-                console.log('🎨 Color Manager: User has no color, falling back to world color');
                 await this.loadWorldColor();
             }
         } catch (error) {
@@ -113,10 +103,8 @@ class ColorManager {
             if (window.worldConfigCache) {
                 const config = await window.worldConfigCache.fetch();
                 const worldColor = config.color || this.currentColor;
-                console.log('🎨 Color Manager: Loaded world color', worldColor);
                 this.setColor(worldColor, 'world');
             } else {
-                console.log('🎨 Color Manager: No worldConfigCache, using default color');
                 this.setColor(this.currentColor, 'default');
             }
         } catch (error) {
@@ -147,7 +135,6 @@ class ColorManager {
             }
         }));
 
-        console.log(`🎨 Color Manager: Color set to ${color} (source: ${source})`);
     }
 
     getColor() {
@@ -161,7 +148,6 @@ class ColorManager {
     // Set a temporary profile color (for viewing other dreamers)
     // This overrides the user color but can be restored
     setProfileColor(color, profileName = 'profile') {
-        console.log(`🎨 Color Manager: Setting profile color to ${color} for ${profileName}`);
         document.documentElement.style.setProperty('--user-color', color);
         
         // Dispatch event
@@ -175,14 +161,12 @@ class ColorManager {
 
     // Restore the user's own color (after viewing another profile)
     restoreUserColor() {
-        console.log(`🎨 Color Manager: Restoring user color to ${this.currentColor}`);
         document.documentElement.style.setProperty('--user-color', this.currentColor);
     }
 
     setupOAuthListeners() {
         // Handle login
         window.addEventListener('oauth:login', async () => {
-            console.log('🎨 Color Manager: OAuth login detected');
             const session = window.oauthManager?.getSession();
             if (session && session.did) {
                 await this.loadUserColor(session.did);
@@ -191,7 +175,6 @@ class ColorManager {
 
         // Handle profile loaded (has DID)
         window.addEventListener('oauth:profile-loaded', async () => {
-            console.log('🎨 Color Manager: OAuth profile loaded');
             const session = window.oauthManager?.getSession();
             if (session && session.did) {
                 await this.loadUserColor(session.did);
@@ -200,27 +183,23 @@ class ColorManager {
 
         // Handle logout
         window.addEventListener('oauth:logout', async (event) => {
-            console.log('🎨 Color Manager: OAuth logout detected, reloading world color...');
             
             // Clear cached user color using DID from event
             const did = event.detail?.sub;
             if (did) {
                 const cacheKey = `reverie_color_${did}`;
                 localStorage.removeItem(cacheKey);
-                console.log(`🎨 Color Manager: Cleared cached user color for ${did}`);
             }
             
             // Force fresh fetch of world color by invalidating cache
             window.worldConfigCache.invalidate();
             
             await this.loadWorldColor();
-            console.log('🎨 Color Manager: World color reloaded after logout');
         });
     }
 
     // For widgets that need to manually trigger color reload
     async refresh() {
-        console.log('🎨 Color Manager: Manual refresh requested');
         await this.loadColor();
     }
 }
@@ -237,4 +216,3 @@ if (document.readyState === 'loading') {
     window.colorManager.init();
 }
 
-console.log('🎨 Color Manager initialized');

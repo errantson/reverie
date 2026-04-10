@@ -661,16 +661,12 @@ class Designation:
     def _check_keeper(cls, did: str) -> bool:
         """Check if user is Keeper (GM of reverie.house world on lore.farm)."""
         try:
-            response = requests.get('https://lore.farm/api/worlds', timeout=5)
+            response = requests.get('https://lore.farm/api/worlds/reverie.house', timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                worlds = data.get('worlds', [])
-                for world in worlds:
-                    if world.get('domain') == 'reverie.house':
-                        if world.get('gm_did') == did:
-                            print(f"   🏰 Keeper of Reverie House confirmed")
-                            return True
-                        break
+                if data.get('gm_did') == did:
+                    print(f"   🏰 Keeper of Reverie House confirmed")
+                    return True
         except Exception as e:
             print(f"   ⚠️ Could not check Keeper status: {e}")
         
@@ -705,11 +701,10 @@ class Designation:
         Returns: 'revered', 'well_known', 'known', or None
         """
         try:
-            # Check if character is registered
+            # Check if character is registered via indexed API
             print(f"   🔍 Checking character registration...")
             response = requests.get(
-                'https://lore.farm/api/characters/status',
-                params={'did': did, 'world': 'reverie.house'},
+                f'https://lore.farm/api/worlds/reverie.house/characters/{did}/indexed',
                 timeout=5
             )
             
@@ -717,13 +712,12 @@ class Designation:
                 return None
             
             char_data = response.json()
-            is_registered = char_data.get('registered', False)
+            is_member = char_data.get('member', False)
             
-            if not is_registered:
+            if not is_member:
                 return None
             
-            character = char_data.get('character', {})
-            print(f"   🎭 Character found: {character.get('name')}")
+            print(f"   🎭 Character found")
             
             # Check permissions for level
             try:

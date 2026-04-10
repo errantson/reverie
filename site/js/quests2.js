@@ -88,9 +88,7 @@
     }
     
     // Check authentication on page load
-    console.log('[QuestManager] Initializing quest manager...');
     const adminToken = localStorage.getItem('admin_token');
-    console.log('[QuestManager] Admin token present:', !!adminToken);
     
     if (!adminToken) {
         // No token - redirect to login
@@ -101,7 +99,6 @@
     
     // Helper function to make authenticated API calls
     async function authenticatedFetch(url, options = {}) {
-        console.log('[QuestManager] authenticatedFetch:', url, options.method || 'GET');
         const token = localStorage.getItem('admin_token');
         
         if (!token) {
@@ -114,7 +111,6 @@
         options.headers['Authorization'] = `Bearer ${token}`;
         
         const response = await fetch(url, options);
-        console.log('[QuestManager] Response status:', response.status, url);
         
         // If unauthorized, redirect to login
         if (response.status === 401) {
@@ -128,13 +124,11 @@
     }
     
     // Verify token is still valid and get user info
-    console.log('[QuestManager] Verifying admin token...');
     fetch('/api/admin/verify', {
         headers: {
             'Authorization': `Bearer ${adminToken}`
         }
     }).then(response => {
-        console.log('[QuestManager] Verify response status:', response.status);
         if (!response.ok) {
             // Token invalid - redirect to login
             console.warn('[QuestManager] Token verification failed, redirecting to login');
@@ -145,7 +139,6 @@
         }
     }).then(data => {
         if (data) {
-            console.log('[QuestManager] Admin verified:', data.handle);
             // Create admin session for drawer
             const adminSession = {
                 did: data.did,
@@ -163,7 +156,6 @@
             }));
             
             // Load quests after successful authentication
-            console.log('[QuestManager] Loading quests...');
             loadQuests();
         }
     }).catch(error => {
@@ -243,7 +235,6 @@
             // Restore previously selected quest from session
             const savedQuestTitle = sessionStorage.getItem('selected_quest_title');
             if (savedQuestTitle && questDataMap[savedQuestTitle]) {
-                console.log('[QuestManager] Restoring previously selected quest:', savedQuestTitle);
                 selectQuest(questDataMap[savedQuestTitle]);
             }
             
@@ -366,7 +357,6 @@
     }
     
     function selectQuest(quest) {
-        console.log('[QuestManager] Selecting quest:', quest.title);
         selectedQuest = quest;
         
         // Save selected quest to session storage
@@ -377,7 +367,6 @@
     }
     
     function renderQuestDetail(quest) {
-        console.log('[QuestManager] Rendering quest detail for:', quest.title);
         const container = document.getElementById('quest-detail-container');
         
         const triggerLabels = {
@@ -993,7 +982,6 @@
         if (triggerDropdown) {
             triggerDropdown.addEventListener('change', async (e) => {
                 const newTriggerType = e.target.value;
-                console.log('[QuestManager] Trigger type changed to:', newTriggerType);
                 await updateTriggerType(quest.title, newTriggerType);
             });
         }
@@ -1008,7 +996,6 @@
                 input.addEventListener('change', async (e) => {
                     const questTitle = e.target.dataset.questTitle;
                     const field = e.target.dataset.field;
-                    console.log('[QuestManager] Config field changed:', field, 'for quest:', questTitle);
                     await saveTriggerConfigField(questTitle, field, e.target);
                 });
             }
@@ -1022,7 +1009,6 @@
                 const field = e.target.dataset.field;
                 const triggerType = e.target.dataset.triggerType;
                 
-                console.log('[QuestManager] Save button clicked for quest:', questTitle);
                 
                 if (field) {
                     // Single field save (e.g., URI for bsky_reply)
@@ -1043,7 +1029,6 @@
             select.addEventListener('change', async (e) => {
                 const questTitle = e.target.dataset.questTitle;
                 const index = parseInt(e.target.dataset.index);
-                console.log('[QuestManager] Condition type changed:', e.target.value, 'for quest:', questTitle, 'index:', index);
                 await updateConditionType(questTitle, index, e.target.value);
             });
         });
@@ -1056,7 +1041,6 @@
                 const index = parseInt(e.target.dataset.index);
                 const input = container.querySelector(`.condition-input[data-index="${index}"]`);
                 if (input) {
-                    console.log('[QuestManager] Condition save button clicked:', input.value, 'for quest:', questTitle, 'index:', index);
                     await updateConditionValue(questTitle, index, input.value);
                 }
             });
@@ -1068,7 +1052,6 @@
             select.addEventListener('change', async (e) => {
                 const questTitle = e.target.dataset.questTitle;
                 const index = parseInt(e.target.dataset.index);
-                console.log('[QuestManager] Command type changed:', e.target.value, 'for quest:', questTitle, 'index:', index);
                 await updateCommandType(questTitle, index, e.target.value);
             });
         });
@@ -1080,7 +1063,6 @@
                 const index = parseInt(e.target.dataset.index);
                 const input = container.querySelector(`.command-input[data-index="${index}"]`);
                 if (input) {
-                    console.log('[QuestManager] Command save button clicked:', input.value, 'for quest:', questTitle, 'index:', index);
                     await updateCommandParams(questTitle, index, input.value);
                 }
             });
@@ -1104,7 +1086,6 @@
                     if (rowstyleSelect && rowstyleSelect.value) {
                         canonParam += `:${rowstyleSelect.value}`;
                     }
-                    console.log('[QuestManager] Canon save button clicked:', canonParam, 'for quest:', questTitle, 'index:', index);
                     await updateCommandParams(questTitle, index, canonParam);
                 }
             });
@@ -1159,7 +1140,6 @@
         
         if (titleEl) {
             titleEl.addEventListener('click', () => {
-                console.log('[QuestManager] Title clicked for editing');
                 const newTitle = prompt('Quest Title:', quest.title);
                 if (newTitle && newTitle !== quest.title) {
                     updateQuestMetadata(quest.title, newTitle, quest.description);
@@ -1169,7 +1149,6 @@
         
         if (descEl) {
             descEl.addEventListener('click', () => {
-                console.log('[QuestManager] Description clicked for editing');
                 const currentDesc = quest.description || '';
                 const newDesc = prompt('Quest Description:', currentDesc);
                 if (newDesc !== null && newDesc !== currentDesc) {
@@ -1224,7 +1203,6 @@
                 return;
             }
             const souvenirs = await response.json();
-            console.log('[QuestManager] Loaded souvenirs:', Object.keys(souvenirs).length);
             
             // Find all souvenir preview elements
             document.querySelectorAll('.souvenir-preview[data-souvenir-key]').forEach(element => {
@@ -1486,7 +1464,6 @@
     
     async function toggleQuestStatus(questTitle, enable) {
         const action = enable ? 'enable' : 'disable';
-        console.log(`[QuestManager] Toggling quest ${questTitle} to ${action}`);
         
         try {
             const quest = questDataMap[questTitle];
@@ -1511,7 +1488,6 @@
             });
             
             if (response.ok) {
-                console.log(`[QuestManager] Quest ${action}d successfully`);
                 // Update in dataMap
                 if (questDataMap[questTitle]) {
                     questDataMap[questTitle].enabled = enable;
@@ -1571,9 +1547,7 @@
     }
     
     async function deleteCondition(questTitle, index) {
-        console.log('[QuestManager] deleteCondition called for:', questTitle, 'index:', index);
         if (!confirm(`Delete this condition from "${questTitle}"?`)) {
-            console.log('[QuestManager] Delete condition cancelled by user');
             return;
         }
         
@@ -1619,7 +1593,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Condition deleted successfully');
                 // Reload and reselect
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
@@ -1653,7 +1626,6 @@
     };
     
     async function updateQuestMetadata(oldTitle, newTitle, newDescription) {
-        console.log('[QuestManager] Updating quest metadata:', oldTitle, '->', newTitle);
         try {
             const quest = questDataMap[oldTitle];
             if (!quest) {
@@ -1675,7 +1647,6 @@
                 enabled: quest.enabled
             };
             
-            console.log('[QuestManager] Sending metadata update payload:', payload);
             
             const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(oldTitle)}`, {
                 method: 'POST',
@@ -1685,14 +1656,12 @@
             
             if (response.ok) {
                 const result = await response.json();
-                console.log('[QuestManager] Metadata update response:', result);
                 
                 // Update session storage with new title before reload
                 sessionStorage.setItem('selected_quest_title', newTitle);
                 
                 // The API might return the updated quest data
                 if (result.quest) {
-                    console.log('[QuestManager] Using quest data from API response:', result.quest.title);
                     // Update local data structures immediately
                     delete questDataMap[oldTitle];
                     questDataMap[newTitle] = result.quest;
@@ -1705,17 +1674,14 @@
                     
                     selectQuest(result.quest);
                 } else {
-                    console.log('[QuestManager] No quest in response, reloading all quests');
                     
                     // Add a small delay to allow backend to commit the change
                     await new Promise(resolve => setTimeout(resolve, 100));
                     
                     await loadQuests();
-                    console.log('[QuestManager] After loadQuests, allQuests titles:', allQuests.map(q => q.title));
                     
                     // Try new title first
                     let updatedQuest = allQuests.find(q => q.title === newTitle);
-                    console.log('[QuestManager] Searching for newTitle:', newTitle);
                     
                     // If not found by new title, try old title (backend might not have updated yet)
                     if (!updatedQuest) {
@@ -1724,11 +1690,9 @@
                     }
                     
                     if (updatedQuest) {
-                        console.log('[QuestManager] Found quest:', updatedQuest.title);
                         
                         // If we found it by old title, manually update the local data
                         if (updatedQuest.title === oldTitle && newTitle !== oldTitle) {
-                            console.log('[QuestManager] Manually updating quest title in local data');
                             updatedQuest.title = newTitle;
                             delete questDataMap[oldTitle];
                             questDataMap[newTitle] = updatedQuest;
@@ -1758,7 +1722,6 @@
     }
     
     window.editTriggerConfig = function(questTitle) {
-        console.log('[QuestManager] editTriggerConfig called for:', questTitle);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found in questDataMap:', questTitle);
@@ -1766,12 +1729,10 @@
             return;
         }
         
-        console.log('[QuestManager] Opening trigger config modal for:', questTitle);
         showTriggerConfigModal(quest);
     };
     
     async function updateTriggerType(questTitle, newTriggerType) {
-        console.log('[QuestManager] Updating trigger type for:', questTitle, 'to:', newTriggerType);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -1792,7 +1753,6 @@
                 enabled: quest.enabled
             };
             
-            console.log('[QuestManager] Sending trigger type update:', payload);
             const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1800,7 +1760,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Trigger type updated successfully');
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) selectQuest(updatedQuest);
@@ -1816,7 +1775,6 @@
     }
     
     async function saveTriggerConfigField(questTitle, field, inputElement) {
-        console.log('[QuestManager] Saving trigger config field:', field, 'for quest:', questTitle);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -1852,7 +1810,6 @@
                 });
                 
                 if (response.ok) {
-                    console.log('[QuestManager] URI updated successfully');
                     await loadQuests();
                     const updatedQuest = allQuests.find(q => q.title === questTitle);
                     if (updatedQuest) selectQuest(updatedQuest);
@@ -1887,7 +1844,6 @@
                     enabled: quest.enabled
                 };
                 
-                console.log('[QuestManager] Sending config update:', payload);
                 const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1895,7 +1851,6 @@
                 });
                 
                 if (response.ok) {
-                    console.log('[QuestManager] Config field updated successfully');
                     // Reload and reselect to show changes
                     await loadQuests();
                     const updatedQuest = allQuests.find(q => q.title === questTitle);
@@ -1913,7 +1868,6 @@
     }
     
     async function saveTriggerConfigFields(questTitle, triggerType, container) {
-        console.log('[QuestManager] Saving all trigger config fields for:', questTitle, 'type:', triggerType);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -1976,7 +1930,6 @@
                 enabled: quest.enabled
             };
             
-            console.log('[QuestManager] Sending multi-field config update:', payload);
             const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1984,7 +1937,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Trigger configuration updated successfully');
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) selectQuest(updatedQuest);
@@ -2000,12 +1952,10 @@
     }
     
     window.addTrigger = function(questTitle) {
-        console.log('[QuestManager] addTrigger called - Note: Quest only supports one trigger');
         alert('Each quest can only have one trigger. Use the dropdown to change the trigger type, or use the trigger configuration in the modal to set parameters.');
     };
     
     window.deleteTrigger = async function(questTitle) {
-        console.log('[QuestManager] deleteTrigger called for:', questTitle);
         if (!confirm('Reset trigger configuration?\n\nThis will clear the trigger type and configuration.')) {
             return;
         }
@@ -2049,7 +1999,6 @@
     };
     
     async function updateConditionType(questTitle, index, newType) {
-        console.log('[QuestManager] Updating condition type at index', index, 'to:', newType);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2094,7 +2043,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Condition type updated successfully');
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) selectQuest(updatedQuest);
@@ -2110,7 +2058,6 @@
     }
     
     async function updateConditionValue(questTitle, index, newValue) {
-        console.log('[QuestManager] Updating condition value at index', index, 'to:', newValue);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2146,7 +2093,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Condition value updated successfully');
                 // Reload and reselect to show changes
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
@@ -2163,7 +2109,6 @@
     }
     
     async function loadBskyPostPreview(questTitle, uri) {
-        console.log('[QuestManager] Loading Bluesky post preview for URI:', uri);
         const previewId = `bsky-preview-${questTitle.replace(/\s/g, '-')}`;
         const previewEl = document.getElementById(previewId);
         
@@ -2226,9 +2171,6 @@
     }
     
     function showTriggerConfigModal(quest) {
-        console.log('[QuestManager] Creating trigger config modal for:', quest.title);
-        console.log('[QuestManager] Quest trigger_type:', quest.trigger_type);
-        console.log('[QuestManager] Quest trigger_config:', quest.trigger_config);
         
         // Create modal HTML
         const modalHtml = `
@@ -2266,14 +2208,11 @@
         // Remove existing modal if any
         const existingModal = document.getElementById('trigger-modal');
         if (existingModal) {
-            console.log('[QuestManager] Removing existing modal');
             existingModal.remove();
         }
         
         // Add modal to body
-        console.log('[QuestManager] Adding modal to DOM');
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        console.log('[QuestManager] Modal displayed successfully');
     }
     
     function getTriggerFieldsHtml(quest) {
@@ -2373,7 +2312,6 @@
     };
     
     window.saveTriggerConfig = async function(questTitle) {
-        console.log('[QuestManager] Saving trigger config for:', questTitle);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2382,7 +2320,6 @@
         }
         
         const triggerType = document.getElementById('trigger-type-select').value;
-        console.log('[QuestManager] Selected trigger type:', triggerType);
         let triggerConfig = {};
         let uri = quest.uri || '';
         
@@ -2429,7 +2366,6 @@
                 enabled: quest.enabled
             };
             
-            console.log('[QuestManager] Sending update payload:', payload);
             const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2437,12 +2373,10 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Trigger config updated successfully');
                 closeTriggerModal();
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) {
-                    console.log('[QuestManager] Re-selecting updated quest');
                     selectQuest(updatedQuest);
                 }
             } else {
@@ -2457,7 +2391,6 @@
     };
     
     window.addCondition = function(questTitle) {
-        console.log('[QuestManager] addCondition called for:', questTitle);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2466,7 +2399,6 @@
         }
         
         // Add a default any_reply condition
-        console.log('[QuestManager] Adding default any_reply condition');
         addConditionToQuest(questTitle, 'any_reply');
     };
     
@@ -2499,7 +2431,6 @@
                 enabled: quest.enabled
             };
             
-            console.log('[QuestManager] Sending add condition payload:', payload);
             const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2507,7 +2438,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Condition added successfully');
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) selectQuest(updatedQuest);
@@ -2523,7 +2453,6 @@
     }
     
     window.editCondition = function(questTitle, index) {
-        console.log('[QuestManager] editCondition called for:', questTitle, 'index:', index);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2542,7 +2471,6 @@
         const newCondition = prompt('Edit condition:', currentCondition);
         if (!newCondition || newCondition === currentCondition) return;
         
-        console.log('[QuestManager] Updating condition at index', index, 'to:', newCondition);
         updateCondition(questTitle, index, newCondition);
     };
     
@@ -2566,7 +2494,6 @@
                 enabled: quest.enabled
             };
             
-            console.log('[QuestManager] Sending update condition payload:', payload);
             const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2574,7 +2501,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Condition updated successfully');
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) selectQuest(updatedQuest);
@@ -2590,7 +2516,6 @@
     }
     
     window.addCommand = function(questTitle) {
-        console.log('[QuestManager] addCommand called for:', questTitle);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2599,7 +2524,6 @@
         }
         
         // Add a default like_post command
-        console.log('[QuestManager] Adding default like_post command');
         addCommandToQuest(questTitle, 'like_post');
     };
     
@@ -2627,7 +2551,6 @@
                 enabled: quest.enabled
             };
             
-            console.log('[QuestManager] Sending add command payload:', payload);
             const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2635,7 +2558,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Command added successfully');
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) selectQuest(updatedQuest);
@@ -2651,7 +2573,6 @@
     }
     
     window.editCommand = function(questTitle, index) {
-        console.log('[QuestManager] editCommand called for:', questTitle, 'index:', index);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2682,7 +2603,6 @@
             return;
         }
         
-        console.log('[QuestManager] Updating command at index', index, 'to:', newType, newParams);
         updateCommand(questTitle, index, newType, newParams);
     };
     
@@ -2705,7 +2625,6 @@
                 enabled: quest.enabled
             };
             
-            console.log('[QuestManager] Sending update command payload:', payload);
             const response = await authenticatedFetch(`/api/quests/update/${encodeURIComponent(questTitle)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2713,7 +2632,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Command updated successfully');
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) selectQuest(updatedQuest);
@@ -2729,9 +2647,7 @@
     }
     
     window.deleteCommand = async function(questTitle, index) {
-        console.log('[QuestManager] deleteCommand called for:', questTitle, 'index:', index);
         if (!confirm(`Delete this command from "${questTitle}"?`)) {
-            console.log('[QuestManager] Delete command cancelled by user');
             return;
         }
         
@@ -2763,7 +2679,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Command deleted successfully');
                 // Reload and reselect
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
@@ -2780,7 +2695,6 @@
     };
     
     async function updateCommandType(questTitle, index, newType) {
-        console.log('[QuestManager] Updating command type at index', index, 'to:', newType);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2816,7 +2730,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Command type updated successfully');
                 await loadQuests();
                 const updatedQuest = allQuests.find(q => q.title === questTitle);
                 if (updatedQuest) selectQuest(updatedQuest);
@@ -2832,7 +2745,6 @@
     }
     
     async function updateCommandParams(questTitle, index, newParams) {
-        console.log('[QuestManager] Updating command params at index', index, 'to:', newParams);
         const quest = questDataMap[questTitle];
         if (!quest) {
             console.error('[QuestManager] Quest not found:', questTitle);
@@ -2874,7 +2786,6 @@
             });
             
             if (response.ok) {
-                console.log('[QuestManager] Command params updated successfully');
                 // Update local cache
                 quest.commands = commands;
                 // Reload and reselect to show changes
@@ -2894,17 +2805,14 @@
     
     // Create quest modal
     window.createBlankQuest = function() {
-        console.log('[QuestManager] createBlankQuest called');
         
         const title = prompt('Quest Title:');
         if (!title) {
-            console.log('[QuestManager] Quest creation cancelled - no title');
             return;
         }
         
         const description = prompt('Quest Description (optional):');
         
-        console.log('[QuestManager] Creating new quest:', title);
         createNewQuest(title, description);
     };
     
@@ -2924,7 +2832,6 @@
                 commands: []
             };
             
-            console.log('[QuestManager] Sending create quest payload:', payload);
             const response = await authenticatedFetch('/api/quests/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2933,11 +2840,9 @@
             
             if (response.ok) {
                 const result = await response.json();
-                console.log('[QuestManager] Quest created successfully, response:', result);
                 
                 // Check if API returned the created quest
                 if (result.quest) {
-                    console.log('[QuestManager] Using quest data from API response');
                     // Add to local data structures
                     allQuests.push(result.quest);
                     questDataMap[result.quest.title] = result.quest;
@@ -2948,10 +2853,8 @@
                     await new Promise(resolve => setTimeout(resolve, 100));
                     
                     await loadQuests();
-                    console.log('[QuestManager] After loadQuests, searching for new quest:', title);
                     const newQuest = allQuests.find(q => q.title === title);
                     if (newQuest) {
-                        console.log('[QuestManager] Selecting newly created quest');
                         selectQuest(newQuest);
                     } else {
                         console.error('[QuestManager] Created quest not found:', title);

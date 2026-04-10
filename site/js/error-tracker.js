@@ -128,5 +128,4 @@
         });
     };
 
-    console.log('✅ Reverie House error tracking initialized');
 })();

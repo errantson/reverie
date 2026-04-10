@@ -177,7 +177,7 @@ def display_world_data(canon_count, dreamers_count, souvenirs_count):
         db = DatabaseManager()
         for key, value in world_data.items():
             db.execute(
-                "INSERT OR REPLACE INTO world_state (key, value, updated_at) VALUES (?, ?, ?)",
+                "INSERT INTO world_state (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
                 (key, json.dumps(value), epoch)
             )
     except Exception:
@@ -202,19 +202,7 @@ def show_world_state():
         
         display_world_data(canon_count, dreamers_count, souvenirs_count)
         
-        # Save spectrum snapshot when displaying world state
-        # DISABLED: Spectrum snapshots no longer saved (2025-12-08)
-        # try:
-        #     snapshot_id = db.save_spectrum_snapshot(
-        #         operation='world_state_display',
-        #         notes='Snapshot from world.py execution'
-        #     )
-        #     print()
-        #     print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
-        # except Exception as e:
-        #     print()
-        #     print(f"⚠️ Failed to save spectrum snapshot: {e}")
-        
+
     except Exception as e:
         print(f"Error loading world data: {e}")
         sys.exit(1)
@@ -255,21 +243,7 @@ def cmd_tick(args):
                     if not parsed.quiet:
                         print(f"🌌 Zones: {zone_stats['zones_processed']} processed, {zone_stats['effects_applied']} effects applied")
                 
-                # Save spectrum snapshot after each tick
-                # DISABLED: Spectrum snapshots no longer saved (2025-12-08)
-                # try:
-                #     from core.database import DatabaseManager
-                #     db = DatabaseManager()
-                #     snapshot_id = db.save_spectrum_snapshot(
-                #         operation='world_tick_loop',
-                #         notes=f'Automated tick from loop (interval: {parsed.loop}s)'
-                #     )
-                #     if not parsed.quiet:
-                #         print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
-                # except Exception as e:
-                #     if not parsed.quiet:
-                #         print(f"⚠️ Failed to save spectrum snapshot: {e}")
-                
+
                 print()
                 time.sleep(parsed.loop)
         except KeyboardInterrupt:
@@ -284,19 +258,6 @@ def cmd_tick(args):
             print()
             zone_stats = zone_manager.process_zones(verbose=not parsed.quiet)
             print(f"🌌 Zones: {zone_stats['zones_processed']} processed, {zone_stats['effects_applied']} effects applied")
-        
-        # Save spectrum snapshot after tick
-        # DISABLED: Spectrum snapshots no longer saved (2025-12-08)
-        # try:
-        #     from core.database import DatabaseManager
-        #     db = DatabaseManager()
-        #     snapshot_id = db.save_spectrum_snapshot(
-        #         operation='world_tick',
-        #         notes='Single world tick execution'
-        #     )
-        #     print(f"📸 Spectrum snapshot saved (ID: {snapshot_id})")
-        # except Exception as e:
-        #     print(f"⚠️ Failed to save spectrum snapshot: {e}")
         
         sys.exit(0 if stats['failed'] == 0 else 1)
 
@@ -468,7 +429,6 @@ def cmd_snapshots(args):
     from datetime import datetime
     
     if len(args) == 0 or args[0] == 'list':
-        # List recent snapshots
         limit = 20
         if len(args) > 1:
             try:
@@ -482,7 +442,7 @@ def cmd_snapshots(args):
             SELECT id, epoch, operation, total_dreamers, created_at, notes
             FROM spectrum_snapshots
             ORDER BY id DESC
-            LIMIT ?
+            LIMIT %s
         """, (limit,))
         
         snapshots = cursor.fetchall()
@@ -491,20 +451,18 @@ def cmd_snapshots(args):
             print("No snapshots found")
             return
         
-        print(f"📸 Recent Spectrum Snapshots (last {limit})")
+        print(f"📸 Spectrum Snapshots (last {limit})")
         print()
-        print(f"{'ID':<8} {'Date/Time':<20} {'Operation':<25} {'Dreamers':<10}")
-        print("=" * 70)
+        print(f"{'ID':<6} {'Date/Time':<20} {'Operation':<15} {'Dreamers':<10} {'Notes'}")
+        print("─" * 80)
         
         for snap in snapshots:
             dt = datetime.fromtimestamp(snap['created_at'])
-            dt_str = dt.strftime('%Y-%m-%d %H:%M:%S')
-            print(f"{snap['id']:<8} {dt_str:<20} {snap['operation']:<25} {snap['total_dreamers']:<10}")
-            if snap['notes']:
-                print(f"         Note: {snap['notes']}")
+            dt_str = dt.strftime('%Y-%m-%d %H:%M')
+            notes = (snap['notes'] or '')[:30]
+            print(f"{snap['id']:<6} {dt_str:<20} {snap['operation']:<15} {snap['total_dreamers']:<10} {notes}")
         
     elif args[0] == 'view':
-        # View a specific snapshot
         if len(args) < 2:
             print("Usage: world.py snapshots view <id>")
             sys.exit(1)
@@ -518,46 +476,89 @@ def cmd_snapshots(args):
         db = DatabaseManager()
         cursor = db.execute("""
             SELECT id, epoch, operation, snapshot_data, created_at, notes
-            FROM spectrum_snapshots
-            WHERE id = ?
+            FROM spectrum_snapshots WHERE id = %s
         """, (snapshot_id,))
         
         snap = cursor.fetchone()
-        
         if not snap:
             print(f"Snapshot {snapshot_id} not found")
             sys.exit(1)
         
-        snapshot_data = json.loads(snap['snapshot_data'])
+        data = json.loads(snap['snapshot_data'])
         dt = datetime.fromtimestamp(snap['created_at'])
         
-        print(f"📸 Spectrum Snapshot #{snap['id']}")
-        print(f"   Date: {dt.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"📸 Snapshot #{snap['id']}  |  {dt.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"   Operation: {snap['operation']}")
         if snap['notes']:
             print(f"   Notes: {snap['notes']}")
-        print()
-        print(f"   Total Dreamers: {snapshot_data['total_dreamers']}")
-        print(f"   With Spectrum: {snapshot_data['dreamers_with_spectrum']}")
-        print()
-        print("Dreamers:")
+        print(f"   Dreamers: {data['total_dreamers']}")
         print()
         
-        for dreamer in snapshot_data['dreamers']:
-            heading = dreamer.get('heading') or 'None'
-            print(f"   {dreamer['name']:<20} | Heading: {heading:<15}", end='')
-            
-            if dreamer['coordinates']:
-                coords = dreamer['coordinates']
-                print(f" | Position: ({coords['x']:>4}, {coords['y']:>4}, {coords['z']:>4})")
+        axes = ['entropy', 'oblivion', 'liberty', 'authority', 'receptive', 'skeptic']
+        print(f"   {'Handle':<25} {'Heading':<12} {'Octant':<12} " + " ".join(f"{a[:3]:>4}" for a in axes))
+        print("   " + "─" * 85)
+        
+        for d in data.get('dreamers', []):
+            heading = d.get('heading') or '·'
+            octant = d.get('octant') or '?'
+            s = d.get('spectrum')
+            if s:
+                vals = " ".join(f"{s[a]:>4}" for a in axes)
             else:
-                print(" | Position: No spectrum")
+                vals = "   —" * 6
+            print(f"   {d['handle']:<25} {heading:<12} {octant:<12} {vals}")
+    
+    elif args[0] == 'diff':
+        if len(args) < 3:
+            print("Usage: world.py snapshots diff <id_a> <id_b>")
+            sys.exit(1)
+        
+        try:
+            id_a, id_b = int(args[1]), int(args[2])
+        except ValueError:
+            print("Invalid snapshot IDs")
+            sys.exit(1)
+        
+        db = DatabaseManager()
+        snaps = {}
+        for sid in (id_a, id_b):
+            cursor = db.execute("SELECT snapshot_data FROM spectrum_snapshots WHERE id = %s", (sid,))
+            row = cursor.fetchone()
+            if not row:
+                print(f"Snapshot {sid} not found")
+                sys.exit(1)
+            snaps[sid] = json.loads(row['snapshot_data'])
+        
+        # Index by DID
+        axes = ['entropy', 'oblivion', 'liberty', 'authority', 'receptive', 'skeptic']
+        a_map = {d['did']: d for d in snaps[id_a].get('dreamers', [])}
+        b_map = {d['did']: d for d in snaps[id_b].get('dreamers', [])}
+        
+        print(f"📸 Diff: Snapshot #{id_a} → #{id_b}")
+        print()
+        
+        moved = 0
+        for did, b in b_map.items():
+            a = a_map.get(did)
+            if not a or not a.get('spectrum') or not b.get('spectrum'):
+                continue
+            deltas = {ax: b['spectrum'][ax] - a['spectrum'][ax] for ax in axes}
+            if any(d != 0 for d in deltas.values()):
+                moved += 1
+                changes = " ".join(f"{ax[:3]}:{d:+d}" for ax, d in deltas.items() if d != 0)
+                print(f"   {b['handle']:<25} {changes}")
+        
+        if moved == 0:
+            print("   No movement detected between snapshots.")
+        else:
+            print(f"\n   {moved} dreamer(s) moved.")
     
     else:
         print("Usage: world.py snapshots <command>")
         print("Commands:")
-        print("  list [limit]  - List recent snapshots (default: 20)")
-        print("  view <id>     - View detailed snapshot")
+        print("  list [limit]      - List recent snapshots")
+        print("  view <id>         - View detailed snapshot")
+        print("  diff <id_a> <id_b> - Compare two snapshots")
         sys.exit(1)
 
 

@@ -941,6 +941,35 @@ body.story-page {
     font-weight: 600;
 }
 
+.story-meta-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.raw-link {
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--author-color-text);
+    opacity: 0.5;
+    text-decoration: none;
+    padding: 2px 6px;
+    border: 1px solid color-mix(in srgb, var(--author-color) 30%, transparent);
+    border-radius: 3px;
+    transition: opacity 0.2s, border-color 0.2s;
+}
+
+.raw-link:hover {
+    opacity: 1;
+    border-color: var(--author-color);
+    text-decoration: none;
+}
+
+.raw-link.raw-canon {
+    color: var(--author-color);
+    opacity: 0.6;
+}
+
 .story-card.canon .post-link {
     color: var(--author-color-text-light);
 }

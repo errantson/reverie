@@ -27,7 +27,6 @@ class Profile {
             if (scriptExists || globalExists) {
                 this.dependenciesLoaded.add(src);
                 if (globalExists) {
-                    console.log(`[Profile] Already loaded (global exists): ${checkGlobal}`);
                 }
                 return Promise.resolve();
             }
@@ -37,7 +36,6 @@ class Profile {
                 script.src = src;
                 script.onload = () => {
                     this.dependenciesLoaded.add(src);
-                    console.log(`[Profile] Loaded: ${src}`);
                     resolve();
                 };
                 script.onerror = () => {
@@ -95,7 +93,6 @@ class Profile {
         if (this.dependencyPromises && this.dependencyPromises.length > 0) {
             try {
                 await Promise.allSettled(this.dependencyPromises);
-                console.log('[Profile] All dependencies loaded');
             } catch (error) {
                 console.warn('[Profile] Some dependencies failed to load:', error);
             }
@@ -202,12 +199,10 @@ class Profile {
             
             // Restore last selected tab from localStorage (used for auto-activation after content loads)
             const lastSelectedFace = localStorage.getItem('profile-selected-face') || 'lore';
-            console.log('Restoring profile tab:', lastSelectedFace);
             
             faceBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const face = btn.getAttribute('data-face');
-                    console.log('Profile tab clicked:', face);
                     
                     // Save selection to localStorage
                     localStorage.setItem('profile-selected-face', face);
@@ -283,7 +278,6 @@ class Profile {
             
             // Auto-activate saved tab AFTER all content is ready
             if (btnToActivate && lastSelectedFace !== 'lore') {
-                console.log('Auto-activating saved profile tab:', lastSelectedFace);
                 // Small delay to ensure DOM is fully rendered
                 setTimeout(() => btnToActivate.click(), 50);
             }
@@ -387,9 +381,15 @@ class Profile {
         let designation = (dreamer.designation || 'Dreamer').toUpperCase();
 
         // Name without icon - prefer display_name (from AT Protocol) over name (db)
+        const displayNameText = dreamer.display_name || dreamer.name || dreamer.handle;
+        const nameLen = displayNameText.length;
+        const nameFontSize = nameLen > 35 ? '0.9rem'
+                           : nameLen > 28 ? '1.1rem'
+                           : nameLen > 22 ? '1.35rem'
+                           : '';
         nameEl.innerHTML = `
-            <h1>
-                ${dreamer.display_name || dreamer.name || dreamer.handle}
+            <h1${nameFontSize ? ` style="font-size: ${nameFontSize}"` : ''}>
+                ${displayNameText}
             </h1>
         `;
 
@@ -622,7 +622,6 @@ class Profile {
         const activityContent = this.container.querySelector('.profile-activity-content');
         if (!activityContent) return;
 
-        console.log('🔍 Loading activity for DID:', dreamer.did);
 
         try {
             // Priority 1: Check lore.farm for canon:reverie.house label
@@ -637,7 +636,6 @@ class Profile {
             
             // Priority 3: Get most recent post
             if (!activityData) {
-                console.log('   📝 Fetching most recent post for', dreamer.did);
                 activityData = await this.fetchMostRecentPost(dreamer.did);
             }
             
@@ -1125,7 +1123,6 @@ class Profile {
     }
 
     async updateSouvenirsFace(dreamer) {
-        console.log('[Souvenirs] Starting updateSouvenirsFace', dreamer.name);
         const souvenirsFace = this.container.querySelector('.profile-souvenirs-face');
         
         if (!souvenirsFace) {
@@ -1133,7 +1130,6 @@ class Profile {
             return;
         }
         
-        console.log('[Souvenirs] Container found, setting innerHTML');
         const userColor = dreamer.color_hex || '#734ba1';
         
         // Preserve current view mode if already set, otherwise default to souvenirs
@@ -1421,7 +1417,6 @@ class Profile {
         
         // Restore stickers view if that was the previous mode
         if (previousViewMode === 'stickers') {
-            console.log('[Souvenirs] Restoring stickers view mode');
             // Set UI to stickers mode without triggering toggle
             const canvas = souvenirsFace.querySelector('#souvenirs-physics-canvas');
             const miniWidget = souvenirsFace.querySelector('.souvenirs-mini-widget');
@@ -1444,7 +1439,6 @@ class Profile {
         }
         
         // Don't initialize yet - it will happen when face becomes visible
-        console.log('[Souvenirs] HTML set, waiting for face to be shown');
     }
     
     async toggleStickersView(dreamer) {
@@ -3277,7 +3271,6 @@ class Profile {
                     const offerRkey = offer.uri.split('/').pop();
                     if (offerRkey) {
                         await this.deleteRecord(session.did, TRANSACTION_COLLECTION, offerRkey, pdsUrl);
-                        console.log('[Stickers] Deleted completed offer transaction:', offerRkey);
                     }
                 } catch (e) {
                     console.warn('[Stickers] Error checking offer for completion:', e);
@@ -3502,6 +3495,12 @@ class Profile {
     }
     
     async createRecord(did, collection, record, pdsUrl) {
+        // Check if Side Door user needs write access
+        if (window.AuthGate?.isSideDoorUser()) {
+            const granted = await window.AuthGate.requireWriteAccess({ feature: 'Stickers' });
+            if (!granted) throw new Error('Write access requires credentials');
+        }
+        
         let lastError = null;
         
         // Try pds_session first
@@ -3551,6 +3550,12 @@ class Profile {
     async deleteRecord(did, collection, rkey) {
         const session = window.oauthManager?.getSession?.();
         if (!session) throw new Error('No session');
+        
+        // Check if Side Door user needs write access
+        if (window.AuthGate?.isSideDoorUser()) {
+            const granted = await window.AuthGate.requireWriteAccess({ feature: 'Stickers' });
+            if (!granted) throw new Error('Write access requires credentials');
+        }
         
         const pdsUrl = await this.resolvePdsUrl(did);
         
@@ -3729,7 +3734,6 @@ class Profile {
     }
 
     async updateSpectrumFace(dreamer) {
-        console.log('[Spectrum] Starting updateSpectrumFace', dreamer.name);
         const spectrumFace = this.container.querySelector('.profile-spectrum-face');
         
         if (!spectrumFace) {
@@ -3737,7 +3741,6 @@ class Profile {
             return;
         }
         
-        console.log('[Spectrum] Container found, setting innerHTML with loading state');
         const userColor = dreamer.color_hex || '#734ba1';
         spectrumFace.innerHTML = `
             <div class="spectrum-face-container" style="border-color: ${userColor};">
@@ -3765,11 +3768,9 @@ class Profile {
         `;
         
         // Don't initialize yet - it will happen when face becomes visible
-        console.log('[Spectrum] HTML set with loading indicator, waiting for face to be shown');
     }
 
     initSouvenirsPhysics(dreamer) {
-        console.log('[Souvenirs] Starting initSouvenirsPhysics', dreamer.name);
         const canvas = document.getElementById('souvenirs-physics-canvas');
         
         if (!canvas) {
@@ -3783,10 +3784,6 @@ class Profile {
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
         
-        console.log('[Souvenirs] Canvas dimensions set:', canvas.width, 'x', canvas.height);
-        console.log('[Souvenirs] Dreamer souvenirs object:', dreamer.souvenirs);
-        console.log('[Souvenirs] Souvenirs keys:', Object.keys(dreamer.souvenirs || {}));
-        console.log('[Souvenirs] Souvenirs count:', Object.keys(dreamer.souvenirs || {}).length);
         
         // Stop any existing animation
         if (this.souvenirsAnimationFrame) {
@@ -3836,7 +3833,6 @@ class Profile {
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 if (distance < bubble.size / 2) {
-                    console.log('[Souvenirs] Bubble clicked:', bubble.key, bubble.souvenirData);
                     
                     // Add click animation - pulse effect
                     const originalSize = bubble.size;
@@ -3873,11 +3869,9 @@ class Profile {
                     
                     // Load phanera image with crossfade transition
                     if (bubble.phanera) {
-                        console.log('[Souvenirs] Loading phanera:', bubble.phanera);
                         const newImage = new Image();
                         newImage.src = bubble.phanera;
                         newImage.onload = () => {
-                            console.log('[Souvenirs] Phanera loaded');
                             // Crossfade: fade out old, then swap and fade in new
                             const fadeOut = setInterval(() => {
                                 this.phaneraBgAlpha = Math.max(0, this.phaneraBgAlpha - 0.05);
@@ -3939,12 +3933,10 @@ class Profile {
     }
     
     async initSouvenirsBubbles(dreamer, canvas) {
-        console.log('[Souvenirs] Fetching souvenirs data from API...');
         
         try {
             const response = await fetch('/api/souvenirs');
             const rawSouvenirs = await response.json();
-            console.log('[Souvenirs] API returned souvenirs:', Object.keys(rawSouvenirs));
             
             // Build souvenirs data structure matching profile lower section
             const souvenirsData = {};
@@ -3960,10 +3952,8 @@ class Profile {
             }
             
             const userFormKeys = Object.keys(dreamer.souvenirs || {});
-            console.log('[Souvenirs] User form keys:', userFormKeys);
             
             if (userFormKeys.length === 0) {
-                console.log('[Souvenirs] No souvenirs to display');
                 const ctx = canvas.getContext('2d');
                 ctx.fillStyle = '#fdfcfe';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -3994,32 +3984,23 @@ class Profile {
                             form: form,
                             epoch: dreamer.souvenirs[formKey]
                         });
-                        console.log('[Souvenirs] Matched souvenir:', {
-                            key: formKey,
-                            name: form.name,
-                            icon: form.icon,
-                            phanera: form.phanera
-                        });
                         break;
                     }
                 }
             });
             
-            console.log('[Souvenirs] Creating', userSouvenirs.length, 'bubbles');
             
             this.souvenirsBubbles = [];
             
             // Auto-select first souvenir if any exist
             if (userSouvenirs.length > 0) {
                 const firstSouvenir = userSouvenirs[0];
-                console.log('[Souvenirs] Auto-selecting first souvenir:', firstSouvenir.form.name);
                 
                 // Load phanera background
                 if (firstSouvenir.form.phanera) {
                     this.phaneraBgImage = new Image();
                     this.phaneraBgImage.src = firstSouvenir.form.phanera;
                     this.phaneraBgImage.onload = () => {
-                        console.log('[Souvenirs] Initial phanera loaded');
                     };
                 }
                 
@@ -4114,7 +4095,6 @@ class Profile {
                 // Load image
                 bubble.image.src = bubble.icon;
                 bubble.image.onload = () => {
-                    console.log('[Souvenirs] Icon loaded:', bubble.icon);
                 };
                 bubble.image.onerror = () => {
                     console.warn('[Souvenirs] Icon failed to load:', bubble.icon);
@@ -4123,7 +4103,6 @@ class Profile {
                 this.souvenirsBubbles.push(bubble);
             });
             
-            console.log('[Souvenirs] Starting animation loop');
             this.startSouvenirsAnimation(canvas, dreamer);
             
         } catch (error) {
@@ -4382,7 +4361,6 @@ class Profile {
         const widget = document.querySelector('.souvenirs-mini-widget');
         if (!widget) return;
         
-        console.log('[Souvenirs] Updating widget:', { key, name, icon, phanera });
         
         // Fetch full souvenir data to get description, category, keepers
         try {
@@ -4578,7 +4556,6 @@ class Profile {
     }
 
     async initSpectrumVisualization(dreamer) {
-        console.log('[Spectrum] Starting initSpectrumVisualization', dreamer.name);
         
         // Ensure dependencies are loaded
         if (typeof SpectrumVisualizer === 'undefined') {
@@ -4610,15 +4587,11 @@ class Profile {
             return;
         }
         
-        console.log('[Spectrum] Canvas found, dimensions:', canvas.width, 'x', canvas.height);
-        console.log('[Spectrum] SpectrumVisualizer available?', typeof SpectrumVisualizer !== 'undefined');
         
         try {
             // Fetch all dreamers to get kindred data
-            console.log('[Spectrum] Fetching dreamers...');
             const response = await fetch('/api/dreamers');
             const allDreamers = await response.json();
-            console.log('[Spectrum] Got', allDreamers.length, 'dreamers');
             
             // Build filter list: this dreamer + their kindred
             const filterDIDs = [dreamer.did];
@@ -4634,11 +4607,9 @@ class Profile {
                 .filter(d => filterDIDs.includes(d.did))
                 .map(d => d.handle);
             
-            console.log('[Spectrum] Filtering to handles:', filteredHandles);
             
             // Initialize SpectrumVisualizer with filtered dreamers
             if (typeof SpectrumVisualizer !== 'undefined') {
-                console.log('[Spectrum] Creating SpectrumVisualizer instance...');
                 
                 // Show canvas first (it will render as it loads)
                 canvas.style.display = 'block';
@@ -4682,31 +4653,25 @@ class Profile {
                 };
                 // Re-run resize with new logic
                 this.spectrumVisualizerInstance.resize();
-                console.log('[Spectrum] Instance created and resized');
                 
                 // Hide loading indicator after a brief moment to let first frame render
                 setTimeout(() => {
                     const loadingElement = this.container.querySelector('.spectrum-loading');
                     if (loadingElement) {
                         loadingElement.style.display = 'none';
-                        console.log('[Spectrum] Loading indicator hidden');
                     }
                 }, 100);
                 
                 // Add octant overlay
                 const octantOverlay = this.container.querySelector('.spectrum-face-octant-overlay');
-                console.log('[Spectrum] Octant overlay element:', octantOverlay);
-                console.log('[Spectrum] OctantDisplay available?', typeof OctantDisplay !== 'undefined');
                 
                 if (octantOverlay && typeof OctantDisplay !== 'undefined') {
-                    console.log('[Spectrum] Creating OctantDisplay...');
                     this.spectrumOctantDisplay = new OctantDisplay(octantOverlay, {
                         did: dreamer.did,
                         showHeader: true,
                         showFooter: false
                     });
                     await this.spectrumOctantDisplay.updateDreamer(dreamer);
-                    console.log('[Spectrum] OctantDisplay created and updated');
                 } else {
                     if (!octantOverlay) console.warn('[Spectrum] Octant overlay element not found');
                     if (typeof OctantDisplay === 'undefined') console.warn('[Spectrum] OctantDisplay class not available');
@@ -4732,14 +4697,11 @@ class Profile {
     }
     
     setupSpectrumButtons() {
-        console.log('[Profile] setupSpectrumButtons called');
         
         // Explore Octants button
         const exploreBtn = this.container.querySelector('#spectrumExploreOctantsBtn');
-        console.log('[Profile] Explore button found:', exploreBtn);
         if (exploreBtn) {
             exploreBtn.addEventListener('click', () => {
-                console.log('[Profile] Explore button clicked');
                 this.openOctantShowcase(exploreBtn);
             });
         }
@@ -4748,7 +4710,6 @@ class Profile {
         const calcBtn = this.container.querySelector('#spectrumCalculateOriginsBtn');
         if (calcBtn) {
             calcBtn.addEventListener('click', () => {
-                console.log('[Profile] Calculator button clicked - opening calculator');
                 this.openSpectrumCalculator();
             });
         }
@@ -4760,11 +4721,9 @@ class Profile {
     openOctantShowcase(buttonElement) {
         // Dynamically load octantshowcase.js if not already loaded
         if (!document.querySelector('script[src*="octantshowcase.js"]')) {
-            console.log('[Profile] Loading octantshowcase.js...');
             const script = document.createElement('script');
             script.src = '/js/widgets/octantshowcase.js';
             script.onload = () => {
-                console.log('[Profile] octantshowcase.js loaded');
                 this.showOctantShowcase(buttonElement);
             };
             script.onerror = () => {
@@ -4779,11 +4738,9 @@ class Profile {
     showOctantShowcase(buttonElement) {
         const attemptShow = () => {
             if (typeof OctantShowcase !== 'undefined') {
-                console.log('[Profile] Creating OctantShowcase instance');
                 if (!window.octantShowcaseWidget) {
                     window.octantShowcaseWidget = new OctantShowcase();
                 }
-                console.log('[Profile] Calling showPopup');
                 window.octantShowcaseWidget.showPopup(buttonElement);
             } else {
                 console.warn('[Profile] OctantShowcase not yet available, waiting...');
@@ -4794,7 +4751,6 @@ class Profile {
     }
     
     showMapperOfflinePopup(buttonElement) {
-        console.log('[Profile] showMapperOfflinePopup called', buttonElement);
         
         // Use the Popup widget if available
         if (typeof Popup !== 'undefined') {
@@ -4826,11 +4782,9 @@ class Profile {
     openSpectrumCalculator() {
         // Dynamically load spectrumcalculator-modal.js if not already loaded
         if (!document.querySelector('script[src*="spectrumcalculator-modal.js"]')) {
-            console.log('[Profile] Loading spectrumcalculator-modal.js...');
             const script = document.createElement('script');
             script.src = '/js/widgets/spectrumcalculator-modal.js';
             script.onload = () => {
-                console.log('[Profile] spectrumcalculator-modal.js loaded');
                 this.showSpectrumCalculator();
             };
             script.onerror = () => {
@@ -4845,7 +4799,6 @@ class Profile {
     showSpectrumCalculator() {
         const attemptShow = () => {
             if (typeof openSpectrumCalculatorModal !== 'undefined') {
-                console.log('[Profile] Opening spectrum calculator modal');
                 openSpectrumCalculatorModal();
             } else {
                 console.warn('[Profile] openSpectrumCalculatorModal not yet available, waiting...');
@@ -4856,12 +4809,10 @@ class Profile {
     }
     
     async checkMapperStatusForButton() {
-        console.log('[Profile] checkMapperStatusForButton called');
         // MAPPER LIMITATION REMOVED - button is always enabled
         
         const calcBtn = this.container.querySelector('#spectrumCalculateOriginsBtn');
         if (calcBtn) {
-            console.log('[Profile] Enabling calculator button (mapper check disabled)');
             calcBtn.classList.remove('disabled');
             calcBtn.style.cursor = 'pointer';
             calcBtn.title = 'Open Spectrum Calculator';
@@ -4991,39 +4942,39 @@ class Profile {
 
     async fetchPostWithLabel(did, label) {
         try {
-            // Query lore.farm for labels on this user's posts
-            const response = await fetch(`https://lore.farm/xrpc/com.atproto.label.queryLabels?uriPatterns=at://${did}/*&limit=100`);
+            // Determine the indexer collection based on label type
+            const isCanon = label === 'canon:reverie.house';
+            const collection = isCanon ? 'canon' : 'content';
+            
+            // For canon, search by subject author DID (canonizer DID != content author DID)
+            // For content, the did IS the content author, so filter by did directly
+            let indexerUrl;
+            if (isCanon) {
+                // Canon records: did = loremaster. We need to find canon records
+                // WHERE the subjectUri belongs to our target DID.
+                // Fetch more records and filter client-side.
+                indexerUrl = `https://lore.farm/api/worlds/reverie.house/canon/indexed?limit=50`;
+            } else {
+                indexerUrl = `https://lore.farm/api/worlds/reverie.house/content/indexed?did=${did}&limit=1`;
+            }
+            
+            const response = await fetch(indexerUrl);
             if (!response.ok) return null;
             
             const data = await response.json();
-            const labels = data.labels || [];
+            let records = data[collection] || [];
             
-            console.log(`📋 Found ${labels.length} total labels for ${did}`);
-            console.log(`🔍 Filtering for label: ${label}`);
+            // For canon, filter to records where the subject post belongs to this DID
+            if (isCanon) {
+                records = records.filter(r => r.subjectUri && r.subjectUri.split('/')[2] === did);
+            }
             
-            // Find the most recent post with the specified label that actually belongs to this user
-            const matchingLabels = labels
-                .filter(l => {
-                    // Ensure the label value matches
-                    if (l.val !== label) return false;
-                    
-                    // Ensure the URI belongs to this user (starts with at://did/...)
-                    if (!l.uri || !l.uri.startsWith(`at://${did}/`)) {
-                        console.log(`⚠️ Skipping label with wrong DID in URI: ${l.uri}`);
-                        return false;
-                    }
-                    
-                    return true;
-                })
-                .sort((a, b) => new Date(b.cts) - new Date(a.cts));
             
-            console.log(`✅ Found ${matchingLabels.length} matching ${label} labels for this user`);
-            
-            if (matchingLabels.length === 0) return null;
+            if (records.length === 0) return null;
             
             // Fetch the actual post with full details
-            const postUri = matchingLabels[0].uri;
-            console.log(`📝 Fetching post: ${postUri}`);
+            const postUri = records[0].subjectUri;
+            if (!postUri) return null;
             return await this.fetchPostByUri(postUri);
             
         } catch (error) {
@@ -5576,21 +5527,18 @@ class Profile {
 
 
     async refresh() {
-        console.log('🔄 [Profile] refresh() called');
         if (!this.session || !this.session.did) {
             console.warn('⚠️ [Profile] No session available for refresh');
             return;
         }
         
         try {
-            console.log('🌐 [Profile] Fetching updated dreamer data from /api/dreamers');
             const response = await fetch('/api/dreamers');
             if (!response.ok) {
                 throw new Error('Failed to fetch dreamers');
             }
             
             const dreamers = await response.json();
-            console.log('📥 [Profile] Received', dreamers.length, 'dreamers from API');
             
             this.dreamer = dreamers.find(d => d.did === this.session.did);
             
@@ -5599,15 +5547,7 @@ class Profile {
                 return;
             }
             
-            console.log('✅ [Profile] Found updated dreamer data:', {
-                display_name: this.dreamer.display_name,
-                avatar: this.dreamer.avatar?.substring(0, 60) + '...',
-                handle: this.dreamer.handle
-            });
-            
-            console.log('🎨 [Profile] Calling render() to update display');
             this.render();
-            console.log('✅ [Profile] Profile refreshed successfully');
             
         } catch (error) {
             console.error('❌ [Profile] Error refreshing profile:', error);

@@ -110,7 +110,7 @@ class NameManager:
         try:
             with open('/srv/ops/quest.json', 'r') as f:
                 monitors = json.load(f)
-        except:
+        except Exception:
             monitors = {}
         
         posts = post_uris or monitors.get("posts", [])

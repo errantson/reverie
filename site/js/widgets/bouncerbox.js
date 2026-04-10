@@ -58,7 +58,6 @@ class BouncerBox {
     }
 
     async init() {
-        console.log('[BouncerBox] Initializing with options:', this.options);
 
         // Build HTML structure
         this.container.innerHTML = `
@@ -84,7 +83,6 @@ class BouncerBox {
     }
 
     async loadSouvenirs() {
-        console.log('[BouncerBox] Loading souvenirs data...', this.options);
 
         try {
             // Fetch souvenirs data
@@ -164,7 +162,6 @@ class BouncerBox {
                     }
                 });
                 filteredInstances = Array.from(uniqueMap.values());
-                console.log('[BouncerBox] Unique mode: reduced to', filteredInstances.length, 'unique souvenirs');
                 
             } else if (this.options.displayMode === 'onePerType') {
                 // One instance per unique souvenir key - show ALL souvenir types
@@ -206,10 +203,8 @@ class BouncerBox {
                 });
                 
                 filteredInstances = Array.from(keyMap.values());
-                console.log('[BouncerBox] OnePerType mode: showing', filteredInstances.length, 'types from keys:', Array.from(keyMap.keys()));
             }
 
-            console.log('[BouncerBox] Displaying', filteredInstances.length, 'souvenir instances');
 
             if (filteredInstances.length === 0) {
                 this.drawEmptyState();
@@ -222,7 +217,6 @@ class BouncerBox {
                 const matchingSouvenir = filteredInstances.find(s => s.key === this.options.initialKey);
                 if (matchingSouvenir) {
                     selectedSouvenir = matchingSouvenir;
-                    console.log('[BouncerBox] Using initialKey:', this.options.initialKey);
                 }
             }
             
@@ -351,7 +345,6 @@ class BouncerBox {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < bubble.size / 2) {
-                console.log('[BouncerBox] Bubble clicked:', bubble.key);
 
                 // Pulse animation
                 this.animatePulse(bubble);

@@ -261,54 +261,35 @@ def get_recent_dreamers():
 
 @bp.route('/dreamers/active')
 def get_active_dreamers():
-    """Get the most active dreamers by lore:reverie.house label count from lore.farm PostgreSQL"""
+    """Get the most active dreamers by lore content count from lore.farm indexer API"""
     try:
         from core.database import DatabaseManager
-        import subprocess
+        import requests as http_requests
         
-        # Support limit parameter for client-side filtering (default 10)
+        # Support limit parameter for client-side filtering (default 3)
         display_limit = request.args.get('limit', 3, type=int)
         display_limit = min(max(display_limit, 1), 20)  # Clamp between 1 and 20
-        fetch_limit = display_limit + 10  # Fetch extra to account for filtering
         
-        # Query lore.farm PostgreSQL database directly for accurate counts
-        query = f"""
-            SELECT 
-                SUBSTRING(uri FROM 'at://([^/]+)') as did, 
-                COUNT(*) as label_count 
-            FROM applied_labels 
-            WHERE val = 'lore:reverie.house' 
-            GROUP BY did 
-            ORDER BY label_count DESC 
-            LIMIT {fetch_limit}
-        """
-        
-        result = subprocess.run(
-            ['/usr/bin/docker', 'exec', 'lorefarm_db', 'psql', '-U', 'lorefarm', '-d', 'lorefarm', '-t', '-A', '-F', '|', '-c', query],
-            capture_output=True,
-            text=True
+        # Query lore.farm indexer API for active contributors
+        response = http_requests.get(
+            'https://lore.farm/api/worlds/reverie.house/stats/active/indexed',
+            timeout=5
         )
         
-        print(f"Docker command return code: {result.returncode}")
-        print(f"Docker command stdout: {result.stdout}")
-        print(f"Docker command stderr: {result.stderr}")
-        
-        if result.returncode != 0:
-            print(f"PostgreSQL query failed: {result.stderr}")
+        if response.status_code != 200:
+            print(f"lore.farm API returned {response.status_code}")
             return jsonify([])
+        
+        data = response.json()
+        contributors = data.get('contributors', [])
         
         # Get dreamer details from reverie.db
         db = DatabaseManager()
         active_dreamers = []
         
-        for line in result.stdout.strip().split('\n'):
-            if not line or '|' not in line:
-                continue
-            parts = line.split('|')
-            if len(parts) < 2:
-                continue
-            did = parts[0].strip()
-            label_count = parts[1].strip()
+        for contrib in contributors:
+            did = contrib.get('did')
+            content_count = contrib.get('contentCount', 0)
             
             cursor = db.execute(
                 "SELECT did, handle, name, display_name, server, avatar FROM dreamers WHERE did = %s",
@@ -325,7 +306,7 @@ def get_active_dreamers():
                     'display_name': dreamer['display_name'] or dreamer['name'],
                     'server': dreamer['server'] or '',
                     'avatar': dreamer['avatar'] or '',
-                    'contribution_score': int(label_count)
+                    'contribution_score': int(content_count)
                 })
             
             # Stop once we have enough for the requested limit
@@ -684,7 +665,7 @@ def check_dreamer():
 
 @bp.route('/dreamer/contribution')
 def get_dreamer_contribution():
-    """Calculate contribution score based on lore.farm tags with temporal/contextual weighting"""
+    """Calculate contribution score based on lore.farm indexed records"""
     try:
         did = request.args.get('did')
         if not did:
@@ -692,22 +673,43 @@ def get_dreamer_contribution():
         
         detailed = request.args.get('detailed', 'false').lower() == 'true'
         
-        import sys
-        import os
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from core.contributions import ContributionCalculator
+        import requests as http_requests
         
+        # Fetch content and canon counts from lore.farm indexer API
+        lore_count = 0
+        canon_count = 0
+        try:
+            content_resp = http_requests.get(
+                f'https://lore.farm/api/worlds/reverie.house/content/indexed',
+                params={'did': did, 'limit': 500},
+                timeout=5
+            )
+            if content_resp.status_code == 200:
+                lore_count = content_resp.json().get('count', 0)
+            
+            canon_resp = http_requests.get(
+                'https://lore.farm/api/worlds/reverie.house/canon/indexed',
+                timeout=5
+            )
+            if canon_resp.status_code == 200:
+                # Canon records are all by the GM, but count ones referencing this DID's posts
+                canon_data = canon_resp.json().get('canon', [])
+                canon_count = sum(1 for c in canon_data if c.get('subjectUri', '').startswith(f'at://{did}/'))
+        except Exception as e:
+            print(f"Warning: Could not fetch lore.farm data: {e}")
+        
+        from core.contributions import ContributionCalculator
         calc = ContributionCalculator()
         
-        # TODO: Fetch actual tags from lore.farm API
-        # For now, using placeholder empty lists
-        lore_tags = []  # Format: [(epoch, uri), ...]
-        canon_tags = []  # Format: [(epoch, uri), ...]
+        # Build tag lists from API data
+        import time
+        now = int(time.time())
+        lore_tags = [(now, f'lore_{i}') for i in range(lore_count)]
+        canon_tags = [(now, f'canon_{i}') for i in range(canon_count)]
         
         result = calc.calculate_contribution(did, lore_tags, canon_tags)
         
         if detailed:
-            # Include timeline if requested
             timeline = calc.get_contribution_timeline(did, lore_tags, canon_tags)
             result['timeline'] = timeline
         
@@ -1386,36 +1388,42 @@ def spectrum_origin_redirect(handle):
                     display_name = handle
             else:
                 display_name = handle
-        except:
+        except Exception:
             display_name = handle
         
-        # If image doesn't exist, generate it synchronously using PIL
+        # If image doesn't exist, generate it via origincards service
         if not image_exists:
             print(f"🎨 Generating spectrum image for {safe_handle}...")
             try:
-                import subprocess
+                import requests as gen_req
                 
                 full_handle = handle if '.' in handle else f"{handle}.bsky.social"
                 
-                # Call the PIL-based generator
-                result = subprocess.run(
-                    ['python3', '/srv/reverie.house/utils/generate_spectrum_image.py', full_handle, image_path],
-                    timeout=30,
-                    capture_output=True,
-                    text=True
+                # Calculate spectrum via local API
+                calc_resp = gen_req.get(
+                    f"http://localhost:4444/api/spectrum/calculate?handle={full_handle}",
+                    timeout=10
                 )
-                
-                if result.returncode == 0:
-                    print(f"✅ Image generated successfully for {safe_handle}")
-                    print(result.stdout)
-                    image_exists = True
+                if calc_resp.status_code == 200:
+                    calc_data = calc_resp.json()
+                    gen_resp = gen_req.post(
+                        'http://localhost:3050/generate',
+                        json={
+                            'handle': calc_data.get('handle', full_handle),
+                            'displayName': calc_data.get('display_name', full_handle),
+                            'avatar': calc_data.get('avatar'),
+                            'spectrum': calc_data.get('spectrum', {}),
+                        },
+                        timeout=15
+                    )
+                    if gen_resp.status_code == 200:
+                        print(f"✅ Image generated successfully for {safe_handle}")
+                        image_exists = True
+                    else:
+                        print(f"⚠️  Image generation failed: {gen_resp.status_code}")
                 else:
-                    print(f"⚠️  Image generation failed:")
-                    print(result.stderr)
-                    print(f"   Returning OG tags anyway - image may be missing in preview")
+                    print(f"⚠️  Spectrum calculation failed: {calc_resp.status_code}")
                 
-            except subprocess.TimeoutExpired:
-                print(f"⚠️  Image generation timed out")
             except Exception as e:
                 print(f"⚠️  Image generation error: {e}")
         

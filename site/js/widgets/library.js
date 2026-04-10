@@ -130,37 +130,30 @@ class LibraryWidget {
     }
 
     init() {
-        console.log('📚 Initializing Library Widget');
         
         // Set user color as CSS variable for sidebar theming
         const userColor = window.colorManager?.getColor() || '#8b7355';
         document.documentElement.style.setProperty('--user-color', userColor);
         
         // Initialize reader widget
-        console.log('🔍 Checking for ReaderWidget...', typeof ReaderWidget);
         if (typeof ReaderWidget !== 'undefined') {
             this.reader = new ReaderWidget(this);
-            console.log('📖 Reader Widget initialized');
         } else {
             console.error('❌ ReaderWidget not available!');
         }
         
         // Handle initial route
         const path = window.location.pathname;
-        console.log('📍 Current path:', path);
         const chapterMatch = path.match(/^\/books\/([^/]+)\/(\d+)/);
         
         if (chapterMatch && this.reader) {
-            console.log('✅ Matched chapter route:', chapterMatch);
             // Load chapter directly from URL
             const folderName = chapterMatch[1]; // e.g., 'seeker' or 'princes'
             const chapterId = chapterMatch[2]; // e.g., '00' or '01'
             
-            console.log('🔍 Looking for book with folder:', folderName);
             // Find book by folder name
             const book = Object.values(this.books).find(b => b.folderName === folderName);
             if (book) {
-                console.log('📖 Found book:', book.title);
                 // Find chapter by ID
                 let chapterIndex = -1;
                 if (book.parts) {
@@ -182,7 +175,6 @@ class LibraryWidget {
                 }
                 
                 if (chapterIndex !== -1) {
-                    console.log('📖 Loading chapter at index:', chapterIndex);
                     this.reader.loadChapter(book.id, chapterIndex);
                     return;
                 } else {
@@ -199,7 +191,6 @@ class LibraryWidget {
         const urlParams = new URLSearchParams(window.location.search);
         const bookParam = urlParams.get('book');
         if (bookParam) {
-            console.log('📖 Book parameter found:', bookParam);
             const book = this.books[bookParam];
             if (book) {
                 // Small delay to ensure DOM is ready
@@ -217,7 +208,6 @@ class LibraryWidget {
         }
         
         // Default: show library
-        console.log('📚 Showing default library view');
         this.renderBookshelf();
         this.renderList();
     }
@@ -844,5 +834,4 @@ function initLibrary() {
     const widget = new LibraryWidget();
     window.libraryWidget = widget;
     widget.init();
-    console.log('✅ Library Widget initialized');
 }

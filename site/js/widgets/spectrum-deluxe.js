@@ -255,7 +255,6 @@ class SpectrumDeluxe extends SpectrumVisualizer {
     }
     
     setupDeluxeControls() {
-        console.log('[SpectrumDeluxe] setupDeluxeControls called');
         
         // Axis labels toggle
         const toggleLabels = document.getElementById('toggleLabels');
@@ -315,7 +314,6 @@ class SpectrumDeluxe extends SpectrumVisualizer {
         const calcButton = document.getElementById('calculateOriginsBtn');
         if (calcButton) {
             calcButton.addEventListener('click', () => {
-                console.log('[SpectrumDeluxe] Calculator button clicked - opening calculator');
                 this.openSpectrumCalculator();
             });
         }
@@ -330,14 +328,12 @@ class SpectrumDeluxe extends SpectrumVisualizer {
         // Floating Calculate Origins button
         if (this.floatingCalculateBtn) {
             this.floatingCalculateBtn.addEventListener('click', () => {
-                console.log('[SpectrumDeluxe] Floating calculator button clicked - opening calculator');
                 this.openSpectrumCalculator();
             });
         }
     }
 
     showMapperOfflinePopup(buttonElement) {
-        console.log('[SpectrumDeluxe] showMapperOfflinePopup called', buttonElement);
         
         // Use the Popup widget if available
         if (typeof Popup !== 'undefined') {
@@ -369,11 +365,9 @@ class SpectrumDeluxe extends SpectrumVisualizer {
     openOctantShowcase() {
         // Dynamically load octantshowcase.js if not already loaded
         if (!document.querySelector('script[src*="octantshowcase.js"]')) {
-            console.log('[Spectrum] Loading octantshowcase.js...');
             const script = document.createElement('script');
             script.src = '/js/widgets/octantshowcase.js';
             script.onload = () => {
-                console.log('[Spectrum] octantshowcase.js loaded');
                 this.showOctantShowcase();
             };
             script.onerror = () => {
@@ -390,13 +384,11 @@ class SpectrumDeluxe extends SpectrumVisualizer {
         // Wait for OctantShowcase to be available
         const attemptShow = () => {
             if (typeof OctantShowcase !== 'undefined') {
-                console.log('[Spectrum] Creating OctantShowcase instance');
                 // Create instance if not exists
                 if (!window.octantShowcaseWidget) {
                     window.octantShowcaseWidget = new OctantShowcase();
                 }
                 // Call showPopup directly on the button
-                console.log('[Spectrum] Calling showPopup');
                 const exploreBtn = document.getElementById('exploreOctantsBtn');
                 if (exploreBtn) {
                     window.octantShowcaseWidget.showPopup(exploreBtn);
@@ -410,12 +402,10 @@ class SpectrumDeluxe extends SpectrumVisualizer {
     }
     
     async checkMapperStatusForButton() {
-        console.log('[SpectrumDeluxe] checkMapperStatusForButton called');
         // MAPPER LIMITATION REMOVED - button is always enabled
         
         const calcButton = document.getElementById('calculateOriginsBtn');
         if (calcButton) {
-            console.log('[SpectrumDeluxe] Enabling calculator button (mapper check disabled)');
             calcButton.classList.remove('disabled');
             calcButton.style.cursor = 'pointer';
             calcButton.title = 'Open Spectrum Calculator';
@@ -423,7 +413,6 @@ class SpectrumDeluxe extends SpectrumVisualizer {
         
         // Also update floating button
         if (this.floatingCalculateBtn) {
-            console.log('[SpectrumDeluxe] Enabling floating calculator button (mapper check disabled)');
             this.floatingCalculateBtn.classList.remove('disabled');
             this.floatingCalculateBtn.style.cursor = 'pointer';
             this.floatingCalculateBtn.title = 'Open Spectrum Calculator';

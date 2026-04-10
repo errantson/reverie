@@ -239,7 +239,7 @@ def test_pigeon(pigeon_id):
         if row['conditions']:
             try:
                 conditions = json.loads(row['conditions'])
-            except:
+            except Exception:
                 conditions = []
         
         # Import condition evaluator (we'll create this in aviary.py)

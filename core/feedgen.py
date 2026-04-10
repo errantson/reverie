@@ -307,7 +307,7 @@ class FeedGenerator:
         return self.get_community_dids(force_refresh=True)
     
     def sync_lore_labels(self, force: bool = False):
-        """Sync labels from lore.farm — incremental with periodic full reconciliation"""
+        """Sync indexed records from lore.farm indexer API"""
         now = datetime.now(timezone.utc)
         
         if not force and self._last_label_sync:
@@ -315,59 +315,62 @@ class FeedGenerator:
             if elapsed < 300:  # 5 minutes
                 return
         
-        # Full reconciliation every hour, incremental otherwise
-        needs_full_resync = (
-            self._last_full_resync is None
-            or (now - self._last_full_resync).total_seconds() > 3600
-        )
-        
         try:
-            if needs_full_resync or force:
-                # Full fetch — get all labels
-                response = requests.get(
-                    'https://lore.farm/xrpc/com.atproto.label.queryLabels',
-                    params={'limit': 5000},
-                    timeout=30
-                )
-                if response.status_code == 200:
-                    labels = response.json().get('labels', [])
-                    self.feed_db.full_label_resync(labels)
-                    self._last_label_sync = now
-                    self._last_full_resync = now
-                    # Reset cursor to latest for next incremental
-                    if labels:
-                        self._label_cursor = labels[0].get('cts')
-                    print(f"✓ Full label resync: {len(labels)} labels")
-                    self._update_lore_history(labels)
-            else:
-                # Incremental — only fetch labels newer than our cursor
-                params = {'limit': 500}
-                # Note: queryLabels uses cursor as cts < cursor (descending),
-                # so we fetch without cursor to get newest labels
-                response = requests.get(
-                    'https://lore.farm/xrpc/com.atproto.label.queryLabels',
-                    params=params,
-                    timeout=15
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    labels = data.get('labels', [])
-                    
-                    # Filter to only labels newer than our cursor
-                    if self._label_cursor:
-                        new_labels = [l for l in labels if l.get('cts', '') > self._label_cursor]
-                    else:
-                        new_labels = labels
-                    
-                    if new_labels:
-                        self.feed_db.update_labels(new_labels)
-                        self._label_cursor = labels[0].get('cts') if labels else self._label_cursor
-                        print(f"✓ Incremental sync: {len(new_labels)} new labels")
-                        self._update_lore_history(new_labels)
-                    
-                    self._last_label_sync = now
+            # Fetch validated content + canon from indexer API
+            content_resp = requests.get(
+                'https://lore.farm/api/worlds/reverie.house/content/indexed',
+                params={'limit': 500},
+                timeout=30
+            )
+            canon_resp = requests.get(
+                'https://lore.farm/api/worlds/reverie.house/canon/indexed',
+                timeout=30
+            )
+
+            if content_resp.status_code != 200 or canon_resp.status_code != 200:
+                print(f"✗ Indexer API error: content={content_resp.status_code}, canon={canon_resp.status_code}")
+                return
+
+            content_records = content_resp.json().get('content', [])
+            canon_records = canon_resp.json().get('canon', [])
+
+            # Convert to label format for feed_labels table
+            labels = []
+            for r in content_records:
+                if r.get('valid') and not r.get('removed'):
+                    labels.append({
+                        'uri': r['subjectUri'],
+                        'val': 'lore:reverie.house',
+                        'cts': r.get('indexedAt', now.isoformat()),
+                        'neg': False,
+                    })
+            for r in canon_records:
+                if r.get('valid'):
+                    labels.append({
+                        'uri': r['subjectUri'],
+                        'val': 'canon:reverie.house',
+                        'cts': r.get('indexedAt', now.isoformat()),
+                        'neg': False,
+                    })
+
+            self.feed_db.full_label_resync(labels)
+            self._last_label_sync = now
+            self._last_full_resync = now
+            print(f"✓ Indexer sync: {len(content_records)} content, {len(canon_records)} canon")
+            self._update_lore_history(labels)
+            
+            # Reconcile events table: remove stale lore/canon entries
+            # that no longer exist on lore.farm
+            valid_uris = set()
+            for r in content_records:
+                if r.get('valid') and not r.get('removed'):
+                    valid_uris.add(r['subjectUri'])
+            for r in canon_records:
+                if r.get('valid'):
+                    valid_uris.add(r['subjectUri'])
+            self._reconcile_lore_events(valid_uris)
         except Exception as e:
-            print(f"✗ Failed to sync labels: {e}")
+            print(f"✗ Failed to sync from indexer: {e}")
     
     def _update_lore_history(self, labels: List[Dict]):
         """Update events table with lore contributions"""
@@ -586,7 +589,21 @@ class FeedGenerator:
         except Exception as e:
             print(f"✗ Lore event error: {uri[:60]}: {e}")
             return False
-    
+
+    def _reconcile_lore_events(self, valid_uris: set):
+        """Remove events whose source URIs no longer exist on lore.farm."""
+        try:
+            existing = self.main_db.fetch_all(
+                "SELECT id, uri FROM events WHERE type IN ('lore', 'canon')"
+            )
+            stale = [row for row in existing if row['uri'] not in valid_uris]
+            if stale:
+                for row in stale:
+                    self.main_db.execute('DELETE FROM events WHERE id = %s', (row['id'],))
+                print(f"✓ Reconciled events: removed {len(stale)} stale lore/canon entries")
+        except Exception as e:
+            print(f"✗ Event reconciliation error: {e}")
+
     def get_feed_skeleton(self, feed: str, limit: int = 50, cursor: Optional[str] = None) -> Dict[str, Any]:
         """
         Main endpoint for feed generation.

@@ -341,7 +341,7 @@ class AuthManager:
                     error_data = response.json()
                     error_msg = error_data.get('message', 'Unknown error')
                     print(f"❌ Auth failed on {server_url}: {response.status_code} - {error_msg}")
-                except:
+                except Exception:
                     print(f"❌ Auth failed on {server_url}: {response.status_code}")
                 return False
                 

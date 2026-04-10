@@ -10,6 +10,7 @@ This module handles:
 """
 
 import sys
+import json
 import time
 from typing import Dict, List, Optional
 from collections import Counter
@@ -47,6 +48,62 @@ class HeadingManager:
         counter = Counter(valid_headings)
         most_common = counter.most_common(1)
         return most_common[0][0] if most_common else None
+    
+    def save_snapshot(self, operation: str, epoch: int = None, notes: str = None) -> Optional[int]:
+        """
+        Capture a snapshot of every dreamer's spectrum position.
+        
+        Args:
+            operation: Label for what triggered this snapshot (e.g. 'world_tick')
+            epoch: Optional timestamp (defaults to now)
+            notes: Optional description
+        
+        Returns:
+            The snapshot row id, or None on failure
+        """
+        epoch = epoch or int(time.time())
+        
+        cursor = self.db.execute("""
+            SELECT d.did, d.handle, d.name, d.heading,
+                   s.entropy, s.oblivion, s.liberty, s.authority, s.receptive, s.skeptic, s.octant
+            FROM dreamers d
+            LEFT JOIN spectrum s ON d.did = s.did
+            ORDER BY d.handle
+        """)
+        rows = cursor.fetchall()
+        
+        dreamers = []
+        for row in rows:
+            entry = {
+                'did': row['did'],
+                'handle': row['handle'],
+                'heading': row['heading'],
+            }
+            if row['entropy'] is not None:
+                entry['spectrum'] = {
+                    'entropy': row['entropy'],
+                    'oblivion': row['oblivion'],
+                    'liberty': row['liberty'],
+                    'authority': row['authority'],
+                    'receptive': row['receptive'],
+                    'skeptic': row['skeptic'],
+                }
+                entry['octant'] = row['octant']
+            dreamers.append(entry)
+        
+        snapshot = {
+            'epoch': epoch,
+            'total_dreamers': len(dreamers),
+            'dreamers': dreamers,
+        }
+        
+        cursor = self.db.execute("""
+            INSERT INTO spectrum_snapshots (epoch, operation, total_dreamers, snapshot_data, created_at, notes)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (epoch, operation, len(dreamers), json.dumps(snapshot), epoch, notes))
+        row = cursor.fetchone()
+        return row['id'] if row else None
     
     def parse_heading(self, heading: Optional[str]) -> Dict:
         """
@@ -187,16 +244,11 @@ class HeadingManager:
                 continue
             
             elif heading_data['type'] == 'home':
-                if verbose:
-                    print(f"   🏠 {self._get_handle(did):20} | home (not yet implemented)")
-                continue
-            
-            elif heading_data['type'] == 'origin':
                 result = self.spectrum.move_dreamer_toward(
                     did=did,
                     target_did=self.KEEPER_DID,
                     percentage=0.01,
-                    reason=f"world_tick_heading:origin",
+                    reason=f"world_tick_heading:home",
                     epoch=epoch
                 )
                 
@@ -205,14 +257,51 @@ class HeadingManager:
                     stats['movements'].append({
                         'did': did,
                         'heading': effective_heading,
-                        'type': 'toward_origin'
+                        'type': 'toward_keeper'
                     })
                     if verbose:
-                        print(f"   🎯 {self._get_handle(did):20} | toward origin")
+                        print(f"   🏠 {self._get_handle(did):20} | toward keeper")
                 else:
                     stats['failed'] += 1
                     if verbose:
                         print(f"   ❌ {self._get_handle(did):20} | failed: {result.get('error', 'unknown')}")
+            
+            elif heading_data['type'] == 'origin':
+                origin = self.spectrum._get_origin_spectrum(did)
+                if origin:
+                    current = self.spectrum._get_current_spectrum(did)
+                    if current:
+                        # Move 1% closer to own origin
+                        new_spectrum = current.copy()
+                        moved = False
+                        for axis in ['entropy', 'oblivion', 'liberty', 'authority', 'receptive', 'skeptic']:
+                            diff = origin[axis] - current[axis]
+                            delta = diff * 0.01
+                            if abs(delta) >= 0.5:
+                                new_spectrum[axis] = self.spectrum._clamp_value(current[axis] + delta)
+                                moved = True
+                        
+                        if moved:
+                            self.spectrum._save_spectrum(did, new_spectrum, epoch)
+                            stats['moved'] += 1
+                            stats['movements'].append({
+                                'did': did,
+                                'heading': effective_heading,
+                                'type': 'toward_origin'
+                            })
+                            if verbose:
+                                print(f"   🎯 {self._get_handle(did):20} | toward own origin")
+                        else:
+                            if verbose:
+                                print(f"   ✅ {self._get_handle(did):20} | at origin")
+                    else:
+                        stats['failed'] += 1
+                        if verbose:
+                            print(f"   ❌ {self._get_handle(did):20} | failed: no current spectrum")
+                else:
+                    stats['failed'] += 1
+                    if verbose:
+                        print(f"   ❌ {self._get_handle(did):20} | failed: no origin stored")
             
             elif heading_data['type'] == 'axis':
                 axis = heading_data['axis']
@@ -357,6 +446,20 @@ class HeadingManager:
         except Exception as e:
             if verbose:
                 print(f"⚠️  Error while checking world items: {e}")
+
+        # === Save spectrum snapshot ===
+        if stats['moved'] > 0:
+            try:
+                snap_id = self.save_snapshot(
+                    operation='world_tick',
+                    epoch=epoch,
+                    notes=f"moved:{stats['moved']} affixed:{stats['affixed']} default:{default_heading}"
+                )
+                if verbose:
+                    print(f"📸 Snapshot #{snap_id}")
+            except Exception as e:
+                if verbose:
+                    print(f"⚠️  Snapshot failed: {e}")
 
         return stats
     

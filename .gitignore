@@ -109,6 +109,9 @@ backups/
 site/spectrum/
 site/spectrum/*.png
 
+# Cached assets (avatars, generated images)
+site/assets/cached/
+
 # Documentation (internal notes, experiments, planning)
 docs/
 

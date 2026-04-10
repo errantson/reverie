@@ -851,7 +851,6 @@ function validateRowStyles() {
         warnings.forEach(w => console.warn(w));
         console.groupEnd();
     } else {
-        console.log('✅ All rowstyles validated successfully');
     }
     
     return warnings;
@@ -868,17 +867,8 @@ function inspectRowStyle(name) {
     }
     
     console.group(`🎨 RowStyle: ${name}`);
-    console.log('Description:', style.description);
-    console.log('Category:', style.category);
     if (style.extends) console.log('Extends:', style.extends);
-    console.log('\n📦 Rendering:');
-    console.log('  CSS Classes:', style.rendering.cssClasses.join(', '));
-    console.log('  CSS Files:', style.rendering.cssFiles.join(', '));
-    console.log('  CSS Variables:', style.rendering.cssVariables.join(', ') || 'None');
-    console.log('  Effects:', style.rendering.effects.join(', ') || 'None');
-    console.log('\n🎭 Appearance:');
     Object.entries(style.rendering.appearance).forEach(([key, value]) => {
-        console.log(`  ${key}:`, value);
     });
     console.groupEnd();
     
@@ -906,4 +896,3 @@ window.listRowStyles = listRowStyles;
 window.validateRowStyles = validateRowStyles;
 window.inspectRowStyle = inspectRowStyle;
 
-console.log('✅ [RowStyleRegistry] Loaded with', Object.keys(RowStyleRegistry).length, 'base styles');

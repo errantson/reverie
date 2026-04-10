@@ -19,7 +19,6 @@ class CalendarWidget {
      * @param {Function} callback - Called when date/time selected (timestamp)
      */
     show(initialDate = null, callback = null) {
-        console.log('📅 [CalendarWidget] show() called with:', { initialDate, hasCallback: !!callback });
         this.onSelect = callback;
         
         if (initialDate) {
@@ -44,9 +43,7 @@ class CalendarWidget {
             };
         }
         
-        console.log('📅 [CalendarWidget] Calling render()...');
         this.render();
-        console.log('📅 [CalendarWidget] render() complete, overlay:', this.overlay);
     }
 
     /**
@@ -64,12 +61,10 @@ class CalendarWidget {
      * Render the calendar widget
      */
     render() {
-        console.log('📅 [CalendarWidget] render() started');
         
         // Remove existing if present
         this.hide();
         
-        console.log('📅 [CalendarWidget] Creating overlay element...');
         
         // Create overlay
         this.overlay = document.createElement('div');
@@ -82,7 +77,6 @@ class CalendarWidget {
             }
         };
         
-        console.log('📅 [CalendarWidget] Creating container element...');
         
         // Create container
         this.container = document.createElement('div');
@@ -93,18 +87,14 @@ class CalendarWidget {
         };
         this.container.innerHTML = this.getHTML();
         
-        console.log('📅 [CalendarWidget] Appending to DOM...');
         
         this.overlay.appendChild(this.container);
         document.body.appendChild(this.overlay);
         
-        console.log('📅 [CalendarWidget] DOM elements appended, overlay element:', this.overlay);
-        console.log('📅 [CalendarWidget] Overlay in document:', document.body.contains(this.overlay));
         
         // Attach event listeners
         this.attachListeners();
         
-        console.log('📅 [CalendarWidget] render() complete');
     }
 
     /**
@@ -308,10 +298,6 @@ class CalendarWidget {
         };
         
         this.container.querySelector('[data-action="select"]').onclick = () => {
-            console.log('📅 [CalendarWidget] Select button clicked');
-            console.log('📅 [CalendarWidget] selectedDate:', this.selectedDate);
-            console.log('📅 [CalendarWidget] onSelect callback:', typeof this.onSelect);
-            console.log('📅 [CalendarWidget] isPast:', this.isSelectedTimePast());
             
             if (this.selectedDate && this.onSelect && !this.isSelectedTimePast()) {
                 const result = new Date(this.selectedDate);
@@ -327,12 +313,9 @@ class CalendarWidget {
                 result.setSeconds(0);
                 result.setMilliseconds(0);
                 
-                console.log('📅 [CalendarWidget] Calling onSelect with:', result);
-                console.log('📅 [CalendarWidget] Result ISO:', result.toISOString());
                 
                 this.onSelect(result);
                 
-                console.log('✅ [CalendarWidget] onSelect callback completed');
             } else {
                 console.warn('⚠️ [CalendarWidget] Cannot select:', {
                     hasDate: !!this.selectedDate,
@@ -400,13 +383,9 @@ class CalendarWidget {
      * Select a day
      */
     selectDay(dateString) {
-        console.log('📅 [CalendarWidget] selectDay called with:', dateString);
         const [year, month, day] = dateString.split('-').map(n => parseInt(n));
         this.selectedDate = new Date(year, month - 1, day);
-        console.log('📅 [CalendarWidget] selectedDate set to:', this.selectedDate);
-        console.log('📅 [CalendarWidget] Calling render to update UI...');
         this.render();
-        console.log('✅ [CalendarWidget] Day selected and rendered');
     }
 
     /**
@@ -420,7 +399,4 @@ class CalendarWidget {
 }
 
 // Global instance
-console.log('📅 [calendar.js] Creating CalendarWidget instance...');
 window.calendarWidget = new CalendarWidget();
-console.log('✅ [calendar.js] CalendarWidget instance created:', window.calendarWidget);
-console.log('✅ [calendar.js] CalendarWidget.show method:', typeof window.calendarWidget.show);
