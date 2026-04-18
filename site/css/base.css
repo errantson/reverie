@@ -9,9 +9,9 @@
     --max-content-width: 800px;
     --standard-margin: 20px auto;
     --standard-padding: 20px;
-    --header-height: 60px;
-    --content-top-spacing: 100px; /* Standard spacing below header */
-    --content-top-spacing-mobile: 120px; /* Standard spacing below header on mobile */
+    --header-height: 50px;
+    --content-top-spacing: 80px; /* Standard spacing below header */
+    --content-top-spacing-mobile: 100px; /* Standard spacing below header on mobile */
     --reverie-hue: 270;
     --ecosystem-hue: 270;
 }

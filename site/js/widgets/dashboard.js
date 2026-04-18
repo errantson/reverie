@@ -3331,11 +3331,10 @@ class Dashboard {
                             }
                         }
                     } else {
-                        const errorText = await credResponse.text();
-                        console.warn('🔐 [Dashboard] Credentials check failed:', credResponse.status, errorText);
+                        // Credentials check returned non-OK, ignore silently
                     }
                 } else {
-                    console.warn('🔐 [Dashboard] No token available for credentials check');
+                    // No token available for credentials check
                 }
             } catch (error) {
                 console.warn('Failed to fetch credential status:', error);
@@ -5740,7 +5739,7 @@ class Dashboard {
         try {
             // Fetch profile from Bluesky public API
             const response = await fetch(
-                `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
+                `/bsky/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
             );
             
             if (!response.ok) {
@@ -6441,7 +6440,7 @@ class Dashboard {
             
             // Queue the DID resolution
             mentionPromises.push(
-                fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`)
+                fetch(`/bsky/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`)
                     .then(r => r.ok ? r.json() : null)
                     .then(data => data?.did || null)
                     .catch(() => null)

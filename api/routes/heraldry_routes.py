@@ -10,6 +10,8 @@ import time
 import traceback
 from urllib.parse import urlparse
 
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 # Create blueprint
 bp = Blueprint('heraldry', __name__, url_prefix='/api')
 
@@ -85,7 +87,7 @@ def verify_ambassador_auth():
         # Resolve handle to DID and PDS
         try:
             did_response = requests.get(
-                f'https://bsky.social/xrpc/com.atproto.identity.resolveHandle',
+                f'{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle',
                 params={'handle': handle},
                 timeout=10
             )

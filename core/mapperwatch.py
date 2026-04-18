@@ -19,7 +19,7 @@ from typing import Set, Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from atproto import Client
+from atproto import Client\n\n# AppView cache proxy (local)\nBSKY_CACHE = 'http://127.0.0.1:2847'
 
 
 class MapperMonitor:
@@ -44,7 +44,7 @@ class MapperMonitor:
         self._load_origin_quest()
         
         # AT Protocol client for fetching threads (public API, no auth needed)
-        self.client = Client(base_url='https://public.api.bsky.app')
+        self.client = Client(base_url='http://127.0.0.1:2847')
         
         # Mapper client for posting replies - authenticated
         self.mapper_client = None
@@ -380,7 +380,7 @@ class MapperMonitor:
                 
                 try:
                     resp = requests.get(
-                        f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris={root_uri}",
+                        f"{BSKY_CACHE}/xrpc/app.bsky.feed.getPosts?uris={root_uri}",
                         timeout=10
                     )
                     if resp.status_code == 200:
@@ -437,7 +437,7 @@ class MapperMonitor:
                     rkey = parts[-1]
                     
                     resp = requests.get(
-                        'https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord',
+                        f'{BSKY_CACHE}/xrpc/com.atproto.repo.getRecord',
                         params={
                             'repo': did,
                             'collection': 'app.bsky.feed.post',

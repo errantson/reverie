@@ -123,7 +123,7 @@ class ShowPost {
             
             // Otherwise resolve handle to DID
             try {
-                const response = await fetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${handleOrDid}`);
+                const response = await fetch(`/bsky/xrpc/com.atproto.identity.resolveHandle?handle=${handleOrDid}`);
                 if (response.ok) {
                     const data = await response.json();
                     return `at://${data.did}/app.bsky.feed.post/${rkey}`;
@@ -183,7 +183,7 @@ class ShowPost {
             throw new Error('Invalid post URL or URI');
         }
         
-        const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=0`);
+        const response = await fetch(`/bsky/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=0`);
 
         if (!response.ok) {
             throw new Error('Failed to fetch post');

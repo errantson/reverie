@@ -245,7 +245,7 @@ class DreamstylerRole {
                 return data.did;
             }
             // Fallback to public API
-            const publicResponse = await fetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+            const publicResponse = await fetch(`/bsky/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
             if (publicResponse.ok) {
                 const data = await publicResponse.json();
                 return data.did;

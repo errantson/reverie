@@ -1,0 +1,2313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patrol Scene Editor — Reverie House</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+}
+
+/* ── Toolbar ─────────────────────────────────────────── */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background: #16213e;
+    border-bottom: 1px solid #0f3460;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.toolbar h1 { font-size: 0.9rem; color: #a8d8ea; margin-right: 8px; }
+.toolbar button {
+    font-family: inherit; font-size: 0.75rem; padding: 3px 9px;
+    border: 1px solid #0f3460; border-radius: 3px;
+    background: #1a1a2e; color: #ccc; cursor: pointer;
+}
+.toolbar button:hover { background: #0f3460; color: #fff; }
+.toolbar button.primary { background: #0f3460; border-color: #a8d8ea; color: #fff; }
+.toolbar button.primary:hover { background: #1a5f9a; }
+.toolbar button.danger { border-color: #993333; color: #ff9999; }
+.toolbar button.danger:hover { background: #331111; }
+.toolbar label { font-size: 0.73rem; color: #999; display: flex; align-items: center; gap: 3px; }
+.toolbar input[type="checkbox"] { accent-color: #a8d8ea; }
+.sep { width: 1px; height: 18px; background: #333; flex-shrink: 0; }
+.coords { font: 0.72rem 'Consolas', monospace; color: #666; min-width: 120px; }
+.size-controls {
+    display: flex; align-items: center; gap: 3px; font-size: 0.72rem; color: #999;
+}
+.size-controls input {
+    width: 36px; background: #1a1a2e; border: 1px solid #333; border-radius: 2px;
+    color: #ccc; font-size: 0.7rem; padding: 2px 3px; text-align: center;
+    font-family: 'Consolas', monospace;
+    -moz-appearance: textfield;
+}
+.size-controls input::-webkit-outer-spin-button,
+.size-controls input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+}
+.size-controls span.dim-x { color: #666; }
+
+/* ── Main layout ─────────────────────────────────────── */
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Tile picker (left) ──────────────────────────────── */
+.picker {
+    width: 280px; background: #16213e; border-right: 1px solid #0f3460;
+    display: flex; flex-direction: column; flex-shrink: 0;
+}
+.picker-tabs {
+    display: flex; border-bottom: 1px solid #0f3460;
+}
+.picker-tab {
+    flex: 1; padding: 6px 0; text-align: center; font-size: 0.72rem;
+    cursor: pointer; background: #111; color: #888; border: none;
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+}
+.picker-tab.active { background: #16213e; color: #a8d8ea; border-bottom-color: #a8d8ea; }
+.picker-tab:hover { color: #ccc; }
+.picker-above-toggle {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 8px; border-bottom: 1px solid #0f3460;
+    font-size: 0.7rem; color: #888;
+}
+.picker-above-toggle input { accent-color: #4a9eff; }
+.picker-above-toggle.on { color: #4a9eff; background: rgba(74,158,255,0.08); }
+.picker-sheet-wrap {
+    flex: 1; overflow: auto; padding: 4px; position: relative;
+}
+.picker-sheet {
+    position: relative; cursor: crosshair;
+    image-rendering: pixelated;
+}
+.picker-sheet canvas {
+    display: block; image-rendering: pixelated;
+}
+.tile-hover {
+    position: absolute; border: 2px solid #00ccff; pointer-events: none;
+    display: none; z-index: 2;
+}
+.tile-selected-marker {
+    position: absolute; pointer-events: none;
+    display: none; z-index: 3;
+}
+
+/* ── Current tile preview ────────────────────────────── */
+.current-tile {
+    border-top: 1px solid #0f3460; padding: 8px;
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.current-tile canvas {
+    width: 48px; height: 48px; image-rendering: pixelated;
+    border: 1px solid #333; background: #111; flex-shrink: 0;
+}
+.current-tile .info { font-size: 0.72rem; color: #999; line-height: 1.4; }
+.current-tile .info b { color: #ccc; }
+.no-tile { color: #555; font-size: 0.72rem; font-style: italic; }
+
+/* ── Canvas area (center) ────────────────────────────── */
+.canvas-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: #111; overflow: auto; position: relative;
+}
+.stage-frame {
+    position: relative; image-rendering: pixelated;
+    box-shadow: 0 0 0 2px #0f3460, 0 4px 20px rgba(0,0,0,0.5);
+}
+.stage-frame canvas { display: block; image-rendering: pixelated; }
+
+/* ── Right panel ─────────────────────────────────────── */
+.panel-right {
+    width: 210px; background: #16213e; border-left: 1px solid #0f3460;
+    display: flex; flex-direction: column; flex-shrink: 0;
+}
+.panel-section {
+    padding: 6px 8px; border-bottom: 1px solid #0f3460;
+    font-size: 0.72rem; color: #888;
+}
+.panel-section h3 {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #666; margin-bottom: 4px;
+}
+.panel-section .val { color: #ccc; font-family: 'Consolas', monospace; }
+.panel-section .mini-btn {
+    font-size: 0.68rem; padding: 2px 6px; background: #1a1a2e;
+    border: 1px solid #333; color: #ccc; border-radius: 2px; cursor: pointer;
+    margin-right: 3px;
+}
+.panel-section .mini-btn:hover { background: #0f3460; }
+.panel-section .mini-btn.del { border-color: #993333; color: #ff9999; }
+
+/* Layer list */
+.layer-list { flex: 1; overflow-y: auto; }
+.layer-item {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 8px; cursor: pointer; font-size: 0.7rem;
+    transition: background 0.1s;
+}
+.layer-item:hover { background: rgba(168,216,234,0.06); }
+.layer-item.selected { background: rgba(168,216,234,0.15); }
+.layer-item canvas {
+    width: 24px; height: 24px; image-rendering: pixelated;
+    border: 1px solid #333; flex-shrink: 0;
+}
+.layer-item .lname { flex: 1; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-item .lpos { color: #555; font-family: monospace; font-size: 0.65rem; }
+.layer-item .labove {
+    width: 18px; height: 18px; font-size: 0.55rem; padding: 0;
+    background: transparent; border: 1px solid #333; border-radius: 2px;
+    color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; title: 'Toggle above/below player';
+}
+.layer-item .labove:hover { border-color: #666; color: #aaa; }
+.layer-item .labove.on { background: #1a3a5a; border-color: #4a9eff; color: #4a9eff; }
+.layer-item .ldel {
+    width: 16px; height: 16px; font-size: 0.6rem; padding: 0;
+    background: transparent; border: 1px solid transparent; border-radius: 2px;
+    color: #664444; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; opacity: 0; transition: opacity 0.1s;
+}
+.layer-item:hover .ldel { opacity: 1; color: #ff6666; }
+.layer-item .ldel:hover { background: #331111; border-color: #993333; }
+
+/* ── Test mode ───────────────────────────────────────── */
+.test-section {
+    padding: 6px 8px; border-bottom: 1px solid #0f3460;
+}
+.test-section h3 {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #666; margin-bottom: 5px;
+}
+.test-section .test-row {
+    display: flex; gap: 4px; margin-bottom: 4px;
+}
+.test-section input {
+    flex: 1; background: #1a1a2e; border: 1px solid #333; border-radius: 2px;
+    color: #ccc; font-size: 0.7rem; padding: 3px 5px;
+    font-family: 'Consolas', monospace;
+}
+.test-section input::placeholder { color: #555; }
+.test-section button {
+    font-family: inherit; font-size: 0.68rem; padding: 3px 8px;
+    border: 1px solid #0f3460; border-radius: 3px;
+    background: #1a1a2e; color: #ccc; cursor: pointer; white-space: nowrap;
+}
+.test-section button:hover { background: #0f3460; color: #fff; }
+.test-section button.active { background: #0f3460; border-color: #a8d8ea; color: #fff; }
+.test-section button:disabled { opacity: 0.4; cursor: default; }
+.test-section .test-status {
+    font-size: 0.65rem; color: #666; margin-top: 2px; min-height: 1em;
+}
+.test-section .test-status.error { color: #ff6666; }
+.test-section .test-status.ok { color: #88dd88; }
+.test-sprite-preview {
+    width: 48px; height: 48px; image-rendering: pixelated;
+    border: 1px solid #333; background: #111; margin-top: 4px;
+}
+
+/* ── Zoom ────────────────────────────────────────────── */
+.zoom-controls {
+    position: absolute; bottom: 8px; right: 8px;
+    display: flex; gap: 3px; z-index: 10;
+}
+.zoom-controls button {
+    width: 26px; height: 26px; background: rgba(22,33,62,0.92);
+    border: 1px solid #0f3460; color: #ddd; border-radius: 3px;
+    cursor: pointer; font-size: 0.95rem;
+    display: flex; align-items: center; justify-content: center;
+}
+.zoom-controls button:hover { background: #0f3460; }
+.zoom-label { font-size: 0.68rem; color: #666; display: flex; align-items: center; padding: 0 4px; }
+
+/* ── Tool indicator ──────────────────────────────────── */
+.tool-mode {
+    font-size: 0.7rem; padding: 2px 7px; border-radius: 10px;
+    font-weight: 600; letter-spacing: 0.03em;
+}
+.tool-mode.place { background: #1a3a1a; color: #88dd88; border: 1px solid #336633; }
+.tool-mode.select { background: #1a1a3a; color: #8888dd; border: 1px solid #333366; }
+.tool-mode.erase { background: #3a1a1a; color: #dd8888; border: 1px solid #663333; }
+.tool-mode.terrain { background: #2a2a1a; color: #ddcc88; border: 1px solid #665533; }
+.tool-mode.blocker { background: #2a1a2a; color: #dd88cc; border: 1px solid #663355; }
+
+/* ── Terrain palette ──────────────────────────────── */
+.terrain-palette {
+    padding: 6px; overflow-y: auto; flex: 1;
+}
+.terrain-palette h4 {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #666; margin-bottom: 6px;
+}
+.terrain-layers {
+    display: flex; gap: 3px; margin-bottom: 8px;
+}
+.terrain-layers button {
+    flex: 1; padding: 4px 0; font-size: 0.68rem; font-weight: bold;
+    background: #1a1a2e; border: 1px solid #333; border-radius: 3px;
+    color: #888; cursor: pointer; transition: background 0.1s;
+}
+.terrain-layers button:hover { background: #0f3460; color: #ccc; }
+.terrain-layers button.active { background: #0f3460; border-color: #a8d8ea; color: #fff; }
+.terrain-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 5px 8px; margin-bottom: 3px;
+    background: #1a1a2e; border: 1px solid #333; border-radius: 3px;
+    cursor: pointer; color: #ccc; font-size: 0.72rem;
+    transition: background 0.1s;
+}
+.terrain-btn:hover { background: #0f3460; border-color: #0f3460; }
+.terrain-btn.active { background: #0f3460; border-color: #a8d8ea; color: #fff; }
+.terrain-btn canvas {
+    width: 32px; height: 32px; image-rendering: pixelated;
+    border: 1px solid #333; flex-shrink: 0;
+}
+.terrain-btn .tname { flex: 1; }
+.terrain-eraser {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 5px 8px; margin-bottom: 8px;
+    background: #1a1a2e; border: 1px solid #993333; border-radius: 3px;
+    cursor: pointer; color: #ff9999; font-size: 0.72rem;
+}
+.terrain-eraser:hover { background: #331111; }
+.terrain-eraser.active { background: #331111; border-color: #ff6666; color: #ff6666; }
+
+/* ── Skybox palette ───────────────────────────────── */
+.skybox-palette {
+    padding: 6px; overflow-y: auto; flex: 1;
+}
+.skybox-palette h4 {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #666; margin-bottom: 6px;
+}
+.skybox-preset {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 5px 8px; margin-bottom: 3px;
+    background: #1a1a2e; border: 1px solid #333; border-radius: 3px;
+    cursor: pointer; color: #ccc; font-size: 0.72rem;
+    transition: background 0.1s;
+}
+.skybox-preset:hover { background: #0f3460; border-color: #0f3460; }
+.skybox-preset.active { background: #0f3460; border-color: #a8d8ea; color: #fff; }
+.skybox-preset canvas {
+    width: 40px; height: 24px; border: 1px solid #333; border-radius: 2px;
+    flex-shrink: 0;
+}
+.skybox-preset .sname { flex: 1; }
+.skybox-custom-section {
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid #333;
+}
+.skybox-custom-section h4 { margin-bottom: 4px; }
+.skybox-stop {
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 3px; font-size: 0.7rem;
+}
+.skybox-stop input[type="color"] {
+    width: 24px; height: 20px; border: 1px solid #555; border-radius: 2px;
+    background: none; cursor: pointer; padding: 0;
+}
+.skybox-stop input[type="number"] {
+    width: 48px; background: #1a1a2e; border: 1px solid #333; border-radius: 2px;
+    color: #ccc; font-size: 0.68rem; padding: 2px 4px; text-align: center;
+}
+.skybox-stop button {
+    width: 18px; height: 18px; font-size: 0.65rem; padding: 0;
+    background: #1a1a2e; border: 1px solid #993333; border-radius: 2px;
+    color: #ff9999; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.skybox-stop button:hover { background: #331111; }
+.skybox-actions {
+    display: flex; gap: 4px; margin-top: 6px;
+}
+.skybox-actions button {
+    font-size: 0.68rem; padding: 3px 8px;
+    background: #1a1a2e; border: 1px solid #333; border-radius: 2px;
+    color: #ccc; cursor: pointer;
+}
+.skybox-actions button:hover { background: #0f3460; }
+
+/* ── Blocker palette ───────────────────────────────── */
+.blocker-palette {
+    padding: 6px; overflow-y: auto; flex: 1;
+}
+.blocker-palette h4 {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #666; margin-bottom: 6px;
+}
+.blocker-palette p {
+    font-size: 0.7rem; color: #888; line-height: 1.4; margin-bottom: 8px;
+}
+.blocker-palette .blocker-tools {
+    display: flex; gap: 4px; margin-bottom: 8px;
+}
+.blocker-palette .blocker-tools button {
+    flex: 1; padding: 6px 8px; font-size: 0.72rem;
+    background: #1a1a2e; border: 1px solid #333; border-radius: 3px;
+    color: #ccc; cursor: pointer; transition: background 0.1s;
+}
+.blocker-palette .blocker-tools button:hover { background: #0f3460; }
+.blocker-palette .blocker-tools button.active { background: #0f3460; border-color: #a8d8ea; color: #fff; }
+.blocker-palette label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; color: #999; cursor: pointer;
+}
+.blocker-palette label input { accent-color: #dd88cc; }
+.poly-list { margin-top: 8px; }
+.poly-item {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 6px; font-size: 0.68rem; color: #bbb;
+    cursor: pointer; border-radius: 2px; transition: background 0.1s;
+}
+.poly-item:hover { background: rgba(168,216,234,0.06); }
+.poly-item.selected { background: rgba(255,160,0,0.15); color: #ffaa44; }
+.poly-item .pname { flex: 1; }
+.poly-item .pverts { color: #666; font-family: monospace; font-size: 0.62rem; }
+.poly-item .pdel {
+    width: 16px; height: 16px; font-size: 0.6rem; padding: 0;
+    background: transparent; border: 1px solid transparent; border-radius: 2px;
+    color: #664444; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; opacity: 0; transition: opacity 0.1s;
+}
+.poly-item:hover .pdel { opacity: 1; color: #ff6666; }
+.poly-item .pdel:hover { background: #331111; border-color: #993333; }
+
+/* ── Modal ───────────────────────────────────────────── */
+.modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 1000;
+    align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+    background: #16213e; border: 1px solid #0f3460; border-radius: 6px;
+    padding: 16px; width: 700px; max-width: 90vw; max-height: 80vh;
+    display: flex; flex-direction: column;
+}
+.modal h2 { font-size: 0.95rem; color: #a8d8ea; margin-bottom: 8px; }
+.modal textarea {
+    flex: 1; min-height: 280px; background: #1a1a2e; border: 1px solid #333;
+    border-radius: 3px; color: #e0e0e0; font: 0.75rem 'Consolas', monospace;
+    padding: 8px; resize: vertical;
+}
+.modal .actions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+.modal button {
+    font-family: inherit; font-size: 0.78rem; padding: 5px 14px;
+    border: 1px solid #0f3460; border-radius: 3px;
+    background: #1a1a2e; color: #ccc; cursor: pointer;
+}
+.modal button:hover { background: #0f3460; }
+.modal button.primary { background: #0f3460; color: #fff; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+    <h1>Scene Editor</h1>
+    <div class="sep"></div>
+    <span class="tool-mode place" id="tool-badge">PLACE</span>
+    <button id="btn-tool-select" title="Select/move (V)">Select</button>
+    <button id="btn-tool-erase" title="Erase tiles (E)">Erase</button>
+    <div class="sep"></div>
+    <button id="btn-undo" title="Ctrl+Z">Undo</button>
+    <button id="btn-redo" title="Ctrl+Y">Redo</button>
+    <div class="sep"></div>
+    <label><input type="checkbox" id="chk-grid" checked> Grid</label>
+    <label><input type="checkbox" id="chk-guides" checked> Snap</label>
+    <div class="sep"></div>
+    <button id="btn-export" class="primary">Export JS</button>
+    <button id="btn-export-json">Export JSON</button>
+    <button id="btn-import">Import</button>
+    <div class="sep"></div>
+    <button id="btn-clear" class="danger">Clear All</button>
+    <div class="sep"></div>
+    <div class="size-controls">
+        <span>Size:</span>
+        <input type="number" id="canvas-cols" min="1" max="40" value="14" title="Width in tiles">
+        <span class="dim-x">×</span>
+        <input type="number" id="canvas-rows" min="1" max="40" value="7" title="Height in tiles">
+    </div>
+    <div class="sep"></div>
+    <span class="coords" id="coords">—</span>
+</div>
+
+<div class="main">
+    <div class="picker">
+        <div class="picker-tabs">
+            <button class="picker-tab active" data-sheet="nature">Sprites</button>
+            <button class="picker-tab" data-sheet="terrain">Terrain</button>
+            <button class="picker-tab" data-sheet="skybox">Skybox</button>
+            <button class="picker-tab" data-sheet="blocker">Control</button>
+        </div>
+        <div class="picker-above-toggle" id="above-toggle">
+            <label><input type="checkbox" id="chk-above-layer"> Place on Above Layer</label>
+        </div>
+        <div class="picker-sheet-wrap" id="picker-wrap">
+            <div class="picker-sheet" id="picker-sheet">
+                <canvas id="picker-canvas"></canvas>
+                <div class="tile-hover" id="tile-hover"></div>
+                <div class="tile-selected-marker" id="tile-sel-marker"></div>
+            </div>
+        </div>
+        <div class="terrain-palette" id="terrain-palette" style="display:none">
+            <h4>Layer</h4>
+            <div class="terrain-layers" id="terrain-layers">
+                <button class="active" data-layer="0">A</button>
+                <button data-layer="1">B</button>
+                <button data-layer="2">C</button>
+                <button data-layer="3">D</button>
+                <button data-layer="4">E</button>
+            </div>
+            <h4>Terrain Types</h4>
+            <div id="terrain-list"></div>
+        </div>
+        <div class="skybox-palette" id="skybox-palette" style="display:none">
+            <h4>Presets</h4>
+            <div id="skybox-presets"></div>
+            <div class="skybox-custom-section">
+                <h4>Custom Gradient</h4>
+                <div id="skybox-stops"></div>
+                <div class="skybox-actions">
+                    <button id="skybox-add-stop">+ Add Stop</button>
+                </div>
+            </div>
+        </div>
+        <div class="blocker-palette" id="blocker-palette" style="display:none">
+            <h4>Collision Map</h4>
+            <p>Paint cells to mark them as blocked (impassable). Walkable cells are left empty.</p>
+            <div class="blocker-tools">
+                <button id="blocker-paint" class="active">⛔ Block</button>
+                <button id="blocker-erase">✓ Clear</button>
+            </div>
+            <h4 style="margin-top:10px">Start Position</h4>
+            <p>Click a cell to set the player spawn point.</p>
+            <div class="blocker-tools">
+                <button id="blocker-start">◉ Set Start</button>
+            </div>
+            <label><input type="checkbox" id="chk-show-blockers" checked> Show overlay on canvas</label>
+            <h4 style="margin-top:10px">Polygon Colliders</h4>
+            <p>Draw freeform collision shapes. Click to place vertices, double-click to close.</p>
+            <div class="blocker-tools">
+                <button id="poly-draw">▲ Draw</button>
+                <button id="poly-edit">✎ Edit</button>
+                <button id="poly-del">✕ Delete</button>
+            </div>
+            <div class="poly-list" id="poly-list"></div>
+        </div>
+        <div class="current-tile" id="current-tile">
+            <canvas id="preview-canvas" width="48" height="48"></canvas>
+            <div class="info">
+                <span class="no-tile">Click a tile to select</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvas-wrap">
+        <div class="stage-frame" id="stage-frame">
+            <canvas id="stage" width="640" height="320"></canvas>
+        </div>
+        <div class="zoom-controls">
+            <button id="zoom-out">−</button>
+            <span class="zoom-label" id="zoom-label">2×</span>
+            <button id="zoom-in">+</button>
+        </div>
+    </div>
+
+    <div class="panel-right">
+        <div class="test-section">
+            <h3>Test Scene</h3>
+            <div class="test-row">
+                <input type="text" id="test-handle" placeholder="handle.bsky.social" spellcheck="false">
+                <button id="test-load">Load</button>
+            </div>
+            <div class="test-row" id="test-controls" style="display:none">
+                <button id="test-play" title="WASD to move">▶ Play</button>
+                <button id="test-stop">■ Stop</button>
+            </div>
+            <div class="test-status" id="test-status"></div>
+            <canvas class="test-sprite-preview" id="test-sprite-preview" width="48" height="48" style="display:none"></canvas>
+        </div>
+        <div class="panel-section">
+            <h3>Tiles <span class="val" id="tile-count">0</span></h3>
+        </div>
+        <div class="layer-list" id="layer-list"></div>
+    </div>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+    <div class="modal">
+        <h2 id="modal-title">Export</h2>
+        <textarea id="modal-text" spellcheck="false"></textarea>
+        <div class="actions">
+            <button id="modal-copy" class="primary">Copy to Clipboard</button>
+            <button id="modal-close">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+'use strict';
+
+const TILE = 48;
+let STAGE_W = 640, STAGE_H = 320;
+let GRID_COLS = Math.ceil(STAGE_W / TILE);
+let GRID_ROWS = Math.ceil(STAGE_H / TILE);
+let GROUND_TOP_Y = Math.round(STAGE_H * 0.55);
+let WALK_TOP_Y   = Math.round(STAGE_H * 0.58);
+let WALK_BOT_Y   = Math.round(STAGE_H * 0.92);
+
+const SHEETS = {
+    nature:  { src: '/assets/patrol/nature_sprites.png', cols: 16, rows: 16, img: null },
+    terrain: { src: '/assets/patrol/terrain.png',        cols: 51, rows: 14, img: null },
+};
+
+// ── Terrain autotile system ─────────────────────────────────────
+const TERRAIN_TYPES = [
+    { name: 'Grass',    blockCol:  0, blockRow:  0 },
+    { name: 'Dirt',     blockCol: 13, blockRow:  0 },
+    { name: 'Stone',    blockCol: 26, blockRow:  0 },
+    { name: 'Earth',    blockCol: 39, blockRow:  0 },
+    { name: 'Bush',     blockCol:  0, blockRow:  5 },
+    { name: 'Foliage',  blockCol: 13, blockRow:  5 },
+    { name: 'Grass B',  blockCol: 26, blockRow:  5 },
+    { name: 'Dirt B',   blockCol: 39, blockRow:  5 },
+    { name: 'Cloud',    blockCol:  0, blockRow: 10 },
+];
+
+// Maps cleaned 8-bit neighbor mask → tile index (0-47) within each 12×4 block.
+// Bits: N=1, NE=2, E=4, SE=8, S=16, SW=32, W=64, NW=128
+// Diagonals only count when both adjacent cardinals are present.
+const AUTOTILE_MAP = {
+    0:36, 1:24, 4:37, 5:25, 7:44, 16:0, 17:12, 20:1, 21:13, 23:28,
+    28:8, 29:16, 31:20, 64:39, 65:27, 68:38, 69:26, 71:41, 80:3,
+    81:15, 84:2, 85:14, 87:7, 92:5, 93:43, 95:32, 112:11, 113:19,
+    116:6, 117:40, 119:21, 124:10, 125:9, 127:17, 193:47, 197:42,
+    199:45, 209:31, 213:4, 215:46, 221:34, 223:29, 241:35, 245:23,
+    247:30, 253:18, 255:33,
+};
+
+// terrainGrid[row][col] = [layerA, layerB, layerC, layerD, layerE], -1 = empty
+let terrainGrid = [];
+for (let r = 0; r < GRID_ROWS; r++) terrainGrid.push(Array.from({length: GRID_COLS}, () => [-1,-1,-1,-1,-1]));
+let activeTerrain = -1;  // selected terrain type index, -1 = eraser
+let activeTerrainLayer = 0; // 0=A, 1=B, 2=C, 3=D, 4=E
+
+// Migrate old terrain grid formats to fixed 5-layer arrays
+function migrateTerrainGrid(grid) {
+    for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+            const cell = grid[r][c];
+            if (!Array.isArray(cell)) {
+                grid[r][c] = cell >= 0 ? [cell, -1, -1, -1, -1] : [-1, -1, -1, -1, -1];
+            } else if (cell.length !== 5) {
+                const layers = [-1, -1, -1, -1, -1];
+                for (let i = 0; i < Math.min(cell.length, 5); i++) layers[i] = cell[i];
+                grid[r][c] = layers;
+            }
+        }
+    }
+}
+let activeSheet = 'nature';
+
+// blockerGrid[row][col] = true if blocked, false if walkable
+let blockerGrid = [];
+for (let r = 0; r < GRID_ROWS; r++) blockerGrid.push(new Array(GRID_COLS).fill(false));
+let blockerPaintMode = 'block'; // 'block', 'clear', or 'start'
+let startPos = null; // {gx, gy} or null
+
+// Polygon colliders
+let colliders = []; // [{id, points:[{x,y},...]}]
+let nextColliderId = 1;
+let polyMode = null; // null, 'draw', 'edit', 'delete'
+let polyDrawing = []; // in-progress points while drawing
+let selectedCollider = null; // id of selected collider
+let draggingVertex = null; // {colliderId, vertexIndex} while dragging a vertex
+
+function resizeCanvas(cols, rows) {
+    const oldCols = GRID_COLS, oldRows = GRID_ROWS;
+    GRID_COLS = cols; GRID_ROWS = rows;
+    STAGE_W = GRID_COLS * TILE; STAGE_H = GRID_ROWS * TILE;
+    GROUND_TOP_Y = Math.round(STAGE_H * 0.55);
+    WALK_TOP_Y   = Math.round(STAGE_H * 0.58);
+    WALK_BOT_Y   = Math.round(STAGE_H * 0.92);
+    stage.width = STAGE_W; stage.height = STAGE_H;
+    // Resize terrain grid, preserving existing data
+    const newGrid = [];
+    for (let r = 0; r < GRID_ROWS; r++) {
+        const row = Array.from({length: GRID_COLS}, () => [-1,-1,-1,-1,-1]);
+        if (r < oldRows && terrainGrid[r]) {
+            for (let c = 0; c < Math.min(GRID_COLS, oldCols); c++) row[c] = terrainGrid[r][c].slice();
+        }
+        newGrid.push(row);
+    }
+    terrainGrid = newGrid;
+    // Resize blocker grid
+    const newBlocker = [];
+    for (let r = 0; r < GRID_ROWS; r++) {
+        const row = new Array(GRID_COLS).fill(false);
+        if (r < oldRows && blockerGrid[r]) {
+            for (let c = 0; c < Math.min(GRID_COLS, oldCols); c++) row[c] = blockerGrid[r][c];
+        }
+        newBlocker.push(row);
+    }
+    blockerGrid = newBlocker;
+    document.getElementById('canvas-cols').value = GRID_COLS;
+    document.getElementById('canvas-rows').value = GRID_ROWS;
+    setZoom(zoom);
+    render();
+}
+
+let tiles = [];
+let nextId = 1;
+let selectedId = null;
+let cursorTile = null;  // { sheet, cells: [{col,row}, ...] }
+let pickerDrag = null;
+let tool = 'place';
+let zoom = 2;
+let undoStack = [];
+let redoStack = [];
+
+// ── Skybox system ───────────────────────────────────────────────
+const SKYBOX_PRESETS = [
+    { name: 'Day (Default)',  stops: [{pos:0, color:'#5bacdf'}, {pos:0.55, color:'#c8e8f8'}, {pos:0.55, color:'#7cb854'}, {pos:1, color:'#4a8a2f'}] },
+    { name: 'Clear Sky',      stops: [{pos:0, color:'#4a90d9'}, {pos:0.55, color:'#87ceeb'}, {pos:0.55, color:'#6aaa3a'}, {pos:1, color:'#3d7a25'}] },
+    { name: 'Sunrise',        stops: [{pos:0, color:'#1a1a3e'}, {pos:0.2, color:'#c85a3e'}, {pos:0.4, color:'#f0a868'}, {pos:0.55, color:'#ffe4b5'}, {pos:0.55, color:'#5a8040'}, {pos:1, color:'#3a5a28'}] },
+    { name: 'Golden Hour',    stops: [{pos:0, color:'#d4784a'}, {pos:0.35, color:'#f0c060'}, {pos:0.55, color:'#fff0cc'}, {pos:0.55, color:'#8aaa44'}, {pos:1, color:'#5a7830'}] },
+    { name: 'Sunset',         stops: [{pos:0, color:'#1a0a30'}, {pos:0.15, color:'#4a1a5a'}, {pos:0.35, color:'#c84040'}, {pos:0.55, color:'#f08050'}, {pos:0.55, color:'#3a5030'}, {pos:1, color:'#1a3018'}] },
+    { name: 'Twilight',       stops: [{pos:0, color:'#0a0a2a'}, {pos:0.25, color:'#2a1a5a'}, {pos:0.55, color:'#6a4a80'}, {pos:0.55, color:'#2a4028'}, {pos:1, color:'#1a2818'}] },
+    { name: 'Night',          stops: [{pos:0, color:'#050510'}, {pos:0.3, color:'#0a0a25'}, {pos:0.55, color:'#121230'}, {pos:0.55, color:'#0a1a10'}, {pos:1, color:'#050d08'}] },
+    { name: 'Overcast',       stops: [{pos:0, color:'#7a8090'}, {pos:0.55, color:'#a0a8b0'}, {pos:0.55, color:'#5a7848'}, {pos:1, color:'#3a5830'}] },
+    { name: 'Storm',          stops: [{pos:0, color:'#2a2a3a'}, {pos:0.3, color:'#4a4a5a'}, {pos:0.55, color:'#606068'}, {pos:0.55, color:'#3a4a30'}, {pos:1, color:'#2a3820'}] },
+    { name: 'Sky Only',       stops: [{pos:0, color:'#5bacdf'}, {pos:1, color:'#c8e8f8'}] },
+    { name: 'Night Sky Only', stops: [{pos:0, color:'#050510'}, {pos:1, color:'#121230'}] },
+];
+
+let skybox = { stops: SKYBOX_PRESETS[0].stops.map(s => ({...s})) };
+let activeSkyboxPreset = 0;
+
+const PICKER_SCALE = 1;
+
+// DOM
+const stage        = document.getElementById('stage');
+const sCtx         = stage.getContext('2d');
+const stageFrame   = document.getElementById('stage-frame');
+const pickerCanvas = document.getElementById('picker-canvas');
+const pCtx         = pickerCanvas.getContext('2d');
+const pickerSheet  = document.getElementById('picker-sheet');
+const tileHover    = document.getElementById('tile-hover');
+const tileSelMark  = document.getElementById('tile-sel-marker');
+const previewCanvas = document.getElementById('preview-canvas');
+const pvCtx        = previewCanvas.getContext('2d');
+const coordsEl     = document.getElementById('coords');
+const layerList    = document.getElementById('layer-list');
+const tileCountEl  = document.getElementById('tile-count');
+const toolBadge    = document.getElementById('tool-badge');
+const modalBg      = document.getElementById('modal-bg');
+const modalText    = document.getElementById('modal-text');
+const modalTitle   = document.getElementById('modal-title');
+
+// ── Load ────────────────────────────────────────────────────────
+async function loadSheets() {
+    const p = Object.entries(SHEETS).map(([k, s]) => new Promise(r => {
+        const img = new Image();
+        img.onload = () => { s.img = img; r(); };
+        img.onerror = () => r();
+        img.src = s.src;
+    }));
+    await Promise.all(p);
+}
+
+// ── Picker ──────────────────────────────────────────────────────
+function cellKey(col, row) { return col + ',' + row; }
+function cellSet(cells) { const s = new Set(); cells.forEach(c => s.add(cellKey(c.col, c.row))); return s; }
+function cursorBounds(ct) {
+    if (!ct || !ct.cells.length) return null;
+    let c0=Infinity,r0=Infinity,c1=-Infinity,r1=-Infinity;
+    ct.cells.forEach(c => { c0=Math.min(c0,c.col); r0=Math.min(r0,c.row); c1=Math.max(c1,c.col); r1=Math.max(r1,c.row); });
+    return { col:c0, row:r0, cols:c1-c0+1, rows:r1-r0+1 };
+}
+
+function drawPicker(pendingCells) {
+    const sheet = SHEETS[activeSheet];
+    if (!sheet.img) return;
+    pickerCanvas.width = sheet.cols * TILE;
+    pickerCanvas.height = sheet.rows * TILE;
+    pickerCanvas.style.width  = (sheet.cols * TILE * PICKER_SCALE) + 'px';
+    pickerCanvas.style.height = (sheet.rows * TILE * PICKER_SCALE) + 'px';
+    pickerSheet.style.width   = pickerCanvas.style.width;
+    pickerSheet.style.height  = pickerCanvas.style.height;
+    pCtx.imageSmoothingEnabled = false;
+    pCtx.clearRect(0, 0, pickerCanvas.width, pickerCanvas.height);
+    pCtx.drawImage(sheet.img, 0, 0);
+    // Determine which cells to highlight
+    const cells = pendingCells || (cursorTile && cursorTile.sheet === activeSheet ? cursorTile.cells : null);
+    if (cells && cells.length) {
+        const set = cellSet(cells);
+        // Dim all non-selected cells
+        pCtx.fillStyle = 'rgba(0,0,0,0.45)';
+        for (let r = 0; r < sheet.rows; r++) {
+            for (let c = 0; c < sheet.cols; c++) {
+                if (!set.has(cellKey(c, r))) {
+                    pCtx.fillRect(c*TILE, r*TILE, TILE, TILE);
+                }
+            }
+        }
+        // Draw highlight border on selected cells
+        pCtx.strokeStyle = 'rgba(255,204,0,0.7)';
+        pCtx.lineWidth = 1.5;
+        cells.forEach(cell => {
+            pCtx.strokeRect(cell.col*TILE+1, cell.row*TILE+1, TILE-2, TILE-2);
+        });
+    }
+    // Grid
+    pCtx.strokeStyle = 'rgba(255,255,255,0.12)';
+    pCtx.lineWidth = 0.5;
+    for (let c = 0; c <= sheet.cols; c++) {
+        pCtx.beginPath(); pCtx.moveTo(c*TILE+.5, 0); pCtx.lineTo(c*TILE+.5, pickerCanvas.height); pCtx.stroke();
+    }
+    for (let r = 0; r <= sheet.rows; r++) {
+        pCtx.beginPath(); pCtx.moveTo(0, r*TILE+.5); pCtx.lineTo(pickerCanvas.width, r*TILE+.5); pCtx.stroke();
+    }
+    tileSelMark.style.display = 'none';  // no longer using the CSS marker
+}
+
+// Temp canvas for transparency detection
+const _tmpCanvas = document.createElement('canvas');
+_tmpCanvas.width = TILE; _tmpCanvas.height = TILE;
+const _tmpCtx = _tmpCanvas.getContext('2d');
+function isTileEmpty(sheetKey, col, row) {
+    const sheet = SHEETS[sheetKey];
+    if (!sheet || !sheet.img) return true;
+    _tmpCtx.clearRect(0, 0, TILE, TILE);
+    _tmpCtx.drawImage(sheet.img, col*TILE, row*TILE, TILE, TILE, 0, 0, TILE, TILE);
+    const d = _tmpCtx.getImageData(0, 0, TILE, TILE).data;
+    for (let i = 3; i < d.length; i += 4) { if (d[i] > 10) return false; }
+    return true;
+}
+
+function pickerColRow(e) {
+    const rect = pickerCanvas.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / PICKER_SCALE;
+    const sy = (e.clientY - rect.top) / PICKER_SCALE;
+    return { col: Math.floor(sx / TILE), row: Math.floor(sy / TILE) };
+}
+
+function rectToCells(c0, r0, c1, r1, sheetKey) {
+    const cells = [];
+    for (let r = r0; r <= r1; r++)
+        for (let c = c0; c <= c1; c++)
+            if (!isTileEmpty(sheetKey, c, r)) cells.push({col:c, row:r});
+    return cells;
+}
+
+pickerSheet.addEventListener('mousedown', e => {
+    const {col, row} = pickerColRow(e);
+    const sheet = SHEETS[activeSheet];
+    if (col < 0 || col >= sheet.cols || row < 0 || row >= sheet.rows) return;
+    if (e.shiftKey && cursorTile && cursorTile.sheet === activeSheet) {
+        // Shift+click: toggle individual tile
+        if (!isTileEmpty(activeSheet, col, row)) {
+            const key = cellKey(col, row);
+            const existing = cursorTile.cells;
+            const idx = existing.findIndex(c => cellKey(c.col, c.row) === key);
+            if (idx >= 0) {
+                existing.splice(idx, 1);
+                if (!existing.length) { cursorTile = null; }
+            } else {
+                existing.push({col, row});
+            }
+            setTool('place');
+            drawPicker();
+            drawPreview();
+        }
+        return;
+    }
+    pickerDrag = { startCol: col, startRow: row };
+});
+
+pickerSheet.addEventListener('mousemove', e => {
+    const {col, row} = pickerColRow(e);
+    const sheet = SHEETS[activeSheet];
+    if (col < 0 || col >= sheet.cols || row < 0 || row >= sheet.rows) {
+        if (!pickerDrag) tileHover.style.display = 'none';
+        return;
+    }
+    if (pickerDrag) {
+        const c0 = Math.min(pickerDrag.startCol, col), r0 = Math.min(pickerDrag.startRow, row);
+        const c1 = Math.max(pickerDrag.startCol, col), r1 = Math.max(pickerDrag.startRow, row);
+        tileHover.style.display = 'none';
+        // Live highlight: show what drag would select
+        const pending = rectToCells(c0, r0, c1, r1, activeSheet);
+        if (pending.length) drawPicker(pending);
+    } else {
+        tileHover.style.display = '';
+        tileHover.style.left   = (col * TILE * PICKER_SCALE) + 'px';
+        tileHover.style.top    = (row * TILE * PICKER_SCALE) + 'px';
+        tileHover.style.width  = (TILE * PICKER_SCALE) + 'px';
+        tileHover.style.height = (TILE * PICKER_SCALE) + 'px';
+    }
+});
+
+pickerSheet.addEventListener('mouseup', e => {
+    if (!pickerDrag) return;
+    const {col, row} = pickerColRow(e);
+    const sheet = SHEETS[activeSheet];
+    const c0 = Math.max(0, Math.min(pickerDrag.startCol, col));
+    const r0 = Math.max(0, Math.min(pickerDrag.startRow, row));
+    const c1 = Math.min(sheet.cols - 1, Math.max(pickerDrag.startCol, col));
+    const r1 = Math.min(sheet.rows - 1, Math.max(pickerDrag.startRow, row));
+    pickerDrag = null;
+    const newCells = rectToCells(c0, r0, c1, r1, activeSheet);
+    if (!newCells.length) return;
+    cursorTile = { sheet: activeSheet, cells: newCells };
+    setTool('place');
+    drawPicker();
+    drawPreview();
+});
+
+pickerSheet.addEventListener('mouseleave', () => {
+    tileHover.style.display = 'none';
+    pickerDrag = null;
+});
+
+// Tabs
+document.querySelectorAll('.picker-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.picker-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeSheet = tab.dataset.sheet;
+        const pickerWrap = document.getElementById('picker-wrap');
+        const terrainPal = document.getElementById('terrain-palette');
+        const skyboxPal = document.getElementById('skybox-palette');
+        const curTile = document.getElementById('current-tile');
+        const aboveToggle = document.getElementById('above-toggle');
+        pickerWrap.style.display = 'none';
+        terrainPal.style.display = 'none';
+        skyboxPal.style.display = 'none';
+        const blockerPal = document.getElementById('blocker-palette');
+        blockerPal.style.display = 'none';
+        curTile.style.display = 'none';
+        aboveToggle.style.display = 'none';
+        if (activeSheet === 'terrain') {
+            terrainPal.style.display = '';
+            setTool('terrain');
+        } else if (activeSheet === 'skybox') {
+            skyboxPal.style.display = '';
+        } else if (activeSheet === 'blocker') {
+            blockerPal.style.display = '';
+            setTool('blocker');
+        } else {
+            pickerWrap.style.display = '';
+            curTile.style.display = '';
+            aboveToggle.style.display = '';
+            drawPicker();
+        }
+    });
+});
+
+function drawPreview() {
+    const info = document.querySelector('.current-tile .info');
+    if (!cursorTile || !cursorTile.cells.length) {
+        previewCanvas.width = 48; previewCanvas.height = 48;
+        previewCanvas.style.width = '48px'; previewCanvas.style.height = '48px';
+        pvCtx.clearRect(0, 0, 48, 48);
+        info.innerHTML = '<span class="no-tile">Click/drag tiles to select</span>';
+        return;
+    }
+    const ct = cursorTile, sheet = SHEETS[ct.sheet];
+    if (!sheet.img) return;
+    const b = cursorBounds(ct);
+    const pw = b.cols * TILE, ph = b.rows * TILE;
+    previewCanvas.width = pw; previewCanvas.height = ph;
+    const maxDim = 96;
+    const scale = Math.min(1, maxDim / Math.max(pw, ph));
+    previewCanvas.style.width = Math.round(pw * scale) + 'px';
+    previewCanvas.style.height = Math.round(ph * scale) + 'px';
+    pvCtx.imageSmoothingEnabled = false;
+    pvCtx.clearRect(0, 0, pw, ph);
+    ct.cells.forEach(c => {
+        pvCtx.drawImage(sheet.img, c.col*TILE, c.row*TILE, TILE, TILE,
+            (c.col - b.col)*TILE, (c.row - b.row)*TILE, TILE, TILE);
+    });
+    info.innerHTML = '<b>' + ct.sheet + '</b> ' + ct.cells.length + ' tile' + (ct.cells.length > 1 ? 's' : '');
+}
+
+// ── Tool ────────────────────────────────────────────────────────
+function setTool(t) {
+    tool = t;
+    toolBadge.textContent = t === 'polygon' ? 'POLYGON' : t.toUpperCase();
+    toolBadge.className = 'tool-mode ' + (t === 'polygon' ? 'blocker' : t);
+    stage.style.cursor = (t === 'place' || t === 'terrain' || t === 'blocker' || t === 'polygon') ? 'crosshair' : t === 'erase' ? 'not-allowed' : 'default';
+    if (t !== 'select') { selectedId = null; updateLayerList(); render(); }
+    if (t !== 'polygon') { polyDrawing = []; draggingVertex = null; }
+}
+document.getElementById('btn-tool-select').addEventListener('click', () => setTool('select'));
+document.getElementById('btn-tool-erase').addEventListener('click', () => setTool('erase'));
+
+function switchToTerrainTab() {
+    document.querySelectorAll('.picker-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.picker-tab[data-sheet="terrain"]').classList.add('active');
+    activeSheet = 'terrain';
+    document.getElementById('picker-wrap').style.display = 'none';
+    document.getElementById('terrain-palette').style.display = '';
+    document.getElementById('skybox-palette').style.display = 'none';
+    document.getElementById('blocker-palette').style.display = 'none';
+    document.getElementById('current-tile').style.display = 'none';
+    document.getElementById('above-toggle').style.display = 'none';
+}
+
+function buildTerrainPalette() {
+    const list = document.getElementById('terrain-list');
+    list.innerHTML = '';
+    const eraser = document.createElement('div');
+    eraser.className = 'terrain-eraser' + (activeTerrain === -1 ? ' active' : '');
+    eraser.textContent = '\u2715 Eraser';
+    eraser.addEventListener('click', () => {
+        activeTerrain = -1;
+        setTool('terrain');
+        switchToTerrainTab();
+        updateTerrainPaletteHighlight();
+    });
+    list.appendChild(eraser);
+    const terrainSheet = SHEETS.terrain;
+    TERRAIN_TYPES.forEach((tt, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'terrain-btn' + (activeTerrain === i ? ' active' : '');
+        btn.dataset.idx = i;
+        const preview = document.createElement('canvas');
+        preview.width = TILE; preview.height = TILE;
+        const pc = preview.getContext('2d');
+        pc.imageSmoothingEnabled = false;
+        if (terrainSheet && terrainSheet.img) {
+            const srcCol = tt.blockCol + 9;
+            const srcRow = tt.blockRow + 2;
+            pc.drawImage(terrainSheet.img, srcCol*TILE, srcRow*TILE, TILE, TILE, 0, 0, TILE, TILE);
+        }
+        const name = document.createElement('span');
+        name.className = 'tname';
+        name.textContent = tt.name;
+        btn.appendChild(preview);
+        btn.appendChild(name);
+        btn.addEventListener('click', () => {
+            activeTerrain = i;
+            setTool('terrain');
+            switchToTerrainTab();
+            updateTerrainPaletteHighlight();
+        });
+        list.appendChild(btn);
+    });
+}
+
+function updateTerrainPaletteHighlight() {
+    const list = document.getElementById('terrain-list');
+    list.querySelectorAll('.terrain-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.idx) === activeTerrain);
+    });
+    list.querySelectorAll('.terrain-eraser').forEach(btn => {
+        btn.classList.toggle('active', activeTerrain === -1);
+    });
+}
+
+// ── Terrain autotile logic ──────────────────────────────────────
+function cleanMask(raw) {
+    let m = raw;
+    if (!(m & 1) || !(m & 4))   m &= ~2;
+    if (!(m & 4) || !(m & 16))  m &= ~8;
+    if (!(m & 16) || !(m & 64)) m &= ~32;
+    if (!(m & 64) || !(m & 1))  m &= ~128;
+    return m;
+}
+
+function getTerrainTileCoords(gx, gy, typeIdx) {
+    if (typeIdx < 0) return null;
+    const tt = TERRAIN_TYPES[typeIdx];
+    let raw = 0;
+    const dirs = [[0,-1,1],[1,-1,2],[1,0,4],[1,1,8],[0,1,16],[-1,1,32],[-1,0,64],[-1,-1,128]];
+    for (const [dx,dy,bit] of dirs) {
+        const nx = gx+dx, ny = gy+dy;
+        if (nx>=0 && nx<GRID_COLS && ny>=0 && ny<GRID_ROWS && terrainGrid[ny][nx].includes(typeIdx)) raw |= bit;
+    }
+    const mask = cleanMask(raw);
+    const tileIdx = AUTOTILE_MAP[mask];
+    if (tileIdx === undefined) return null;
+    return { col: tt.blockCol + (tileIdx % 12), row: tt.blockRow + Math.floor(tileIdx / 12) };
+}
+
+function paintTerrain(gx, gy) {
+    if (gx < 0 || gx >= GRID_COLS || gy < 0 || gy >= GRID_ROWS) return;
+    const layers = terrainGrid[gy][gx];
+    layers[activeTerrainLayer] = activeTerrain; // -1 clears the layer
+}
+
+// ── Skybox palette ──────────────────────────────────────────────
+function drawSkyboxPreview(canvas, stops) {
+    const ctx = canvas.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    stops.forEach(s => g.addColorStop(s.pos, s.color));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function buildSkyboxPalette() {
+    const presetsDiv = document.getElementById('skybox-presets');
+    presetsDiv.innerHTML = '';
+    SKYBOX_PRESETS.forEach((preset, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'skybox-preset' + (activeSkyboxPreset === i ? ' active' : '');
+        btn.dataset.idx = i;
+        const preview = document.createElement('canvas');
+        preview.width = 40; preview.height = 24;
+        drawSkyboxPreview(preview, preset.stops);
+        const name = document.createElement('span');
+        name.className = 'sname';
+        name.textContent = preset.name;
+        btn.appendChild(preview);
+        btn.appendChild(name);
+        btn.addEventListener('click', () => {
+            activeSkyboxPreset = i;
+            skybox.stops = preset.stops.map(s => ({...s}));
+            updateSkyboxHighlight();
+            buildSkyboxStops();
+            render();
+        });
+        presetsDiv.appendChild(btn);
+    });
+}
+
+function updateSkyboxHighlight() {
+    document.querySelectorAll('.skybox-preset').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.idx) === activeSkyboxPreset);
+    });
+}
+
+function buildSkyboxStops() {
+    const container = document.getElementById('skybox-stops');
+    container.innerHTML = '';
+    skybox.stops.forEach((stop, i) => {
+        const row = document.createElement('div');
+        row.className = 'skybox-stop';
+        const colorIn = document.createElement('input');
+        colorIn.type = 'color';
+        colorIn.value = stop.color;
+        colorIn.addEventListener('input', () => {
+            stop.color = colorIn.value;
+            activeSkyboxPreset = -1;
+            updateSkyboxHighlight();
+            render();
+        });
+        const posIn = document.createElement('input');
+        posIn.type = 'number';
+        posIn.min = 0; posIn.max = 100; posIn.step = 1;
+        posIn.value = Math.round(stop.pos * 100);
+        posIn.title = 'Position %';
+        posIn.addEventListener('input', () => {
+            stop.pos = Math.max(0, Math.min(1, parseInt(posIn.value || '0') / 100));
+            activeSkyboxPreset = -1;
+            updateSkyboxHighlight();
+            render();
+        });
+        const pctLabel = document.createElement('span');
+        pctLabel.textContent = '%';
+        pctLabel.style.cssText = 'font-size:0.65rem;color:#666';
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '\u2715';
+        delBtn.title = 'Remove stop';
+        delBtn.addEventListener('click', () => {
+            if (skybox.stops.length <= 2) return;
+            skybox.stops.splice(i, 1);
+            activeSkyboxPreset = -1;
+            updateSkyboxHighlight();
+            buildSkyboxStops();
+            render();
+        });
+        row.appendChild(colorIn);
+        row.appendChild(posIn);
+        row.appendChild(pctLabel);
+        row.appendChild(delBtn);
+        container.appendChild(row);
+    });
+}
+
+document.getElementById('skybox-add-stop').addEventListener('click', () => {
+    const last = skybox.stops[skybox.stops.length - 1];
+    skybox.stops.push({ pos: Math.min(1, last.pos + 0.1), color: last.color });
+    skybox.stops.sort((a, b) => a.pos - b.pos);
+    activeSkyboxPreset = -1;
+    updateSkyboxHighlight();
+    buildSkyboxStops();
+    render();
+});
+
+function switchToSkyboxTab() {
+    document.querySelectorAll('.picker-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.picker-tab[data-sheet="skybox"]').classList.add('active');
+    activeSheet = 'skybox';
+    document.getElementById('picker-wrap').style.display = 'none';
+    document.getElementById('terrain-palette').style.display = 'none';
+    document.getElementById('skybox-palette').style.display = '';
+    document.getElementById('blocker-palette').style.display = 'none';
+    document.getElementById('current-tile').style.display = 'none';
+    document.getElementById('above-toggle').style.display = 'none';
+}
+
+// ── Blocker system ──────────────────────────────────────────────
+function switchToBlockerTab() {
+    document.querySelectorAll('.picker-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.picker-tab[data-sheet="blocker"]').classList.add('active');
+    activeSheet = 'blocker';
+    document.getElementById('picker-wrap').style.display = 'none';
+    document.getElementById('terrain-palette').style.display = 'none';
+    document.getElementById('skybox-palette').style.display = 'none';
+    document.getElementById('blocker-palette').style.display = '';
+    document.getElementById('current-tile').style.display = 'none';
+    document.getElementById('above-toggle').style.display = 'none';
+    setTool('blocker');
+}
+
+function paintBlocker(gx, gy) {
+    if (gx < 0 || gx >= GRID_COLS || gy < 0 || gy >= GRID_ROWS) return;
+    if (blockerPaintMode === 'start') {
+        startPos = { gx, gy };
+        return;
+    }
+    const val = blockerPaintMode === 'block';
+    if (blockerGrid[gy][gx] === val) return;
+    blockerGrid[gy][gx] = val;
+}
+
+document.getElementById('blocker-paint').addEventListener('click', () => {
+    blockerPaintMode = 'block';
+    document.getElementById('blocker-paint').classList.add('active');
+    document.getElementById('blocker-erase').classList.remove('active');
+    document.getElementById('blocker-start').classList.remove('active');
+});
+document.getElementById('blocker-erase').addEventListener('click', () => {
+    blockerPaintMode = 'clear';
+    document.getElementById('blocker-erase').classList.add('active');
+    document.getElementById('blocker-paint').classList.remove('active');
+    document.getElementById('blocker-start').classList.remove('active');
+});
+document.getElementById('blocker-start').addEventListener('click', () => {
+    blockerPaintMode = 'start';
+    document.getElementById('blocker-start').classList.add('active');
+    document.getElementById('blocker-paint').classList.remove('active');
+    document.getElementById('blocker-erase').classList.remove('active');
+});
+document.getElementById('chk-show-blockers').addEventListener('change', render);
+
+// ── Polygon collider system ─────────────────────────────────────
+function setPolyMode(mode) {
+    polyMode = mode;
+    polyDrawing = [];
+    draggingVertex = null;
+    document.getElementById('poly-draw').classList.toggle('active', mode === 'draw');
+    document.getElementById('poly-edit').classList.toggle('active', mode === 'edit');
+    document.getElementById('poly-del').classList.toggle('active', mode === 'delete');
+    if (mode) {
+        setTool('polygon');
+        // Deactivate grid blocker buttons
+        blockerPaintMode = null;
+        document.getElementById('blocker-paint').classList.remove('active');
+        document.getElementById('blocker-erase').classList.remove('active');
+        document.getElementById('blocker-start').classList.remove('active');
+    }
+    render();
+}
+function clearPolyMode() {
+    polyMode = null;
+    polyDrawing = [];
+    draggingVertex = null;
+    selectedCollider = null;
+    document.getElementById('poly-draw').classList.remove('active');
+    document.getElementById('poly-edit').classList.remove('active');
+    document.getElementById('poly-del').classList.remove('active');
+    render(); updatePolyList();
+}
+document.getElementById('poly-draw').addEventListener('click', () => {
+    setPolyMode(polyMode === 'draw' ? null : 'draw');
+    if (!polyMode) { setTool('blocker'); blockerPaintMode = 'block'; document.getElementById('blocker-paint').classList.add('active'); }
+});
+document.getElementById('poly-edit').addEventListener('click', () => {
+    setPolyMode(polyMode === 'edit' ? null : 'edit');
+    if (!polyMode) { setTool('blocker'); blockerPaintMode = 'block'; document.getElementById('blocker-paint').classList.add('active'); }
+});
+document.getElementById('poly-del').addEventListener('click', () => {
+    setPolyMode(polyMode === 'delete' ? null : 'delete');
+    if (!polyMode) { setTool('blocker'); blockerPaintMode = 'block'; document.getElementById('blocker-paint').classList.add('active'); }
+});
+
+function polySnap(v) {
+    return document.getElementById('chk-guides').checked ? Math.round(v / TILE) * TILE : Math.round(v);
+}
+
+function finishPolygon() {
+    if (polyDrawing.length >= 3) {
+        pushUndo();
+        colliders.push({ id: nextColliderId++, points: polyDrawing.slice() });
+        updatePolyList();
+    }
+    polyDrawing = [];
+    render();
+}
+
+function hitTestPolyVertex(px, py, radius) {
+    for (const c of colliders) {
+        for (let i = 0; i < c.points.length; i++) {
+            const dx = c.points[i].x - px, dy = c.points[i].y - py;
+            if (dx * dx + dy * dy <= radius * radius) return { colliderId: c.id, vertexIndex: i };
+        }
+    }
+    return null;
+}
+
+function pointInPolygon(px, py, pts) {
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+        const xi = pts[i].x, yi = pts[i].y;
+        const xj = pts[j].x, yj = pts[j].y;
+        if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
+
+function hitTestPolygon(px, py) {
+    for (const c of colliders) {
+        if (pointInPolygon(px, py, c.points)) return c.id;
+    }
+    return null;
+}
+
+function updatePolyList() {
+    const list = document.getElementById('poly-list');
+    list.innerHTML = '';
+    colliders.forEach((c, idx) => {
+        const el = document.createElement('div');
+        el.className = 'poly-item' + (c.id === selectedCollider ? ' selected' : '');
+        const nm = document.createElement('span');
+        nm.className = 'pname';
+        nm.textContent = 'Poly ' + (idx + 1);
+        const vt = document.createElement('span');
+        vt.className = 'pverts';
+        vt.textContent = c.points.length + 'v';
+        const del = document.createElement('button');
+        del.className = 'pdel';
+        del.textContent = '\u2715';
+        del.title = 'Delete polygon';
+        del.addEventListener('click', ev => {
+            ev.stopPropagation();
+            pushUndo();
+            colliders = colliders.filter(p => p.id !== c.id);
+            if (selectedCollider === c.id) selectedCollider = null;
+            render(); updatePolyList();
+        });
+        el.appendChild(nm); el.appendChild(vt); el.appendChild(del);
+        el.addEventListener('click', () => {
+            selectedCollider = selectedCollider === c.id ? null : c.id;
+            render(); updatePolyList();
+        });
+        list.appendChild(el);
+    });
+}
+
+// Hook blocker buttons to deactivate polygon mode
+['blocker-paint', 'blocker-erase', 'blocker-start'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => {
+        polyMode = null;
+        polyDrawing = [];
+        draggingVertex = null;
+        document.getElementById('poly-draw').classList.remove('active');
+        document.getElementById('poly-edit').classList.remove('active');
+        document.getElementById('poly-del').classList.remove('active');
+        setTool('blocker');
+    });
+});
+
+// Terrain layer selector
+document.querySelectorAll('#terrain-layers button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        activeTerrainLayer = parseInt(btn.dataset.layer);
+        document.querySelectorAll('#terrain-layers button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    });
+});
+
+// ── Render ──────────────────────────────────────────────────────
+function render() {
+    sCtx.imageSmoothingEnabled = false;
+    sCtx.clearRect(0, 0, STAGE_W, STAGE_H);
+    // Skybox gradient background
+    const g = sCtx.createLinearGradient(0, 0, 0, STAGE_H);
+    skybox.stops.forEach(s => g.addColorStop(s.pos, s.color));
+    sCtx.fillStyle = g;
+    sCtx.fillRect(0, 0, STAGE_W, STAGE_H);
+    // Terrain grid (multi-layer)
+    const terrainSheet = SHEETS.terrain;
+    if (terrainSheet && terrainSheet.img) {
+        for (let gy = 0; gy < GRID_ROWS; gy++) {
+            for (let gx = 0; gx < GRID_COLS; gx++) {
+                const layers = terrainGrid[gy][gx];
+                for (let li = 0; li < layers.length; li++) {
+                    if (layers[li] < 0) continue;
+                    const tc = getTerrainTileCoords(gx, gy, layers[li]);
+                    if (!tc) continue;
+                    sCtx.drawImage(terrainSheet.img, tc.col*TILE, tc.row*TILE, TILE, TILE, gx*TILE, gy*TILE, TILE, TILE);
+                }
+            }
+        }
+    }
+    // Sort by y for z-order (tiles further down render on top)
+    const sorted = [...tiles].sort((a,b) => a.y - b.y);
+    const belowTiles = sorted.filter(t => !t.above);
+    const aboveTiles = sorted.filter(t => t.above);
+    const drawTile = t => {
+        const sheet = SHEETS[t.sheet];
+        if (!sheet || !sheet.img) return;
+        sCtx.drawImage(sheet.img, t.col*TILE, t.row*TILE, TILE, TILE, t.x, t.y, TILE, TILE);
+        if (t.id === selectedId) {
+            sCtx.strokeStyle = '#00ccff';
+            sCtx.lineWidth = 1;
+            sCtx.setLineDash([2,2]);
+            sCtx.strokeRect(t.x+.5, t.y+.5, TILE-1, TILE-1);
+            sCtx.setLineDash([]);
+        }
+    };
+    belowTiles.forEach(drawTile);
+    // Test player sprite (renders between below and above layers)
+    drawTestPlayer();
+    aboveTiles.forEach(drawTile);
+    // Grid
+    if (document.getElementById('chk-grid').checked) {
+        sCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+        sCtx.lineWidth = 0.5;
+        for (let x = 0; x <= STAGE_W; x += TILE) {
+            sCtx.beginPath(); sCtx.moveTo(x+.5,0); sCtx.lineTo(x+.5,STAGE_H); sCtx.stroke();
+        }
+        for (let y = 0; y <= STAGE_H; y += TILE) {
+            sCtx.beginPath(); sCtx.moveTo(0,y+.5); sCtx.lineTo(STAGE_W,y+.5); sCtx.stroke();
+        }
+    }
+    // Blocker overlay
+    if (document.getElementById('chk-show-blockers').checked) {
+        for (let gy = 0; gy < GRID_ROWS; gy++) {
+            for (let gx = 0; gx < GRID_COLS; gx++) {
+                if (blockerGrid[gy][gx]) {
+                    const bx = gx * TILE, by = gy * TILE;
+                    sCtx.fillStyle = 'rgba(255,0,0,0.22)';
+                    sCtx.fillRect(bx, by, TILE, TILE);
+                    sCtx.strokeStyle = 'rgba(255,0,0,0.45)';
+                    sCtx.lineWidth = 1;
+                    sCtx.beginPath();
+                    sCtx.moveTo(bx+4, by+4); sCtx.lineTo(bx+TILE-4, by+TILE-4);
+                    sCtx.moveTo(bx+TILE-4, by+4); sCtx.lineTo(bx+4, by+TILE-4);
+                    sCtx.stroke();
+                }
+            }
+        }
+        // Start position marker
+        if (startPos) {
+            const sx = startPos.gx * TILE, sy = startPos.gy * TILE;
+            sCtx.fillStyle = 'rgba(0,180,255,0.25)';
+            sCtx.fillRect(sx, sy, TILE, TILE);
+            sCtx.strokeStyle = 'rgba(0,180,255,0.8)';
+            sCtx.lineWidth = 2;
+            sCtx.strokeRect(sx+1, sy+1, TILE-2, TILE-2);
+            // Draw a small arrow/diamond in the center
+            const cx = sx + TILE/2, cy = sy + TILE/2;
+            sCtx.fillStyle = 'rgba(0,180,255,0.7)';
+            sCtx.beginPath();
+            sCtx.moveTo(cx, cy-8); sCtx.lineTo(cx+8, cy); sCtx.lineTo(cx, cy+8); sCtx.lineTo(cx-8, cy);
+            sCtx.closePath();
+            sCtx.fill();
+        }
+    }
+    // Blocker ghost preview
+    if (ghostPos && tool === 'blocker') {
+        const gx = Math.floor(ghostPos.x / TILE), gy = Math.floor(ghostPos.y / TILE);
+        if (gx >= 0 && gx < GRID_COLS && gy >= 0 && gy < GRID_ROWS) {
+            if (blockerPaintMode === 'start') {
+                sCtx.fillStyle = 'rgba(0,180,255,0.35)';
+                sCtx.fillRect(gx*TILE, gy*TILE, TILE, TILE);
+                sCtx.strokeStyle = 'rgba(0,180,255,0.7)';
+            } else {
+                sCtx.fillStyle = blockerPaintMode === 'block' ? 'rgba(255,0,0,0.35)' : 'rgba(0,255,0,0.25)';
+                sCtx.fillRect(gx*TILE, gy*TILE, TILE, TILE);
+                sCtx.strokeStyle = blockerPaintMode === 'block' ? 'rgba(255,0,0,0.7)' : 'rgba(0,255,0,0.5)';
+            }
+            sCtx.lineWidth = 1;
+            sCtx.setLineDash([3,3]);
+            sCtx.strokeRect(gx*TILE+.5, gy*TILE+.5, TILE-1, TILE-1);
+            sCtx.setLineDash([]);
+        }
+    }
+    // Polygon collider overlay
+    if (document.getElementById('chk-show-blockers').checked) {
+        colliders.forEach(c => {
+            if (c.points.length < 2) return;
+            const isSel = c.id === selectedCollider;
+            sCtx.beginPath();
+            sCtx.moveTo(c.points[0].x, c.points[0].y);
+            for (let i = 1; i < c.points.length; i++) sCtx.lineTo(c.points[i].x, c.points[i].y);
+            sCtx.closePath();
+            sCtx.fillStyle = isSel ? 'rgba(255,160,0,0.18)' : 'rgba(255,120,0,0.14)';
+            sCtx.fill();
+            sCtx.strokeStyle = isSel ? 'rgba(255,180,0,0.8)' : 'rgba(255,120,0,0.5)';
+            sCtx.lineWidth = isSel ? 2 : 1;
+            sCtx.stroke();
+            // Vertex dots when in polygon mode
+            if (tool === 'polygon') {
+                c.points.forEach(p => {
+                    sCtx.beginPath();
+                    sCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    sCtx.fillStyle = isSel ? '#ffaa00' : '#ff8800';
+                    sCtx.fill();
+                    sCtx.strokeStyle = '#000';
+                    sCtx.lineWidth = 0.5;
+                    sCtx.stroke();
+                });
+            }
+        });
+    }
+    // In-progress polygon drawing
+    if (polyDrawing.length > 0 && polyMode === 'draw') {
+        sCtx.beginPath();
+        sCtx.moveTo(polyDrawing[0].x, polyDrawing[0].y);
+        for (let i = 1; i < polyDrawing.length; i++) sCtx.lineTo(polyDrawing[i].x, polyDrawing[i].y);
+        if (ghostPos) sCtx.lineTo(ghostPos.x, ghostPos.y);
+        sCtx.strokeStyle = 'rgba(255,200,0,0.7)';
+        sCtx.lineWidth = 1.5;
+        sCtx.setLineDash([4,3]);
+        sCtx.stroke();
+        sCtx.setLineDash([]);
+        // Close-zone indicator near first vertex
+        polyDrawing.forEach((p, i) => {
+            sCtx.beginPath();
+            sCtx.arc(p.x, p.y, i === 0 ? 5 : 3, 0, Math.PI * 2);
+            sCtx.fillStyle = i === 0 ? 'rgba(0,255,100,0.6)' : '#ffcc00';
+            sCtx.fill();
+            sCtx.strokeStyle = '#000';
+            sCtx.lineWidth = 0.5;
+            sCtx.stroke();
+        });
+    }
+    // Ghost preview
+    if (ghostPos && cursorTile && cursorTile.cells.length && tool === 'place') {
+        const ct = cursorTile, sheet = SHEETS[ct.sheet];
+        if (sheet && sheet.img) {
+            const b = cursorBounds(ct);
+            const gx = ghostPos.x, gy = ghostPos.y;
+            sCtx.globalAlpha = 0.45;
+            ct.cells.forEach(c => {
+                sCtx.drawImage(sheet.img,
+                    c.col*TILE, c.row*TILE, TILE, TILE,
+                    gx + (c.col - b.col)*TILE, gy + (c.row - b.row)*TILE, TILE, TILE);
+            });
+            sCtx.globalAlpha = 1;
+            sCtx.strokeStyle = 'rgba(255,204,0,0.5)';
+            sCtx.lineWidth = 1;
+            sCtx.setLineDash([3,3]);
+            ct.cells.forEach(c => {
+                const cx = gx + (c.col - b.col)*TILE, cy = gy + (c.row - b.row)*TILE;
+                sCtx.strokeRect(cx+.5, cy+.5, TILE-1, TILE-1);
+            });
+            sCtx.setLineDash([]);
+        }
+    }
+    // Terrain ghost preview
+    if (ghostPos && tool === 'terrain' && activeTerrain >= 0) {
+        const gx = Math.floor(ghostPos.x / TILE), gy = Math.floor(ghostPos.y / TILE);
+        if (gx >= 0 && gx < GRID_COLS && gy >= 0 && gy < GRID_ROWS) {
+            const terrSheet = SHEETS.terrain;
+            if (terrSheet && terrSheet.img) {
+                const layers = terrainGrid[gy][gx];
+                if (layers[activeTerrainLayer] !== activeTerrain) {
+                    const old = layers[activeTerrainLayer];
+                    layers[activeTerrainLayer] = activeTerrain;
+                    const tc = getTerrainTileCoords(gx, gy, activeTerrain);
+                    layers[activeTerrainLayer] = old;
+                    if (tc) {
+                        sCtx.globalAlpha = 0.5;
+                        sCtx.drawImage(terrSheet.img, tc.col*TILE, tc.row*TILE, TILE, TILE, gx*TILE, gy*TILE, TILE, TILE);
+                        sCtx.globalAlpha = 1;
+                        sCtx.strokeStyle = 'rgba(255,204,0,0.5)';
+                        sCtx.lineWidth = 1;
+                        sCtx.setLineDash([3,3]);
+                        sCtx.strokeRect(gx*TILE+.5, gy*TILE+.5, TILE-1, TILE-1);
+                        sCtx.setLineDash([]);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Zoom ────────────────────────────────────────────────────────
+function setZoom(z) {
+    zoom = Math.max(1, Math.min(4, z));
+    stageFrame.style.width = STAGE_W*zoom + 'px';
+    stageFrame.style.height = STAGE_H*zoom + 'px';
+    stage.style.width = STAGE_W*zoom + 'px';
+    stage.style.height = STAGE_H*zoom + 'px';
+    document.getElementById('zoom-label').textContent = zoom + '\u00d7';
+}
+document.getElementById('zoom-in').addEventListener('click', () => setZoom(zoom+1));
+document.getElementById('zoom-out').addEventListener('click', () => setZoom(zoom-1));
+document.getElementById('chk-grid').addEventListener('change', render);
+document.getElementById('chk-above-layer').addEventListener('change', e => {
+    document.getElementById('above-toggle').classList.toggle('on', e.target.checked);
+});
+
+document.getElementById('canvas-cols').addEventListener('change', e => {
+    const v = Math.max(1, Math.min(40, parseInt(e.target.value) || GRID_COLS));
+    if (v !== GRID_COLS) { pushUndo(); resizeCanvas(v, GRID_ROWS); }
+    e.target.value = GRID_COLS;
+});
+document.getElementById('canvas-rows').addEventListener('change', e => {
+    const v = Math.max(1, Math.min(40, parseInt(e.target.value) || GRID_ROWS));
+    if (v !== GRID_ROWS) { pushUndo(); resizeCanvas(GRID_COLS, v); }
+    e.target.value = GRID_ROWS;
+});
+
+// ── Stage mouse ─────────────────────────────────────────────────
+let drag = null;
+let dragOff = {x:0,y:0};
+let ghostPos = null;  // {x, y} snapped stage coords for place preview
+let terrainPainting = false;
+let blockerPainting = false;
+
+function stageXY(e) {
+    const r = stage.getBoundingClientRect();
+    return { x: (e.clientX-r.left)/zoom, y: (e.clientY-r.top)/zoom };
+}
+function snap(v) { return document.getElementById('chk-guides').checked ? Math.round(v/TILE)*TILE : Math.round(v); }
+
+stage.addEventListener('mousemove', e => {
+    const {x,y} = stageXY(e);
+    const gx = Math.floor(x/TILE), gy = Math.floor(y/TILE);
+    coordsEl.textContent = Math.round(x)+','+Math.round(y)+'  ['+gx+','+gy+']';
+    if (drag) {
+        drag.x = snap(x - dragOff.x);
+        drag.y = snap(y - dragOff.y);
+        render();
+    } else if (tool === 'place' && cursorTile && cursorTile.cells.length) {
+        const b = cursorBounds(cursorTile);
+        ghostPos = { x: snap(x - (b.cols * TILE) / 2), y: snap(y - (b.rows * TILE) / 2) };
+        render();
+    } else if (tool === 'terrain') {
+        ghostPos = { x: Math.floor(x / TILE) * TILE, y: Math.floor(y / TILE) * TILE };
+        if (terrainPainting) paintTerrain(Math.floor(x / TILE), Math.floor(y / TILE));
+        render();
+    } else if (tool === 'blocker') {
+        ghostPos = { x: Math.floor(x / TILE) * TILE, y: Math.floor(y / TILE) * TILE };
+        if (blockerPainting) paintBlocker(Math.floor(x / TILE), Math.floor(y / TILE));
+        render();
+    } else if (tool === 'polygon') {
+        if (draggingVertex) {
+            const c = colliders.find(p => p.id === draggingVertex.colliderId);
+            if (c) {
+                c.points[draggingVertex.vertexIndex] = { x: polySnap(x), y: polySnap(y) };
+                render();
+            }
+        } else if (polyMode === 'draw') {
+            ghostPos = { x: polySnap(x), y: polySnap(y) };
+            render();
+        }
+    }
+});
+
+stage.addEventListener('mousedown', e => {
+    const {x,y} = stageXY(e);
+    if (tool === 'polygon') {
+        const px = polySnap(x), py = polySnap(y);
+        if (polyMode === 'draw') {
+            // Close if clicking near first point
+            if (polyDrawing.length >= 3) {
+                const dx = polyDrawing[0].x - px, dy = polyDrawing[0].y - py;
+                if (dx * dx + dy * dy <= 144) { // 12px radius
+                    finishPolygon();
+                    return;
+                }
+            }
+            polyDrawing.push({ x: px, y: py });
+            render();
+            return;
+        }
+        if (polyMode === 'edit') {
+            const vhit = hitTestPolyVertex(px, py, 8 / zoom);
+            if (vhit) {
+                pushUndo();
+                draggingVertex = vhit;
+                selectedCollider = vhit.colliderId;
+                updatePolyList();
+                return;
+            }
+            // Click inside polygon to select it
+            const phit = hitTestPolygon(px, py);
+            selectedCollider = phit;
+            render(); updatePolyList();
+            return;
+        }
+        if (polyMode === 'delete') {
+            const phit = hitTestPolygon(px, py);
+            if (phit) {
+                pushUndo();
+                colliders = colliders.filter(c => c.id !== phit);
+                if (selectedCollider === phit) selectedCollider = null;
+                render(); updatePolyList();
+            }
+            return;
+        }
+        return;
+    }
+    if (tool === 'terrain') {
+        pushUndo();
+        terrainPainting = true;
+        paintTerrain(Math.floor(x / TILE), Math.floor(y / TILE));
+        render();
+        return;
+    }
+    if (tool === 'blocker') {
+        pushUndo();
+        blockerPainting = true;
+        paintBlocker(Math.floor(x / TILE), Math.floor(y / TILE));
+        render();
+        return;
+    }
+    if (tool === 'place' && cursorTile && cursorTile.cells.length) {
+        pushUndo();
+        const ct = cursorTile;
+        const b = cursorBounds(ct);
+        const bx = snap(x - (b.cols * TILE) / 2);
+        const by = snap(y - (b.rows * TILE) / 2);
+        ct.cells.forEach(c => {
+            tiles.push({
+                id: nextId++,
+                sheet: ct.sheet,
+                col: c.col,
+                row: c.row,
+                x: bx + (c.col - b.col) * TILE,
+                y: by + (c.row - b.row) * TILE,
+                above: document.getElementById('chk-above-layer').checked
+            });
+        });
+        render(); updateLayerList();
+        return;
+    }
+    if (tool === 'select') {
+        const sorted = [...tiles].sort((a,b) => b.y - a.y);
+        const hit = sorted.find(t => x>=t.x && x<t.x+TILE && y>=t.y && y<t.y+TILE);
+        if (hit) {
+            pushUndo();
+            selectedId = hit.id;
+            drag = hit;
+            dragOff = { x: x-hit.x, y: y-hit.y };
+        } else { selectedId = null; }
+        render(); updateLayerList();
+        return;
+    }
+    if (tool === 'erase') {
+        const sorted = [...tiles].sort((a,b) => b.y - a.y);
+        const hit = sorted.find(t => x>=t.x && x<t.x+TILE && y>=t.y && y<t.y+TILE);
+        if (hit) {
+            pushUndo();
+            tiles = tiles.filter(t => t.id !== hit.id);
+            if (selectedId === hit.id) selectedId = null;
+            render(); updateLayerList();
+        }
+    }
+});
+
+stage.addEventListener('mouseup', () => { drag = null; terrainPainting = false; blockerPainting = false; draggingVertex = null; });
+stage.addEventListener('mouseleave', () => { drag = null; terrainPainting = false; blockerPainting = false; draggingVertex = null; ghostPos = null; render(); });
+stage.addEventListener('dblclick', e => {
+    if (tool === 'polygon' && polyMode === 'draw' && polyDrawing.length >= 3) {
+        finishPolygon();
+    } else if (tool === 'polygon' && polyMode === 'edit' && selectedCollider) {
+        // Double-click on edge to insert vertex
+        const {x, y} = stageXY(e);
+        const c = colliders.find(p => p.id === selectedCollider);
+        if (!c) return;
+        let bestDist = 12 / zoom, bestIdx = -1;
+        for (let i = 0; i < c.points.length; i++) {
+            const a = c.points[i], b = c.points[(i + 1) % c.points.length];
+            const d = distToSegment(x, y, a.x, a.y, b.x, b.y);
+            if (d < bestDist) { bestDist = d; bestIdx = i + 1; }
+        }
+        if (bestIdx >= 0) {
+            pushUndo();
+            c.points.splice(bestIdx, 0, { x: polySnap(x), y: polySnap(y) });
+            render(); updatePolyList();
+        }
+    }
+});
+
+function distToSegment(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return Math.hypot(px - ax, py - ay);
+    let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+// ── Sel info ────────────────────────────────────────────────────
+function updateSelInfo() {}
+
+function deleteTile(id) {
+    pushUndo();
+    tiles = tiles.filter(t => t.id !== id);
+    if (selectedId === id) selectedId = null;
+    render(); updateLayerList();
+}
+
+// Expose editor actions
+window.ED = {
+    del() {
+        if (!selectedId) return;
+        deleteTile(selectedId);
+    }
+};
+
+// ── Layer list ──────────────────────────────────────────────────
+function updateLayerList() {
+    tileCountEl.textContent = tiles.length;
+    layerList.innerHTML = '';
+    const sorted = [...tiles].sort((a,b) => a.y - b.y);
+    sorted.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'layer-item' + (t.id === selectedId ? ' selected' : '');
+        const mini = document.createElement('canvas');
+        mini.width = TILE; mini.height = TILE;
+        const mc = mini.getContext('2d');
+        mc.imageSmoothingEnabled = false;
+        const sheet = SHEETS[t.sheet];
+        if (sheet && sheet.img) mc.drawImage(sheet.img, t.col*TILE, t.row*TILE, TILE, TILE, 0, 0, TILE, TILE);
+        const nm = document.createElement('span');
+        nm.className = 'lname';
+        nm.textContent = t.sheet[0] + ' r' + t.row + 'c' + t.col;
+        const ps = document.createElement('span');
+        ps.className = 'lpos';
+        ps.textContent = t.x + ',' + t.y;
+        const abv = document.createElement('button');
+        abv.className = 'labove' + (t.above ? ' on' : '');
+        abv.textContent = '\u2191';
+        abv.title = t.above ? 'Above player (click to move below)' : 'Below player (click to move above)';
+        abv.addEventListener('click', ev => {
+            ev.stopPropagation();
+            pushUndo();
+            t.above = !t.above;
+            render(); updateLayerList();
+        });
+        const del = document.createElement('button');
+        del.className = 'ldel';
+        del.textContent = '\u2715';
+        del.title = 'Delete tile';
+        del.addEventListener('click', ev => {
+            ev.stopPropagation();
+            deleteTile(t.id);
+        });
+        el.appendChild(mini); el.appendChild(nm); el.appendChild(ps); el.appendChild(abv); el.appendChild(del);
+        el.addEventListener('click', () => {
+            setTool('select');
+            selectedId = t.id;
+            render(); updateLayerList();
+        });
+        layerList.appendChild(el);
+    });
+}
+
+// ── Undo/Redo ───────────────────────────────────────────────────
+function pushUndo() {
+    undoStack.push(JSON.stringify({tiles, terrainGrid, blockerGrid, startPos, skybox, colliders}));
+    if (undoStack.length > 60) undoStack.shift();
+    redoStack = [];
+}
+function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(JSON.stringify({tiles, terrainGrid, blockerGrid, startPos, skybox, colliders}));
+    const st = JSON.parse(undoStack.pop());
+    tiles = st.tiles || []; if (st.terrainGrid) terrainGrid = st.terrainGrid;
+    if (st.blockerGrid) blockerGrid = st.blockerGrid;
+    if (st.startPos !== undefined) startPos = st.startPos;
+    if (st.skybox) { skybox = st.skybox; activeSkyboxPreset = -1; updateSkyboxHighlight(); buildSkyboxStops(); }
+    if (st.colliders) colliders = st.colliders; else colliders = [];
+    nextColliderId = colliders.reduce((m,c) => Math.max(m, c.id + 1), nextColliderId);
+    nextId = tiles.reduce((m,t) => Math.max(m,t.id+1), nextId);
+    selectedId = null; selectedCollider = null;
+    render(); updateLayerList(); updatePolyList();
+}
+function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(JSON.stringify({tiles, terrainGrid, blockerGrid, startPos, skybox, colliders}));
+    const st = JSON.parse(redoStack.pop());
+    tiles = st.tiles || []; if (st.terrainGrid) terrainGrid = st.terrainGrid;
+    if (st.blockerGrid) blockerGrid = st.blockerGrid;
+    if (st.startPos !== undefined) startPos = st.startPos;
+    if (st.skybox) { skybox = st.skybox; activeSkyboxPreset = -1; updateSkyboxHighlight(); buildSkyboxStops(); }
+    if (st.colliders) colliders = st.colliders; else colliders = [];
+    nextColliderId = colliders.reduce((m,c) => Math.max(m, c.id + 1), nextColliderId);
+    nextId = tiles.reduce((m,t) => Math.max(m,t.id+1), nextId);
+    selectedId = null; selectedCollider = null;
+    render(); updateLayerList(); updatePolyList();
+}
+document.getElementById('btn-undo').addEventListener('click', undo);
+document.getElementById('btn-redo').addEventListener('click', redo);
+
+// ── Keys ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (testActive) return; // test mode handles its own keys
+    if (e.key === 'p' || e.key === 'P') setTool('place');
+    if (e.key === 'v' || e.key === 'V') setTool('select');
+    if (e.key === 'e' || e.key === 'E') setTool('erase');
+    if (e.key === 't' || e.key === 'T') { setTool('terrain'); switchToTerrainTab(); }
+    if (e.key === 'b' || e.key === 'B') { setTool('blocker'); switchToBlockerTab(); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) { e.preventDefault(); ED.del(); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedCollider && tool === 'polygon') {
+        e.preventDefault();
+        pushUndo();
+        colliders = colliders.filter(c => c.id !== selectedCollider);
+        selectedCollider = null;
+        render(); updatePolyList();
+    }
+    if (e.key === 'z' && (e.ctrlKey||e.metaKey) && !e.shiftKey) { e.preventDefault(); undo(); }
+    if ((e.key === 'y' && (e.ctrlKey||e.metaKey)) || (e.key === 'z' && (e.ctrlKey||e.metaKey) && e.shiftKey)) { e.preventDefault(); redo(); }
+    if (selectedId && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const t = tiles.find(t => t.id === selectedId);
+        if (!t) return;
+        pushUndo();
+        const step = e.shiftKey ? TILE : 1;
+        if (e.key === 'ArrowLeft')  t.x -= step;
+        if (e.key === 'ArrowRight') t.x += step;
+        if (e.key === 'ArrowUp')    t.y -= step;
+        if (e.key === 'ArrowDown')  t.y += step;
+        render(); updateLayerList();
+    }
+    if (e.key === 'Escape') {
+        if (polyMode === 'draw' && polyDrawing.length > 0) { polyDrawing = []; render(); }
+        else if (polyMode) { clearPolyMode(); setTool('blocker'); blockerPaintMode = 'block'; document.getElementById('blocker-paint').classList.add('active'); }
+        else { selectedId = null; selectedCollider = null; render(); updateLayerList(); updatePolyList(); }
+    }
+});
+
+// ── Export / Import ─────────────────────────────────────────────
+function exportJS() {
+    const sorted = [...tiles].sort((a,b) => a.y - b.y);
+    const lines = ['    const SCENE_TILES = ['];
+    sorted.forEach(t => {
+        lines.push("        { sheet: '" + t.sheet + "', col: " + String(t.col).padStart(2) + ", row: " + String(t.row).padStart(2) + ", x: " + String(t.x).padStart(4) + ", y: " + String(t.y).padStart(4) + (t.above ? ', above: true' : '') + " },");
+    });
+    lines.push('    ];');
+    if (terrainGrid.some(row => row.some(cell => cell.some(v => v >= 0)))) {
+        lines.push('');
+        lines.push('    const TERRAIN_GRID = ' + JSON.stringify(terrainGrid) + ';');
+    }
+    if (blockerGrid.some(row => row.some(v => v))) {
+        lines.push('');
+        lines.push('    const BLOCKER_GRID = ' + JSON.stringify(blockerGrid) + ';');
+    }
+    lines.push('');
+    lines.push('    const SKYBOX = ' + JSON.stringify(skybox.stops) + ';');
+    lines.push('    const CANVAS_SIZE = { cols: ' + GRID_COLS + ', rows: ' + GRID_ROWS + ' };');
+    if (startPos) {
+        lines.push('    const START_POS = ' + JSON.stringify(startPos) + ';');
+    }
+    if (colliders.length) {
+        lines.push('    const COLLIDERS = ' + JSON.stringify(colliders.map(c => c.points)) + ';');
+    }
+    return lines.join('\n');
+}
+function exportJSON() {
+    const sorted = [...tiles].sort((a,b) => a.y - b.y);
+    return JSON.stringify({
+        canvasSize: { cols: GRID_COLS, rows: GRID_ROWS },
+        tiles: sorted.map(t => ({sheet:t.sheet,col:t.col,row:t.row,x:t.x,y:t.y,above:t.above||false})),
+        terrainGrid,
+        blockerGrid,
+        startPos,
+        colliders: colliders.map(c => c.points),
+        skybox: skybox.stops
+    }, null, 2);
+}
+function importData(text) {
+    try {
+        let tileData, tGrid;
+        const tr = text.trim();
+        if (tr.startsWith('{')) {
+            const obj = JSON.parse(tr);
+            tileData = obj.tiles || []; tGrid = obj.terrainGrid || null;
+            if (obj.blockerGrid) blockerGrid = obj.blockerGrid;
+            if (obj.startPos !== undefined) startPos = obj.startPos;
+            if (obj.colliders) { colliders = obj.colliders.map((pts, i) => ({ id: nextColliderId++, points: pts })); }
+            if (obj.skybox) { skybox.stops = obj.skybox; activeSkyboxPreset = -1; updateSkyboxHighlight(); buildSkyboxStops(); }
+            if (obj.canvasSize) resizeCanvas(obj.canvasSize.cols, obj.canvasSize.rows);
+        } else if (tr.startsWith('[')) {
+            tileData = JSON.parse(tr);
+        } else {
+            const m = tr.match(/\[[\s\S]*\]/);
+            if (m) {
+                let s = m[0].replace(/'/g,'"').replace(/(\w+)\s*:/g,'"$1":').replace(/,\s*([}\]])/g,'$1');
+                tileData = JSON.parse(s);
+            }
+            const tgm = tr.match(/TERRAIN_GRID\s*=\s*(\[[\s\S]*?\]);/);
+            if (tgm) tGrid = JSON.parse(tgm[1]);
+            const bgm = tr.match(/BLOCKER_GRID\s*=\s*(\[[\s\S]*?\]);/);
+            if (bgm) blockerGrid = JSON.parse(bgm[1]);
+            const spm = tr.match(/START_POS\s*=\s*(\{[^}]+\});/);
+            if (spm) startPos = JSON.parse(spm[1]);
+            const cpm = tr.match(/COLLIDERS\s*=\s*(\[[\s\S]*?\]);/);
+            if (cpm) { const pts = JSON.parse(cpm[1]); colliders = pts.map((p, i) => ({ id: nextColliderId++, points: p })); }
+        }
+        if (!Array.isArray(tileData)) throw new Error('No tile data found');
+        pushUndo();
+        tiles = tileData.map(t => ({id:nextId++, sheet:t.sheet||'nature', col:t.col, row:t.row, x:t.x, y:t.y, above:!!t.above}));
+        if (tGrid) { terrainGrid = tGrid; migrateTerrainGrid(terrainGrid); }
+        selectedId = null; selectedCollider = null;
+        render(); updateLayerList(); updatePolyList();
+        return true;
+    } catch(e) { alert('Import failed: '+e.message); return false; }
+}
+
+function setupModalCopy() {
+    const btn = document.getElementById('modal-copy');
+    btn.textContent = 'Copy to Clipboard';
+    btn.onclick = () => {
+        navigator.clipboard.writeText(modalText.value).then(() => {
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 1200);
+        });
+    };
+}
+document.getElementById('btn-export').addEventListener('click', () => {
+    modalTitle.textContent = 'Export \u2014 JavaScript (for patrol.js)';
+    modalText.value = exportJS();
+    modalBg.classList.add('open'); setupModalCopy();
+});
+document.getElementById('btn-export-json').addEventListener('click', () => {
+    modalTitle.textContent = 'Export \u2014 JSON';
+    modalText.value = exportJSON();
+    modalBg.classList.add('open'); setupModalCopy();
+});
+document.getElementById('btn-import').addEventListener('click', () => {
+    modalTitle.textContent = 'Import \u2014 Paste JS or JSON';
+    modalText.value = '';
+    modalBg.classList.add('open');
+    const btn = document.getElementById('modal-copy');
+    btn.textContent = 'Import';
+    btn.onclick = () => { if (importData(modalText.value)) { modalBg.classList.remove('open'); setupModalCopy(); } };
+});
+document.getElementById('modal-close').addEventListener('click', () => { modalBg.classList.remove('open'); setupModalCopy(); });
+document.getElementById('btn-clear').addEventListener('click', () => {
+    const hasTerrain = terrainGrid.some(row => row.some(cell => cell.some(v => v >= 0)));
+    const hasBlockers = blockerGrid.some(row => row.some(v => v));
+    if (!tiles.length && !hasTerrain && !hasBlockers && !startPos && !colliders.length) return;
+    if (!confirm('Clear all placed tiles, terrain, blockers, colliders, and start position?')) return;
+    pushUndo(); tiles = []; selectedId = null; selectedCollider = null;
+    for (let r = 0; r < GRID_ROWS; r++) { terrainGrid[r] = Array.from({length: GRID_COLS}, () => [-1,-1,-1,-1,-1]); blockerGrid[r].fill(false); }
+    startPos = null;
+    colliders = [];
+    skybox.stops = SKYBOX_PRESETS[0].stops.map(s => ({...s}));
+    activeSkyboxPreset = 0;
+    updateSkyboxHighlight(); buildSkyboxStops();
+    render(); updateLayerList(); updatePolyList();
+});
+
+// ── Persist ─────────────────────────────────────────────────────
+function saveLocal() { localStorage.setItem('patrol_editor_v2', JSON.stringify({tiles,nextId,terrainGrid,blockerGrid,startPos,colliders,skybox:skybox.stops,canvasSize:{cols:GRID_COLS,rows:GRID_ROWS}})); }
+function loadLocal() {
+    try {
+        const raw = localStorage.getItem('patrol_editor_v2');
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        if (d.canvasSize) resizeCanvas(d.canvasSize.cols, d.canvasSize.rows);
+        tiles = d.tiles || []; nextId = d.nextId || 1;
+        if (d.terrainGrid) { terrainGrid = d.terrainGrid; migrateTerrainGrid(terrainGrid); }
+        if (d.blockerGrid) blockerGrid = d.blockerGrid;
+        if (d.startPos !== undefined) startPos = d.startPos;
+        if (d.skybox) { skybox.stops = d.skybox; activeSkyboxPreset = -1; }
+        if (d.colliders) {
+            colliders = d.colliders.map((c, i) => {
+                if (c.points) return { id: c.id || nextColliderId++, points: c.points };
+                return { id: nextColliderId++, points: c }; // legacy points-only format
+            });
+            nextColliderId = colliders.reduce((m, c) => Math.max(m, c.id + 1), nextColliderId);
+        }
+        return tiles.length > 0 || terrainGrid.some(row => row.some(cell => cell.some(v => v >= 0)));
+    } catch { return false; }
+}
+setInterval(saveLocal, 4000);
+
+// ── Test Scene ──────────────────────────────────────────────────
+const testHandleInput = document.getElementById('test-handle');
+const testLoadBtn = document.getElementById('test-load');
+const testPlayBtn = document.getElementById('test-play');
+const testStopBtn = document.getElementById('test-stop');
+const testControls = document.getElementById('test-controls');
+const testStatus = document.getElementById('test-status');
+const testPreview = document.getElementById('test-sprite-preview');
+
+let testSprite = null;  // { img, did, handle }
+let testPlayer = null;  // { x, y, dir, moving, animFrame, animTimer }
+let testActive = false;
+let testLastTime = 0;
+let testAnimId = null;
+const TEST_SPEED = 120; // px/sec
+const WALK_CYCLE = [0, 1, 2, 1]; // frame indices
+const WALK_FPS = 6;
+const DIR_ROW = { down: 0, left: 1, right: 2, up: 3 };
+const testKeys = {};
+
+function setTestStatus(msg, cls) {
+    testStatus.textContent = msg;
+    testStatus.className = 'test-status' + (cls ? ' ' + cls : '');
+}
+
+async function resolveHandleToDid(handle) {
+    // Try public Bluesky API
+    const r = await fetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+    if (!r.ok) throw new Error('Handle not found');
+    return (await r.json()).did;
+}
+
+async function resolvePds(did) {
+    if (did.startsWith('did:plc:')) {
+        const r = await fetch(`https://plc.directory/${did}`);
+        if (!r.ok) throw new Error('DID not found');
+        const doc = await r.json();
+        const svc = doc.service?.find(s => s.id === '#atproto_pds');
+        if (!svc) throw new Error('No PDS in DID doc');
+        return svc.serviceEndpoint;
+    }
+    if (did.startsWith('did:web:')) {
+        const domain = did.slice(8);
+        const r = await fetch(`https://${domain}/.well-known/did.json`);
+        if (!r.ok) throw new Error('DID doc not found');
+        const doc = await r.json();
+        const svc = doc.service?.find(s => s.id === '#atproto_pds');
+        if (!svc) throw new Error('No PDS in DID doc');
+        return svc.serviceEndpoint;
+    }
+    throw new Error('Unsupported DID method');
+}
+
+async function loadTestSprite() {
+    const handle = testHandleInput.value.trim();
+    if (!handle) return;
+    testLoadBtn.disabled = true;
+    setTestStatus('Resolving handle\u2026');
+    try {
+        const did = await resolveHandleToDid(handle);
+        setTestStatus('Finding PDS\u2026');
+        const pds = await resolvePds(did);
+        setTestStatus('Fetching sprite\u2026');
+        // Try getRecord with rkey=self first
+        let record;
+        const r1 = await fetch(`${pds}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=actor.rpg.sprite&rkey=self`);
+        if (r1.ok) {
+            record = (await r1.json()).value;
+        } else {
+            // Fallback to listRecords
+            const r2 = await fetch(`${pds}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(did)}&collection=actor.rpg.sprite&limit=1`);
+            if (!r2.ok) throw new Error('No sprite record');
+            const data = await r2.json();
+            if (!data.records?.length) throw new Error('No sprite found for this user');
+            record = data.records[0].value;
+        }
+        const cid = record.spriteSheet?.ref?.$link;
+        if (!cid) throw new Error('Invalid sprite record');
+        const blobUrl = `${pds}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${cid}`;
+        // Load image
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((ok, fail) => {
+            img.onload = ok;
+            img.onerror = () => fail(new Error('Failed to load sprite image'));
+            img.src = blobUrl;
+        });
+        testSprite = { img, did, handle };
+        // Draw preview (frame 1, dir down = neutral standing)
+        const pc = testPreview.getContext('2d');
+        pc.imageSmoothingEnabled = false;
+        pc.clearRect(0, 0, 48, 48);
+        pc.drawImage(img, 48, 0, 48, 48, 0, 0, 48, 48);
+        testPreview.style.display = '';
+        testControls.style.display = '';
+        setTestStatus(handle, 'ok');
+        // Save handle for convenience
+        localStorage.setItem('patrol_editor_test_handle', handle);
+    } catch (e) {
+        setTestStatus(e.message, 'error');
+        testSprite = null;
+        testControls.style.display = 'none';
+        testPreview.style.display = 'none';
+    } finally {
+        testLoadBtn.disabled = false;
+    }
+}
+
+function startTest() {
+    if (!testSprite) return;
+    testActive = true;
+    testPlayer = {
+        x: startPos ? startPos.gx * TILE : Math.floor(GRID_COLS / 2) * TILE,
+        y: startPos ? startPos.gy * TILE : Math.floor(GRID_ROWS / 2) * TILE,
+        dir: 'down',
+        moving: false,
+        animFrame: 0,
+        animTimer: 0
+    };
+    testLastTime = 0;
+    testPlayBtn.classList.add('active');
+    testStopBtn.classList.remove('active');
+    setTestStatus('WASD to move \u2022 ESC to stop', 'ok');
+    stage.focus();
+    if (!testAnimId) testAnimId = requestAnimationFrame(testLoop);
+}
+
+function stopTest() {
+    testActive = false;
+    testPlayer = null;
+    testPlayBtn.classList.remove('active');
+    if (testAnimId) { cancelAnimationFrame(testAnimId); testAnimId = null; }
+    if (testSprite) setTestStatus(testSprite.handle, 'ok');
+    render();
+}
+
+function testLoop(ts) {
+    if (!testActive) { testAnimId = null; return; }
+    const dt = testLastTime ? (ts - testLastTime) / 1000 : 0;
+    testLastTime = ts;
+    updateTestPlayer(dt);
+    render();
+    testAnimId = requestAnimationFrame(testLoop);
+}
+
+function updateTestPlayer(dt) {
+    if (!testPlayer) return;
+    let dx = 0, dy = 0;
+    if (testKeys['w'] || testKeys['arrowup'])    dy -= 1;
+    if (testKeys['s'] || testKeys['arrowdown'])  dy += 1;
+    if (testKeys['a'] || testKeys['arrowleft'])  dx -= 1;
+    if (testKeys['d'] || testKeys['arrowright']) dx += 1;
+
+    if (dx !== 0 || dy !== 0) {
+        // Normalize diagonal
+        if (dx !== 0 && dy !== 0) {
+            const len = Math.sqrt(2);
+            dx /= len; dy /= len;
+        }
+        // Direction
+        const newDir = Math.abs(dx) > Math.abs(dy)
+            ? (dx > 0 ? 'right' : 'left')
+            : (dy > 0 ? 'down' : 'up');
+        testPlayer.dir = newDir;
+
+        // Proposed position
+        let nx = testPlayer.x + dx * TEST_SPEED * dt;
+        let ny = testPlayer.y + dy * TEST_SPEED * dt;
+
+        // Clamp to canvas bounds
+        nx = Math.max(0, Math.min(STAGE_W - TILE, nx));
+        ny = Math.max(0, Math.min(STAGE_H - TILE, ny));
+
+        // Check blocker collision using a small foot hitbox at sprite base
+        const gridBlocked = (px, py) => {
+            const gx = Math.floor(px / TILE), gy = Math.floor(py / TILE);
+            if (gx < 0 || gx >= GRID_COLS || gy < 0 || gy >= GRID_ROWS) return true;
+            return blockerGrid[gy][gx];
+        };
+        const polyBlocked = (px, py) => colliders.some(c => pointInPolygon(px, py, c.points));
+        const blocked = (px, py) => gridBlocked(px, py) || polyBlocked(px, py);
+        // Foot hitbox: narrow rectangle at bottom of sprite
+        const mx = 10;            // horizontal inset from each side
+        const footH = 12;         // height of foot hitbox
+        const footTop = TILE - footH; // top of foot box relative to sprite
+        const canMoveX = !blocked(nx + mx, testPlayer.y + footTop) && !blocked(nx + TILE - mx - 1, testPlayer.y + footTop)
+                      && !blocked(nx + mx, testPlayer.y + TILE - 1) && !blocked(nx + TILE - mx - 1, testPlayer.y + TILE - 1);
+        const canMoveY = !blocked(testPlayer.x + mx, ny + footTop) && !blocked(testPlayer.x + TILE - mx - 1, ny + footTop)
+                      && !blocked(testPlayer.x + mx, ny + TILE - 1) && !blocked(testPlayer.x + TILE - mx - 1, ny + TILE - 1);
+        if (canMoveX) testPlayer.x = nx;
+        if (canMoveY) testPlayer.y = ny;
+
+        // Animation
+        testPlayer.animTimer += dt;
+        if (testPlayer.animTimer >= 1 / WALK_FPS) {
+            testPlayer.animTimer -= 1 / WALK_FPS;
+            testPlayer.animFrame = (testPlayer.animFrame + 1) % WALK_CYCLE.length;
+        }
+        testPlayer.moving = true;
+    } else {
+        testPlayer.moving = false;
+        testPlayer.animFrame = 0;
+        testPlayer.animTimer = 0;
+    }
+}
+
+function drawTestPlayer() {
+    if (!testActive || !testPlayer || !testSprite) return;
+    const frame = testPlayer.moving ? WALK_CYCLE[testPlayer.animFrame] : 1; // neutral = col 1
+    const row = DIR_ROW[testPlayer.dir];
+    sCtx.drawImage(testSprite.img, frame * TILE, row * TILE, TILE, TILE,
+        Math.round(testPlayer.x), Math.round(testPlayer.y), TILE, TILE);
+}
+
+// Test mode key handling
+document.addEventListener('keydown', e => {
+    if (!testActive) return;
+    const k = e.key.toLowerCase();
+    if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) {
+        e.preventDefault();
+        testKeys[k] = true;
+    }
+    if (k === 'escape') { e.preventDefault(); stopTest(); }
+}, true);  // capture phase to intercept before editor keys
+
+document.addEventListener('keyup', e => {
+    const k = e.key.toLowerCase();
+    testKeys[k] = false;
+});
+
+testLoadBtn.addEventListener('click', loadTestSprite);
+testHandleInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadTestSprite(); });
+testPlayBtn.addEventListener('click', startTest);
+testStopBtn.addEventListener('click', stopTest);
+
+// Restore saved handle
+const savedTestHandle = localStorage.getItem('patrol_editor_test_handle');
+if (savedTestHandle) testHandleInput.value = savedTestHandle;
+
+// ── Init ────────────────────────────────────────────────────────
+async function init() {
+    await loadSheets();
+    loadLocal();
+    buildTerrainPalette();
+    buildSkyboxPalette();
+    buildSkyboxStops();
+    drawPicker();
+    drawPreview();
+    setZoom(1);
+    setTool('place');
+    render();
+    updateLayerList();
+}
+init();
+
+})();
+</script>
+</body>
+</html>

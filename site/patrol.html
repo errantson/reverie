@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" class="patrol-active">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patrol — Reverie House</title>
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reverie.house/patrol">
+    <meta property="og:title" content="Patrol — Reverie House">
+    <meta property="og:description" content="Walk the grounds of Reverie House.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Patrol — Reverie House">
+
+    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/widgets/login.css">
+    <link rel="stylesheet" href="css/patrol.css">
+
+    <script src="js/core/world-config-cache.js"></script>
+    <script src="js/core/color-manager.js"></script>
+    <script src="js/widgets/dialogue.js" defer></script>
+    <script src="js/widgets/inbox.js" defer></script>
+    <script src="js/core/avatar-cache.js" defer></script>
+    <script src="js/widgets/header.js" defer></script>
+    <script type="module" src="js/widgets/oauth-manager.js"></script>
+    <script src="js/widgets/login.js" defer></script>
+    <script src="js/widgets/drawer.js" defer></script>
+</head>
+<body>
+    <div id="header-container"></div>
+
+    <main class="patrol-page">
+        <div class="patrol-container">
+            <!-- Password gate -->
+            <div class="patrol-gate" id="patrol-gate">
+                <div class="patrol-lock-icon">🔒</div>
+                <p class="patrol-lock-label">This area is restricted.</p>
+                <form class="patrol-lock-form" id="patrol-lock-form" autocomplete="off">
+                    <input type="password" id="patrol-password" class="patrol-password-input" placeholder="Enter passphrase…" autocomplete="off" spellcheck="false">
+                    <button type="submit" class="patrol-unlock-btn">Unlock</button>
+                </form>
+                <p class="patrol-lock-error" id="patrol-lock-error"></p>
+            </div>
+
+            <!-- Game stage (hidden until unlocked) -->
+            <div class="patrol-stage-wrap" id="patrol-stage-wrap" style="display:none">
+                <div class="patrol-stage" id="patrol-stage" tabindex="0">
+                    <div class="patrol-camera" id="patrol-camera">
+                        <div class="patrol-sky"></div>
+                        <div class="patrol-ground"></div>
+                    </div>
+                    <div class="patrol-loading" id="patrol-loading"><span>Loading…</span></div>
+                </div>
+
+                <div class="patrol-info">
+                    <h2 class="patrol-title">Reverie Patrol</h2>
+                    <p class="patrol-subtitle">Walk the grounds of Reverie House</p>
+                    <div class="patrol-options">
+                        <span class="patrol-option">WASD to move</span>
+                        <span class="patrol-option-sep">·</span>
+                        <span class="patrol-option">Click stage to focus</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/patrol.js"></script>
+</body>
+</html>

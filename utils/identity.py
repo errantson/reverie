@@ -4,6 +4,9 @@ from typing import Optional, Dict, Tuple
 from urllib.parse import quote
 from config import Config
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 # Valid CID pattern: bafkrei followed by 52 base32 chars, optionally @jpeg suffix
 _CID_PATTERN = re.compile(r'^bafkrei[a-z2-7]{52}(@jpeg)?$')
 _MAX_AVATAR_URL_LENGTH = 2048
@@ -87,7 +90,7 @@ class IdentityManager:
         handle_enc = quote(handle, safe='')
         
         endpoints = [
-            "https://public.api.bsky.app",
+            BSKY_CACHE,
             "https://bsky.social"
         ]
         
@@ -151,7 +154,7 @@ class IdentityManager:
         """
         # Try app.bsky.actor.getProfile first (includes handle and full profile)
         try:
-            url = 'https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile'
+            url = f'{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile'
             params = {'actor': did}
             response = requests.get(url, params=params, timeout=Config.REQUEST_TIMEOUT)
             if response.status_code == 200:
@@ -167,7 +170,7 @@ class IdentityManager:
         
         # Add public endpoints
         endpoints.extend([
-            "https://public.api.bsky.app",
+            BSKY_CACHE,
             "https://bsky.social"
         ])
         

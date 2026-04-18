@@ -173,7 +173,7 @@ class ShowDreamer {
      */
     async fetchActivity(did, handle) {
         try {
-            const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${did}&limit=10`);
+            const response = await fetch(`/bsky/xrpc/app.bsky.feed.getAuthorFeed?actor=${did}&limit=10`);
             if (!response.ok) return [];
             
             const data = await response.json();

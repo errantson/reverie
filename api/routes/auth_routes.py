@@ -6,6 +6,8 @@ Handles user authentication, registration, and session management
 from flask import Blueprint, request, jsonify
 import os
 
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 # Create blueprint
 bp = Blueprint('auth', __name__, url_prefix='/api')
 
@@ -102,15 +104,15 @@ def reverie_login():
             # Fallback to bsky.social if handle's domain didn't work
             if not did:
                 handle_response = requests.get(
-                    f"https://bsky.social/xrpc/com.atproto.identity.resolveHandle",
+                    f"{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle",
                     params={'handle': handle},
-                    timeout=30
+                    timeout=10
                 )
                 if handle_response.status_code != 200:
                     return jsonify({'error': 'Handle not found'}), 404
                 
                 did = handle_response.json()['did']
-                print(f"Resolved handle {handle} via bsky.social to DID: {did}")
+                print(f"Resolved handle {handle} via cache proxy to DID: {did}")
         except Exception as e:
             print(f"Handle resolution error: {e}")
             return jsonify({'error': 'Unable to resolve handle'}), 400
@@ -339,9 +341,9 @@ def reverie_login():
                 # Use ATProto identity resolution
                 try:
                     resolve_response = requests.get(
-                        f"https://bsky.social/xrpc/com.atproto.identity.resolveHandle",
+                        f"{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle",
                         params={"handle": handle},
-                        timeout=30
+                        timeout=10
                     )
                     
                     if resolve_response.status_code == 200:

@@ -6,6 +6,9 @@ from urllib.parse import quote
 from config import Config
 from .auth import AuthManager
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 class ReactionsManager:
     """Handles likes, reactions, and engagement operations."""
     
@@ -27,7 +30,7 @@ class ReactionsManager:
         if cursor:
             params["cursor"] = cursor
         
-        endpoints = ["https://public.api.bsky.app", "https://bsky.social"]
+        endpoints = [BSKY_CACHE, "https://bsky.social"]
         
         for server in endpoints:
             url = f"{server}/xrpc/app.bsky.feed.getLikes"
@@ -53,7 +56,7 @@ class ReactionsManager:
         if cursor:
             params["cursor"] = cursor
         
-        endpoints = ["https://public.api.bsky.app", "https://bsky.social"]
+        endpoints = [BSKY_CACHE, "https://bsky.social"]
         
         for server in endpoints:
             url = f"{server}/xrpc/app.bsky.feed.getRepostedBy"
@@ -878,7 +881,7 @@ class ReactionsManager:
         
         endpoints = [
             "https://reverie.house",  # Check local PDS first for fresh posts
-            "https://public.api.bsky.app",
+            BSKY_CACHE,
             "https://bsky.social"
         ]
         

@@ -37,6 +37,9 @@ from core.log import get_logger, set_verbose
 
 log = get_logger('celebration')
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 # Per-user rate limits
 MAX_CHEERS_PER_USER_PER_DAY = 10
 MAX_CHEERS_PER_USER_PER_WEEK = 50
@@ -304,7 +307,7 @@ class CelebrationProcessor:
         """Fetch post CID from public API."""
         try:
             resp = requests.get(
-                'https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread',
+                f'{BSKY_CACHE}/xrpc/app.bsky.feed.getPostThread',
                 params={'uri': post_uri, 'depth': 0},
                 timeout=10
             )
@@ -461,7 +464,7 @@ def trigger_positivity_wave(count: int = 3, max_age_hours: int = 24):
         # Find a recent post
         try:
             resp = requests.get(
-                'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed',
+                f'{BSKY_CACHE}/xrpc/app.bsky.feed.getAuthorFeed',
                 params={'actor': dreamer['did'], 'limit': 5, 'filter': 'posts_no_replies'},
                 timeout=10
             )

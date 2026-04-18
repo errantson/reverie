@@ -19,6 +19,9 @@ from utils.registration import register_dreamer
 # Cache for mapper client to avoid repeated auth
 _mapper_client_cache = None
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 
 def _get_mapper_client(verbose: bool = False) -> Optional[object]:
     """
@@ -1314,7 +1317,7 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
                 already_replied = False
                 try:
                     thread_resp = requests.get(
-                        f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri={reply_uri}&depth=1",
+                        f"{BSKY_CACHE}/xrpc/app.bsky.feed.getPostThread?uri={reply_uri}&depth=1",
                         timeout=10
                     )
                     if thread_resp.status_code == 200:
@@ -1336,7 +1339,7 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
                 parent_cid = None
                 try:
                     resp = requests.get(
-                        f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris={reply_uri}",
+                        f"{BSKY_CACHE}/xrpc/app.bsky.feed.getPosts?uris={reply_uri}",
                         timeout=10
                     )
                     if resp.status_code == 200:
@@ -1351,7 +1354,7 @@ def reply_origin_spectrum(replies: List[Dict], quest_config: Dict, verbose: bool
                 root_cid = None
                 try:
                     resp = requests.get(
-                        f"https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris={root_uri}",
+                        f"{BSKY_CACHE}/xrpc/app.bsky.feed.getPosts?uris={root_uri}",
                         timeout=10
                     )
                     if resp.status_code == 200:

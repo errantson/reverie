@@ -28,6 +28,9 @@ from core.database import DatabaseManager
 from core.auth import AuthManager
 from core.network import NetworkClient
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 
 
 class FeedDatabase:
@@ -400,7 +403,7 @@ class FeedGenerator:
                     parts = uri.replace('at://', '').split('/')
                     if len(parts) >= 3:
                         post_response = requests.get(
-                            'https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord',
+                            f'{BSKY_CACHE}/xrpc/com.atproto.repo.getRecord',
                             params={
                                 'repo': parts[0],
                                 'collection': parts[1],

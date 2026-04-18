@@ -316,7 +316,7 @@ class Heraldry {
         
         try {
             // Resolve handle to DID
-            const didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
+            const didResponse = await fetch(`/bsky/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
             if (!didResponse.ok) {
                 this.showStatusError('Handle not found');
                 return;

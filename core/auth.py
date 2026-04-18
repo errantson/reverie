@@ -9,6 +9,8 @@ import requests
 from typing import Optional, Tuple
 from config import Config
 
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 class AuthManager:
     """Manages Bluesky authentication with token caching and multi-server fallback."""
     
@@ -148,7 +150,7 @@ class AuthManager:
         if Config.DEBUG:
             print(f"🔍 Resolving PDS for handle: {handle}")
         
-        url = f"https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle={handle}"
+        url = f"{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle?handle={handle}"
         try:
             response = requests.get(url, timeout=Config.REQUEST_TIMEOUT)
             if response.status_code == 200:

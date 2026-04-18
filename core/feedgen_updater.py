@@ -39,7 +39,7 @@ class FeedUpdater:
         self.generator = FeedGenerator()
         
         # AT Protocol client for fetching posts
-        self.client = Client(base_url='https://public.api.bsky.app')
+        self.client = Client(base_url='http://127.0.0.1:2847')
         
         # Get community DIDs (will be refreshed each cycle)
         self.community_dids = self.generator.get_community_dids(force_refresh=True)

@@ -2129,7 +2129,7 @@
             const [, did, postId] = match;
             
             // Fetch post data from Bluesky API
-            const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}`);
+            const response = await fetch(`/bsky/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}`);
             
             if (!response.ok) {
                 throw new Error('Failed to fetch post');

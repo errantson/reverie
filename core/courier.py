@@ -17,6 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.database import DatabaseManager
 from core.encryption import decrypt_password
 
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 
 def get_pending_posts():
     """Get all posts that are ready to be sent"""
@@ -81,7 +83,7 @@ def detect_facets_in_text(text: str) -> list:
         # Try to resolve DID
         try:
             resolve_response = requests.get(
-                f'https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle={handle}',
+                f'{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle?handle={handle}',
                 timeout=5
             )
             if resolve_response.status_code == 200:

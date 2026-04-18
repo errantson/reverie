@@ -19,7 +19,7 @@ const PDS_CACHE = {};
 
 // API endpoints
 const PLC_DIRECTORY = 'https://plc.directory';
-const PUBLIC_API = 'https://public.api.bsky.app';
+const PUBLIC_API = '/bsky';
 
 // Current view state
 let currentView = 'upcoming';

@@ -18,6 +18,9 @@ import requests
 from atproto import Client
 from core.database import DatabaseManager
 from core.encryption import decrypt_password
+
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
 from core.log import get_logger, set_verbose
 
 log = get_logger('cheerwatch')
@@ -151,7 +154,7 @@ class CheerwatchMonitor:
             for did in sample_dids:
                 try:
                     resp = requests.get(
-                        'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed',
+                        f'{BSKY_CACHE}/xrpc/app.bsky.feed.getAuthorFeed',
                         params={'actor': did, 'limit': 5, 'filter': 'posts_no_replies'},
                         timeout=10
                     )

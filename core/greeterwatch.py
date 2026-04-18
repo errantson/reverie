@@ -52,7 +52,7 @@ class GreeterhoseMonitor:
         
         # AT Protocol client for fetching threads
         # Use public API endpoint - no auth needed for reading public posts
-        self.client = Client(base_url='https://public.api.bsky.app')
+        self.client = Client(base_url='http://127.0.0.1:2847')
         # Still try to auth if possible (for higher rate limits)
         self._authenticate_client()
     

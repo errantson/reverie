@@ -27,15 +27,13 @@ class OAuthManager {
                         token_endpoint_auth_method: "none",
                         dpop_bound_access_tokens: true
                     },
-                    handleResolver: 'https://bsky.social',
+                    handleResolver: 'https://reverie.house',
                 })
-                console.log('✅ OAuth client created')
                 const result = await this.client.init()
                 if (result) {
                     const { session, state } = result
                     this.currentSession = session
                     if (state != null) {
-                        console.log(`✅ ${session.sub} authenticated (state: ${state})`)
                         await this.loadProfile(session)
                         await this.autoRegister(session.sub)
                         // Dispatch profile-loaded AFTER autoRegister so oauth_token is available
@@ -48,10 +46,8 @@ class OAuthManager {
                         // Main Door login completed — sideDoorLogin flag cleared by login.js
                         if (localStorage.getItem('mainDoorLogin') === 'true') {
                             localStorage.removeItem('mainDoorLogin')
-                            console.log('🚪 Main Door login complete')
                         }
                     } else {
-                        console.log(`✅ ${session.sub} restored (previous session)`)
                         await this.loadProfile(session)
                         await this.autoRegister(session.sub)
                         // Dispatch profile-loaded AFTER autoRegister so oauth_token is available
@@ -66,7 +62,6 @@ class OAuthManager {
                         try {
                             const pdsSession = JSON.parse(pdsSessionStr)
                             if (pdsSession.did || pdsSession.sub) {
-                                console.log(`✅ ${pdsSession.handle} restored (PDS session)`)
                                 this.currentSession = pdsSession
                                 // Refresh the backend token
                                 await this.autoRegister(pdsSession.did || pdsSession.sub)
@@ -90,7 +85,6 @@ class OAuthManager {
                         }))
                     }
                 })
-                console.log('✅ OAuth manager initialized')
             } catch (error) {
                 // Suppress "user rejected" as it's not really an error
                 const isUserCancel = error.message?.includes('rejected') || error.message?.includes('cancelled')
@@ -104,7 +98,6 @@ class OAuthManager {
     }
 
     async loadProfile(session) {
-        console.log('🔍 loadProfile: Fetching public profile for', session.sub)
         try {
             // For reverie.house accounts, fetch from local database to avoid public API cache
             let profile;
@@ -112,7 +105,6 @@ class OAuthManager {
                                      (await this.checkIfReverieAccount(session.sub));
             
             if (isReverieAccount) {
-                console.log('   🏠 Reverie.house account detected - fetching from local database')
                 const dbResponse = await fetch(`/api/dreamers`)
                 if (dbResponse.ok) {
                     const dreamers = await dbResponse.json()
@@ -129,22 +121,18 @@ class OAuthManager {
                             postsCount: dreamer.posts_count,
                             createdAt: dreamer.created_at
                         }
-                        console.log('   ✅ Profile loaded from database:', profile)
                     }
                 }
             }
             
             // Fallback to public API if not found in database or not reverie account
             if (!profile) {
-                const url = `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${session.sub}`
-                console.log('   Fetching from public API:', url)
+                const url = `/bsky/xrpc/app.bsky.actor.getProfile?actor=${session.sub}`
                 const response = await fetch(url)
-                console.log('   Response status:', response.status)
                 if (!response.ok) {
                     throw new Error(`Profile fetch failed: ${response.status}`)
                 }
                 profile = await response.json()
-                console.log('   ✅ Profile data:', profile)
             }
             this.currentSession = {
                 ...session,
@@ -166,10 +154,6 @@ class OAuthManager {
                     labels: profile.labels,
                 }
             }
-            console.log('✅ Profile loaded!')
-            console.log('   Handle:', this.currentSession.handle)
-            console.log('   Display Name:', this.currentSession.displayName)
-            console.log('   Avatar:', this.currentSession.avatar)
             // Note: oauth:profile-loaded is dispatched in init() AFTER autoRegister completes
         } catch (error) {
             console.error('❌ Profile fetch failed:', error.message)
@@ -199,7 +183,6 @@ class OAuthManager {
 
     async login(handle, returnTo = null, options = {}) {
         await this.ensureInitialized()
-        console.log('🔐 Starting OAuth login for:', handle)
         handle = handle.trim().toLowerCase()
         if (handle.startsWith('@')) {
             handle = handle.substring(1)
@@ -207,7 +190,6 @@ class OAuthManager {
         
         // Determine scope - Main Door gets full access, Side Door gets minimal
         const scope = options.scope || 'atproto transition:generic'
-        console.log('🔑 Requesting scope:', scope)
         
         // Determine return URL - use provided value, or check sessionStorage, or use current page, or default to /story
         let state = returnTo
@@ -218,7 +200,6 @@ class OAuthManager {
             if (savedReturnTo) {
                 state = savedReturnTo;
                 sessionStorage.removeItem('oauth_return_to');
-                console.log('🏠 Using saved return destination:', state);
             }
         }
         
@@ -232,7 +213,6 @@ class OAuthManager {
             }
         }
         
-        console.log('🏠 Will return to:', state)
         
         try {
             await this.client.signIn(handle, {
@@ -261,7 +241,6 @@ class OAuthManager {
                 const pdsSession = JSON.parse(pdsSessionStr)
                 // Restore the PDS session to currentSession
                 this.currentSession = pdsSession
-                console.log('✅ Restored PDS session from localStorage:', pdsSession.handle)
                 return this.currentSession
             }
         } catch (error) {
@@ -276,7 +255,6 @@ class OAuthManager {
         if (!this.currentSession) {
             throw new Error('Not logged in')
         }
-        console.log('📝 Creating post:', text.substring(0, 50) + (text.length > 50 ? '...' : ''))
         
         // Handle both old style (reply_to as string) and new style (custom record object)
         let reply_to = null;
@@ -286,11 +264,9 @@ class OAuthManager {
             customRecord = null;
         } else if (customRecord && customRecord.reply) {
             // New style but has reply in custom record
-            console.log('   Reply detected in custom record')
         }
         
         if (reply_to) {
-            console.log('   Reply to:', reply_to)
         }
         
         try {
@@ -303,7 +279,6 @@ class OAuthManager {
                 throw new Error('No PDS service found in DID document')
             }
             const pdsUrl = pdsService.serviceEndpoint
-            console.log('   PDS endpoint:', pdsUrl)
             
             // Build record - merge custom record with defaults
             const record = {
@@ -329,12 +304,10 @@ class OAuthManager {
                         cid: parentCid
                     }
                 }
-                console.log('   Reply metadata added (parent CID:', parentCid + ')')
             }
             
             // Resolve DIDs for mentions in facets
             if (record.facets) {
-                console.log('   Resolving DIDs for facets...')
                 record.facets = await this._resolveFacetDIDs(record.facets)
             }
             
@@ -350,7 +323,6 @@ class OAuthManager {
                     collection: 'app.bsky.feed.post',
                     record: record
                 };
-                console.log('   Creating record via PDS session at:', createUrl);
                 const response = await fetch(createUrl, {
                     method: 'POST',
                     headers: {
@@ -364,14 +336,12 @@ class OAuthManager {
                     throw new Error(`Post creation failed (${response.status}): ${error}`);
                 }
                 const result = await response.json();
-                console.log('✅ Post created:', result.uri);
                 return {
                     uri: result.uri,
                     cid: result.cid
                 };
             } else {
                 // OAuth-only session - use server-side credentials
-                console.log('   OAuth-only session, checking for stored credentials...');
                 
                 // Check if we have stored credentials using OAuth-authenticated endpoint
                 const authToken = localStorage.getItem('oauth_token');
@@ -393,7 +363,6 @@ class OAuthManager {
                 
                 if (!hasCredentials) {
                     // Prompt for app password
-                    console.log('   No stored credentials, prompting for app password...');
                     const credentialsStored = await this._requestCredentials();
                     if (!credentialsStored) {
                         throw new Error('App password required to post');
@@ -420,7 +389,6 @@ class OAuthManager {
                 }
                 
                 const result = await postResponse.json();
-                console.log('✅ Post created via server:', result.uri);
                 return {
                     uri: result.uri,
                     cid: result.cid
@@ -463,7 +431,6 @@ class OAuthManager {
                         throw new Error(error.error || 'Failed to store credentials');
                     }
                     
-                    console.log('✅ Credentials stored successfully');
                     resolve(true);
                 } catch (error) {
                     console.error('❌ Failed to store credentials:', error);
@@ -491,7 +458,6 @@ class OAuthManager {
                 if (statusResp.ok) {
                     const status = await statusResp.json();
                     if (status.connected) {
-                        console.log('✅ Already has stored credentials');
                         return;
                     }
                 }
@@ -503,7 +469,6 @@ class OAuthManager {
         // Prompt for credentials
         try {
             await this._requestCredentials();
-            console.log('✅ Main Door credentials setup complete');
         } catch (error) {
             console.warn('⚠️ Credential prompt cancelled or failed:', error);
         }
@@ -515,7 +480,6 @@ class OAuthManager {
             throw new Error('Not logged in')
         }
         
-        console.log('📤 Uploading blob:', mimeType, blob.size, 'bytes')
         
         try {
             const didDoc = await this._resolveDIDDocument(this.currentSession.sub)
@@ -531,7 +495,6 @@ class OAuthManager {
             const session = await this.client.restore(this.currentSession.sub)
             const uploadUrl = `/xrpc/com.atproto.repo.uploadBlob`
             
-            console.log('   Uploading to:', pdsUrl + uploadUrl)
             const response = await session.fetchHandler(uploadUrl, {
                 method: 'POST',
                 headers: {
@@ -546,7 +509,6 @@ class OAuthManager {
             }
             
             const result = await response.json()
-            console.log('✅ Blob uploaded:', result.blob)
             return result
         } catch (error) {
             console.error('❌ Failed to upload blob:', error)
@@ -566,7 +528,6 @@ class OAuthManager {
                         try {
                             const resolved = await this._resolveHandle(feature.did)
                             feature.did = resolved
-                            console.log(`   Resolved @${feature.did} to ${resolved}`)
                         } catch (error) {
                             console.warn(`   Could not resolve handle ${feature.did}:`, error.message)
                         }
@@ -580,7 +541,7 @@ class OAuthManager {
     
     async _resolveHandle(handle) {
         try {
-            const response = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`)
+            const response = await fetch(`/bsky/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`)
             if (response.ok) {
                 const data = await response.json()
                 return data.did
@@ -625,7 +586,7 @@ class OAuthManager {
                 const data = await response.json()
                 return data.cid
             }
-            const publicUrl = `https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord?repo=${repo}&collection=${collection}&rkey=${rkey}`
+            const publicUrl = `/bsky/xrpc/com.atproto.repo.getRecord?repo=${repo}&collection=${collection}&rkey=${rkey}`
             const publicResponse = await fetch(publicUrl)
             if (publicResponse.ok) {
                 const data = await publicResponse.json()
@@ -687,7 +648,6 @@ class OAuthManager {
             }
 
             const result = await response.json();
-            console.log(`✅ Record created [${collection}]:`, result.uri);
             return { uri: result.uri, cid: result.cid };
         }
 
@@ -706,7 +666,6 @@ class OAuthManager {
             }
 
             const result = await response.json();
-            console.log(`✅ Record created [${collection}]:`, result.uri);
             return { uri: result.uri, cid: result.cid };
         } catch (error) {
             if (error.message?.includes('deleted') || error.message?.includes('expired')) {
@@ -757,7 +716,6 @@ class OAuthManager {
                 throw new Error(`deleteRecord failed (${response.status}): ${error}`);
             }
 
-            console.log(`✅ Record deleted [${collection}]: ${rkey}`);
             return;
         }
 
@@ -775,7 +733,6 @@ class OAuthManager {
                 throw new Error(`deleteRecord failed (${response.status}): ${error}`);
             }
 
-            console.log(`✅ Record deleted [${collection}]: ${rkey}`);
         } catch (error) {
             if (error.message?.includes('deleted') || error.message?.includes('expired')) {
                 this.currentSession = null;
@@ -790,13 +747,10 @@ class OAuthManager {
 
     async autoRegister(did) {
         try {
-            console.log('🔄 OAuth Manager auto-register called for:', did)
             const payload = { did }
             if (this.currentSession?.profile) {
                 payload.profile = this.currentSession.profile
-                console.log('   Including profile data in payload')
             }
-            console.log('   Calling /api/auto-register...')
             const response = await fetch('/api/auto-register', {
                 method: 'POST',
                 headers: {
@@ -804,25 +758,18 @@ class OAuthManager {
                 },
                 body: JSON.stringify(payload)
             })
-            console.log(`   Response status: ${response.status}`)
             if (response.ok) {
                 const result = await response.json()
-                console.log('   Response data:', result)
                 
                 // Store auth token if provided
                 if (result.token) {
                     localStorage.setItem('oauth_token', result.token)
-                    console.log('🔐 OAuth token stored')
                 }
                 
                 if (result.newly_registered) {
-                    console.log('✨ Auto-registered new dreamer:', result.dreamer?.name || 'unnamed')
                 } else if (result.already_registered) {
-                    console.log('✅ Dreamer already registered')
                     if (result.dreamer?.has_name) {
-                        console.log(`   Name: ${result.dreamer.name}`)
                     } else {
-                        console.log('   No name claimed yet')
                     }
                 }
             } else {
@@ -837,7 +784,6 @@ class OAuthManager {
 
     async logout() {
         if (!this.currentSession) {
-            console.log('⚠️ No session to logout')
             return
         }
         try {
@@ -846,7 +792,6 @@ class OAuthManager {
             if (this.client && !localStorage.getItem('pds_session')) {
                 await this.client.revoke(this.currentSession.sub)
             }
-            console.log('✅ Logged out')
         } catch (error) {
             console.error('❌ Logout error:', error)
             // Continue with cleanup even if revoke fails
@@ -862,12 +807,10 @@ class OAuthManager {
             sessionStorage.removeItem('admin_session')
             sessionStorage.clear()
             
-            console.log('🔄 Dispatching oauth:logout event...');
             // Dispatch logout event
             window.dispatchEvent(new CustomEvent('oauth:logout'))
             
             // Force a full page reload to ensure clean state
-            console.log('🔄 Forcing page reload after logout...');
             setTimeout(() => {
                 window.location.reload()
             }, 100) // Small delay to allow logout event handlers to complete
@@ -885,7 +828,6 @@ class OAuthManager {
             console.warn('⚠️ No session to upgrade')
             return
         }
-        console.log('⬆️ Upgrading Side Door to Main Door for:', handle)
 
         try {
             await this.ensureInitialized()
@@ -924,4 +866,3 @@ oauthManager.init().catch(error => {
 })
 export default oauthManager
 window.oauthManager = oauthManager
-console.log('🔐 OAuth Manager (SDK) loaded')

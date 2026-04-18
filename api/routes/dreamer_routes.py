@@ -13,6 +13,9 @@ import traceback
 # Create blueprint
 bp = Blueprint('dreamers', __name__, url_prefix='/api')
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 # Import shared dependencies
 from core.admin_auth import auth, AUTHORIZED_ADMIN_DID, validate_user_token
 from core.rate_limiter import PersistentRateLimiter
@@ -979,7 +982,7 @@ def calculate_spectrum():
             
             try:
                 # Resolve handle to DID using ATP API
-                resolve_url = f"https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle={handle}"
+                resolve_url = f"{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle?handle={handle}"
                 response = requests.get(resolve_url, timeout=30)
                 
                 if response.status_code == 200:
@@ -999,7 +1002,7 @@ def calculate_spectrum():
         profile_handle = None
         
         try:
-            profile_url = f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor={did}"
+            profile_url = f"{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile?actor={did}"
             response = requests.get(profile_url, timeout=30)
             
             if response.status_code == 200:
@@ -1368,7 +1371,7 @@ def spectrum_origin_redirect(handle):
             import requests
             full_handle = handle if '.' in handle else f"{handle}.bsky.social"
             response = requests.get(
-                f"https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle={full_handle}",
+                f"{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle?handle={full_handle}",
                 timeout=2
             )
             
@@ -1376,7 +1379,7 @@ def spectrum_origin_redirect(handle):
                 did = response.json().get('did')
                 if did:
                     profile_response = requests.get(
-                        f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor={did}",
+                        f"{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile?actor={did}",
                         timeout=2
                     )
                     if profile_response.status_code == 200:

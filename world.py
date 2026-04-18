@@ -85,14 +85,21 @@ def display_world_data(canon_count, dreamers_count, souvenirs_count):
     
     epoch = int(time.time())
     
-    # Fetch Bluesky user count
+    # Fetch Bluesky user count (ClearSky primary, theo.io fallback)
     idle_dreamers = None
     try:
-        with urllib.request.urlopen('https://bsky-users.theo.io/api/stats', timeout=5) as response:
-            bsky_data = json.loads(response.read().decode())
-            idle_dreamers = bsky_data.get('last_user_count')
+        with urllib.request.urlopen('https://api.clearsky.services/api/v1/anon/total-users', timeout=5) as response:
+            clearsky_data = json.loads(response.read().decode())
+            idle_dreamers = clearsky_data.get('data', {}).get('active_count', {}).get('value')
     except Exception:
         pass
+    if idle_dreamers is None:
+        try:
+            with urllib.request.urlopen('https://bsky-users.theo.io/api/stats', timeout=5) as response:
+                bsky_data = json.loads(response.read().decode())
+                idle_dreamers = bsky_data.get('last_user_count')
+        except Exception:
+            pass
     
     # Load discrete_dreamweavers
     discrete_dreamweavers = 0

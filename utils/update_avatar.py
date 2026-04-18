@@ -12,6 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.database import DatabaseManager
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 def get_db_connection():
     """Get DatabaseManager instance."""
     return DatabaseManager()
@@ -361,7 +364,7 @@ def get_current_avatar(did: str) -> dict:
     try:
         # Query Bluesky API for profile
         response = requests.get(
-            f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile",
+            f"{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile",
             params={"actor": did}
         )
         

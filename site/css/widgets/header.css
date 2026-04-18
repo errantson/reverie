@@ -24,7 +24,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 20px;
+    padding: 6px 20px;
     background: linear-gradient(135deg, 
         color-mix(in srgb, var(--reverie-core-color, #734ba1) 90%, white), 
         var(--reverie-core-color, #734ba1), 
@@ -35,7 +35,7 @@
     left: 0;
     width: 100vw;
     z-index: 10100; /* Above drawer (9997 desktop, 10000 mobile) */
-    min-height: 56px;
+    min-height: 44px;
     transition: none;
 }
 .enhanced-reader {
@@ -75,7 +75,7 @@
     transition: transform 0.2s ease;
 }
 .header-unified .header-logo {
-    height: 56px;
+    height: 40px;
     width: auto;
     filter: none;
 }
@@ -83,10 +83,10 @@
 /* errantson Helper Button */
 .errantson-helper {
     position: relative;
-    width: 44px;
-    height: 44px;
-    min-width: 44px; /* Prevent shrinking */
-    min-height: 44px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px; /* Prevent shrinking */
+    min-height: 36px;
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.2);
@@ -102,8 +102,8 @@
 }
 
 .errantson-helper img {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     transition: all 0.3s ease;
 }

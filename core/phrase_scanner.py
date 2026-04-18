@@ -45,13 +45,19 @@ class PhraseScanner:
     Efficient network-wide phrase scanner using Jetstream.
     """
     
-    JETSTREAM_URL = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post"
+    JETSTREAM_URLS = [
+        "wss://jetstream2.us-east.bsky.network/subscribe",
+        "wss://jetstream1.us-east.bsky.network/subscribe",
+        "wss://jetstream2.us-west.bsky.network/subscribe",
+        "wss://jetstream1.us-west.bsky.network/subscribe",
+    ]
     CURSOR_FILE = Path('/srv/reverie.house/data/phrase_scanner_cursor.txt')
     
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
         self.running = True
         self.cursor: Optional[int] = None
+        self.jetstream_url_index = 0
         
         # Stats
         self.stats = {
@@ -497,7 +503,8 @@ class PhraseScanner:
     
     def _build_url(self) -> str:
         """Build Jetstream URL with cursor if available."""
-        url = self.JETSTREAM_URL
+        base = self.JETSTREAM_URLS[self.jetstream_url_index % len(self.JETSTREAM_URLS)]
+        url = f"{base}?wantedCollections=app.bsky.feed.post"
         if self.cursor:
             url += f"&cursor={self.cursor}"
         return url
@@ -554,11 +561,14 @@ class PhraseScanner:
                                     
                 except websockets.exceptions.ConnectionClosed as e:
                     self.stats['reconnects'] += 1
-                    print(f"🔄 Connection closed, reconnecting in 5s... (attempt {self.stats['reconnects']})")
+                    self.jetstream_url_index += 1
+                    next_url = self.JETSTREAM_URLS[self.jetstream_url_index % len(self.JETSTREAM_URLS)]
+                    print(f"🔄 Connection closed, reconnecting to {next_url} in 5s... (attempt {self.stats['reconnects']})")
                     await asyncio.sleep(5)
                     
                 except Exception as e:
                     self.stats['reconnects'] += 1
+                    self.jetstream_url_index += 1
                     print(f"❌ Error: {e}, reconnecting in 10s...")
                     await asyncio.sleep(10)
         finally:

@@ -486,7 +486,7 @@ class ShareLore {
             const session = await window.oauthManager.getSession();
             if (!session?.did) return;
             
-            const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${session.did}&limit=10`);
+            const response = await fetch(`/bsky/xrpc/app.bsky.feed.getAuthorFeed?actor=${session.did}&limit=10`);
             if (!response.ok) throw new Error('Failed to fetch posts');
             
             const data = await response.json();
@@ -656,7 +656,7 @@ class ShareLore {
                     ? parsed
                     : `at://${parsed.handle}/app.bsky.feed.post/${parsed.postId}`;
                 
-                const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(atUri)}&depth=0`);
+                const response = await fetch(`/bsky/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(atUri)}&depth=0`);
                 if (!response.ok) return;
                 
                 const data = await response.json();

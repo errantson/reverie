@@ -3018,7 +3018,7 @@ class Profile {
                 let profile = null;
                 if (partnerDid) {
                     try {
-                        const profileRes = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${partnerDid}`);
+                        const profileRes = await fetch(`/bsky/xrpc/app.bsky.actor.getProfile?actor=${partnerDid}`);
                         if (profileRes.ok) {
                             profile = await profileRes.json();
                         }
@@ -3101,7 +3101,7 @@ class Profile {
                     // Fetch partner profile for display
                     let profile = null;
                     try {
-                        const profileRes = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${partnerDid}`);
+                        const profileRes = await fetch(`/bsky/xrpc/app.bsky.actor.getProfile?actor=${partnerDid}`);
                         if (profileRes.ok) {
                             profile = await profileRes.json();
                         }
@@ -4985,7 +4985,7 @@ class Profile {
 
     async fetchMostRecentPost(did) {
         try {
-            const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${did}&limit=1`);
+            const response = await fetch(`/bsky/xrpc/app.bsky.feed.getAuthorFeed?actor=${did}&limit=1`);
             if (!response.ok) return null;
             
             const data = await response.json();
@@ -5003,7 +5003,7 @@ class Profile {
     async fetchMostRecentReply(did) {
         try {
             // Get author feed and filter for replies
-            const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${did}&limit=10`);
+            const response = await fetch(`/bsky/xrpc/app.bsky.feed.getAuthorFeed?actor=${did}&limit=10`);
             if (!response.ok) return null;
             
             const data = await response.json();
@@ -5027,7 +5027,7 @@ class Profile {
 
     async fetchPostByUri(uri) {
         try {
-            const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=0`);
+            const response = await fetch(`/bsky/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=0`);
             if (!response.ok) return null;
             
             const data = await response.json();

@@ -10,6 +10,8 @@ Usage: has_biblio_stamp:at://did:plc:librarian/biblio.bond.list/3m6723l4dj22c
 import requests
 from typing import Dict, List
 
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 
 def evaluate(thread_result: Dict, quest_config: Dict, list_identifier: str) -> Dict:
     """
@@ -123,7 +125,7 @@ def _query_stamps_via_atproto(did: str, list_rkey: str) -> List[Dict]:
         # In practice, you'd need to resolve the DID to find the PDS endpoint
         
         # For now, use the public Bluesky PDS as a fallback
-        url = f'https://bsky.social/xrpc/com.atproto.repo.listRecords'
+        url = f'{BSKY_CACHE}/xrpc/com.atproto.repo.listRecords'
         params = {
             'repo': did,
             'collection': 'biblio.bond.stamps',  # or biblio.bond.completion

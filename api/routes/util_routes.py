@@ -3,12 +3,14 @@ Utility Routes
 Simple utility endpoints for the Reverie House API
 """
 
-from flask import Blueprint, request, Response
+from flask import Blueprint, request, Response, jsonify
 import requests
 from io import BytesIO
 from urllib.parse import urlparse
 import ipaddress
 import socket
+import re
+import dns.resolver
 
 bp = Blueprint('util', __name__, url_prefix='/api')
 
@@ -178,3 +180,58 @@ def proxy_image():
         return {'error': f'Request failed: {str(e)}'}, 500
     except Exception as e:
         return {'error': f'Proxy error: {str(e)}'}, 500
+
+
+# Handle validation: only allow safe characters (letters, digits, dots, hyphens)
+HANDLE_RE = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9._-]{0,252}$')
+
+
+@bp.route('/resolve-handle', methods=['GET'])
+def resolve_handle():
+    """
+    Resolve an AT Protocol handle to a DID — independently of Bluesky.
+    Tries DNS TXT (_atproto.<handle>) first, then HTTPS .well-known/atproto-did.
+    Returns: { "did": "did:plc:..." }
+    """
+    handle = request.args.get('handle', '').strip().lstrip('@')
+    if not handle or not HANDLE_RE.match(handle):
+        return jsonify({'error': 'InvalidRequest', 'message': 'Invalid handle'}), 400
+
+    did = None
+
+    # 1. DNS TXT: _atproto.<handle>
+    try:
+        answers = dns.resolver.resolve(f'_atproto.{handle}', 'TXT', lifetime=5)
+        for rdata in answers:
+            txt = rdata.to_text().strip('"')
+            if txt.startswith('did='):
+                candidate = txt[4:]
+                if candidate.startswith('did:'):
+                    did = candidate
+                    break
+    except Exception:
+        pass
+
+    # 2. HTTPS .well-known/atproto-did
+    if not did:
+        try:
+            resp = requests.get(
+                f'https://{handle}/.well-known/atproto-did',
+                timeout=5,
+                allow_redirects=False,
+                headers={'User-Agent': 'ReverieHouse/1.0'}
+            )
+            if resp.status_code == 200:
+                candidate = resp.text.strip().split('\n')[0].strip()
+                if candidate.startswith('did:'):
+                    did = candidate
+        except Exception:
+            pass
+
+    if did:
+        return jsonify({'did': did}), 200, {'Cache-Control': 'public, max-age=300'}
+
+    return jsonify({
+        'error': 'InvalidRequest',
+        'message': 'Unable to resolve handle'
+    }), 400

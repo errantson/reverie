@@ -420,7 +420,7 @@ class GuardianPanel {
         // Search Bluesky for handles
         if (results.length < 5) {
             try {
-                const bskyRes = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.searchActorsTypeahead?q=${encodeURIComponent(query)}&limit=5`);
+                const bskyRes = await fetch(`/bsky/xrpc/app.bsky.actor.searchActorsTypeahead?q=${encodeURIComponent(query)}&limit=5`);
                 if (bskyRes.ok) {
                     const bskyData = await bskyRes.json();
                     for (const actor of (bskyData.actors || [])) {
@@ -823,7 +823,7 @@ class GuardianPanel {
                 const rkey = parts[2] || '';
                 
                 // Fetch post from public API
-                const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris=${encodeURIComponent(uri)}`);
+                const response = await fetch(`/bsky/xrpc/app.bsky.feed.getPosts?uris=${encodeURIComponent(uri)}`);
                 if (response.ok) {
                     const data = await response.json();
                     const post = data.posts?.[0];

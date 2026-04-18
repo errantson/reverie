@@ -5,6 +5,9 @@ from typing import Optional, Dict, List, Set, Tuple
 from config import Config
 from .auth import AuthManager
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 class ThreadsManager:
     """Handles thread operations including fetching posts and processing replies."""
     
@@ -135,7 +138,7 @@ class ThreadsManager:
             if result:
                 return result
         
-        for server in ["https://public.api.bsky.app", "https://bsky.social"]:
+        for server in [BSKY_CACHE, "https://bsky.social"]:
             result = self._make_thread_request(server, params, {})
             if result:
                 return result
@@ -153,7 +156,7 @@ class ThreadsManager:
             if result:
                 return result
         
-        for server in ["https://public.api.bsky.app", "https://bsky.social"]:
+        for server in [BSKY_CACHE, "https://bsky.social"]:
             result = self._make_thread_request(server, params, headers)
             if result:
                 return result
@@ -164,7 +167,7 @@ class ThreadsManager:
         """Try public thread request without authentication."""
         params = {"uri": post_uri, "depth": max_depth}
         
-        for server in ["https://public.api.bsky.app", "https://bsky.social"]:
+        for server in [BSKY_CACHE, "https://bsky.social"]:
             result = self._make_thread_request(server, params, {})
             if result:
                 return result

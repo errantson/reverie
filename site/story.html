@@ -61,7 +61,7 @@
                 </div>
                 <div class="story-header-info">
                     <div class="story-header-description">
-                        <span class="desktop-text">Share your adventures throughout our wild mindscape as journals, acts, stories, or any other sorts of dreams you may compose.</span>
+                        <span class="desktop-text">Share your adventures throughout our wild mindscape as journals, stories, or any other sorts of dreams you have.</span>
                         <span class="mobile-text">Share your adventures as journals, acts, stories, or dreams.</span>
                         <span class="second-line">Your contributions will join the collective Reverie House lore.</span>
                     </div>
@@ -908,7 +908,7 @@
                     loremasterDids.map(async (did) => {
                         try {
                             const profileResponse = await fetch(
-                                `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
+                                `/bsky/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
                             );
                             if (!profileResponse.ok) return null;
                             return await profileResponse.json();

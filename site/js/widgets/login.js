@@ -871,7 +871,7 @@ class LoginWidget {
                     
                     // Fallback to bsky.social if handle's domain failed or wasn't tried
                     if (!didResponse || !didResponse.ok) {
-                        didResponse = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+                        didResponse = await fetch(`/bsky/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
                     }
                     
                     if (!didResponse.ok) {

@@ -52,12 +52,12 @@ class World {
             const keeperHandle = this.worldData.keeper;
             if (!keeperHandle) return;
             
-            const profileResponse = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${keeperHandle}`);
+            const profileResponse = await fetch(`/bsky/xrpc/app.bsky.actor.getProfile?actor=${keeperHandle}`);
             const profileData = await profileResponse.json();
             const did = profileData.did;
             
             // Fetch more posts to find one with the canon:reverie.house label
-            const feedResponse = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${did}&limit=50`);
+            const feedResponse = await fetch(`/bsky/xrpc/app.bsky.feed.getAuthorFeed?actor=${did}&limit=50`);
             const feedData = await feedResponse.json();
             
             if (feedData.feed && feedData.feed.length > 0) {

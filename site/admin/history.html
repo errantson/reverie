@@ -802,7 +802,7 @@
                     
                     try {
                         // First resolve handle to DID using Bluesky's API
-                        const resolveResp = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
+                        const resolveResp = await fetch(`/bsky/xrpc/com.atproto.identity.resolveHandle?handle=${handle}`);
                         if (!resolveResp.ok) {
                             throw new Error('Handle not found');
                         }

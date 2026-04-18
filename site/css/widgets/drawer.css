@@ -71,10 +71,10 @@
     will-change: transform;
     display: flex;
     flex-direction: column;
-    min-height: 64px; 
+    min-height: 48px; 
 }
 .drawer-container.closing {
-    transform: translateY(calc(100% - 64px));
+    transform: translateY(calc(100% - 48px));
     flex-direction: column; 
 }
 .drawer-container.closing .drawer-content {
@@ -82,7 +82,7 @@
     flex-direction: column;
 }
 .drawer-container.closed {
-    transform: translateY(calc(100% - 64px));
+    transform: translateY(calc(100% - 48px));
 }
 .drawer-container.closed .drawer-content {
     display: none; 
@@ -107,7 +107,7 @@
         color-mix(in srgb, var(--reverie-core-color, #734ba1) 80%, black));
     border-top: none;
     border-bottom: 3px solid rgba(0, 0, 0, 0.4);
-    height: 64px;
+    height: 48px;
     box-sizing: border-box;
     flex-shrink: 0;
     order: 0; 
@@ -1530,7 +1530,7 @@ body.has-spectrum-drawer {
         transform: translateY(0);
     }
     to {
-        transform: translateY(calc(100% - 64px));
+        transform: translateY(calc(100% - 48px));
     }
 }
 .canon-feed-section {

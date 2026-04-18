@@ -577,8 +577,8 @@ def get_api_guide():
         "at_protocol_integration": {
             "description": "Reverie House is built on the AT Protocol",
             "did_resolution": "DIDs can be resolved via https://plc.directory/<did>",
-            "handle_resolution": "Handles resolve via https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=<handle>",
-            "profile_data": "Profiles via https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=<did>",
+            "handle_resolution": "Handles resolve via /bsky/xrpc/com.atproto.identity.resolveHandle?handle=<handle> (cached proxy)",
+            "profile_data": "Profiles via /bsky/xrpc/app.bsky.actor.getProfile?actor=<did> (cached proxy)",
             "our_lexicons": {
                 "note": "Reverie House defines custom lexicons in /lexicons/",
                 "residence_record": "house.reverie.actor.residence"

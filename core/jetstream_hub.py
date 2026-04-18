@@ -50,6 +50,9 @@ except ImportError:
     import websockets
 
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 # ============================================================================
 # Base Handler Class
 # ============================================================================
@@ -353,7 +356,7 @@ class KindredHandler(EventHandler):
             
             # Get who this user currently follows
             user_follows: set = set()
-            url = "https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows"
+            url = f"{BSKY_CACHE}/xrpc/app.bsky.graph.getFollows"
             params = {'actor': user_did, 'limit': 100}
             api_cursor = None
             
@@ -397,7 +400,7 @@ class KindredHandler(EventHandler):
         try:
             import requests
             
-            url = "https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows"
+            url = f"{BSKY_CACHE}/xrpc/app.bsky.graph.getFollows"
             params = {'actor': actor_did, 'limit': 100}
             cursor = None
             
@@ -483,7 +486,7 @@ class KindredHandler(EventHandler):
             
             # Check if subject follows back the follower
             # Use getFollows API to check if subject follows follower
-            url = "https://public.api.bsky.app/xrpc/app.bsky.graph.getFollows"
+            url = f"{BSKY_CACHE}/xrpc/app.bsky.graph.getFollows"
             params = {
                 'actor': subject_did,
                 'limit': 100

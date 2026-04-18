@@ -12,6 +12,9 @@ sys.path.insert(0, '/srv/reverie.house')
 
 from core.database import DatabaseManager
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 # Inside Docker: /srv/reverie.house → /srv
 AVATAR_CACHE_DIR = '/srv/site/assets/cached/avatars'
 from core.network import NetworkClient
@@ -444,7 +447,7 @@ def check_account_health(verbose: bool = True) -> dict:
         try:
             # Check public API
             r = _req.get(
-                f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor={did}",
+                f"{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile?actor={did}",
                 timeout=10
             )
 

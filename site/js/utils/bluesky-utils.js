@@ -13,7 +13,7 @@ export async function resolveHandleToDid(handle) {
     
     try {
         const response = await fetch(
-            `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${cleanHandle}`
+            `/bsky/xrpc/com.atproto.identity.resolveHandle?handle=${cleanHandle}`
         );
         
         if (!response.ok) {

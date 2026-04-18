@@ -201,8 +201,12 @@
             }
             
             setupSearch();
-            await loadGuardianRules();
-            await loadAllData();
+            
+            // Load guardian rules and data in parallel
+            await Promise.all([
+                loadGuardianRules(),
+                loadAllData()
+            ]);
             applyFilters(); // Apply guardian filtering on initial render
             
             // Start epoch counter
@@ -278,49 +282,6 @@
             }
         }
 
-        // Fetch idle dreamers with caching
-        async function fetchIdleDreamers() {
-            const CACHE_KEY = 'reverie_idle_dreamers';
-            const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-            
-            try {
-                const cached = localStorage.getItem(CACHE_KEY);
-                if (cached) {
-                    const data = JSON.parse(cached);
-                    if (Date.now() - data.timestamp < CACHE_TTL) {
-                        return data.count;
-                    }
-                }
-            } catch (err) {
-                console.warn('Cache read error:', err);
-            }
-            
-            try {
-                const response = await fetch('/api/bsky-stats', {
-                    signal: AbortSignal.timeout(5000)
-                });
-                
-                if (!response.ok) throw new Error('API error');
-                
-                const data = await response.json();
-                const count = data.last_user_count;
-                
-                if (count && typeof count === 'number') {
-                    try {
-                        localStorage.setItem(CACHE_KEY, JSON.stringify({
-                            count,
-                            timestamp: Date.now()
-                        }));
-                    } catch (err) {}
-                    return count;
-                }
-            } catch (err) {
-                console.error('Error fetching idle dreamers:', err);
-            }
-            
-            return null;
-        }
-
         // Fetch operations status
         async function fetchOperationsStatus() {
             try {
@@ -366,8 +327,10 @@
                 
                 allData = data.tables || {};
                 
-                // Update idle dreamers
-                const idleDreamers = await fetchIdleDreamers();
+                // Update idle dreamers from world table (already in /api/database/all)
+                const worldTable = allData.world || [];
+                const idleDreamersRow = worldTable.find(r => r.key === 'idle_dreamers');
+                const idleDreamers = idleDreamersRow ? parseInt(idleDreamersRow.value, 10) : null;
                 const idleEl = document.getElementById('idle-dreamers-count');
                 if (idleEl) idleEl.textContent = idleDreamers ? idleDreamers.toLocaleString() : '???';
                 
@@ -404,16 +367,14 @@
                 const dreamEvents = events.filter(e => e.type === 'dream' || e.type === 'nightmare');
                 document.getElementById('stat-dreams').textContent = dreamEvents.length.toLocaleString();
                 
-                // Fetch active workers from work table
+                // Fire sidebar fetches without blocking render
                 fetchActiveWorkers();
+                fetchOperationsStatus();
                 
                 // Count unique readers (unique DIDs with order events)
                 const orderEvents = events.filter(e => e.type === 'order');
                 const uniqueReaders = new Set(orderEvents.map(e => e.did).filter(Boolean));
                 document.getElementById('stat-readers').textContent = uniqueReaders.size.toLocaleString();
-                
-                // Fetch operations status
-                fetchOperationsStatus();
                 
             } catch (error) {
                 console.error('Error loading data:', error);

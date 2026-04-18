@@ -1,0 +1,250 @@
+/* ── Patrol page layout ─────────────────────────────────────────── */
+
+html.patrol-active,
+html.patrol-active body {
+    height: 100%;
+    overflow: hidden;
+}
+
+.patrol-page {
+    /* --patrol-header-h is set by JS after measuring the actual header */
+    padding-top: var(--patrol-header-h, 50px);
+    height: calc(100vh - var(--patrol-header-h, 50px) - 48px); /* subtract header + drawer bar */
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.patrol-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* ── Password gate ─────────────────────────────────────────────── */
+.patrol-gate {
+    max-width: 380px;
+    margin: 0 auto;
+    text-align: center;
+    background: var(--internal-background-color, #fff);
+    border: 2px solid var(--canon-border-color, #4a90e2);
+    padding: 2rem 2rem 1.5rem;
+    border-radius: 6px;
+}
+
+.patrol-lock-icon {
+    font-size: 2.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.patrol-lock-label {
+    color: var(--primary-color, #000080);
+    font-size: 1rem;
+    margin-bottom: 1.2rem;
+}
+
+.patrol-lock-form {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.patrol-password-input {
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.5rem 0.8rem;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.2s;
+}
+
+.patrol-password-input:focus {
+    border-color: var(--canon-border-color, #4a90e2);
+}
+
+.patrol-unlock-btn {
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.5rem 1.2rem;
+    background: var(--canon-primary-color, #4a90e2);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+    transition: background 0.15s;
+}
+
+.patrol-unlock-btn:hover {
+    background: var(--canon-link-hover-color, #357ab7);
+}
+
+.patrol-lock-error {
+    color: #cc3333;
+    font-size: 0.85rem;
+    margin-top: 0.8rem;
+    min-height: 1.2em;
+}
+
+/* ── Game stage ────────────────────────────────────────────────── */
+.patrol-stage-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.patrol-stage {
+    position: relative;
+    width: 640px;
+    height: 320px;
+    max-width: 100vw;
+    border: 3px solid var(--primary-color, #000080);
+    overflow: hidden;
+    cursor: pointer;
+    image-rendering: pixelated;
+    background: #87ceeb;
+}
+
+.patrol-stage:focus {
+    outline: 2px solid var(--canon-primary-color, #4a90e2);
+    outline-offset: 2px;
+}
+
+.patrol-camera {
+    position: absolute;
+    inset: 0;
+    background: url('/assets/patrol/ground_bg.png') no-repeat 0 0 / 100% 100%;
+}
+
+/* Sky + ground handled by ground_bg.png on .patrol-camera */
+.patrol-sky,
+.patrol-ground {
+    display: none;
+}
+
+/* Player sprite — RMMZ 48×48 frames */
+.patrol-player {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    background-size: 144px 192px;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    z-index: 5;
+}
+
+/* Tree sprites */
+.patrol-tree {
+    position: absolute;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    pointer-events: none;
+}
+
+.patrol-player.dir-down  { background-position-y: 0; }
+.patrol-player.dir-left  { background-position-y: -48px; }
+.patrol-player.dir-right { background-position-y: -96px; }
+.patrol-player.dir-up    { background-position-y: -144px; }
+
+.patrol-player.frame-0 { background-position-x: 0; }
+.patrol-player.frame-1 { background-position-x: -48px; }
+.patrol-player.frame-2 { background-position-x: -96px; }
+
+@keyframes patrol-walk {
+    0%, 100% { background-position-x: 0; }
+    25%      { background-position-x: -48px; }
+    50%      { background-position-x: -96px; }
+    75%      { background-position-x: -48px; }
+}
+
+.patrol-player.walking {
+    animation: patrol-walk 0.6s steps(1) infinite;
+}
+
+/* Loading overlay */
+.patrol-loading {
+    position: absolute;
+    inset: 0;
+    background: url('/assets/patrol/ground_bg.png') no-repeat 0 0 / 100% 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    transition: opacity 0.3s;
+}
+
+.patrol-loading.done {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.patrol-loading span {
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    color: #fff;
+    opacity: 0.9;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.patrol-controls-hint {
+    text-align: center;
+    color: #888;
+    font-size: 0.8rem;
+    margin-top: 0.6rem;
+}
+
+/* ── Info panel below stage ────────────────────────────────────── */
+.patrol-info {
+    text-align: center;
+    max-width: 640px;
+}
+
+.patrol-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-color, #000080);
+    margin: 0;
+    letter-spacing: 0.04em;
+}
+
+.patrol-subtitle {
+    font-size: 0.8rem;
+    color: #666;
+    margin: 2px 0 0;
+}
+
+.patrol-options {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.patrol-option {
+    font-size: 0.72rem;
+    color: #999;
+    letter-spacing: 0.02em;
+}
+
+.patrol-option-sep {
+    color: #ccc;
+    font-size: 0.72rem;
+}
+
+/* ── Mobile ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .patrol-page {
+        padding-top: var(--patrol-header-h, 50px);
+        height: calc(100vh - var(--patrol-header-h, 50px) - 48px);
+    }
+}

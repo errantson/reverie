@@ -93,7 +93,7 @@ class SSENotificationClient {
             
             // Error handling
             this.eventSource.onerror = (error) => {
-                console.error('❌ [SSE] Connection error:', error);
+                // SSE will auto-reconnect; only log in debug
                 this.connected = false;
                 this.trigger('disconnected', { error });
                 

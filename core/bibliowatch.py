@@ -28,6 +28,8 @@ from ops.conditions import evaluate_conditions
 from ops.command_executor import execute_quest_commands
 from ops.triggers import get_trigger_handler, BibliohoseTrigger
 
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 
 class BibliohoseMonitor:
     """Monitor biblio.bond records and trigger quests."""
@@ -322,7 +324,7 @@ def query_user_stamps(did: str) -> List[Dict]:
                 continue
         
         # Try AT Protocol direct query
-        url = 'https://bsky.social/xrpc/com.atproto.repo.listRecords'
+        url = f'{BSKY_CACHE}/xrpc/com.atproto.repo.listRecords'
         
         for collection in ['biblio.bond.stamps', 'biblio.bond.completion']:
             try:

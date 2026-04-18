@@ -29,6 +29,9 @@ sys.path.insert(0, '/srv/reverie.house')
 audit = None
 audit_enabled = False  # Enable if audit module is available
 
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
+
 def audit_log(*args, **kwargs):
     if audit_enabled and audit:
         audit.log(*args, **kwargs)
@@ -787,7 +790,7 @@ def origin_html_with_meta():
         display_name = handle
         try:
             response = requests.get(
-                f"https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle={handle}",
+                f"{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle?handle={handle}",
                 timeout=2
             )
             
@@ -795,7 +798,7 @@ def origin_html_with_meta():
                 did = response.json().get('did')
                 if did:
                     profile_response = requests.get(
-                        f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor={did}",
+                        f"{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile?actor={did}",
                         timeout=2
                     )
                     if profile_response.status_code == 200:
@@ -986,14 +989,14 @@ def origin_redirect(handle):
         display_name = actual_handle
         try:
             response = requests.get(
-                f"https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle={actual_handle}",
+                f"{BSKY_CACHE}/xrpc/com.atproto.identity.resolveHandle?handle={actual_handle}",
                 timeout=2
             )
             if response.status_code == 200:
                 did = response.json().get('did')
                 if did:
                     prof_resp = requests.get(
-                        f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor={did}",
+                        f"{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile?actor={did}",
                         timeout=2
                     )
                     if prof_resp.status_code == 200:
@@ -1801,7 +1804,7 @@ def story_feed():
             for i in range(0, len(uris_to_enrich), 25):
                 batch = uris_to_enrich[i:i+25]
                 resp = requests.get(
-                    'https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts',
+                    f'{BSKY_CACHE}/xrpc/app.bsky.feed.getPosts',
                     params={'uris': batch},
                     timeout=15
                 )
@@ -2974,11 +2977,22 @@ def get_world():
 
 @app.route('/api/bsky-stats')
 def get_bsky_stats():
-    """Proxy for Bluesky user count stats to avoid CORS issues"""
+    """Proxy for Bluesky user count stats (ClearSky primary, theo.io fallback)"""
     try:
         import urllib.request
         import json
         
+        # Try ClearSky first
+        try:
+            with urllib.request.urlopen('https://api.clearsky.services/api/v1/anon/total-users', timeout=5) as response:
+                clearsky_data = json.loads(response.read().decode())
+                active_count = clearsky_data.get('data', {}).get('active_count', {}).get('value')
+                if active_count:
+                    return jsonify({'last_user_count': active_count, 'source': 'clearsky'})
+        except Exception:
+            pass
+        
+        # Fallback to theo.io
         with urllib.request.urlopen('https://bsky-users.theo.io/api/stats', timeout=5) as response:
             data = json.loads(response.read().decode())
             return jsonify(data)
@@ -14664,7 +14678,7 @@ def update_user_avatar():
         try:
             print("[API] Fetching updated profile from Bluesky...")
             profile_response = requests.get(
-                f"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile",
+                f"{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile",
                 params={"actor": user_did}
             )
             if profile_response.status_code == 200:
