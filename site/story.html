@@ -7,11 +7,12 @@
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/heraldry.css">
     <link rel="stylesheet" href="/css/responsive.css">
-    <link rel="stylesheet" href="/css/pages/story.css?v=20260223b">
+    <link rel="stylesheet" href="/css/pages/story.css?v=20260420b">
     <link rel="stylesheet" href="/css/widgets/sharelore.css">
     <link rel="stylesheet" href="/css/widgets/login.css">
     <link rel="stylesheet" href="/css/widgets/createdreamer.css">
     <link rel="stylesheet" href="/css/widgets/dialogue.css">
+    <link rel="stylesheet" href="/css/widgets/branchstory.css">
     <link rel="stylesheet" href="/css/utils/auth-gate.css">
     
     <!-- Favicon and Icons -->
@@ -37,6 +38,7 @@
     <script src="/js/widgets/sharelore.js" defer></script>
     <script src="/js/widgets/explainer.js" defer></script>
     <script src="/js/widgets/dreamer-hover.js" defer></script>
+    <script src="/js/widgets/branchstory.js" defer></script>
 </head>
 <body class="story-page">
     <div id="header-container"></div>
@@ -110,9 +112,9 @@
                     <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"></path>
                     <path d="M10 11v6M14 11v6"></path>
                 </svg>
-                <h3>Delete Post</h3>
+                <h3 id="deleteConfirmTitle">Delete Post</h3>
             </div>
-            <p>This will permanently remove the post from Bluesky.</p>
+            <p id="deleteConfirmText">This will permanently remove this post.</p>
             <p class="delete-warning">This action cannot be undone.</p>
             <div class="delete-confirm-actions">
                 <button class="delete-cancel-btn" onclick="closeDeletePopup()">Cancel</button>
@@ -183,6 +185,63 @@
         let allDreamers = [];
         let guardianRules = null;
         let aggregateBarred = null;
+        let pendingStoryTargetUri = null;
+
+        function encodeStoryId(uri) {
+            try {
+                if (!uri || !uri.startsWith('at://')) return '';
+                const rest = uri.slice(5);
+                const parts = rest.split('/');
+                if (parts.length < 3) return '';
+                const [did, collection, rkey] = parts;
+                const colMap = { 'app.bsky.feed.post': 'b', 'ink.branchline.bud': 'l' };
+                const didPart = did.startsWith('did:plc:') ? did.slice(8) : ('w.' + did.replace('did:web:', ''));
+                const colPart = colMap[collection] || collection;
+                return `${didPart}.${colPart}.${rkey}`;
+            } catch {
+                return '';
+            }
+        }
+
+        function decodeStoryId(id) {
+            if (!id) return '';
+            try {
+                const colDecodeMap = { 'b': 'app.bsky.feed.post', 'l': 'ink.branchline.bud' };
+                const parts = id.split('.');
+                if (parts.length >= 3) {
+                    const rkey = parts[parts.length - 1];
+                    const colAbbrev = parts[parts.length - 2];
+                    const didKey = parts.slice(0, -2).join('.');
+                    if (colDecodeMap[colAbbrev]) {
+                        const collection = colDecodeMap[colAbbrev];
+                        const did = didKey.startsWith('w.') ? ('did:web:' + didKey.slice(2)) : ('did:plc:' + didKey);
+                        return `at://${did}/${collection}/${rkey}`;
+                    }
+                }
+                // Fallback: legacy base64
+                let normalized = String(id).replace(/-/g, '+').replace(/_/g, '/');
+                while (normalized.length % 4 !== 0) normalized += '=';
+                return decodeURIComponent(escape(atob(normalized)));
+            } catch {
+                return '';
+            }
+        }
+
+        function getTargetStoryUriFromQuery() {
+            const params = new URLSearchParams(window.location.search || '');
+            const uri = (params.get('uri') || params.get('postUri') || '').trim();
+            if (uri && uri.startsWith('at://')) return uri;
+            const id = (params.get('id') || params.get('post') || '').trim();
+            if (!id) return '';
+            const decoded = decodeStoryId(id);
+            return decoded.startsWith('at://') ? decoded : '';
+        }
+
+        function buildStoryPermalink(uri) {
+            const storyId = encodeStoryId(uri);
+            if (!storyId) return `${window.location.origin}/story`;
+            return `${window.location.origin}/story?id=${encodeURIComponent(storyId)}`;
+        }
 
         // Load guardian filtering rules
         async function loadGuardianRules() {
@@ -254,16 +313,15 @@
             return allDreamers.find(d => d.handle && d.handle.toLowerCase() === normalizedHandle);
         }
 
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
         // Convert @mentions, URLs, and hashtags in text to clickable links
         function linkifyHandles(text) {
             if (!text) return text;
-            
-            // First, escape HTML special characters except for what we'll add
-            const escapeHtml = (str) => {
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
-            };
             
             // Patterns to match
             const handleRegex = /@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?/g;
@@ -366,6 +424,180 @@
             }
             
             return parts.join('');
+        }
+
+        function getStoryPreview(text, maxParagraphs = 3, maxWords = 200) {
+            const sourceText = typeof text === 'string' ? text : '';
+            if (!sourceText) {
+                return { text: '', truncated: false };
+            }
+
+            const paragraphMatches = [...sourceText.matchAll(/\n\s*\n/g)];
+            const wordMatches = [...sourceText.matchAll(/\S+/g)];
+            const paragraphCutoff = paragraphMatches.length >= maxParagraphs
+                ? paragraphMatches[maxParagraphs - 1].index
+                : null;
+            const wordCutoff = wordMatches.length > maxWords
+                ? wordMatches[maxWords - 1].index + wordMatches[maxWords - 1][0].length
+                : null;
+            const cutoffs = [paragraphCutoff, wordCutoff].filter(index => Number.isInteger(index) && index > 0);
+
+            if (!cutoffs.length) {
+                return { text: sourceText, truncated: false };
+            }
+
+            const cutoff = Math.min(...cutoffs);
+            return {
+                text: sourceText.slice(0, cutoff).trimEnd(),
+                truncated: true,
+            };
+        }
+
+        function normalizeStoryFormatting(formatting, textLength) {
+            if (!Array.isArray(formatting) || !textLength) {
+                return [];
+            }
+
+            return formatting
+                .map(entry => {
+                    const type = entry?.type;
+                    if (type !== 'bold' && type !== 'italic') {
+                        return null;
+                    }
+
+                    const start = Math.max(0, Math.min(textLength, Number(entry.start) || 0));
+                    const end = Math.max(start, Math.min(textLength, Number(entry.end) || 0));
+                    if (end <= start) {
+                        return null;
+                    }
+
+                    return { start, end, type };
+                })
+                .filter(Boolean)
+                .sort((left, right) => left.start - right.start || left.end - right.end);
+        }
+
+        function utf8ByteOffsetToCharIndex(text, byteOffset) {
+            const target = Math.max(0, Number(byteOffset) || 0);
+            let currentByte = 0;
+            let currentIndex = 0;
+
+            for (const symbol of text) {
+                if (target <= currentByte) {
+                    return currentIndex;
+                }
+                currentByte += new TextEncoder().encode(symbol).length;
+                currentIndex += symbol.length;
+                if (target < currentByte) {
+                    return currentIndex;
+                }
+            }
+
+            return currentIndex;
+        }
+
+        function convertBranchlineFormatting(text, formatting) {
+            if (!Array.isArray(formatting) || !text) {
+                return [];
+            }
+
+            return formatting.map(entry => ({
+                ...entry,
+                start: utf8ByteOffsetToCharIndex(text, entry?.start),
+                end: (() => {
+                    const endIndex = utf8ByteOffsetToCharIndex(text, entry?.end);
+                    const trailingChar = text.slice(endIndex, endIndex + 1);
+                    if (/^[.!?,;:…]$/.test(trailingChar)) {
+                        return endIndex + trailingChar.length;
+                    }
+                    return endIndex;
+                })(),
+            }));
+        }
+
+        function sliceStoryFormatting(formatting, start, end) {
+            return normalizeStoryFormatting(formatting, end)
+                .filter(entry => entry.end > start && entry.start < end)
+                .map(entry => ({
+                    type: entry.type,
+                    start: Math.max(0, entry.start - start),
+                    end: Math.min(end, entry.end) - start,
+                }));
+        }
+
+        function renderFormattedInline(text, formatting) {
+            if (!text) return '';
+
+            const ranges = normalizeStoryFormatting(formatting, text.length);
+            if (!ranges.length) {
+                return linkifyHandles(text);
+            }
+
+            const starts = new Map();
+            const ends = new Map();
+            ranges.forEach(range => {
+                if (!starts.has(range.start)) starts.set(range.start, []);
+                if (!ends.has(range.end)) ends.set(range.end, []);
+                starts.get(range.start).push(range.type);
+                ends.get(range.end).push(range.type);
+            });
+
+            const points = Array.from(new Set([0, text.length, ...starts.keys(), ...ends.keys()])).sort((a, b) => a - b);
+            const active = new Set();
+            let html = '';
+
+            for (let index = 0; index < points.length - 1; index += 1) {
+                const point = points[index];
+                const nextPoint = points[index + 1];
+
+                (ends.get(point) || []).forEach(type => active.delete(type));
+                (starts.get(point) || []).forEach(type => active.add(type));
+
+                if (nextPoint <= point) continue;
+
+                let segmentHtml = linkifyHandles(text.slice(point, nextPoint));
+                if (active.has('bold')) {
+                    segmentHtml = `<strong>${segmentHtml}</strong>`;
+                }
+                if (active.has('italic')) {
+                    segmentHtml = `<em>${segmentHtml}</em>`;
+                }
+                html += segmentHtml;
+            }
+
+            return html;
+        }
+
+        function renderStoryTextHtml(text, formatting, suffix = '') {
+            const sourceText = typeof text === 'string' ? text : '';
+            if (!sourceText) {
+                return '<p>No text available</p>';
+            }
+
+            const paragraphRanges = [];
+            const separatorRegex = /\n\s*\n/g;
+            let paragraphStart = 0;
+            let match;
+
+            while ((match = separatorRegex.exec(sourceText)) !== null) {
+                paragraphRanges.push({ start: paragraphStart, end: match.index });
+                paragraphStart = match.index + match[0].length;
+            }
+            paragraphRanges.push({ start: paragraphStart, end: sourceText.length });
+
+            const htmlParagraphs = paragraphRanges
+                .map((range, index, allRanges) => {
+                    const paragraphText = sourceText.slice(range.start, range.end);
+                    if (!paragraphText.trim()) {
+                        return '';
+                    }
+                    const paragraphFormatting = sliceStoryFormatting(formatting, range.start, range.end);
+                    const paragraphSuffix = index === allRanges.length - 1 ? escapeHtml(suffix) : '';
+                    return `<p>${renderFormattedInline(paragraphText, paragraphFormatting)}${paragraphSuffix}</p>`;
+                })
+                .filter(Boolean);
+
+            return htmlParagraphs.join('');
         }
 
         // Dreamer Hover Card functionality
@@ -552,6 +784,17 @@
             });
         }
 
+        function getBranchlineUrl(uri, recordType) {
+            if (!uri) return '';
+            const match = uri.match(/^at:\/\/([^\/]+)\/([^\/]+)\/(.+)$/);
+            if (!match) return '';
+            const did = match[1];
+            const collection = recordType || match[2] || '';
+            const rkey = match[3];
+            if (collection !== 'ink.branchline.bud') return '';
+            return `https://branchline.ink/bud/${encodeURIComponent(did)}/${encodeURIComponent(rkey)}`;
+        }
+
         /**
          * Escape text for safe use in HTML attributes and JavaScript strings
          * Handles newlines, quotes, backslashes, and other special characters
@@ -570,33 +813,41 @@
 
         function createStoryCard(story) {
             const canonClass = story.isCanon ? 'canon' : '';
-            
-            // Extract text from server-enriched story and linkify handles
+
             const rawText = story.text || 'No text available';
-            const postText = linkifyHandles(rawText);
-            
-            // Get author info (already enriched by server from dreamers + Bluesky)
+            const recordType = story.recordType || (story.uri.includes('/app.bsky.feed.post/') ? 'app.bsky.feed.post' : '');
+            const isBskyPost = recordType === 'app.bsky.feed.post';
+            const isBranchline = recordType === 'ink.branchline.bud';
+            const storyFormatting = isBranchline ? convertBranchlineFormatting(rawText, story.formatting) : [];
+            const titleFormatting = isBranchline ? convertBranchlineFormatting(story.title || '', story.titleFormatting) : [];
+            const isLongForm = isBranchline;
+            const fullEncoded = encodeURIComponent(rawText);
+            const formattingEncoded = encodeURIComponent(JSON.stringify(storyFormatting));
+            const preview = getStoryPreview(rawText);
+            const needsExpand = isBranchline && preview.truncated;
+            const previewHtml = isBranchline
+                ? renderStoryTextHtml(preview.text, sliceStoryFormatting(storyFormatting, 0, preview.text.length), preview.truncated ? '…' : '')
+                : linkifyHandles(rawText);
+
             const authorHandle = story.author?.handle || 'unknown';
             const authorDisplayName = story.author?.displayName || 'Unknown';
             const authorAvatar = story.author?.avatar || '';
             const authorDid = story.author?.did || '';
-            
-            // Check if author is a registered dreamer
+
             const dreamer = getDreamerByHandle(authorHandle);
             const dreamerUrl = dreamer ? `/dreamer?did=${encodeURIComponent(dreamer.did)}` : `https://bsky.app/profile/${authorDid || authorHandle}`;
-            const bskyProfileUrl = `https://bsky.app/profile/${authorDid || authorHandle}`;
-            
-            // Get author's color for card styling (from server's dreamer data)
+            const bskyProfileUrl = authorHandle && authorHandle !== 'unknown'
+                ? `https://bsky.app/profile/${authorHandle}`
+                : (authorDid ? `https://pds.ls/at://${authorDid}` : '#');
+
             const authorColor = story.author?.color || dreamer?.color_hex || '#734ba1';
-            
-            // Build avatar HTML with link to bsky profile
-            const avatarHtml = authorAvatar 
+
+            const avatarHtml = authorAvatar
                 ? `<a href="${bskyProfileUrl}" target="_blank" onclick="event.stopPropagation();">
                      <img src="${authorAvatar}" alt="${authorDisplayName}" class="author-avatar">
                    </a>`
                 : '';
-            
-            // Build image HTML from server-enriched embed data
+
             let imageHtml = '';
             if (story.embed?.type === 'images' && story.embed.images?.length > 0) {
                 const img = story.embed.images[0];
@@ -608,41 +859,46 @@
             } else if (story.embed?.type === 'external' && story.embed.thumb) {
                 imageHtml = `<img src="${story.embed.thumb}" alt="${story.embed.title || 'Link preview'}" class="story-image">`;
             }
-            
-            // Post URL (server provides this, fallback to deriving from URI)
-            const postUrl = story.url || story.uri.replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/');
-            
-            // Get interaction counts (server-enriched from Bluesky batch fetch)
+
+            const branchlineUrl = getBranchlineUrl(story.uri, recordType);
+            const postUrl = branchlineUrl || story.url || (isBskyPost
+                ? story.uri.replace('at://', 'https://bsky.app/profile/').replace('/app.bsky.feed.post/', '/post/')
+                : `https://pds.ls/${story.uri}`);
+            const storyPermalink = buildStoryPermalink(story.uri);
+            const hasImage = !!(
+                (story.embed?.type === 'images' && story.embed.images?.length > 0) ||
+                (story.embed?.type === 'external' && story.embed.thumb)
+            );
+            const escapedShareTitle = escapeForAttribute(story.title || '');
+            const escapedShareText = escapeForAttribute(rawText || '');
+
             const likeCount = story.likeCount || 0;
             const repostCount = story.repostCount || 0;
             const replyCount = story.replyCount || 0;
-            
-            // Check if user is logged in
+
             const session = window.oauthManager ? window.oauthManager.getSession() : null;
             const isLoggedIn = !!session;
-            
-            // Build actions HTML (only for logged-in users)
+            const isOwnPost = isLoggedIn && session.did === authorDid;
+
             let actionsHtml = '';
-            if (isLoggedIn) {
+            if (isLoggedIn && (isBskyPost || isBranchline)) {
                 const escapedDisplayName = escapeForAttribute(authorDisplayName);
                 const truncatedText = rawText.substring(0, 30) + (rawText.length > 30 ? '...' : '');
                 const escapedPostText = escapeForAttribute(truncatedText);
-                
-                // Check if this is the user's own post
-                const isOwnPost = session.did === authorDid;
-                
+
                 actionsHtml = `
                     <div class="story-actions">
-                        <button class="story-action-btn like-btn" 
+                        ${isBskyPost ? `
+                        <button class="story-action-btn like-btn"
                                 data-uri="${story.uri}"
                                 data-cid="${story.cid || ''}"
                                 data-liked="false"
-                                onclick="handleLike(this.dataset.uri, this.dataset.cid, this.dataset.liked === 'true', this)" 
+                                onclick="handleLike(this.dataset.uri, this.dataset.cid, this.dataset.liked === 'true', this)"
                                 title="Like this post">
                             <span>Like</span>
                             <span class="action-count">${likeCount > 0 ? likeCount : ''}</span>
                         </button>
-                        <button class="story-action-btn repost-btn" 
+                        <button class="story-action-btn repost-btn"
                                 data-uri="${story.uri}"
                                 data-cid="${story.cid || ''}"
                                 data-reposted="false"
@@ -651,7 +907,7 @@
                             <span>Repost</span>
                             <span class="action-count">${repostCount > 0 ? repostCount : ''}</span>
                         </button>
-                        <button class="story-action-btn reply-btn" 
+                        <button class="story-action-btn reply-btn"
                                 data-uri="${story.uri}"
                                 data-cid="${story.cid || ''}"
                                 data-handle="${authorHandle}"
@@ -662,15 +918,21 @@
                             <span>Reply</span>
                             <span class="action-count">${replyCount > 0 ? replyCount : ''}</span>
                         </button>
-                        <button class="story-action-btn share-btn" 
-                                data-url="${postUrl}"
+                        ` : ''}
+                        <button class="story-action-btn share-btn"
+                                data-url="${storyPermalink}"
                                 data-handle="${authorHandle}"
-                                onclick="handleShare(this.dataset.url, this.dataset.handle)"
-                                title="Share link to this post">
+                                data-recordtype="${recordType}"
+                                data-iscanon="${story.isCanon ? '1' : '0'}"
+                                data-title="${escapedShareTitle}"
+                                data-text="${escapedShareText}"
+                                data-hasimage="${hasImage ? '1' : '0'}"
+                                onclick="handleShare(this)"
+                                title="Share this post link on Bluesky">
                             <span>Share</span>
                         </button>
                         ${!isOwnPost ? `
-                        <button class="story-action-btn hide-btn" 
+                        <button class="story-action-btn hide-btn"
                                 data-uri="${story.uri}"
                                 data-handle="${authorHandle}"
                                 onclick="handleHide(this.dataset.uri, this.dataset.handle, this)"
@@ -678,23 +940,39 @@
                             <span>Hide</span>
                         </button>
                         ` : ''}
-                        ${isOwnPost ? `
-                        <button class="story-action-btn delete-btn" 
+                        ${(isBskyPost || isBranchline) && isOwnPost ? `
+                        <button class="story-action-btn delete-btn"
                                 data-uri="${story.uri}"
                                 data-cid="${story.cid || ''}"
                                 onclick="handleDelete(this.dataset.uri, this.dataset.cid, this)"
-                                title="Delete your post">
+                            title="Delete your post">
                             <span>Delete</span>
                         </button>
                         ` : ''}
                     </div>
                 `;
             }
-            
+
             const canonBadge = story.isCanon ? '<span class="badge canon">canon</span>' : '<span class="badge lore">lore</span>';
-            
+            const titleHtml = isBranchline && story.title
+                ? `<div class="story-title">${renderFormattedInline(story.title, titleFormatting)}</div>`
+                : '';
+            const expandHtml = needsExpand
+                ? `<button class="story-expand-btn" type="button" data-expanded="false" onclick="toggleStoryExpand(this)">Expand Story</button>`
+                : '';
+
+            const contentHtml = isBranchline
+                ? `<div class="story-copy-box story-copy-box-longform">
+                            ${titleHtml}
+                            <div class="story-text story-text-longform"
+                                 data-fulltext="${fullEncoded}"
+                                 data-formatting="${formattingEncoded}"
+                                 data-expanded="false">${previewHtml}</div>
+                        </div>`
+                : `<div class="story-text story-text-bsky">${previewHtml}</div>`;
+
             return `
-                <div class="story-card ${canonClass}" data-uri="${story.uri}" style="--author-color: ${authorColor};">
+                <div class="story-card ${canonClass}" data-uri="${story.uri}" data-story-id="${encodeStoryId(story.uri)}" style="--author-color: ${authorColor};">
                     <div class="story-card-header">
                         ${avatarHtml}
                         <div class="author-info" onclick="window.location.href='${dreamerUrl}'">
@@ -706,7 +984,8 @@
                         </div>
                     </div>
                     <div class="story-content">
-                        <div class="story-text">${postText}</div>
+                        ${contentHtml}
+                        ${expandHtml}
                         ${imageHtml}
                     </div>
                     <div class="story-meta">
@@ -715,11 +994,60 @@
                             ${actionsHtml}
                         </div>
                         <div class="story-meta-right">
-                            <a href="${postUrl}" target="_blank" class="post-link">View →</a>
+                            ${branchlineUrl ?
+                                `<a href="#" class="post-link"
+                                    data-uri="${escapeForAttribute(story.uri || '')}"
+                                    data-cid="${escapeForAttribute(story.cid || '')}"
+                                    data-title="${escapedShareTitle}"
+                                    data-handle="${escapeForAttribute(authorHandle || '')}"
+                                    onclick="openBranchStory(this.dataset.uri, this.dataset.cid, this.dataset.title, this.dataset.handle); return false;">Branch Story →</a>`
+                                : `<a href="${postUrl}" target="_blank" class="post-link">${isBskyPost ? 'View →' : 'Open Record →'}</a>`}
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        function toggleStoryExpand(button) {
+            const card = button.closest('.story-card');
+            if (!card) return;
+
+            const textEl = card.querySelector('.story-text');
+            if (!textEl) return;
+
+            const expanded = textEl.dataset.expanded === 'true';
+            let fullText = '';
+            let formatting = [];
+            try {
+                fullText = decodeURIComponent(textEl.dataset.fulltext || '');
+                formatting = JSON.parse(decodeURIComponent(textEl.dataset.formatting || '%5B%5D'));
+            } catch {
+                fullText = textEl.dataset.fulltext || '';
+                formatting = [];
+            }
+
+            const preview = getStoryPreview(fullText);
+
+            if (expanded) {
+                textEl.innerHTML = renderStoryTextHtml(
+                    preview.text,
+                    sliceStoryFormatting(formatting, 0, preview.text.length),
+                    preview.truncated ? '…' : ''
+                );
+                textEl.dataset.expanded = 'false';
+                button.dataset.expanded = 'false';
+                button.textContent = 'Expand Story';
+                const headerContainer = document.getElementById('header-container');
+                const headerHeight = headerContainer ? headerContainer.getBoundingClientRect().height : 0;
+                const cardTop = card.getBoundingClientRect().top + window.scrollY;
+                const targetTop = Math.max(0, cardTop - headerHeight - 12);
+                window.scrollTo({ top: targetTop, behavior: 'smooth' });
+            } else {
+                textEl.innerHTML = renderStoryTextHtml(fullText, formatting);
+                textEl.dataset.expanded = 'true';
+                button.dataset.expanded = 'true';
+                button.textContent = 'Collapse Story';
+            }
         }
 
         function renderStories() {
@@ -759,6 +1087,54 @@
             
             const html = filtered.map(createStoryCard).join('');
             container.innerHTML = html;
+            scrollToTargetStoryIfPresent();
+        }
+
+        function scrollToTargetStoryIfPresent() {
+            if (!pendingStoryTargetUri) return;
+
+            const cards = Array.from(document.querySelectorAll('.story-card'));
+            const targetCard = cards.find(card => card.dataset.uri === pendingStoryTargetUri);
+
+            if (!targetCard) {
+                if (currentFilter !== 'all') {
+                    currentFilter = 'all';
+                    sessionStorage.setItem('storyFilter', currentFilter);
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.filter === 'all');
+                    });
+                    renderStories();
+                }
+                return;
+            }
+
+            cards.forEach(card => card.classList.remove('story-targeted'));
+            targetCard.classList.add('story-targeted');
+
+            const alignTargetCard = (behavior = 'auto') => {
+                const stickyHeader = document.getElementById('header-container');
+                const stickyHeight = stickyHeader ? stickyHeader.getBoundingClientRect().height : 0;
+                const cardHeader = targetCard.querySelector('.story-card-header') || targetCard;
+                const headerTop = cardHeader.getBoundingClientRect().top + window.scrollY;
+                const targetTop = Math.max(0, headerTop - stickyHeight - 8);
+                window.scrollTo({ top: targetTop, behavior });
+            };
+
+            // Initial smooth align, then corrective snaps as layout settles.
+            alignTargetCard('smooth');
+            [90, 220, 420, 720].forEach((delay) => {
+                window.setTimeout(() => alignTargetCard('auto'), delay);
+            });
+
+            // Re-align as target images finish loading.
+            targetCard.querySelectorAll('img').forEach((img) => {
+                if (!img.complete) {
+                    img.addEventListener('load', () => alignTargetCard('auto'), { once: true });
+                    img.addEventListener('error', () => alignTargetCard('auto'), { once: true });
+                }
+            });
+
+            pendingStoryTargetUri = null;
         }
 
         function updateStats() {
@@ -974,6 +1350,29 @@
         window.addEventListener('sharelore:learnMore', () => {
             openExplanationModal();
         });
+
+        // Branch Story success: aggressively refresh feed so new entries appear quickly.
+        window.addEventListener('branchstory:success', async (event) => {
+            const postUri = event?.detail?.post?.uri;
+            if (postUri) {
+                try {
+                    await fetch('/api/story/priority', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uris: [postUri] }),
+                    });
+                } catch (priorityErr) {
+                    console.warn('⚠️ [Story] Failed to queue priority story URI:', priorityErr);
+                }
+            }
+
+            loadStories(true);
+
+            // Follow-up refresh handles short propagation delay after index notify.
+            setTimeout(() => {
+                loadStories(true);
+            }, 2200);
+        });
         
         // Update button text based on login state
         function updateShareButton() {
@@ -1016,10 +1415,23 @@
         
         // Set initial active button based on stored filter
         document.addEventListener('DOMContentLoaded', () => {
-            const activeFilter = sessionStorage.getItem('storyFilter') || 'canon';
+            const params = new URLSearchParams(window.location.search || '');
+            const urlFilter = params.get('filter');
+            const activeFilter = (urlFilter === 'all' || urlFilter === 'canon')
+                ? urlFilter
+                : (sessionStorage.getItem('storyFilter') || 'canon');
+            currentFilter = activeFilter;
+            sessionStorage.setItem('storyFilter', currentFilter);
+
+            pendingStoryTargetUri = getTargetStoryUriFromQuery();
+            if (pendingStoryTargetUri) {
+                currentFilter = 'all';
+                sessionStorage.setItem('storyFilter', currentFilter);
+            }
+
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.dataset.filter === activeFilter) {
+                if (btn.dataset.filter === currentFilter) {
                     btn.classList.add('active');
                 }
             });
@@ -1254,17 +1666,200 @@
             // This is a limitation of the current architecture
         }
         
+        function hashStringSeed(input) {
+            const str = String(input || '');
+            let hash = 0;
+            for (let i = 0; i < str.length; i += 1) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash);
+        }
+
+        function compactShareText(text, maxLen = 120) {
+            const clean = String(text || '').replace(/\s+/g, ' ').trim();
+            if (!clean) return '';
+            if (clean.length <= maxLen) return clean;
+            const clipped = clean.slice(0, maxLen + 1).replace(/\s+\S*$/, '').replace(/[\s.,;:!?-]+$/g, '');
+            return `${clipped}...`;
+        }
+
+        function normalizeShareField(value) {
+            return String(value || '')
+                .replace(/\\r\\n/g, '\n')
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '\n')
+                .replace(/\\'/g, "'")
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\')
+                .trim();
+        }
+
+        function extractShareExcerpt(value, maxLen = 120) {
+            const normalized = normalizeShareField(value);
+            if (!normalized) return '';
+            const paragraphs = normalized
+                .split(/\n\s*\n+/)
+                .map(p => p.replace(/\s+/g, ' ').trim())
+                .filter(Boolean);
+            const firstParagraph = paragraphs[0] || normalized.replace(/\s+/g, ' ').trim();
+            return compactShareText(firstParagraph, maxLen);
+        }
+
+        function fitShareExcerpt(value, maxLen) {
+            const normalized = normalizeShareField(value);
+            if (!normalized || maxLen <= 0) return '';
+
+            const source = normalized.replace(/\s+/g, ' ').trim();
+            if (!source) return '';
+            if (source.length <= maxLen) return source;
+
+            // Prefer complete paragraph boundaries if they fit.
+            const paragraphs = normalized
+                .split(/\n\s*\n+/)
+                .map((p) => p.replace(/\s+/g, ' ').trim())
+                .filter(Boolean);
+            if (paragraphs.length > 1) {
+                let paraAccum = '';
+                for (const para of paragraphs) {
+                    const candidate = paraAccum ? `${paraAccum} ${para}` : para;
+                    if (candidate.length <= maxLen) {
+                        paraAccum = candidate;
+                    } else {
+                        break;
+                    }
+                }
+                if (paraAccum) {
+                    return paraAccum;
+                }
+            }
+
+            // Next prefer the longest whole sentence that fits.
+            const sentenceMatches = source.match(/[^.!?]+[.!?]+(?:["')\]]+)?/g) || [];
+            if (sentenceMatches.length > 0) {
+                let sentenceAccum = '';
+                for (const sentence of sentenceMatches) {
+                    const cleanSentence = sentence.replace(/\s+/g, ' ').trim();
+                    if (!cleanSentence) continue;
+                    const candidate = sentenceAccum ? `${sentenceAccum} ${cleanSentence}` : cleanSentence;
+                    if (candidate.length <= maxLen) {
+                        sentenceAccum = candidate;
+                    } else {
+                        break;
+                    }
+                }
+                if (sentenceAccum) {
+                    return sentenceAccum;
+                }
+            }
+
+            // Fallback: word-fit and append ellipsis.
+            const words = source.split(' ');
+            let fitted = '';
+            for (const word of words) {
+                const candidate = fitted ? `${fitted} ${word}` : word;
+                const withEllipsis = `${candidate}...`;
+                if (withEllipsis.length > maxLen) break;
+                fitted = candidate;
+            }
+
+            if (!fitted) {
+                if (maxLen <= 3) return '.'.repeat(Math.max(0, maxLen));
+                return `${source.slice(0, maxLen - 3).replace(/[\s.,;:!?-]+$/g, '')}...`;
+            }
+
+            return `${fitted.replace(/[\s.,;:!?-]+$/g, '')}...`;
+        }
+
+        function pickVariant(seedKey, variants) {
+            if (!Array.isArray(variants) || variants.length === 0) return '';
+            const idx = Math.floor(Math.random() * variants.length);
+            return variants[idx];
+        }
+
+        function buildShareText({ postUrl, authorHandle, recordType, isCanon, hasImage, title, text }) {
+            const limit = 342;
+            const safeHandle = authorHandle && authorHandle !== 'unknown' ? `@${authorHandle}` : '@reverie.house';
+            const isReverieHousePost = (authorHandle || '').trim().toLowerCase() === 'reverie.house';
+            const isBranchline = recordType === 'ink.branchline.bud';
+            const tierLabel = isCanon ? 'canon' : 'lore';
+            const titleClean = normalizeShareField(title).replace(/\s+/g, ' ').trim();
+            const starters = ['Reading', 'Enjoying', 'Finding', 'Following', 'Tracing', 'Exploring'];
+            const starter = pickVariant(`${postUrl}|${recordType}|${safeHandle}`, starters);
+            const opener = isReverieHousePost
+                ? `${starter} the @reverie.house ${tierLabel}.`
+                : `${starter} the @reverie.house ${tierLabel} from ${safeHandle}.`;
+            const mentionLine = isBranchline ? '@branchline.ink @lore.farm' : '@lore.farm';
+            const displayTitle = titleClean || (isBranchline ? 'Branchline Story' : 'Living Story');
+            const titleLine = `— ${displayTitle} —`;
+            const normalizedText = normalizeShareField(text);
+
+            // Share should always point to the Reverie story permalink.
+            const shareUrl = String(postUrl || '').includes('/story?')
+                ? String(postUrl)
+                : String(postUrl || '');
+            const linkLabel = isBranchline
+                ? pickVariant(`${postUrl}|branch-invite`, ['Explore our Living Story:', 'Explore and branch our Living Story:'])
+                : 'Explore our Living Story:';
+            const linkBlock = `${linkLabel}\n${shareUrl}`;
+
+            if (!isBranchline) {
+                const sections = [opener, linkBlock, mentionLine].filter(Boolean);
+                const composed = sections.join('\n\n');
+                return composed.length <= limit ? composed : [opener, linkBlock, mentionLine].filter(Boolean).join('\n\n').slice(0, limit);
+            }
+
+            const fixedSections = [opener, titleLine, linkBlock, mentionLine].filter(Boolean);
+            const fixedLength = fixedSections.join('\n\n').length;
+            const excerptBudget = Math.max(0, limit - fixedLength - 4);
+            const excerpt = excerptBudget > 0 ? fitShareExcerpt(normalizedText, excerptBudget) : '';
+            const detailBlock = [titleLine, excerpt].filter(Boolean).join('\n\n');
+            let composed = [opener, detailBlock, linkBlock, mentionLine].filter(Boolean).join('\n\n');
+
+            if (composed.length <= limit) return composed;
+
+            const reducedBudget = Math.max(36, excerptBudget - (composed.length - limit) - 3);
+            const shorterExcerpt = fitShareExcerpt(normalizedText, reducedBudget);
+            const reducedDetailBlock = [titleLine, shorterExcerpt].filter(Boolean).join('\n\n');
+            composed = [opener, reducedDetailBlock, linkBlock, mentionLine].filter(Boolean).join('\n\n');
+
+            if (composed.length <= limit) return composed;
+
+            const tinyBudget = Math.max(24, limit - [opener, titleLine, linkBlock, mentionLine].join('\n\n').length - 4);
+            const lastExcerpt = fitShareExcerpt(normalizedText, tinyBudget);
+            return [opener, [titleLine, lastExcerpt].filter(Boolean).join('\n\n'), linkBlock, mentionLine]
+                .filter(Boolean)
+                .join('\n\n')
+                .slice(0, limit);
+        }
+
         /**
-         * Handle share - copies link to clipboard
+         * Handle share - opens Bluesky composer with a templated permalink post.
          */
-        async function handleShare(postUrl, authorHandle) {
-            if (!window.atprotoInteractions) {
-                console.error('AT Protocol interactions utility not loaded');
-                alert('Unable to share. Please refresh the page.');
+        function handleShare(buttonEl) {
+            if (!buttonEl || !buttonEl.dataset) {
+                alert('Unable to share this post right now.');
                 return;
             }
-            
-            await window.atprotoInteractions.sharePost(postUrl, authorHandle);
+
+            const postUrl = buttonEl.dataset.url;
+            if (!postUrl) {
+                alert('Unable to share this post right now.');
+                return;
+            }
+
+            const shareText = buildShareText({
+                postUrl,
+                authorHandle: buttonEl.dataset.handle || '',
+                recordType: buttonEl.dataset.recordtype || '',
+                isCanon: buttonEl.dataset.iscanon === '1',
+                hasImage: buttonEl.dataset.hasimage === '1',
+                title: buttonEl.dataset.title || '',
+                text: buttonEl.dataset.text || '',
+            });
+
+            const composeUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(shareText)}`;
+            window.open(composeUrl, '_blank', 'noopener');
         }
         
         /**
@@ -1325,13 +1920,96 @@
         
         // Delete popup state
         let pendingDeleteData = null;
+
+        function parseAtUri(uri) {
+            if (!uri || !uri.startsWith('at://')) {
+                throw new Error('Invalid AT URI');
+            }
+            const parts = uri.slice(5).split('/');
+            if (parts.length < 3) {
+                throw new Error('Invalid AT URI');
+            }
+            return {
+                repo: parts[0],
+                collection: parts[1],
+                rkey: parts.slice(2).join('/')
+            };
+        }
+
+        async function findLinkedLabelRecords(repoDid, subjectUri) {
+            try {
+                const endpoints = [
+                    {
+                        url: 'https://lore.farm/api/worlds/reverie.house/content/indexed?limit=200',
+                        key: 'content',
+                        collection: 'farm.lore.content'
+                    },
+                    {
+                        url: 'https://lore.farm/api/worlds/reverie.house/canon/indexed?limit=200',
+                        key: 'canon',
+                        collection: 'farm.lore.canon'
+                    }
+                ];
+
+                const matches = [];
+
+                for (const endpoint of endpoints) {
+                    const response = await fetch(endpoint.url);
+                    if (!response.ok) {
+                        continue;
+                    }
+
+                    const data = await response.json();
+                    const records = Array.isArray(data[endpoint.key]) ? data[endpoint.key] : [];
+                    for (const record of records) {
+                        if (record?.did !== repoDid) continue;
+                        if (record?.subjectUri !== subjectUri) continue;
+                        if (record?.removed) continue;
+                        if (record?.valid === false) continue;
+
+                        try {
+                            const parsed = parseAtUri(record.uri);
+                            matches.push({
+                                collection: parsed.collection || endpoint.collection,
+                                rkey: parsed.rkey,
+                                uri: record.uri
+                            });
+                        } catch {
+                            // ignore malformed label URIs
+                        }
+                    }
+                }
+
+                return matches;
+            } catch (error) {
+                console.warn('⚠️ [Delete] Failed to query linked lore records:', error);
+                return [];
+            }
+        }
         
         /**
          * Show the delete confirmation popup
          */
         function showDeletePopup(uri, cid, button) {
-            pendingDeleteData = { uri, cid, button };
+            let collection = 'app.bsky.feed.post';
+            try {
+                collection = parseAtUri(uri).collection;
+            } catch (error) {
+                console.warn('⚠️ [Delete] Could not parse URI for delete popup:', error);
+            }
+            pendingDeleteData = { uri, cid, button, collection };
             const popup = document.getElementById('deleteConfirmPopup');
+            const titleEl = document.getElementById('deleteConfirmTitle');
+            const textEl = document.getElementById('deleteConfirmText');
+            const isBranchline = collection === 'ink.branchline.bud';
+            if (titleEl) {
+                titleEl.textContent = isBranchline ? 'Delete Story Branch' : 'Delete Post';
+            }
+            if (textEl) {
+                textEl.textContent = isBranchline
+                    ? 'This will permanently remove this story branch and its Reverie House lore entry.'
+                    : 'This will permanently remove this post.';
+            }
             popup.classList.add('show');
         }
         
@@ -1341,6 +2019,10 @@
         function closeDeletePopup() {
             const popup = document.getElementById('deleteConfirmPopup');
             popup.classList.remove('show');
+            const titleEl = document.getElementById('deleteConfirmTitle');
+            const textEl = document.getElementById('deleteConfirmText');
+            if (titleEl) titleEl.textContent = 'Delete Post';
+            if (textEl) textEl.textContent = 'This will permanently remove this post.';
             pendingDeleteData = null;
         }
         
@@ -1384,75 +2066,34 @@
          * Execute the actual post deletion
          */
         async function executeDelete(uri, cid, button) {
-            const session = window.oauthManager?.getSession();
-            
             button.disabled = true;
             
             try {
-                // Extract rkey from URI: at://did:plc:xxx/app.bsky.feed.post/rkey
-                const uriParts = uri.split('/');
-                const rkey = uriParts[uriParts.length - 1];
-                const collection = 'app.bsky.feed.post';
-                
-                // Use atproto interactions if available for proper session handling
-                if (window.atprotoInteractions) {
-                    const atSession = window.atprotoInteractions.getSession();
-                    
-                    if (window.atprotoInteractions.isPdsSession(atSession)) {
-                        // PDS session - delete directly
-                        const pdsEndpoint = window.atprotoInteractions.getPdsEndpoint(atSession);
-                        const response = await fetch(`${pdsEndpoint}/xrpc/com.atproto.repo.deleteRecord`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${atSession.accessJwt}`
-                            },
-                            body: JSON.stringify({
-                                repo: atSession.did,
-                                collection: collection,
-                                rkey: rkey
-                            })
-                        });
-                        
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            throw new Error(`Failed to delete post: ${response.status} - ${errorText}`);
-                        }
-                    } else {
-                        // OAuth session - use server-side deletion with stored credentials
-                        const hasCredentials = await window.atprotoInteractions.hasStoredCredentials();
-                        if (hasCredentials) {
-                            // Server-side deletion with stored credentials
-                            const token = localStorage.getItem('oauth_token');
-                            const response = await fetch('/api/interactions/execute', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': token ? `Bearer ${token}` : ''
-                                },
-                                body: JSON.stringify({
-                                    action: 'deletePost',
-                                    user_did: session.did || session.sub,
-                                    uri: uri,
-                                    rkey: rkey,
-                                    collection: collection
-                                })
-                            });
-                            
-                            if (!response.ok) {
-                                const error = await response.json();
-                                if (error.error?.includes('Unknown action')) {
-                                    throw new Error('Post deletion requires a direct PDS login. Please use the Bluesky app to delete this post.');
-                                }
-                                throw new Error(error.error || 'Failed to delete post');
-                            }
-                        } else {
-                            throw new Error('Post deletion requires a direct PDS login or stored credentials. Please use the Bluesky app to delete this post.');
-                        }
-                    }
-                } else {
-                    throw new Error('AT Protocol interactions not available');
+                if (!window.oauthManager) {
+                    throw new Error('Login system unavailable');
                 }
+                if (typeof window.oauthManager.ensureInitialized === 'function') {
+                    await window.oauthManager.ensureInitialized();
+                }
+
+                const session = window.oauthManager.getSession();
+                if (!session) {
+                    throw new Error('Not logged in');
+                }
+
+                const parsed = parseAtUri(uri);
+
+                // Remove linked lore records first so the deleted subject does not leave behind stale labels.
+                const linkedLabels = await findLinkedLabelRecords(parsed.repo, uri);
+                for (const labelRecord of linkedLabels) {
+                    try {
+                        await window.oauthManager.deleteRecord(labelRecord.collection, labelRecord.rkey);
+                    } catch (loreError) {
+                        console.warn('⚠️ [Delete] Failed to delete linked lore record:', loreError);
+                    }
+                }
+
+                await window.oauthManager.deleteRecord(parsed.collection, parsed.rkey);
                 
                 // Remove the card from DOM
                 const card = button.closest('.story-card');

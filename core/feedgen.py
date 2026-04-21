@@ -32,6 +32,26 @@ from core.network import NetworkClient
 BSKY_CACHE = 'http://127.0.0.1:2847'
 
 
+def _parse_iso_to_epoch(value: Optional[str]) -> Optional[int]:
+    """Parse an ISO timestamp into epoch seconds."""
+    if not value:
+        return None
+    try:
+        return int(datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp())
+    except Exception:
+        return None
+
+
+def _build_record_url(did: str, handle: str, collection: str, rkey: str) -> str:
+    """Build a human-view URL for known record collections."""
+    if collection == 'app.bsky.feed.post':
+        actor = handle or did
+        return f"https://bsky.app/profile/{actor}/post/{rkey}"
+    if collection == 'ink.branchline.bud':
+        return f"https://branchline.ink/bud/{did}/{rkey}"
+    return ''
+
+
 
 class FeedDatabase:
     """Manages feed-specific database for indexed posts - PostgreSQL version"""
@@ -399,6 +419,9 @@ class FeedGenerator:
             
             # Fetch post timestamp if we haven't already
             if labels_by_uri[uri]['epoch'] is None:
+                # Prefer indexer timestamp as baseline (works for non-bsky collections).
+                labels_by_uri[uri]['epoch'] = _parse_iso_to_epoch(label.get('cts'))
+
                 try:
                     parts = uri.replace('at://', '').split('/')
                     if len(parts) >= 3:
@@ -414,9 +437,9 @@ class FeedGenerator:
                         if post_response.status_code == 200:
                             post_data = post_response.json()
                             created_at = post_data.get('value', {}).get('createdAt')
-                            if created_at:
-                                post_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                                labels_by_uri[uri]['epoch'] = int(post_dt.timestamp())
+                            parsed_epoch = _parse_iso_to_epoch(created_at)
+                            if parsed_epoch is not None:
+                                labels_by_uri[uri]['epoch'] = parsed_epoch
                 except Exception:
                     pass
             
@@ -452,6 +475,7 @@ class FeedGenerator:
                 return False
             
             author_did = parts[0]
+            collection = parts[1]
             rkey = parts[2]
             
             # Get post epoch from label_info (already fetched in _update_lore_history)
@@ -491,7 +515,7 @@ class FeedGenerator:
                 # Create or skip canon event
                 if not existing_canon:
                     handle = dreamer['handle'] or author_did[:20]
-                    post_url = f"https://bsky.app/profile/{handle}/post/{rkey}"
+                    post_url = _build_record_url(author_did, handle, collection, rkey)
                     
                     # Check if this is the user's oldest canon post by epoch
                     import random
@@ -533,7 +557,7 @@ class FeedGenerator:
                 
                 if not existing_lore:
                     handle = dreamer['handle'] or author_did[:20]
-                    post_url = f"https://bsky.app/profile/{handle}/post/{rkey}"
+                    post_url = _build_record_url(author_did, handle, collection, rkey)
                     
                     # Check if this is the user's oldest lore post by epoch
                     import random

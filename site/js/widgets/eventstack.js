@@ -254,7 +254,14 @@ class EventStack {
         // Determine row click behavior via data attributes (no inline onclick)
         let rowClickData = {};
         
-        if (url && !this.options.onRowClick) {
+        const supportedUriMatch = uri.match(/^at:\/\/[^/]+\/([^/]+)\/[^/]+$/);
+        const supportsShowPostUri = supportedUriMatch
+            && ['app.bsky.feed.post', 'ink.branchline.bud'].includes(supportedUriMatch[1]);
+
+        if (supportsShowPostUri && !this.options.onRowClick) {
+            rowClickData.action = 'showpost';
+            rowClickData.url = uri;
+        } else if (url && !this.options.onRowClick) {
             if (url.includes('bsky.app')) {
                 if (url.includes('/profile/') && !url.includes('/post/')) {
                     // Profile URL - navigate to dreamer page

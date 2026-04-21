@@ -10,9 +10,11 @@ import os
 import secrets
 import time
 import requests
+import re
 from urllib.parse import urlparse
 from functools import wraps
 from datetime import datetime, timedelta
+import base64
 
 app = Flask(__name__, static_folder='site', template_folder='site')
 
@@ -53,6 +55,337 @@ def _is_safe_pds_endpoint(endpoint):
         return True
     except Exception:
         return False
+
+
+# Collection abbreviations for compact IDs
+_COL_ENCODE = {
+    'app.bsky.feed.post': 'b',
+    'ink.branchline.bud': 'l',
+}
+_COL_DECODE = {v: k for k, v in _COL_ENCODE.items()}
+
+
+def _encode_story_link_id(uri):
+    """Encode AT URI into compact URL-safe story ID (did_key.col.rkey)."""
+    try:
+        if not uri or not uri.startswith('at://'):
+            return ''
+        parts = uri[5:].split('/')
+        if len(parts) < 3:
+            return ''
+        did, collection, rkey = parts[0], parts[1], parts[2]
+        if did.startswith('did:plc:'):
+            did_part = did[8:]  # strip 'did:plc:'
+        else:
+            did_part = 'w.' + did.replace('did:web:', '')  # web DIDs prefixed with 'w.'
+        col_part = _COL_ENCODE.get(collection, collection)
+        return f"{did_part}.{col_part}.{rkey}"
+    except Exception:
+        return ''
+
+
+def _decode_story_link_id(story_id):
+    """Decode compact story ID back into AT URI."""
+    try:
+        raw = (story_id or '').strip()
+        if not raw:
+            return ''
+        # Legacy: old base64-encoded IDs (contain upper/lower mix, no dots in fixed spots)
+        # New compact format: {24charDID}.{1-2charCol}.{13charRkey}
+        # Heuristic: if it contains exactly 2 dots and all segments are alnum/_-
+        parts = raw.split('.')
+        if len(parts) >= 3:
+            # Last segment is rkey, second-to-last is collection abbrev, rest is DID key
+            rkey = parts[-1]
+            col_abbrev = parts[-2]
+            did_key = '.'.join(parts[:-2])
+            if col_abbrev in _COL_DECODE:
+                collection = _COL_DECODE[col_abbrev]
+                if did_key.startswith('w.'):
+                    did = 'did:web:' + did_key[2:]
+                else:
+                    did = 'did:plc:' + did_key
+                return f'at://{did}/{collection}/{rkey}'
+        # Fallback: try legacy base64
+        pad = '=' * ((4 - (len(raw) % 4)) % 4)
+        decoded = base64.urlsafe_b64decode((raw + pad).encode('ascii')).decode('utf-8')
+        return decoded if decoded.startswith('at://') else ''
+    except Exception:
+        return ''
+
+
+def _truncate_story_preview_text(text, limit=260):
+    """Normalize and truncate story preview text at a word boundary."""
+    clean = re.sub(r'\s+', ' ', (text or '')).strip()
+    if not clean:
+        return ''
+    if len(clean) <= limit:
+        return clean
+    clipped = clean[: limit + 1].rsplit(' ', 1)[0].rstrip(' .,;:!?-')
+    return f'{clipped}...'
+
+
+def _lookup_story_author_color(author_did='', author_handle=''):
+    """Resolve a dreamer color for story cards, with reverie.house -> errantson mapping."""
+    try:
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+
+        if author_did:
+            did_row = db.fetch_one(
+                "SELECT color_hex FROM dreamers WHERE did = %s LIMIT 1",
+                (author_did,)
+            )
+            did_color = (did_row or {}).get('color_hex')
+            if did_color:
+                return did_color
+
+        handle = (author_handle or '').strip().lower()
+        handle_candidates = [handle] if handle else []
+        if handle == 'reverie.house':
+            handle_candidates.append('errantson')
+
+        for candidate in handle_candidates:
+            if not candidate:
+                continue
+            row = db.fetch_one(
+                "SELECT color_hex FROM dreamers WHERE lower(handle) = lower(%s) LIMIT 1",
+                (candidate,)
+            )
+            color = (row or {}).get('color_hex')
+            if color:
+                return color
+    except Exception:
+        return ''
+
+    return ''
+
+
+def _resolve_did_pds(did):
+    """Resolve DID to its PDS endpoint."""
+    if not did:
+        return None
+    try:
+        if did.startswith('did:plc:'):
+            resp = requests.get(f'https://plc.directory/{did}', timeout=8)
+            if not resp.ok:
+                return None
+            did_doc = resp.json()
+        elif did.startswith('did:web:'):
+            host = did.replace('did:web:', '').replace('%3A', ':')
+            resp = requests.get(f'https://{host}/.well-known/did.json', timeout=8)
+            if not resp.ok:
+                return None
+            did_doc = resp.json()
+        else:
+            return None
+
+        for service in did_doc.get('service', []):
+            if service.get('type') == 'AtprotoPersonalDataServer':
+                endpoint = service.get('serviceEndpoint')
+                return endpoint if _is_safe_pds_endpoint(endpoint) else None
+    except Exception:
+        return None
+    return None
+
+
+def _get_story_preview_payload(target_uri):
+    """Build minimal story preview payload for OG metadata."""
+    if not target_uri or not target_uri.startswith('at://'):
+        return None
+
+    from core.database import DatabaseManager
+
+    try:
+        db = DatabaseManager()
+        row = db.fetch_one(
+            """
+            SELECT fp.uri, fp.text, fp.author_did, d.handle, d.name AS display_name, d.avatar, d.color_hex
+            FROM feed_posts fp
+            LEFT JOIN dreamers d ON fp.author_did = d.did
+            WHERE fp.uri = %s
+            LIMIT 1
+            """,
+            (target_uri,)
+        )
+    except Exception:
+        row = None
+
+    parts = target_uri.replace('at://', '').split('/')
+    if len(parts) < 3:
+        return None
+    did, collection, rkey = parts[0], parts[1], parts[2]
+
+    payload = {
+        'uri': target_uri,
+        'record_type': collection,
+        'title': '',
+        'text': row.get('text') if row else '',
+        'created_at': '',
+        'formatting': [],
+        'author_handle': row.get('handle') if row else '',
+        'author_display': row.get('display_name') if row else '',
+        'avatar_url': row.get('avatar') if row else '',
+        'author_color': row.get('color_hex') if row else '',
+        'image_url': '',
+        'external_url': '',
+    }
+
+    if not payload['author_display']:
+        payload['author_display'] = payload['author_handle'] or did[:18]
+
+    # Prefer AppView details for bsky posts (better images/author names).
+    if collection == 'app.bsky.feed.post':
+        try:
+            resp = requests.get(
+                f'{BSKY_CACHE}/xrpc/app.bsky.feed.getPosts',
+                params={'uris': [target_uri]},
+                timeout=10
+            )
+            if resp.ok:
+                posts = resp.json().get('posts', [])
+                if posts:
+                    post = posts[0]
+                    record = post.get('record', {}) if isinstance(post.get('record'), dict) else {}
+                    author = post.get('author', {}) if isinstance(post.get('author'), dict) else {}
+                    payload['text'] = payload['text'] or record.get('text', '')
+                    payload['created_at'] = record.get('createdAt') or post.get('indexedAt') or payload['created_at']
+                    payload['author_handle'] = author.get('handle') or payload['author_handle']
+                    payload['author_display'] = author.get('displayName') or payload['author_display']
+                    payload['avatar_url'] = author.get('avatar') or payload['avatar_url']
+                    embed = post.get('embed', {}) if isinstance(post.get('embed'), dict) else {}
+                    if embed.get('$type', '').endswith('images#view') and embed.get('images'):
+                        payload['image_url'] = embed['images'][0].get('thumb') or embed['images'][0].get('fullsize') or payload['image_url']
+                    elif embed.get('$type', '').endswith('external#view'):
+                        payload['image_url'] = embed.get('external', {}).get('thumb') or payload['image_url']
+        except Exception:
+            pass
+
+        if not payload.get('author_color'):
+            payload['author_color'] = _lookup_story_author_color(did, payload.get('author_handle', ''))
+        if (payload.get('author_handle') or '').strip().lower() == 'reverie.house':
+            payload['author_color'] = _lookup_story_author_color('', 'errantson') or payload.get('author_color')
+
+        handle_for_url = payload['author_handle'] or did
+        payload['external_url'] = f'https://bsky.app/profile/{handle_for_url}/post/{rkey}'
+        return payload
+
+    # Non-bsky: fetch record directly from repo.
+    pds = _resolve_did_pds(did)
+    if pds:
+        try:
+            rec_resp = requests.get(
+                f'{pds}/xrpc/com.atproto.repo.getRecord',
+                params={'repo': did, 'collection': collection, 'rkey': rkey},
+                timeout=10
+            )
+            if rec_resp.ok:
+                rec_json = rec_resp.json()
+                rec_data = rec_json if isinstance(rec_json, dict) else {}
+                record = rec_data.get('value', {}) if isinstance(rec_data.get('value'), dict) else {}
+                payload['record_type'] = record.get('$type', collection)
+                payload['title'] = record.get('title', '') or ''
+                payload['text'] = payload['text'] or record.get('text', '') or ''
+                payload['created_at'] = record.get('createdAt') or payload['created_at']
+                raw_formatting = record.get('formatting')
+                if isinstance(raw_formatting, list):
+                    cleaned = []
+                    for item in raw_formatting:
+                        if not isinstance(item, dict):
+                            continue
+                        start = item.get('start')
+                        end = item.get('end')
+                        ftype = item.get('type')
+                        if isinstance(start, int) and isinstance(end, int) and isinstance(ftype, str):
+                            cleaned.append({'start': start, 'end': end, 'type': ftype})
+                    payload['formatting'] = cleaned
+        except Exception:
+            pass
+
+    # Resolve latest profile metadata so display name/avatar stay accurate.
+    for actor_base in (BSKY_CACHE, 'https://public.api.bsky.app'):
+        try:
+            actor_resp = requests.get(
+                f'{actor_base}/xrpc/app.bsky.actor.getProfile',
+                params={'actor': did},
+                timeout=8
+            )
+            if not actor_resp.ok:
+                continue
+            actor_data = actor_resp.json()
+            actor = actor_data if isinstance(actor_data, dict) else {}
+            payload['author_handle'] = actor.get('handle') or payload['author_handle']
+            payload['author_display'] = actor.get('displayName') or payload['author_display']
+            payload['avatar_url'] = actor.get('avatar') or payload['avatar_url']
+            if payload['author_display'] and payload['avatar_url']:
+                break
+        except Exception:
+            continue
+
+    if not payload['author_display']:
+        payload['author_display'] = payload['author_handle'] or did[:18]
+
+    if not payload.get('author_color'):
+        payload['author_color'] = _lookup_story_author_color(did, payload.get('author_handle', ''))
+    if (payload.get('author_handle') or '').strip().lower() == 'reverie.house':
+        payload['author_color'] = _lookup_story_author_color('', 'errantson') or payload.get('author_color')
+
+    if payload['record_type'] == 'ink.branchline.bud':
+        payload['external_url'] = f'https://branchline.ink/bud/{did}/{rkey}'
+    else:
+        payload['external_url'] = f'https://pds.ls/{target_uri}'
+
+    return payload
+
+
+def _get_story_og_image(preview, story_id):
+    """Return an OG image URL for a story permalink, generating a text card when needed."""
+    fallback = (preview or {}).get('image_url') or (preview or {}).get('avatar_url') or 'https://reverie.house/assets/og-image.png'
+    render_version = 'v4'
+
+    safe_id = ''.join(ch for ch in (story_id or '') if ch.isalnum() or ch in ('-', '_'))[:112]
+    if not safe_id:
+        return fallback
+
+    cache_id = f'{safe_id}-{render_version}'
+
+    output_dir = '/srv/reverie.house/site/assets/storycards'
+    output_path = os.path.join(output_dir, f'{cache_id}.png')
+
+    try:
+        if os.path.exists(output_path):
+            return f'https://reverie.house/assets/storycards/{cache_id}.png'
+    except Exception:
+        pass
+
+    payload = {
+        'storyId': cache_id,
+        'title': (preview or {}).get('title') or '',
+        'text': (preview or {}).get('text') or '',
+        'createdAt': (preview or {}).get('created_at') or '',
+        'formatting': (preview or {}).get('formatting') or [],
+        'authorDisplay': (preview or {}).get('author_display') or '',
+        'authorHandle': (preview or {}).get('author_handle') or '',
+        'authorColor': (preview or {}).get('author_color') or '',
+        'avatar': (preview or {}).get('avatar_url') or '',
+        'postImage': (preview or {}).get('image_url') or '',
+        'recordType': (preview or {}).get('record_type') or '',
+        'worldName': 'Reverie House',
+    }
+
+    try:
+        resp = requests.post('http://localhost:3051/generate-story', json=payload, timeout=12)
+        if resp.ok:
+            data = resp.json() if resp.headers.get('content-type', '').startswith('application/json') else {}
+            url = data.get('url') if isinstance(data, dict) else ''
+            if url:
+                return url
+            if os.path.exists(output_path):
+                return f'https://reverie.house/assets/storycards/{cache_id}.png'
+    except Exception as e:
+        print(f"[STORY OG] Story card generation failed for {cache_id}: {e}")
+
+    return fallback
 
 def audit_log_error(*args, **kwargs):
     if audit_enabled and audit:
@@ -677,6 +1010,89 @@ def dreamer_page():
         import traceback
         traceback.print_exc()
         return send_from_directory('site', 'dreamer.html')
+
+
+@app.route('/story')
+@app.route('/story.html')
+def story_page():
+    """
+    Serve story.html with dynamic OG metadata when a specific story permalink is requested.
+    Supports:
+      - /story?id=<base64url(at-uri)>
+      - /story?uri=at://did/collection/rkey
+      - /story?post=<base64url(at-uri)> (alias)
+    """
+    import html as html_lib
+    from urllib.parse import quote as url_quote
+
+    target_uri = (request.args.get('uri') or '').strip()
+    if not target_uri:
+        target_id = (request.args.get('id') or request.args.get('post') or '').strip()
+        target_uri = _decode_story_link_id(target_id)
+
+    if not target_uri or not target_uri.startswith('at://'):
+        return send_from_directory('site', 'story.html')
+
+    preview = _get_story_preview_payload(target_uri)
+    if not preview:
+        return send_from_directory('site', 'story.html')
+
+    story_id = _encode_story_link_id(target_uri)
+    if not story_id:
+        return send_from_directory('site', 'story.html')
+
+    permalink_url = f"https://reverie.house/story?id={url_quote(story_id)}"
+    external_url = preview.get('external_url') or permalink_url
+    title = (preview.get('title') or '').strip()
+    author_display = (preview.get('author_display') or 'A dreamer').strip()
+    text = (preview.get('text') or '').strip()
+    record_type = preview.get('record_type') or ''
+
+    if not title:
+        if record_type == 'ink.branchline.bud':
+            title = f"{author_display}: Branch Story"
+        else:
+            title = f"{author_display}: Living Story"
+
+    description = _truncate_story_preview_text(text)
+    if not description:
+        description = "Discover this story entry in Reverie House's living story archive."
+
+    image_url = _get_story_og_image(preview, story_id)
+    preview_title = f"Reverie House - Living Story: {title}"
+    safe_title = html_lib.escape(preview_title)
+    safe_og_title = html_lib.escape(preview_title)
+    safe_description = html_lib.escape(description)
+    safe_permalink = html_lib.escape(permalink_url)
+    safe_image_url = html_lib.escape(image_url)
+    safe_external_url = html_lib.escape(external_url)
+
+    try:
+        with open('site/story.html', 'r') as f:
+            html_content = f.read()
+    except Exception:
+        return send_from_directory('site', 'story.html')
+
+    html_content = html_content.replace(
+        '<title>Reverie House - Community Lore Archive</title>',
+        f'''<title>{safe_title}</title>
+    <link rel="canonical" href="{safe_permalink}">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="{safe_permalink}">
+    <meta property="og:title" content="{safe_og_title}">
+    <meta property="og:description" content="{safe_description}">
+    <meta property="og:image" content="{safe_image_url}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Reverie House">
+    <meta property="article:author" content="{safe_external_url}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{safe_og_title}">
+    <meta name="twitter:description" content="{safe_description}">
+    <meta name="twitter:image" content="{safe_image_url}">'''
+    )
+
+    return Response(html_content, mimetype='text/html')
 
 
 # ============================================================================
@@ -1712,6 +2128,63 @@ def get_snapshot_detail(snapshot_id):
 
 _story_feed_cache = {'data': None, 'timestamp': 0, 'filter': None}
 _STORY_FEED_TTL = 60  # 1 minute cache (was 5min — too slow for label removal)
+_story_priority_uris = {}  # {uri: {'expires': ts, 'added': ts}}
+_STORY_PRIORITY_TTL = 5 * 60  # 5 minutes fast-path visibility window
+
+
+def _prune_story_priority_uris(now=None):
+    current = now or time.time()
+    expired = [uri for uri, meta in _story_priority_uris.items() if meta.get('expires', 0) <= current]
+    for uri in expired:
+        _story_priority_uris.pop(uri, None)
+
+
+def _get_active_story_priority_uris(now=None):
+    current = now or time.time()
+    _prune_story_priority_uris(current)
+    ordered = sorted(
+        _story_priority_uris.items(),
+        key=lambda item: item[1].get('added', 0),
+        reverse=True,
+    )
+    return [uri for uri, _meta in ordered]
+
+
+@app.route('/api/story/priority', methods=['POST'])
+def story_priority_add():
+    """Queue story URIs for short-lived priority visibility on /api/story/feed."""
+    try:
+        payload = request.get_json(silent=True) or {}
+        uris = payload.get('uris')
+
+        if isinstance(uris, str):
+            uris = [uris]
+        if not isinstance(uris, list):
+            return jsonify({'error': 'uris must be a list or string'}), 400
+
+        now = time.time()
+        added = 0
+        for raw_uri in uris[:30]:  # guardrails against abuse
+            uri = str(raw_uri or '').strip()
+            if not uri.startswith('at://'):
+                continue
+            if len(uri) > 512:
+                continue
+            _story_priority_uris[uri] = {
+                'added': now,
+                'expires': now + _STORY_PRIORITY_TTL,
+            }
+            added += 1
+
+        _prune_story_priority_uris(now)
+        return jsonify({
+            'ok': True,
+            'added': added,
+            'active': len(_story_priority_uris),
+        })
+    except Exception as e:
+        print(f"Error in /api/story/priority: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/story/feed')
 def story_feed():
@@ -1730,11 +2203,17 @@ def story_feed():
         
         filter_type = request.args.get('filter', 'all')
         limit = min(int(request.args.get('limit', 100)), 200)
+        fresh = str(request.args.get('fresh', '')).lower() in ('1', 'true', 'yes')
         
         # Check cache
         now = time.time()
         cache_key = f"{filter_type}:{limit}"
-        if (_story_feed_cache['data'] is not None 
+        priority_uris = _get_active_story_priority_uris(now)
+        has_priority_lane = len(priority_uris) > 0
+
+        if (not fresh
+            and not has_priority_lane
+            and _story_feed_cache['data'] is not None 
             and _story_feed_cache['filter'] == cache_key
             and now - _story_feed_cache['timestamp'] < _STORY_FEED_TTL):
             return jsonify(_story_feed_cache['data'])
@@ -1759,12 +2238,7 @@ def story_feed():
         """, (limit,))
         
         if not rows:
-            return jsonify({
-                'stories': [],
-                'total': 0,
-                'canon_count': 0,
-                'source': 'label_db'
-            })
+            rows = []
         
         # Build story objects from DB data
         stories = []
@@ -1780,6 +2254,11 @@ def story_feed():
                 'cid': row['cid'] or '',
                 'isCanon': bool(row['has_canon_label']),
                 'isLore': bool(row['has_lore_label']),
+                'recordType': 'app.bsky.feed.post',
+                'title': '',
+                'titleFormatting': [],
+                'isLongForm': False,
+                'formatting': [],
                 'text': row['text'] or '',
                 'createdAt': row['created_at'].isoformat() + 'Z' if row['created_at'] else '',
                 'author': {
@@ -1797,10 +2276,244 @@ def story_feed():
             }
             stories.append(story)
             uris_to_enrich.append(uri)
+
+        # Add labeled records from lore.farm indexed streams for fast-path freshness.
+        # This lets /story reflect new lore labels immediately instead of waiting for
+        # feed label sync jobs to backfill feed_posts.
+        try:
+            existing_uris = set(s['uri'] for s in stories)
+            stories_by_uri = {s['uri']: s for s in stories}
+            indexed_meta_by_uri = {}
+            supplemental_by_uri = {}
+            supplemental_types = ['canon'] if filter_type == 'canon' else ['content', 'canon']
+
+            for feed_type in supplemental_types:
+                endpoint = f'https://lore.farm/api/worlds/reverie.house/{feed_type}/indexed'
+                resp = requests.get(endpoint, params={'limit': limit}, timeout=15)
+                if resp.status_code != 200:
+                    continue
+
+                payload = resp.json()
+                items = payload.get('canon', []) if feed_type == 'canon' else payload.get('content', [])
+
+                for item in items:
+                    if not item.get('valid', True):
+                        continue
+                    if item.get('removed'):
+                        continue
+
+                    subject_uri = item.get('subjectUri', '')
+                    if not subject_uri:
+                        continue
+
+                    meta = indexed_meta_by_uri.setdefault(subject_uri, {
+                        'isCanon': False,
+                        'isLore': False,
+                        'createdAt': item.get('createdAt', ''),
+                        'cid': item.get('subjectCid', ''),
+                    })
+
+                    if feed_type == 'canon':
+                        meta['isCanon'] = True
+                    else:
+                        meta['isLore'] = True
+
+                    if not meta['createdAt'] and item.get('createdAt'):
+                        meta['createdAt'] = item.get('createdAt')
+                    if not meta['cid'] and item.get('subjectCid'):
+                        meta['cid'] = item.get('subjectCid')
+
+            # Fast label refresh for rows already present from feed_posts.
+            for uri, meta in indexed_meta_by_uri.items():
+                existing_story = stories_by_uri.get(uri)
+                if not existing_story:
+                    continue
+                existing_story['isCanon'] = bool(existing_story.get('isCanon')) or bool(meta.get('isCanon'))
+                existing_story['isLore'] = bool(existing_story.get('isLore')) or bool(meta.get('isLore')) or bool(meta.get('isCanon'))
+                if not existing_story.get('cid') and meta.get('cid'):
+                    existing_story['cid'] = meta.get('cid')
+
+            # Any indexed labels not yet present in feed_posts become supplemental entries.
+            for uri, meta in indexed_meta_by_uri.items():
+                if uri in existing_uris:
+                    continue
+                supplemental_by_uri[uri] = meta
+
+            for subject_uri, meta in supplemental_by_uri.items():
+                if not subject_uri.startswith('at://'):
+                    continue
+
+                parts = subject_uri.replace('at://', '').split('/')
+                if len(parts) < 3:
+                    continue
+
+                did, collection, rkey = parts[0], parts[1], parts[2]
+
+                # Fast path for Bluesky posts: include now and enrich via getPosts below.
+                if collection == 'app.bsky.feed.post':
+                    dreamer = db.fetch_one(
+                        'SELECT handle, name, avatar, color_hex FROM dreamers WHERE did = %s LIMIT 1',
+                        (did,)
+                    )
+                    handle = (dreamer.get('handle') if dreamer else '') or ''
+                    display_name = (dreamer.get('name') if dreamer else '') or (handle.split('.')[0] if handle else did[:20] + '...')
+                    avatar = (dreamer.get('avatar') if dreamer else '') or ''
+                    color_hex = (dreamer.get('color_hex') if dreamer else '') or '#734ba1'
+
+                    stories.append({
+                        'uri': subject_uri,
+                        'cid': meta.get('cid', ''),
+                        'isCanon': bool(meta.get('isCanon')),
+                        'isLore': bool(meta.get('isLore')) or bool(meta.get('isCanon')),
+                        'recordType': 'app.bsky.feed.post',
+                        'title': '',
+                        'titleFormatting': [],
+                        'isLongForm': False,
+                        'formatting': [],
+                        'text': '',
+                        'createdAt': meta.get('createdAt', ''),
+                        'author': {
+                            'did': did,
+                            'handle': handle,
+                            'displayName': display_name,
+                            'avatar': avatar,
+                            'color': color_hex,
+                        },
+                        'url': f"https://bsky.app/profile/{handle or did}/post/{rkey}",
+                        'embed': None,
+                        'likeCount': 0,
+                        'repostCount': 0,
+                        'replyCount': 0,
+                    })
+                    uris_to_enrich.append(subject_uri)
+                    continue
+
+                pds = None
+                did_doc = None
+
+                try:
+                    if did.startswith('did:plc:'):
+                        did_resp = requests.get(f'https://plc.directory/{did}', timeout=10)
+                        if did_resp.ok:
+                            did_doc = did_resp.json()
+                            services = did_doc.get('service', [])
+                            for service in services:
+                                if service.get('type') == 'AtprotoPersonalDataServer':
+                                    pds = service.get('serviceEndpoint')
+                                    break
+                    elif did.startswith('did:web:'):
+                        host = did.replace('did:web:', '').replace('%3A', ':')
+                        did_resp = requests.get(f'https://{host}/.well-known/did.json', timeout=10)
+                        if did_resp.ok:
+                            did_doc = did_resp.json()
+                            services = did_doc.get('service', [])
+                            for service in services:
+                                if service.get('type') == 'AtprotoPersonalDataServer':
+                                    pds = service.get('serviceEndpoint')
+                                    break
+                except Exception:
+                    pds = None
+
+                if not pds or not _is_safe_pds_endpoint(pds):
+                    continue
+
+                try:
+                    rec_resp = requests.get(
+                        f'{pds}/xrpc/com.atproto.repo.getRecord',
+                        params={'repo': did, 'collection': collection, 'rkey': rkey},
+                        timeout=10
+                    )
+                    if not rec_resp.ok:
+                        continue
+                    rec_data = rec_resp.json()
+                    record = rec_data.get('value', {}) if isinstance(rec_data, dict) else {}
+                except Exception:
+                    continue
+
+                text = record.get('text', '') if isinstance(record, dict) else ''
+                title = record.get('title', '') if isinstance(record, dict) else ''
+                formatting = record.get('formatting', []) if isinstance(record, dict) else []
+                title_formatting = record.get('titleFormatting', []) if isinstance(record, dict) else []
+                record_type = record.get('$type', collection) if isinstance(record, dict) else collection
+                created_at = (record.get('createdAt', '') if isinstance(record, dict) else '') or meta.get('createdAt', '')
+
+                handle = ''
+                display_name = ''
+                avatar = ''
+                color_hex = '#734ba1'
+
+                dreamer = db.fetch_one(
+                    'SELECT handle, name, avatar, color_hex FROM dreamers WHERE did = %s LIMIT 1',
+                    (did,)
+                )
+                if dreamer:
+                    handle = dreamer.get('handle') or handle
+                    display_name = dreamer.get('name') or display_name
+                    avatar = dreamer.get('avatar') or avatar
+                    color_hex = dreamer.get('color_hex') or color_hex
+
+                try:
+                    profile_resp = requests.get(
+                        f'{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile',
+                        params={'actor': did},
+                        timeout=8
+                    )
+                    if profile_resp.ok:
+                        profile = profile_resp.json()
+                        handle = profile.get('handle') or handle
+                        display_name = profile.get('displayName') or display_name
+                        avatar = profile.get('avatar') or avatar
+                except Exception:
+                    pass
+
+                if not handle and isinstance(did_doc, dict):
+                    aka = did_doc.get('alsoKnownAs', [])
+                    if aka:
+                        handle = aka[0].replace('at://', '')
+
+                if not display_name:
+                    if handle:
+                        display_name = handle.split('.')[0]
+                    else:
+                        display_name = did[:20] + '...'
+
+                if record_type == 'app.bsky.feed.post':
+                    post_url = f'https://bsky.app/profile/{handle or did}/post/{rkey}'
+                else:
+                    post_url = f'https://pds.ls/{subject_uri}'
+
+                stories.append({
+                    'uri': subject_uri,
+                    'cid': meta.get('cid') or (rec_data.get('cid', '') if isinstance(rec_data, dict) else ''),
+                    'isCanon': bool(meta.get('isCanon')),
+                    'isLore': bool(meta.get('isLore')) or bool(meta.get('isCanon')),
+                    'recordType': record_type,
+                    'title': title,
+                    'titleFormatting': title_formatting if isinstance(title_formatting, list) else [],
+                    'isLongForm': record_type != 'app.bsky.feed.post',
+                    'formatting': formatting if isinstance(formatting, list) else [],
+                    'text': text,
+                    'createdAt': created_at,
+                    'author': {
+                        'did': did,
+                        'handle': handle,
+                        'displayName': display_name,
+                        'avatar': avatar,
+                        'color': color_hex,
+                    },
+                    'url': post_url,
+                    'embed': None,
+                    'likeCount': 0,
+                    'repostCount': 0,
+                    'replyCount': 0,
+                })
+        except Exception as supplemental_error:
+            print(f"⚠️ Story feed supplemental ATProto fetch error: {supplemental_error}")
         
         # Batch-enrich from Bluesky (up to 25 per request)
+        enriched = {}
+        enrichment_checked_uris = set()
         try:
-            enriched = {}
             for i in range(0, len(uris_to_enrich), 25):
                 batch = uris_to_enrich[i:i+25]
                 resp = requests.get(
@@ -1809,6 +2522,9 @@ def story_feed():
                     timeout=15
                 )
                 if resp.status_code == 200:
+                    # These URIs were checked against the appview. If one is missing
+                    # from the response payload, it is likely deleted/unavailable.
+                    enrichment_checked_uris.update(batch)
                     for post in resp.json().get('posts', []):
                         enriched[post['uri']] = post
             
@@ -1883,9 +2599,156 @@ def story_feed():
         except Exception as enrich_error:
             print(f"⚠️ Story feed enrichment error (serving without embeds): {enrich_error}")
         
-        # Filter out posts that no longer exist on Bluesky
-        # (enriched dict won't have them, but they still have DB text)
-        valid_stories = [s for s in stories if s['text'] or s['uri'] in enriched]
+        # Filter out posts that were verified against appview and are missing there.
+        # This prevents stale/deleted Bluesky posts from reappearing after refresh.
+        valid_stories = []
+        for story in stories:
+            is_bsky_post = story.get('recordType') == 'app.bsky.feed.post'
+            uri = story.get('uri', '')
+
+            # If appview checked this Bluesky URI and did not return it, treat as removed.
+            if is_bsky_post and uri in enrichment_checked_uris and uri not in enriched:
+                continue
+
+            if story.get('text') or uri in enriched or not is_bsky_post:
+                valid_stories.append(story)
+
+        # Priority lane: if a newly-published URI is not yet visible via normal
+        # label/feed pipelines, hydrate it directly for a short window.
+        if has_priority_lane:
+            existing_story_uris = set(s.get('uri', '') for s in valid_stories)
+            for priority_uri in priority_uris:
+                if priority_uri in existing_story_uris:
+                    continue
+                if not priority_uri.startswith('at://'):
+                    continue
+
+                parts = priority_uri.replace('at://', '').split('/')
+                if len(parts) < 3:
+                    continue
+
+                did, collection, rkey = parts[0], parts[1], parts[2]
+                pds = None
+                did_doc = None
+
+                try:
+                    if did.startswith('did:plc:'):
+                        did_resp = requests.get(f'https://plc.directory/{did}', timeout=10)
+                        if did_resp.ok:
+                            did_doc = did_resp.json()
+                            services = did_doc.get('service', [])
+                            for service in services:
+                                if service.get('type') == 'AtprotoPersonalDataServer':
+                                    pds = service.get('serviceEndpoint')
+                                    break
+                    elif did.startswith('did:web:'):
+                        host = did.replace('did:web:', '').replace('%3A', ':')
+                        did_resp = requests.get(f'https://{host}/.well-known/did.json', timeout=10)
+                        if did_resp.ok:
+                            did_doc = did_resp.json()
+                            services = did_doc.get('service', [])
+                            for service in services:
+                                if service.get('type') == 'AtprotoPersonalDataServer':
+                                    pds = service.get('serviceEndpoint')
+                                    break
+                except Exception:
+                    pds = None
+
+                if not pds or not _is_safe_pds_endpoint(pds):
+                    continue
+
+                try:
+                    rec_resp = requests.get(
+                        f'{pds}/xrpc/com.atproto.repo.getRecord',
+                        params={'repo': did, 'collection': collection, 'rkey': rkey},
+                        timeout=10
+                    )
+                    if not rec_resp.ok:
+                        continue
+                    rec_data = rec_resp.json()
+                    record = rec_data.get('value', {}) if isinstance(rec_data, dict) else {}
+                except Exception:
+                    continue
+
+                text = record.get('text', '') if isinstance(record, dict) else ''
+                title = record.get('title', '') if isinstance(record, dict) else ''
+                formatting = record.get('formatting', []) if isinstance(record, dict) else []
+                title_formatting = record.get('titleFormatting', []) if isinstance(record, dict) else []
+                record_type = record.get('$type', collection) if isinstance(record, dict) else collection
+                created_at = record.get('createdAt', '') if isinstance(record, dict) else ''
+
+                handle = ''
+                display_name = ''
+                avatar = ''
+                color_hex = '#734ba1'
+
+                dreamer = db.fetch_one(
+                    'SELECT handle, name, avatar, color_hex FROM dreamers WHERE did = %s LIMIT 1',
+                    (did,)
+                )
+                if dreamer:
+                    handle = dreamer.get('handle') or handle
+                    display_name = dreamer.get('name') or display_name
+                    avatar = dreamer.get('avatar') or avatar
+                    color_hex = dreamer.get('color_hex') or color_hex
+
+                try:
+                    profile_resp = requests.get(
+                        f'{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile',
+                        params={'actor': did},
+                        timeout=8
+                    )
+                    if profile_resp.ok:
+                        profile = profile_resp.json()
+                        handle = profile.get('handle') or handle
+                        display_name = profile.get('displayName') or display_name
+                        avatar = profile.get('avatar') or avatar
+                except Exception:
+                    pass
+
+                if not handle and isinstance(did_doc, dict):
+                    aka = did_doc.get('alsoKnownAs', [])
+                    if aka:
+                        handle = aka[0].replace('at://', '')
+
+                if not display_name:
+                    if handle:
+                        display_name = handle.split('.')[0]
+                    else:
+                        display_name = did[:20] + '...'
+
+                if record_type == 'app.bsky.feed.post':
+                    post_url = f'https://bsky.app/profile/{handle or did}/post/{rkey}'
+                else:
+                    post_url = f'https://pds.ls/{priority_uri}'
+
+                valid_stories.append({
+                    'uri': priority_uri,
+                    'cid': rec_data.get('cid', '') if isinstance(rec_data, dict) else '',
+                    'isCanon': False,
+                    'isLore': True,
+                    'recordType': record_type,
+                    'title': title,
+                    'titleFormatting': title_formatting if isinstance(title_formatting, list) else [],
+                    'isLongForm': record_type != 'app.bsky.feed.post',
+                    'formatting': formatting if isinstance(formatting, list) else [],
+                    'text': text,
+                    'createdAt': created_at,
+                    'author': {
+                        'did': did,
+                        'handle': handle,
+                        'displayName': display_name,
+                        'avatar': avatar,
+                        'color': color_hex,
+                    },
+                    'url': post_url,
+                    'embed': None,
+                    'likeCount': 0,
+                    'repostCount': 0,
+                    'replyCount': 0,
+                })
+
+        valid_stories.sort(key=lambda s: s.get('createdAt', ''), reverse=True)
         
         result = {
             'stories': valid_stories,
@@ -3054,6 +3917,113 @@ def preview_name():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/preview-post', methods=['POST'])
+@rate_limit(60)
+def preview_post():
+    """Preview an ATProto record (supports bsky posts and branchline buds)."""
+    try:
+        data = request.get_json() or {}
+        uri = (data.get('uri') or '').strip()
+        if not uri.startswith('at://'):
+            return jsonify({'ok': False, 'error': 'Invalid AT URI'}), 400
+
+        parts = uri.replace('at://', '').split('/')
+        if len(parts) < 3:
+            return jsonify({'ok': False, 'error': 'Invalid AT URI format'}), 400
+
+        did, collection, rkey = parts[0], parts[1], parts[2]
+
+        did_doc = None
+        pds = None
+        if did.startswith('did:plc:'):
+            did_resp = requests.get(f'https://plc.directory/{did}', timeout=10)
+            if did_resp.ok:
+                did_doc = did_resp.json()
+        elif did.startswith('did:web:'):
+            host = did.replace('did:web:', '').replace('%3A', ':')
+            did_resp = requests.get(f'https://{host}/.well-known/did.json', timeout=10)
+            if did_resp.ok:
+                did_doc = did_resp.json()
+
+        if isinstance(did_doc, dict):
+            for service in did_doc.get('service', []):
+                if service.get('type') == 'AtprotoPersonalDataServer':
+                    pds = service.get('serviceEndpoint')
+                    break
+
+        if not pds or not _is_safe_pds_endpoint(pds):
+            return jsonify({'ok': False, 'error': 'Could not resolve safe PDS'}), 400
+
+        rec_resp = requests.get(
+            f'{pds}/xrpc/com.atproto.repo.getRecord',
+            params={'repo': did, 'collection': collection, 'rkey': rkey},
+            timeout=10
+        )
+        if not rec_resp.ok:
+            return jsonify({
+                'ok': False,
+                'error': 'Record not found',
+                'status': rec_resp.status_code
+            }), 404
+
+        rec_data = rec_resp.json() if rec_resp.content else {}
+        record = rec_data.get('value', {}) if isinstance(rec_data, dict) else {}
+        if not isinstance(record, dict):
+            record = {}
+
+        author = {
+            'did': did,
+            'handle': '',
+            'displayName': '',
+            'avatar': ''
+        }
+
+        try:
+            profile_resp = requests.get(
+                f'{BSKY_CACHE}/xrpc/app.bsky.actor.getProfile',
+                params={'actor': did},
+                timeout=8
+            )
+            if profile_resp.ok:
+                profile = profile_resp.json()
+                author['handle'] = profile.get('handle') or ''
+                author['displayName'] = profile.get('displayName') or ''
+                author['avatar'] = profile.get('avatar') or ''
+        except Exception:
+            pass
+
+        if not author['handle'] and isinstance(did_doc, dict):
+            aka = did_doc.get('alsoKnownAs', [])
+            if aka:
+                author['handle'] = aka[0].replace('at://', '')
+
+        external_url = ''
+        if collection == 'app.bsky.feed.post':
+            actor = author['handle'] or did
+            external_url = f'https://bsky.app/profile/{actor}/post/{rkey}'
+        elif collection == 'ink.branchline.bud':
+            external_url = f'https://branchline.ink/bud/{did}/{rkey}'
+
+        return jsonify({
+            'ok': True,
+            'uri': uri,
+            'did': did,
+            'collection': collection,
+            'rkey': rkey,
+            'record': record,
+            'cid': rec_data.get('cid') if isinstance(rec_data, dict) else '',
+            'createdAt': record.get('createdAt', ''),
+            'author': author,
+            'externalUrl': external_url,
+        })
+
+    except Exception as e:
+        print(f"Error in /api/preview-post: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @app.route('/api/souvenirs')

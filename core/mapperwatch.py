@@ -19,7 +19,10 @@ from typing import Set, Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from atproto import Client\n\n# AppView cache proxy (local)\nBSKY_CACHE = 'http://127.0.0.1:2847'
+from atproto import Client
+
+# AppView cache proxy (local)
+BSKY_CACHE = 'http://127.0.0.1:2847'
 
 
 class MapperMonitor:
@@ -259,8 +262,28 @@ class MapperMonitor:
             cursor = db.execute("SELECT name, display_name, avatar FROM dreamers WHERE did = %s", (author_did,))
             dreamer_row = cursor.fetchone()
             dreamer_name = dreamer_row['name'] if dreamer_row else author_handle.split('.')[0]
-            display_name = dreamer_row.get('display_name') or dreamer_name if dreamer_row else dreamer_name
+            display_name = dreamer_row.get('display_name') if dreamer_row else None
             avatar_url = dreamer_row.get('avatar') if dreamer_row else None
+
+            # For origin card labeling, prefer AT display name over internal reverie name.
+            # If we can resolve it, persist to dreamers.display_name for future generations.
+            if not display_name:
+                try:
+                    from core.network import NetworkClient
+                    network = NetworkClient()
+                    profile = network.get_profile(author_did)
+                    profile_display_name = profile.get('displayName') if profile else None
+                    if profile_display_name:
+                        display_name = profile_display_name
+                        db.execute(
+                            "UPDATE dreamers SET display_name = %s WHERE did = %s",
+                            (display_name, author_did)
+                        )
+                except Exception as e:
+                    print(f"   ⚠️  Could not refresh display_name from profile: {e}")
+
+            if not display_name:
+                display_name = author_handle
             
             # 3. Calculate spectrum
             print(f"   🌟 Calculating spectrum...")

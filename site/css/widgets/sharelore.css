@@ -29,8 +29,12 @@
     border-radius: 0;
     max-width: 600px;
     width: 100%;
+    max-height: min(88vh, 760px);
     margin: auto;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     box-shadow:
         0 4px 6px rgba(0, 0, 0, 0.07),
         0 10px 20px rgba(0, 0, 0, 0.1),
@@ -56,33 +60,48 @@
 
 /* Header Section */
 .share-modal-header {
-    padding: 28px 48px 22px;
+    padding: 24px 34px 20px;
     text-align: center;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid color-mix(in srgb, var(--user-color) 22%, white);
+    background:
+        radial-gradient(100% 140% at 0% 0%, color-mix(in srgb, var(--user-color) 14%, white) 0%, transparent 70%),
+        radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--user-color) 10%, white) 0%, transparent 72%),
+        linear-gradient(180deg, #ffffff 0%, #faf9fc 100%);
 }
 
 .share-modal-title {
-    margin: 0 0 6px 0;
-    font-size: 1.5rem;
+    margin: 0 0 8px 0;
+    font-size: 1.3rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--user-color) 0%, var(--user-color-hover) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -0.02em;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: #2d2d2d;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .share-modal-subtitle {
     margin: 0 auto;
-    max-width: 280px;
-    font-size: 0.875rem;
-    color: #888;
-    line-height: 1.45;
+    max-width: 420px;
+    font-size: 0.88rem;
+    color: #666;
+    line-height: 1.5;
 }
 
 .share-modal-subtitle strong {
     color: var(--user-color);
     font-weight: 600;
+}
+
+.share-modal-header .learn-more-link {
+    margin-top: 10px;
+}
+
+.share-header-notice {
+    margin-top: 10px;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    font-weight: 600;
+    color: #b42318;
 }
 
 /* ── Mobile keyboard handling ───────────────────────── */
@@ -114,6 +133,8 @@
 /* Stage System */
 .share-stage {
     min-height: 200px;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .share-stage-input {
@@ -381,16 +402,22 @@
     text-overflow: ellipsis;
 }
 
-.share-preview-content {
-    /* Container for text and image */
-}
-
 .share-preview-text {
     font-size: 0.9375rem;
     line-height: 1.6;
     color: #333;
     white-space: pre-wrap;
     word-wrap: break-word;
+    text-align: left;
+}
+
+.share-preview-title {
+    margin: 0 0 12px 0;
+    font-size: 1.06rem;
+    line-height: 1.35;
+    font-weight: 700;
+    color: #222;
+    text-align: center;
 }
 
 .share-preview-image {
@@ -439,6 +466,11 @@
     display: flex;
     gap: 10px;
     align-items: stretch;
+}
+
+.share-modal-actions-footer {
+    padding: 0;
+    width: 100%;
 }
 
 .share-cancel-btn {
@@ -616,9 +648,23 @@
 
 /* Footer */
 .share-modal-footer {
-    padding: 20px 32px 28px;
-    text-align: center;
+    padding: 14px 18px 16px;
     border-top: 1px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.share-footer-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.share-footer-input-wrapper .share-modal-input {
+    width: 100%;
 }
 
 .learn-more-link {
@@ -762,7 +808,7 @@
     }
 
     .share-modal-footer {
-        padding: 16px 20px 24px;
+        padding: 12px 14px 14px;
     }
 
     .learn-more-link {

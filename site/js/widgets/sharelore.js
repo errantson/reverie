@@ -11,6 +11,9 @@ class ShareLore {
         this.previewTimeout = null;
         this.hasValidPreview = false;
         this.currentPostAuthorDid = null;
+        this.currentSubjectUri = null;
+        this.currentRecordType = null;
+        this.currentPostCid = null;
         this.modal = null;
         this.init();
     }
@@ -34,6 +37,11 @@ class ShareLore {
                     <p class="share-modal-subtitle">
                         Submit a dream for the communal <strong>Reverie House</strong> canon
                     </p>
+                    <div class="share-header-notice" id="shareHeaderNotice" style="display: none;"></div>
+                    <a class="learn-more-link" id="learnMoreLink">
+                        <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor"><path d="M306.068,156.129c-6.566-5.771-14.205-10.186-22.912-13.244c-8.715-3.051-17.82-4.58-27.326-4.58 c-9.961,0-19.236,1.59-27.834,4.752c-8.605,3.171-16.127,7.638-22.576,13.41c-6.449,5.772-11.539,12.9-15.272,21.384 c-3.736,8.486-5.604,17.937-5.604,28.34h44.131c0-7.915,2.258-14.593,6.785-20.028c4.524-5.426,11.314-8.138,20.369-8.138 c8.598,0,15.328,2.661,20.197,7.974c4.864,5.322,7.297,11.942,7.297,19.856c0,3.854-0.965,7.698-2.887,11.543 c-1.922,3.854-4.242,7.586-6.959,11.197l-21.26,27.232c-4.527,5.884-16.758,22.908-16.758,40.316v10.187h44.129v-7.128 c0-2.938,0.562-5.996,1.699-9.168c1.127-3.162,6.453-10.904,8.268-13.168l21.264-28.243c4.752-6.333,8.705-12.839,11.881-19.518 c3.166-6.67,4.752-14.308,4.752-22.913c0-10.86-1.926-20.478-5.772-28.85C317.832,168.969,312.627,161.892,306.068,156.129z"></path><rect x="234.106" y="328.551" width="46.842" height="45.144"></rect><path d="M256,0C114.613,0,0,114.615,0,256s114.613,256,256,256c141.383,0,256-114.615,256-256S397.383,0,256,0z M256,448c-105.871,0-192-86.131-192-192S150.129,64,256,64c105.867,0,192,86.131,192,192S361.867,448,256,448z"></path></svg>
+                        Learn more about lore.farm labels
+                    </a>
                 </div>
                 
                 <!-- Stage 1: Input & Recent Posts -->
@@ -44,38 +52,6 @@ class ShareLore {
                         <div class="share-recent-posts-scroll" id="recentPostsScroll">
                             <!-- Posts will be inserted here -->
                         </div>
-                    </div>
-                    
-                    <!-- Input Section -->
-                    <div class="share-section">
-                        <label class="share-section-label" for="postUriInput">
-                            Bluesky Post URL
-                        </label>
-                        <div class="share-input-wrapper">
-                            <svg class="share-input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                            </svg>
-                            <input 
-                                type="text" 
-                                id="postUriInput" 
-                                class="share-modal-input" 
-                                placeholder="https://bsky.app/profile/yourhandle/post/..."
-                                autocomplete="off"
-                                spellcheck="false"
-                            />
-                        </div>
-                    </div>
-                    
-                    <!-- Stage 1 Actions -->
-                    <div class="share-modal-actions">
-                        <button class="share-cancel-btn" id="cancelShareBtn">Cancel</button>
-                        <button class="share-modal-btn share-modal-btn-primary" id="submitLabelBtn" disabled>
-                            <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            <span>SHARE LORE</span>
-                        </button>
                     </div>
                 </div>
                 
@@ -92,6 +68,7 @@ class ShareLore {
                                 </div>
                             </div>
                             <div class="share-preview-content">
+                                <h3 class="share-preview-title" id="previewTitle" style="display: none;"></h3>
                                 <div class="share-preview-text" id="previewText"></div>
                                 <img id="previewImage" class="share-preview-image" style="display: none;" src="" alt="">
                             </div>
@@ -100,23 +77,6 @@ class ShareLore {
                     
                     <!-- Status Messages -->
                     <div class="share-modal-status" id="labelStatus"></div>
-                    
-                    <!-- Action Buttons -->
-                    <div class="share-modal-actions">
-                        <button class="share-back-btn" id="backToInputBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="19" y1="12" x2="5" y2="12"></line>
-                                <polyline points="12 19 5 12 12 5"></polyline>
-                            </svg>
-                            Back
-                        </button>
-                        <button class="share-modal-btn share-modal-btn-primary" id="submitLabelBtnConfirm">
-                            <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            <span>SHARE LORE</span>
-                        </button>
-                    </div>
                     
                     <!-- Character Application Section -->
                     <div class="share-character-section" id="characterSection" style="display: none;">
@@ -140,10 +100,42 @@ class ShareLore {
                 
                 <!-- Footer -->
                 <div class="share-modal-footer">
-                    <a class="learn-more-link" id="learnMoreLink">
-                        <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor"><path d="M306.068,156.129c-6.566-5.771-14.205-10.186-22.912-13.244c-8.715-3.051-17.82-4.58-27.326-4.58 c-9.961,0-19.236,1.59-27.834,4.752c-8.605,3.171-16.127,7.638-22.576,13.41c-6.449,5.772-11.539,12.9-15.272,21.384 c-3.736,8.486-5.604,17.937-5.604,28.34h44.131c0-7.915,2.258-14.593,6.785-20.028c4.524-5.426,11.314-8.138,20.369-8.138 c8.598,0,15.328,2.661,20.197,7.974c4.864,5.322,7.297,11.942,7.297,19.856c0,3.854-0.965,7.698-2.887,11.543 c-1.922,3.854-4.242,7.586-6.959,11.197l-21.26,27.232c-4.527,5.884-16.758,22.908-16.758,40.316v10.187h44.129v-7.128 c0-2.938,0.562-5.996,1.699-9.168c1.127-3.162,6.453-10.904,8.268-13.168l21.264-28.243c4.752-6.333,8.705-12.839,11.881-19.518 c3.166-6.67,4.752-14.308,4.752-22.913c0-10.86-1.926-20.478-5.772-28.85C317.832,168.969,312.627,161.892,306.068,156.129z"></path><rect x="234.106" y="328.551" width="46.842" height="45.144"></rect><path d="M256,0C114.613,0,0,114.615,0,256s114.613,256,256,256c141.383,0,256-114.615,256-256S397.383,0,256,0z M256,448c-105.871,0-192-86.131-192-192S150.129,64,256,64c105.867,0,192,86.131,192,192S361.867,448,256,448z"></path></svg>
-                        Learn more about lore.farm labels
-                    </a>
+                    <div class="share-footer-input-wrapper">
+                        <svg class="share-input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                        <input 
+                            type="text" 
+                            id="postUriInput" 
+                            class="share-modal-input" 
+                            placeholder="https://bsky.app/profile/yourhandle/post/... or https://branchline.ink/bud/..."
+                            autocomplete="off"
+                            spellcheck="false"
+                        />
+                    </div>
+                    <div class="share-modal-actions share-modal-actions-footer">
+                        <button class="share-cancel-btn" id="cancelShareBtn">Cancel</button>
+                        <button class="share-back-btn" id="backToInputBtn" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                            Back
+                        </button>
+                        <button class="share-modal-btn share-modal-btn-primary" id="submitLabelBtn" disabled>
+                            <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>SHARE LORE</span>
+                        </button>
+                        <button class="share-modal-btn share-modal-btn-primary" id="submitLabelBtnConfirm" style="display: none;" disabled>
+                            <svg class="share-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>SHARE LORE</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -210,37 +202,72 @@ class ShareLore {
     showInputStage() {
         const inputStage = document.getElementById('stageInput');
         const previewStage = document.getElementById('stagePreview');
+        const stage1Btn = document.getElementById('submitLabelBtn');
+        const confirmBtn = document.getElementById('submitLabelBtnConfirm');
+        const backBtn = document.getElementById('backToInputBtn');
         
         if (inputStage) inputStage.style.display = 'block';
         if (previewStage) previewStage.style.display = 'none';
+        if (stage1Btn) stage1Btn.style.display = 'inline-flex';
+        if (confirmBtn) confirmBtn.style.display = 'none';
+        if (backBtn) backBtn.style.display = 'none';
         
         // Clear input
         const input = document.getElementById('postUriInput');
-        if (input) input.value = '';
+        if (input && !input.value) input.value = '';
         
         // Reset state
         this.hasValidPreview = false;
         this.currentPostAuthorDid = null;
+        this.currentSubjectUri = null;
+        this.currentRecordType = null;
+        this.currentPostCid = null;
 
         // Disable buttons — nothing is selected yet
-        const stage1Btn = document.getElementById('submitLabelBtn');
-        const confirmBtn = document.getElementById('confirmSubmitBtn');
+        const confirmPreviewBtn = document.getElementById('confirmSubmitBtn');
         if (stage1Btn) stage1Btn.disabled = true;
         if (confirmBtn) confirmBtn.disabled = true;
+        if (confirmPreviewBtn) confirmPreviewBtn.disabled = true;
     }
 
     async showPreviewStage() {
         const inputStage = document.getElementById('stageInput');
         const previewStage = document.getElementById('stagePreview');
+        const stage1Btn = document.getElementById('submitLabelBtn');
+        const confirmBtn = document.getElementById('submitLabelBtnConfirm');
+        const backBtn = document.getElementById('backToInputBtn');
         
         if (inputStage) inputStage.style.display = 'none';
         if (previewStage) previewStage.style.display = 'block';
+        if (previewStage) previewStage.scrollTop = 0;
+        const previewCard = document.getElementById('postPreview');
+        const previewText = document.getElementById('previewText');
+        if (previewCard) previewCard.scrollTop = 0;
+        if (previewText) previewText.scrollTop = 0;
+        if (stage1Btn) stage1Btn.style.display = 'none';
+        if (confirmBtn) confirmBtn.style.display = 'inline-flex';
+        if (backBtn) backBtn.style.display = 'inline-flex';
         
         // Check character status and hide toggle if already registered
         await this.checkAndUpdateCharacterSection();
         
         // Apply user color to modal
         this.applyUserColor();
+    }
+
+    setHeaderNotice(message = '') {
+        const noticeEl = document.getElementById('shareHeaderNotice');
+        const learnMoreLink = document.getElementById('learnMoreLink');
+        const hasMessage = !!(message && message.trim());
+
+        if (noticeEl) {
+            noticeEl.textContent = hasMessage ? message : '';
+            noticeEl.style.display = hasMessage ? 'block' : 'none';
+        }
+
+        if (learnMoreLink) {
+            learnMoreLink.style.display = hasMessage ? 'none' : 'inline-flex';
+        }
     }
 
     loadPreferences() {
@@ -412,6 +439,8 @@ class ShareLore {
             
             // Show input stage, hide preview stage
             this.showInputStage();
+            const input = document.getElementById('postUriInput');
+            if (input) input.value = '';
             
             // Load recent posts carousel
             this.loadRecentPosts();
@@ -439,6 +468,10 @@ class ShareLore {
             
             this.hasValidPreview = false;
             this.currentPostAuthorDid = null;
+            this.currentSubjectUri = null;
+            this.currentRecordType = null;
+            this.currentPostCid = null;
+            this.setHeaderNotice('');
 
             // ── Mobile keyboard handling ──────────────────────────
             this._cleanupKeyboard();
@@ -583,6 +616,88 @@ class ShareLore {
         return div.innerHTML;
     }
 
+    utf8ByteOffsetToCharIndex(text, byteOffset) {
+        const target = Math.max(0, Number(byteOffset) || 0);
+        let currentByte = 0;
+        let currentIndex = 0;
+
+        for (const symbol of text) {
+            if (target <= currentByte) {
+                return currentIndex;
+            }
+            currentByte += new TextEncoder().encode(symbol).length;
+            currentIndex += symbol.length;
+            if (target < currentByte) {
+                return currentIndex;
+            }
+        }
+
+        return currentIndex;
+    }
+
+    renderBranchlinePreviewText(text, formatting) {
+        const source = typeof text === 'string' ? text : '';
+        if (!source) {
+            return '<p style="margin: 0;">No text available</p>';
+        }
+
+        const ranges = Array.isArray(formatting)
+            ? formatting
+                .map((entry) => {
+                    const type = entry?.type;
+                    if (type !== 'bold' && type !== 'italic') return null;
+                    const start = this.utf8ByteOffsetToCharIndex(source, entry?.start);
+                    const end = this.utf8ByteOffsetToCharIndex(source, entry?.end);
+                    if (end <= start) return null;
+                    return { type, start, end };
+                })
+                .filter(Boolean)
+                .sort((a, b) => a.start - b.start || a.end - b.end)
+            : [];
+
+        const wrapParagraphs = (htmlText) => {
+            const paragraphHtml = htmlText
+                .split(/\n\s*\n/)
+                .map((paragraph) => `<p style="margin: 0 0 14px 0;">${paragraph.replace(/\n/g, '<br>')}</p>`)
+                .join('');
+            return paragraphHtml || '<p style="margin: 0;">No text available</p>';
+        };
+
+        if (!ranges.length) {
+            return wrapParagraphs(this.escapeHtml(source));
+        }
+
+        const starts = new Map();
+        const ends = new Map();
+        ranges.forEach((range) => {
+            if (!starts.has(range.start)) starts.set(range.start, []);
+            if (!ends.has(range.end)) ends.set(range.end, []);
+            starts.get(range.start).push(range.type);
+            ends.get(range.end).push(range.type);
+        });
+
+        const points = Array.from(new Set([0, source.length, ...starts.keys(), ...ends.keys()])).sort((a, b) => a - b);
+        const active = new Set();
+        let html = '';
+
+        for (let i = 0; i < points.length - 1; i += 1) {
+            const point = points[i];
+            const nextPoint = points[i + 1];
+
+            (ends.get(point) || []).forEach((type) => active.delete(type));
+            (starts.get(point) || []).forEach((type) => active.add(type));
+
+            if (nextPoint <= point) continue;
+
+            let segment = this.escapeHtml(source.slice(point, nextPoint));
+            if (active.has('bold')) segment = `<strong>${segment}</strong>`;
+            if (active.has('italic')) segment = `<em>${segment}</em>`;
+            html += segment;
+        }
+
+        return wrapParagraphs(html);
+    }
+
     formatPostDate(isoDate) {
         const date = new Date(isoDate);
         const now = new Date();
@@ -624,11 +739,15 @@ class ShareLore {
         // Clear any previous error messages
         statusMsg.className = 'share-modal-status';
         statusMsg.textContent = '';
+        this.setHeaderNotice('');
         
         if (!url) {
             preview.classList.remove('active');
             this.hasValidPreview = false;
             this.currentPostAuthorDid = null;
+            this.currentSubjectUri = null;
+            this.currentRecordType = null;
+            this.currentPostCid = null;
             confirmBtn.disabled = true;
             stage1Btn.disabled = true;
             return;
@@ -643,41 +762,117 @@ class ShareLore {
         this._skipDebounce = false;
         
         this.previewTimeout = setTimeout(async () => {
-            const parsed = this.bskyUrlToAtUri(url);
+            const parsed = this.parseSupportedUrl(url);
             if (!parsed) {
                 preview.classList.remove('active');
+                this.setHeaderNotice('Please enter a valid Bluesky or Branchline post URL.');
                 return;
             }
             
             try {
-                // Resolve AT URI — bskyUrlToAtUri returns either a
-                // string (AT URI) or an object { handle, postId }
-                const atUri = typeof parsed === 'string'
-                    ? parsed
-                    : `at://${parsed.handle}/app.bsky.feed.post/${parsed.postId}`;
-                
+                const session = window.oauthManager ? window.oauthManager.getSession() : null;
+                const userDid = session ? (session.did || session.sub) : null;
+
+                if (parsed.type === 'branchline') {
+                    const response = await fetch('/api/preview-post', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uri: parsed.atUri }),
+                    });
+                    if (!response.ok) return;
+
+                    const data = await response.json();
+                    if (!data.ok || !data.record) return;
+
+                    const record = data.record;
+                    const author = data.author || {};
+                    this.currentPostAuthorDid = data.did || author.did || '';
+                    this.currentPostCid = data.cid || '';
+                    this.currentSubjectUri = data.uri || parsed.atUri;
+                    this.currentRecordType = record.$type || 'ink.branchline.bud';
+
+                    document.getElementById('previewAvatar').src = author.avatar || '/assets/icon_face.png';
+                    document.getElementById('previewName').textContent = author.displayName || author.handle || 'Unknown';
+                    document.getElementById('previewHandle').textContent = '@' + (author.handle || this.currentPostAuthorDid || 'unknown');
+                    const previewTitle = document.getElementById('previewTitle');
+                    const previewText = document.getElementById('previewText');
+                    const rawTitle = record.title || '';
+                    const rawText = record.text || '';
+
+                    if (previewTitle) {
+                        if (rawTitle) {
+                            previewTitle.textContent = rawTitle;
+                            previewTitle.style.display = 'block';
+                        } else {
+                            previewTitle.textContent = '';
+                            previewTitle.style.display = 'none';
+                        }
+                    }
+
+                    if (previewText) {
+                        previewText.innerHTML = this.renderBranchlinePreviewText(
+                            rawText,
+                            Array.isArray(record.formatting) ? record.formatting : []
+                        );
+                        const previewStage = document.getElementById('stagePreview');
+                        if (previewStage) previewStage.scrollTop = 0;
+                        const previewCard = document.getElementById('postPreview');
+                        if (previewCard) previewCard.scrollTop = 0;
+                        requestAnimationFrame(() => {
+                            if (previewStage) previewStage.scrollTop = 0;
+                            if (previewCard) previewCard.scrollTop = 0;
+                        });
+                    }
+
+                    const previewImg = document.getElementById('previewImage');
+                    previewImg.style.display = 'none';
+
+                    this.showPreviewStage();
+
+                    if (userDid && this.currentPostAuthorDid === userDid) {
+                        this.hasValidPreview = true;
+                        confirmBtn.disabled = false;
+                        this.setHeaderNotice('');
+                    } else {
+                        this.hasValidPreview = false;
+                        confirmBtn.disabled = true;
+                        if (userDid && this.currentPostAuthorDid !== userDid) {
+                            this.setHeaderNotice('You may only enter your own dreams to the lore.');
+                        }
+                    }
+                    return;
+                }
+
+                const atUri = parsed.atUri;
                 const response = await fetch(`/bsky/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(atUri)}&depth=0`);
                 if (!response.ok) return;
-                
+
                 const data = await response.json();
                 const post = data.thread?.post;
-                
+
                 if (post) {
-                    // Store the post author's DID and CID for later use
                     this.currentPostAuthorDid = post.author.did;
                     this.currentPostCid = post.cid;
-                    
-                    // Check if this post belongs to the logged-in user
-                    const session = window.oauthManager ? window.oauthManager.getSession() : null;
-                    const userDid = session ? (session.did || session.sub) : null;
-                    
-                    // Populate preview
+                    this.currentSubjectUri = post.uri || atUri;
+                    this.currentRecordType = 'app.bsky.feed.post';
+
                     document.getElementById('previewAvatar').src = post.author.avatar || '';
                     document.getElementById('previewName').textContent = post.author.displayName || post.author.handle;
                     document.getElementById('previewHandle').textContent = '@' + post.author.handle;
-                    document.getElementById('previewText').textContent = post.record.text || '';
-                    
-                    // Handle image
+                    const previewTitle = document.getElementById('previewTitle');
+                    const previewText = document.getElementById('previewText');
+                    if (previewTitle) {
+                        previewTitle.textContent = '';
+                        previewTitle.style.display = 'none';
+                    }
+                    if (previewText) {
+                        previewText.textContent = post.record.text || '';
+                        const previewStage = document.getElementById('stagePreview');
+                        if (previewStage) previewStage.scrollTop = 0;
+                        const previewCard = document.getElementById('postPreview');
+                        if (previewCard) previewCard.scrollTop = 0;
+                    }
+
                     const previewImg = document.getElementById('previewImage');
                     if (post.embed?.images && post.embed.images.length > 0) {
                         previewImg.src = post.embed.images[0].thumb || post.embed.images[0].fullsize;
@@ -685,21 +880,19 @@ class ShareLore {
                     } else {
                         previewImg.style.display = 'none';
                     }
-                    
-                    // Switch to preview stage
+
                     this.showPreviewStage();
-                    
-                    // Enable/disable confirm button based on ownership
+
                     if (userDid && this.currentPostAuthorDid === userDid) {
                         this.hasValidPreview = true;
                         confirmBtn.disabled = false;
+                        this.setHeaderNotice('');
                     } else {
                         this.hasValidPreview = false;
                         confirmBtn.disabled = true;
-                        
+
                         if (userDid && this.currentPostAuthorDid !== userDid) {
-                            statusMsg.className = 'share-modal-status error';
-                            statusMsg.textContent = 'You may only enter your own dreams to the lore.';
+                            this.setHeaderNotice('You may only enter your own dreams to the lore.');
                         }
                     }
                 }
@@ -707,9 +900,65 @@ class ShareLore {
                 console.error('Error fetching post preview:', error);
                 this.hasValidPreview = false;
                 this.currentPostAuthorDid = null;
+                this.currentSubjectUri = null;
+                this.currentRecordType = null;
+                this.currentPostCid = null;
                 confirmBtn.disabled = true;
             }
         }, delay);
+    }
+
+    parseSupportedUrl(url) {
+        const directAt = this.atUriToParsed(url);
+        if (directAt) {
+            return directAt;
+        }
+
+        const bsky = this.bskyUrlToAtUri(url);
+        if (bsky) {
+            const atUri = typeof bsky === 'string'
+                ? bsky
+                : `at://${bsky.handle}/app.bsky.feed.post/${bsky.postId}`;
+            return { type: 'bsky', atUri, parsed: bsky };
+        }
+
+        const branchline = this.branchlineUrlToAtUri(url);
+        if (branchline) {
+            return { type: 'branchline', atUri: branchline };
+        }
+
+        return null;
+    }
+
+    atUriToParsed(uri) {
+        if (typeof uri !== 'string' || !uri.startsWith('at://')) {
+            return null;
+        }
+        const match = uri.match(/^at:\/\/([^/]+)\/([^/]+)\/([^/?#]+)/);
+        if (!match) return null;
+        const collection = match[2];
+        if (collection === 'app.bsky.feed.post') {
+            return { type: 'bsky', atUri: uri, parsed: uri };
+        }
+        if (collection === 'ink.branchline.bud') {
+            return { type: 'branchline', atUri: uri };
+        }
+        return null;
+    }
+
+    branchlineUrlToAtUri(url) {
+        try {
+            // https://branchline.ink/bud/did:plc:xxx/rkey
+            const match = url.match(/branchline\.ink\/bud\/([^\/]+)\/([^\/\?#]+)/i);
+            if (!match) return null;
+            const did = decodeURIComponent(match[1]);
+            const rkey = decodeURIComponent(match[2]);
+            if (!did.startsWith('did:')) return null;
+            return `at://${did}/ink.branchline.bud/${rkey}`;
+        } catch (error) {
+            console.error('Error parsing branchline URL:', error);
+            return null;
+        }
     }
 
     bskyUrlToAtUri(url) {
@@ -744,7 +993,7 @@ class ShareLore {
         const url = input.value.trim();
         if (!url) {
             status.className = 'share-modal-status error';
-            status.textContent = 'Please enter a Bluesky post URL';
+            status.textContent = 'Please enter a post URL';
             return;
         }
         
@@ -756,9 +1005,9 @@ class ShareLore {
         
         try {
             // Parse the URL
-            const parsed = this.bskyUrlToAtUri(url);
+            const parsed = this.parseSupportedUrl(url);
             if (!parsed) {
-                throw new Error('Invalid Bluesky post URL format');
+                throw new Error('Invalid post URL format');
             }
             
             // Check if user is logged in
@@ -780,12 +1029,7 @@ class ShareLore {
             }
             
             // Convert URL to AT URI format
-            const parsedUri = this.bskyUrlToAtUri(url);
-            if (!parsedUri) throw new Error('Invalid Bluesky post URL format');
-            
-            const atUri = typeof parsedUri === 'string'
-                ? parsedUri
-                : `at://${this.currentPostAuthorDid}/app.bsky.feed.post/${parsedUri.postId}`;
+            const atUri = this.currentSubjectUri || parsed.atUri;
 
             // Ensure we have the post CID (stored during preview)
             if (!this.currentPostCid) {

@@ -1,0 +1,13 @@
+{
+  "name": "reverie-storycards",
+  "version": "1.0.0",
+  "description": "Server-side story card image generator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "canvas": "^3.2.2",
+    "express": "^4.18.2"
+  }
+}

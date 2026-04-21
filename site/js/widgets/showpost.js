@@ -1,6 +1,6 @@
 /**
  * ShowPost Widget
- * Displays a Bluesky post in a shadowbox overlay
+ * Displays a Bluesky or branchline post in a shadowbox overlay
  * Similar to profile.js activity card but as a standalone popup
  */
 
@@ -51,7 +51,14 @@ class ShowPost {
 
         // Fetch post data and color BEFORE creating visible container
         try {
-            const postData = await this.fetchPost(uri);
+            const parsed = this.parseAtUri(uri);
+            if (!parsed) {
+                throw new Error('Unsupported AT URI format');
+            }
+
+            const postData = parsed.collection === 'ink.branchline.bud'
+                ? await this.fetchBranchlinePost(uri)
+                : await this.fetchPost(uri);
             const dreamerColor = await this.fetchDreamerColor(postData.author.did, postData.author.handle);
             
             // Now create post container with correct color from the start
@@ -73,7 +80,11 @@ class ShowPost {
             this.shadowbox.contentContainer.appendChild(this.container);
             
             // Render content
-            await this.renderPost(postData, dreamerColor);
+            if (postData.recordType === 'ink.branchline.bud') {
+                await this.renderBranchlinePost(postData, dreamerColor);
+            } else {
+                await this.renderPost(postData, dreamerColor);
+            }
             
             // Fade in smoothly
             requestAnimationFrame(() => {
@@ -111,6 +122,13 @@ class ShowPost {
             return urlOrUri;
         }
 
+        // Parse branchline URL: https://branchline.ink/bud/{did}/{rkey}
+        const branchlineMatch = urlOrUri.match(/branchline\.ink\/bud\/([^/]+)\/([^/?#]+)/);
+        if (branchlineMatch) {
+            const [, did, rkey] = branchlineMatch;
+            return `at://${decodeURIComponent(did)}/ink.branchline.bud/${decodeURIComponent(rkey)}`;
+        }
+
         // Parse bsky.app URL: https://bsky.app/profile/{handle}/post/{rkey}
         const match = urlOrUri.match(/bsky\.app\/profile\/([^/]+)\/post\/([^/?#]+)/);
         if (match) {
@@ -136,16 +154,30 @@ class ShowPost {
         return null;
     }
 
+    parseAtUri(uri) {
+        const match = uri.match(/^at:\/\/([^/]+)\/([^/]+)\/([^/?#]+)/);
+        if (!match) return null;
+        return {
+            did: match[1],
+            collection: match[2],
+            rkey: match[3],
+        };
+    }
+
     /**
      * Convert AT Protocol URI to Bluesky URL
      */
     uriToUrl(uri) {
         // at://did:plc:abc123/app.bsky.feed.post/xyz789
-        const match = uri.match(/at:\/\/([^/]+)\/app\.bsky\.feed\.post\/(.+)/);
-        if (match) {
-            const [, did, rkey] = match;
+        const parts = this.parseAtUri(uri);
+        if (parts?.collection === 'app.bsky.feed.post') {
+            const { did, rkey } = parts;
             // We need to resolve DID to handle, but use DID for now
             return `https://bsky.app/profile/${did}/post/${rkey}`;
+        }
+        if (parts?.collection === 'ink.branchline.bud') {
+            const { did, rkey } = parts;
+            return `https://branchline.ink/bud/${encodeURIComponent(did)}/${encodeURIComponent(rkey)}`;
         }
         return uri;
     }
@@ -194,6 +226,40 @@ class ShowPost {
         if (!post) throw new Error('No post data in response');
         
         return this.extractPostData(post);
+    }
+
+    async fetchBranchlinePost(uri) {
+        const response = await fetch('/api/preview-post', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uri }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch branchline record');
+        }
+
+        const data = await response.json();
+        if (!data.ok || !data.record) {
+            throw new Error(data.error || 'Invalid preview response');
+        }
+
+        const record = data.record;
+        return {
+            uri,
+            recordType: record.$type || 'ink.branchline.bud',
+            title: record.title || '',
+            text: record.text || '',
+            createdAt: record.createdAt || data.createdAt || null,
+            formatting: Array.isArray(record.formatting) ? record.formatting : [],
+            author: {
+                did: data.did || '',
+                handle: data.author?.handle || '',
+                displayName: data.author?.displayName || '',
+                avatar: data.author?.avatar || '',
+            },
+            externalUrl: data.externalUrl || this.uriToUrl(uri),
+        };
     }
     
     /**
@@ -332,6 +398,116 @@ class ShowPost {
                 ${contentHtml}
             </div>
         `;
+    }
+
+    async renderBranchlinePost(postData, dreamerColor) {
+        const postUrl = postData.externalUrl || this.uriToUrl(postData.uri) || '#';
+        const titleHtml = this.escapeHtml(postData.title || 'Untitled Story');
+        const textHtml = this.renderBranchlineText(postData.text || '', postData.formatting || []);
+        const avatarUrl = postData.author.avatar || '/assets/icon_face.png';
+        const displayName = postData.author.displayName || postData.author.handle || 'Unknown';
+        const handle = postData.author.handle || '';
+        const when = postData.createdAt ? this.getTimeAgo(new Date(postData.createdAt).getTime()) : 'recently';
+
+        const textColor = this.getContrastColor(dreamerColor);
+        const handleOpacity = textColor === '#ffffff' ? '0.8' : '0.6';
+        const borderColor = textColor === '#ffffff' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+
+        // Keep footer persistent while the story content scrolls.
+        this.container.style.display = 'flex';
+        this.container.style.flexDirection = 'column';
+        this.container.style.overflow = 'hidden';
+
+        this.container.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: ${dreamerColor};">
+                <img src="${avatarUrl}" alt="${displayName}" style="width: 33.6px; height: 33.6px; border-radius: 50%; object-fit: cover; border: 1px solid ${borderColor};">
+                <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px;">
+                    <span style="font-weight: bold; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(displayName)}</span>
+                    <span style="color: ${textColor}; opacity: ${handleOpacity}; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@${this.escapeHtml(handle)}</span>
+                </div>
+                <button onclick="window.showPostWidget?.close()" style="background: none; border: none; font-size: 24px; color: ${textColor}; opacity: 0.8; cursor: pointer; padding: 4px 8px; line-height: 1;" title="Close">×</button>
+            </div>
+            <div style="padding: 16px 18px 14px 18px; overflow-y: auto; flex: 1; min-height: 0;">
+                <h3 style="margin: 0 0 14px 0; font-size: 1.05rem; line-height: 1.35; text-align: center;">${titleHtml}</h3>
+                <div style="font-size: 0.95rem; line-height: 1.7; color: #222; white-space: normal; text-align: left;">${textHtml}</div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-top: 1px solid ${borderColor}; background: ${dreamerColor}; color: ${textColor}; flex-shrink: 0;">
+                <span class="activity-time" style="cursor: default; color: ${textColor}; opacity: ${handleOpacity};">${when}</span>
+                <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time" style="color: ${textColor}; font-weight: 600; text-decoration-color: ${textColor};">Branch Story</a>
+            </div>
+        `;
+    }
+
+    utf8ByteOffsetToCharIndex(text, byteOffset) {
+        const target = Math.max(0, Number(byteOffset) || 0);
+        let currentByte = 0;
+        let currentIndex = 0;
+
+        for (const symbol of text) {
+            if (target <= currentByte) {
+                return currentIndex;
+            }
+            currentByte += new TextEncoder().encode(symbol).length;
+            currentIndex += symbol.length;
+            if (target < currentByte) {
+                return currentIndex;
+            }
+        }
+        return currentIndex;
+    }
+
+    renderBranchlineText(text, formatting) {
+        const safeText = typeof text === 'string' ? text : '';
+        if (!safeText) {
+            return '<p style="margin: 0; color: #666;">No text available</p>';
+        }
+
+        const ranges = Array.isArray(formatting)
+            ? formatting
+                .map((entry) => {
+                    const type = entry?.type;
+                    if (type !== 'bold' && type !== 'italic') return null;
+                    const start = this.utf8ByteOffsetToCharIndex(safeText, entry?.start);
+                    const end = this.utf8ByteOffsetToCharIndex(safeText, entry?.end);
+                    if (end <= start) return null;
+                    return { type, start, end };
+                })
+                .filter(Boolean)
+                .sort((a, b) => a.start - b.start || a.end - b.end)
+            : [];
+
+        if (!ranges.length) {
+            return this.escapeHtml(safeText).replace(/\n\n/g, '</p><p style="margin: 0 0 16px 0;">').replace(/\n/g, '<br>').replace(/^/, '<p style="margin: 0 0 16px 0;">').concat('</p>');
+        }
+
+        const starts = new Map();
+        const ends = new Map();
+        ranges.forEach((range) => {
+            if (!starts.has(range.start)) starts.set(range.start, []);
+            if (!ends.has(range.end)) ends.set(range.end, []);
+            starts.get(range.start).push(range.type);
+            ends.get(range.end).push(range.type);
+        });
+
+        const points = Array.from(new Set([0, safeText.length, ...starts.keys(), ...ends.keys()])).sort((a, b) => a - b);
+        const active = new Set();
+        let html = '';
+
+        for (let i = 0; i < points.length - 1; i += 1) {
+            const point = points[i];
+            const nextPoint = points[i + 1];
+            (ends.get(point) || []).forEach((type) => active.delete(type));
+            (starts.get(point) || []).forEach((type) => active.add(type));
+            if (nextPoint <= point) continue;
+
+            let segment = this.escapeHtml(safeText.slice(point, nextPoint));
+            if (active.has('bold')) segment = `<strong>${segment}</strong>`;
+            if (active.has('italic')) segment = `<em>${segment}</em>`;
+            html += segment;
+        }
+
+        html = html.replace(/\n\n/g, '</p><p style="margin: 0 0 16px 0;">').replace(/\n/g, '<br>');
+        return `<p style="margin: 0 0 16px 0;">${html}</p>`;
     }
 
     /**

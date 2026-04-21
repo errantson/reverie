@@ -212,21 +212,22 @@ app.post('/generate', async (req, res) => {
         
         // Display name
         ctx.fillStyle = 'rgba(232, 213, 196, 0.95)';
-        ctx.font = 'bold 55px system-ui, -apple-system, sans-serif';
+        ctx.font = 'bold 62px Arial, Helvetica, sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(displayName || handle, profileTextX, textY + 43);
         
         // Handle
         textY += 77;
         ctx.fillStyle = 'rgba(201, 184, 168, 0.75)';
-        ctx.font = '43px system-ui, -apple-system, sans-serif';
+        ctx.font = '40px Arial, Helvetica, sans-serif';
         ctx.fillText(`@${handle}`, profileTextX, textY + 26);
         
         // Coordinates
         textY += 54;
         ctx.fillStyle = 'rgba(232, 213, 196, 0.95)';
-        ctx.font = 'bold 30px "Courier New", monospace';
-        ctx.fillText(coordinateText, profileTextX, textY + 20);
+        ctx.font = 'bold 28px "Courier New", monospace';
+        // Nudge score block down-right to better align with the octant title row.
+        ctx.fillText(coordinateText, profileTextX + 24, textY + 38);
         
         // Octant name below avatar
         profileY = avatarY + avatarSize + 44;

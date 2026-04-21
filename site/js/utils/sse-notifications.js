@@ -21,6 +21,13 @@ class SSENotificationClient {
         this.maxReconnectAttempts = 10;
         this.reconnectDelay = 1000; // Start with 1 second
         this.connected = false;
+        this.pageUnloading = false;
+
+        // Prevent noisy reconnect churn when the browser is navigating away.
+        window.addEventListener('beforeunload', () => {
+            this.pageUnloading = true;
+            this.disconnect();
+        });
         
     }
     
@@ -93,9 +100,18 @@ class SSENotificationClient {
             
             // Error handling
             this.eventSource.onerror = (error) => {
-                // SSE will auto-reconnect; only log in debug
+                // Browser-level stream interruption during navigation is expected.
+                if (this.pageUnloading) {
+                    return;
+                }
+
                 this.connected = false;
                 this.trigger('disconnected', { error });
+
+                // If explicitly closed or browser is offline, do not count as hard failures.
+                if (!this.eventSource || this.eventSource.readyState === EventSource.CLOSED || !navigator.onLine) {
+                    return;
+                }
                 
                 // EventSource will auto-reconnect, but we track attempts
                 this.reconnectAttempts++;
