@@ -52,6 +52,9 @@ class FeedUpdater:
             'errors': 0,
             'start_time': datetime.now()
         }
+
+        # Round-robin offset for post_freq polling
+        self._postfreq_offset = 0
         
         self.log(f"🔄 Feed Updater initialized", force=True)
         self.log(f"   Community: {len(self.community_dids)} dreamers", force=True)
@@ -82,8 +85,11 @@ class FeedUpdater:
                 
                 # 2. Fetch recent posts from community members
                 self.update_community_posts()
-                
-                # 3. Clean up old posts (every 10 cycles = ~20 minutes)
+
+                # 3. Refresh post_freq for tracked quiet-mindscape follows (every cycle)
+                self.update_post_freq(batch_size=200)
+
+                # 4. Clean up old posts (every 10 cycles = ~20 minutes)
                 if self.stats['cycles'] % 10 == 0:
                     self.cleanup_old_posts()
                 
@@ -236,6 +242,121 @@ class FeedUpdater:
         self.stats['posts_added'] += posts_this_cycle
         self.log(f"   ✓ Processed {posts_this_cycle} posts ({errors_this_cycle} errors)")
     
+    def update_post_freq(self, batch_size: int = 200):
+        """
+        Poll a batch of tracked_follows DIDs and refresh their post_freq and feed_posts entries.
+
+        Replaces the Jetstream PostFreqHandler, which couldn't scale beyond ~200 DIDs
+        in the URL without hitting WebSocket HTTP 400 errors.
+
+        Processes DIDs round-robin so full coverage happens every (total/batch_size) cycles.
+        """
+        import requests as req
+        from datetime import date, timedelta
+
+        BSKY_CACHE = 'http://127.0.0.1:2847'
+
+        try:
+            rows = self.main_db.fetch_all("SELECT did FROM tracked_follows ORDER BY added_at")
+            all_dids = [r['did'] for r in rows]
+        except Exception as e:
+            self.log(f"   ✗ post_freq: could not load tracked_follows: {e}", force=True)
+            return
+
+        if not all_dids:
+            return
+
+        total = len(all_dids)
+        batch = all_dids[self._postfreq_offset:self._postfreq_offset + batch_size]
+        self._postfreq_offset = (self._postfreq_offset + batch_size) % total
+
+        self.log(f"📊 Refreshing post_freq for {len(batch)}/{total} tracked follows (offset {self._postfreq_offset})...")
+
+        now = datetime.now(timezone.utc)
+        cutoff_48h = now - timedelta(hours=48)
+        cutoff_7d  = now - timedelta(days=7)
+        indexed_at = now
+
+        EMBED_REPOST = {'app.bsky.embed.record', 'app.bsky.embed.recordWithMedia'}
+
+        processed = 0
+        errors = 0
+
+        for did in batch:
+            try:
+                resp = req.get(
+                    f'{BSKY_CACHE}/xrpc/app.bsky.feed.getAuthorFeed',
+                    params={'actor': did, 'limit': 50, 'filter': 'posts_no_replies'},
+                    timeout=8,
+                )
+                if resp.status_code != 200:
+                    continue
+
+                items = resp.json().get('feed', [])
+
+                # Tally non-repost originals per day for the 48h window
+                counts: dict[str, int] = {}
+                for item in items:
+                    post   = item.get('post', {})
+                    record = post.get('record', {})
+
+                    if record.get('reply'):
+                        continue  # replies filtered by posts_no_replies but double-check
+
+                    embed_type = (record.get('embed') or {}).get('$type', '')
+                    is_repost  = 1 if embed_type in EMBED_REPOST else 0
+
+                    created_str = record.get('createdAt', '')
+                    try:
+                        created_dt = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                    except Exception:
+                        continue
+
+                    # Post freq: count originals within 48h
+                    if is_repost == 0 and created_dt >= cutoff_48h:
+                        day_str = created_dt.date().isoformat()
+                        counts[day_str] = counts.get(day_str, 0) + 1
+
+                    # Keep feed_posts up to date (last 7 days)
+                    if created_dt >= cutoff_7d:
+                        uri = post.get('uri', '')
+                        cid = post.get('cid', '')
+                        text = record.get('text', '')
+                        if uri and cid:
+                            try:
+                                self.feed_db.db.execute('''
+                                    INSERT INTO feed_posts
+                                        (uri, cid, author_did, text, created_at, indexed_at, is_reply, is_repost)
+                                    VALUES (%s, %s, %s, %s, %s, %s, 0, %s)
+                                    ON CONFLICT (uri) DO UPDATE SET
+                                        cid       = EXCLUDED.cid,
+                                        text      = EXCLUDED.text,
+                                        indexed_at = EXCLUDED.indexed_at,
+                                        is_repost  = EXCLUDED.is_repost
+                                ''', (uri, cid, did, text, created_str, indexed_at, is_repost))
+                            except Exception:
+                                pass
+
+                # Ensure bootstrap rows exist for today + yesterday
+                today     = date.today().isoformat()
+                yesterday = (date.today() - timedelta(days=1)).isoformat()
+                for day in (today, yesterday):
+                    self.main_db.execute('''
+                        INSERT INTO post_freq (author_did, day, post_count)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (author_did, day) DO UPDATE SET
+                            post_count = EXCLUDED.post_count
+                    ''', (did, day, counts.get(day, 0)))
+
+                processed += 1
+
+            except Exception as e:
+                errors += 1
+                if self.verbose:
+                    self.log(f"   ✗ post_freq error for {did[:20]}: {e}")
+
+        self.log(f"   ✓ post_freq: {processed} updated, {errors} errors")
+
     def cleanup_old_posts(self, days: int = 30):
         """Remove posts that haven't been re-indexed in N days"""
         self.log(f"🧹 Cleaning up posts not seen in {days} days...")

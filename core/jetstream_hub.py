@@ -1060,18 +1060,21 @@ class FeedHandler(EventHandler):
             cid = commit.get('cid', '')
             text = record.get('text', '')
             created_at = record.get('createdAt', '')
+            is_reply = 1 if record.get('reply') else 0
+            embed_type = (record.get('embed') or {}).get('$type', '')
+            is_repost = 1 if embed_type in ('app.bsky.embed.record', 'app.bsky.embed.recordWithMedia') else 0
             
             handle = self.dreamer_by_did.get(did, {}).get('handle', did[:20])
             self.log(f"📝 New post from @{handle}: {text[:50]}...")
             
             # Index in background
-            self.executor.submit(self._index_post, uri, cid, did, text, created_at)
+            self.executor.submit(self._index_post, uri, cid, did, text, created_at, is_reply, is_repost)
             
         elif operation == 'delete':
             self.log(f"🗑️ Deleted post: {rkey}")
             self.executor.submit(self._delete_post, uri)
     
-    def _index_post(self, uri: str, cid: str, did: str, text: str, created_at: str):
+    def _index_post(self, uri: str, cid: str, did: str, text: str, created_at: str, is_reply: int = 0, is_repost: int = 0):
         """Background: add post to feed database and trigger celebrations."""
         try:
             from core.database import DatabaseManager
@@ -1081,13 +1084,15 @@ class FeedHandler(EventHandler):
             indexed_at = datetime.now(timezone.utc)
             
             db.execute('''
-                INSERT INTO feed_posts (uri, cid, author_did, text, created_at, indexed_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO feed_posts (uri, cid, author_did, text, created_at, indexed_at, is_reply, is_repost)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (uri) DO UPDATE SET
                     cid = EXCLUDED.cid,
                     text = EXCLUDED.text,
-                    indexed_at = EXCLUDED.indexed_at
-            ''', (uri, cid, did, text, created_at, indexed_at))
+                    indexed_at = EXCLUDED.indexed_at,
+                    is_reply = EXCLUDED.is_reply,
+                    is_repost = EXCLUDED.is_repost
+            ''', (uri, cid, did, text, created_at, indexed_at, is_reply, is_repost))
             
             # Get dreamer info for celebrations
             dreamer = self.dreamer_by_did.get(did, {})
@@ -1136,6 +1141,160 @@ class FeedHandler(EventHandler):
     def refresh_dreamers(self):
         """Reload dreamer list (call when community changes)."""
         self._load_dreamers()
+
+
+# ============================================================================
+# Post Frequency Handler — quiet-mindscape feed
+# ============================================================================
+
+class PostFreqHandler(EventHandler):
+    """
+    Tracks daily non-reply post counts for accounts followed by
+    quiet-mindscape feed viewers.
+
+    - tracked_follows table drives what DIDs we subscribe to.
+    - post_freq table accumulates daily counts.
+    - refresh_dreamers() reloads tracked_follows (called by hub every 5 min).
+    """
+
+    def __init__(self, verbose: bool = False):
+        super().__init__('postfreq', verbose)
+        self.tracked_dids: Set[str] = set()
+        self._load_tracked()
+        self._ensure_tables()
+
+    def _load_tracked(self):
+        try:
+            from core.database import DatabaseManager
+            db = DatabaseManager()
+            rows = db.fetch_all("SELECT did FROM tracked_follows")
+            self.tracked_dids = {r['did'] for r in rows}
+            self.log(f"📊 Tracking {len(self.tracked_dids)} follows for frequency indexing")
+        except Exception as e:
+            print(f"[postfreq] ❌ Error loading tracked follows: {e}")
+            self.tracked_dids = set()
+
+    def _ensure_tables(self):
+        try:
+            from core.database import DatabaseManager
+            db = DatabaseManager()
+            db.execute('''
+                CREATE TABLE IF NOT EXISTS post_freq (
+                    author_did  TEXT NOT NULL,
+                    day         DATE NOT NULL,
+                    post_count  INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (author_did, day)
+                )
+            ''')
+            db.execute('CREATE INDEX IF NOT EXISTS idx_post_freq_day    ON post_freq(day DESC)')
+            db.execute('CREATE INDEX IF NOT EXISTS idx_post_freq_author ON post_freq(author_did)')
+            db.execute('''
+                CREATE TABLE IF NOT EXISTS tracked_follows (
+                    did      TEXT PRIMARY KEY,
+                    added_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+            ''')
+            self.log("✓ Post frequency tables ready")
+        except Exception as e:
+            print(f"[postfreq] ❌ Error ensuring tables: {e}")
+
+    def refresh_dreamers(self):
+        """Reload tracked follows so the Jetstream DID filter stays current."""
+        self._load_tracked()
+
+    def get_wanted_dids(self) -> Set[str]:
+        return self.tracked_dids
+
+    def get_wanted_collections(self) -> Set[str]:
+        return {'app.bsky.feed.post'}
+
+    async def handle_event(self, event: Dict[str, Any]) -> None:
+        self.stats['events_received'] += 1
+
+        if event.get('kind') != 'commit':
+            return
+
+        commit = event.get('commit', {})
+        if commit.get('collection') != 'app.bsky.feed.post':
+            return
+
+        did = event.get('did', '')
+        if did not in self.tracked_dids:
+            return
+
+        operation = commit.get('operation', '')
+        record = commit.get('record', {})
+        rkey = commit.get('rkey', '')
+        uri = f"at://{did}/app.bsky.feed.post/{rkey}"
+
+        # Only count and store original posts — ignore replies
+        if record.get('reply'):
+            return
+
+        # Detect quote posts (reposts with commentary) — index them but don't count frequency
+        embed_type = (record.get('embed') or {}).get('$type', '')
+        is_repost = 1 if embed_type in ('app.bsky.embed.record', 'app.bsky.embed.recordWithMedia') else 0
+
+        self.stats['events_processed'] += 1
+
+        if operation == 'create':
+            cid = commit.get('cid', '')
+            text = record.get('text', '')
+            created_at = record.get('createdAt', '')
+            self.executor.submit(self._process_post, did, uri, cid, text, created_at, is_repost)
+        elif operation == 'delete':
+            self.executor.submit(self._remove_post, did, uri)
+
+    def _process_post(self, did: str, uri: str, cid: str, text: str, created_at: str, is_repost: int = 0):
+        """Background: increment daily freq counter (originals only) and store post for feed queries."""
+        try:
+            from core.database import DatabaseManager
+            from datetime import date, datetime, timezone
+            db = DatabaseManager()
+            today = date.today().isoformat()
+            indexed_at = datetime.now(timezone.utc)
+
+            # Only increment frequency for original posts, not reposts
+            if is_repost == 0:
+                db.execute('''
+                    INSERT INTO post_freq (author_did, day, post_count)
+                    VALUES (%s, %s, 1)
+                    ON CONFLICT (author_did, day) DO UPDATE SET
+                        post_count = post_freq.post_count + 1
+                ''', (did, today))
+
+            db.execute('''
+                INSERT INTO feed_posts (uri, cid, author_did, text, created_at, indexed_at, is_reply, is_repost)
+                VALUES (%s, %s, %s, %s, %s, %s, 0, %s)
+                ON CONFLICT (uri) DO UPDATE SET
+                    cid = EXCLUDED.cid,
+                    text = EXCLUDED.text,
+                    indexed_at = EXCLUDED.indexed_at,
+                    is_repost = EXCLUDED.is_repost
+            ''', (uri, cid, did, text, created_at, indexed_at, is_repost))
+        except Exception as e:
+            self.log(f"❌ Process post error: {e}")
+
+    def _remove_post(self, did: str, uri: str):
+        """Background: decrement freq counter (originals only) and remove post from feed."""
+        try:
+            from core.database import DatabaseManager
+            from datetime import date
+            db = DatabaseManager()
+            today = date.today().isoformat()
+
+            # Only decrement frequency if this was an original post (not a repost)
+            row = db.fetch_one('SELECT is_repost FROM feed_posts WHERE uri = %s', (uri,))
+            if row and row['is_repost'] == 0:
+                db.execute('''
+                    UPDATE post_freq
+                    SET post_count = GREATEST(0, post_count - 1)
+                    WHERE author_did = %s AND day = %s
+                ''', (did, today))
+
+            db.execute('DELETE FROM feed_posts WHERE uri = %s', (uri,))
+        except Exception as e:
+            self.log(f"❌ Remove post error: {e}")
 
 
 # ============================================================================
@@ -1460,9 +1619,9 @@ def main():
     
     parser = argparse.ArgumentParser(description='Jetstream Hub - Unified ATProto Event Consumer')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
-    parser.add_argument('--handlers', nargs='+', default=['dreamer', 'quest', 'biblio', 'feed', 'kindred'],
-                        choices=['dreamer', 'quest', 'biblio', 'feed', 'kindred'],
-                        help='Which handlers to enable')
+    parser.add_argument('--handlers', nargs='+', default=['dreamer', 'quest', 'feed', 'kindred'],
+                        choices=['dreamer', 'quest', 'biblio', 'feed', 'kindred', 'postfreq'],
+                        help='Which handlers to enable (biblio excluded — bibliohose.service runs separately; postfreq excluded — feedgen_updater polls instead)')
     args = parser.parse_args()
     
     # Create hub
@@ -1483,6 +1642,9 @@ def main():
     
     if 'kindred' in args.handlers:
         hub.register(KindredHandler(verbose=args.verbose))
+
+    if 'postfreq' in args.handlers:
+        hub.register(PostFreqHandler(verbose=args.verbose))
     
     # Handle signals
     def signal_handler(sig, frame):

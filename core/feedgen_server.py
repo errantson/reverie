@@ -16,11 +16,39 @@ import time
 import requests as http_requests
 from pathlib import Path
 from flask import Flask, request, jsonify
+from functools import lru_cache
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.feedgen import FeedGenerator
 from core.rate_limiter import PersistentRateLimiter
+
+# ── AT Protocol JWT verification ─────────────────────────────────────────────
+try:
+    from atproto import verify_jwt, IdResolver, DidInMemoryCache
+    _did_cache = DidInMemoryCache()
+    _id_resolver = IdResolver(cache=_did_cache)
+
+    def _get_signing_key(did: str, force_refresh: bool) -> str:
+        return _id_resolver.did.resolve_atproto_key(did, force_refresh=force_refresh)
+
+    def verify_feed_token(auth_header: str) -> str | None:
+        """
+        Verify an AT Protocol Bearer JWT from an Authorization header.
+        Returns the requester's DID on success, or None if absent/invalid.
+        """
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        token = auth_header[len('Bearer '):]
+        try:
+            payload = verify_jwt(token, _get_signing_key, own_did='did:web:reverie.house')
+            return payload.iss
+        except Exception:
+            return None
+
+except ImportError:
+    def verify_feed_token(auth_header: str) -> str | None:  # type: ignore[misc]
+        return None
 
 app = Flask(__name__)
 
@@ -61,6 +89,24 @@ def _proxy_lore_feed(limit, cursor):
 def get_client_ip():
     """Get client IP from request headers or remote_addr"""
     return request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
+
+
+def _upsert_feed_subscriber(did: str):
+    """
+    Register a quiet-mindscape viewer as a full dreamer using the shared
+    register_dreamer utility (idempotent — returns immediately if already registered).
+    Runs in a background thread so it never delays the feed response.
+    """
+    import threading
+    def _register():
+        try:
+            import sys as _sys
+            _sys.path.insert(0, str(Path(__file__).parent.parent))
+            from utils.registration import register_dreamer
+            register_dreamer(did=did, handle=None, verbose=False)
+        except Exception as e:
+            print(f"[feed-subscriber] ⚠️  register_dreamer failed for {did}: {e}")
+    threading.Thread(target=_register, daemon=True).start()
 
 
 @app.route('/.well-known/did.json')
@@ -140,7 +186,18 @@ def get_feed_skeleton():
         except Exception as e:
             print(f"✗ Lore proxy failed, falling back to local: {e}")
             # Fall through to local feed on proxy failure
-    
+
+    # Quiet Mindscape: personalized feed — requires JWT
+    if feed_name == 'quiet-mindscape':
+        viewer_did = verify_feed_token(request.headers.get('Authorization', ''))
+        if not viewer_did:
+            return jsonify({'error': 'AuthRequired', 'message': 'This feed requires authentication.'}), 401
+        _upsert_feed_subscriber(viewer_did)
+        result = generator.get_feed_skeleton(feed, limit, cursor, viewer_did=viewer_did)
+        if 'error' in result:
+            return jsonify(result), 400
+        return jsonify(result)
+
     result = generator.get_feed_skeleton(feed, limit, cursor)
     
     if 'error' in result:

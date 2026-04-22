@@ -273,7 +273,96 @@ class FeedDatabase:
             next_cursor = f"{last_row['created_at'].isoformat()}::{last_row['uri']}"
         
         return posts, next_cursor
-    
+
+    def get_quiet_dids(self, candidate_dids: set) -> set:
+        """
+        Return the subset of candidate_dids within the posting frequency threshold.
+
+        Threshold is dynamic:
+          - 2 posts / 48h if they had any posts in the 3 days prior to the window
+          - 4 posts / 48h if they've been silent for those 3 prior days
+
+        Reposts (quote posts) are not counted toward frequency.
+        Accounts with NO rows in post_freq are excluded (not yet bootstrapped).
+        """
+        if not candidate_dids:
+            return set()
+
+        ph = ','.join(['%s'] * len(candidate_dids))
+        params = list(candidate_dids)
+
+        rows = self.db.fetch_all(f'''
+            WITH bootstrapped AS (
+                SELECT DISTINCT author_did
+                FROM post_freq
+                WHERE author_did IN ({ph})
+            ),
+            recent AS (
+                SELECT author_did, SUM(post_count) AS cnt
+                FROM post_freq
+                WHERE author_did IN ({ph})
+                  AND day >= CURRENT_DATE - INTERVAL '1 day'
+                GROUP BY author_did
+            ),
+            prior AS (
+                SELECT author_did, SUM(post_count) AS cnt
+                FROM post_freq
+                WHERE author_did IN ({ph})
+                  AND day >= CURRENT_DATE - INTERVAL '4 days'
+                  AND day <  CURRENT_DATE - INTERVAL '1 day'
+                GROUP BY author_did
+            )
+            SELECT
+                b.author_did,
+                COALESCE(r.cnt, 0) AS recent_count,
+                COALESCE(p.cnt, 0) AS prior_count
+            FROM bootstrapped b
+            LEFT JOIN recent r USING (author_did)
+            LEFT JOIN prior  p USING (author_did)
+        ''', params * 3)
+
+        quiet = set()
+        for row in rows:
+            threshold = 4 if row['prior_count'] == 0 else 2
+            if row['recent_count'] <= threshold:
+                quiet.add(row['author_did'])
+        return quiet
+
+    def get_quiet_feed_posts(self, quiet_dids: set, limit: int = 30,
+                              cursor: Optional[str] = None) -> tuple:
+        """Like get_community_feed but filters out replies and reposts."""
+        if not quiet_dids:
+            return [], None
+
+        placeholders = ','.join(['%s'] * len(quiet_dids))
+        query = f'''
+            SELECT uri, created_at
+            FROM feed_posts
+            WHERE author_did IN ({placeholders})
+              AND is_reply = 0
+              AND is_repost = 0
+        '''
+        params = list(quiet_dids)
+
+        if cursor:
+            try:
+                cursor_time, cursor_uri = cursor.split('::', 1)
+                query += ' AND (created_at < %s OR (created_at = %s AND uri < %s))'
+                params.extend([cursor_time, cursor_time, cursor_uri])
+            except ValueError:
+                pass
+
+        query += ' ORDER BY created_at DESC, uri DESC LIMIT %s'
+        params.append(limit + 1)
+
+        rows = self.db.fetch_all(query, params)
+        posts = [{'post': row['uri']} for row in rows[:limit]]
+        next_cursor = None
+        if len(rows) > limit:
+            last_row = rows[limit - 1]
+            next_cursor = f"{last_row['created_at'].isoformat()}::{last_row['uri']}"
+        return posts, next_cursor
+
     def cleanup_old_posts(self, days: int = 30):
         """Remove posts that haven't been re-indexed in N days.
         
@@ -306,6 +395,11 @@ class FeedGenerator:
                 'name': 'Idle Dreaming',
                 'description': 'All manner of passing thoughts from those who visit Reverie House',
                 'avatar': 'https://reverie.house/assets/pack_face.png'
+            },
+            'quiet-mindscape': {
+                'name': 'Quiet Mindscape',
+                'description': 'Quiet posters you follow, of rarer thoughts and fewer words.',
+                'avatar': 'https://reverie.house/assets/quiet_mindscape.png'
             }
         }
         
@@ -328,7 +422,190 @@ class FeedGenerator:
     def refresh_community_dids(self):
         """Force refresh the community DIDs cache"""
         return self.get_community_dids(force_refresh=True)
-    
+
+    # ── Quiet Mindscape feed helpers ───────────────────────────────────────
+
+    def _get_viewer_follows(self, viewer_did: str) -> set:
+        """
+        Fetch all DIDs that viewer_did follows via bsky-cache.
+        Paginates up to 2 000 follows to keep latency bounded.
+        Returns a set of DID strings (empty on error).
+        """
+        follows = set()
+        cursor = None
+        max_pages = 20  # 100 per page × 20 = 2 000
+
+        for _ in range(max_pages):
+            params = {'actor': viewer_did, 'limit': 100}
+            if cursor:
+                params['cursor'] = cursor
+            try:
+                resp = requests.get(
+                    f'{BSKY_CACHE}/xrpc/app.bsky.graph.getFollows',
+                    params=params,
+                    timeout=8
+                )
+                if resp.status_code != 200:
+                    break
+                data = resp.json()
+                for f in data.get('follows', []):
+                    did = f.get('did')
+                    if did:
+                        follows.add(did)
+                cursor = data.get('cursor')
+                if not cursor:
+                    break
+            except Exception as e:
+                print(f"[quiet-mindscape] ⚠️  getFollows error: {e}")
+                break
+
+        return follows
+
+    def _ensure_tracked(self, dids: set):
+        """
+        Insert any new DIDs into tracked_follows so the PostFreqHandler
+        starts receiving their Jetstream events.  Bootstraps historical
+        post frequency + posts for newly added DIDs.
+        """
+        if not dids:
+            return
+        try:
+            # Find which DIDs are genuinely new (not already tracked)
+            placeholders = ','.join(['%s'] * len(dids))
+            existing = self.main_db.fetch_all(
+                f'SELECT did FROM tracked_follows WHERE did IN ({placeholders})',
+                list(dids)
+            )
+            existing_set = {r['did'] for r in existing}
+            new_dids = dids - existing_set
+
+            if new_dids:
+                insert_placeholders = ','.join(['(%s, NOW())'] * len(new_dids))
+                self.main_db.execute(
+                    f'INSERT INTO tracked_follows (did, added_at) VALUES {insert_placeholders} ON CONFLICT DO NOTHING',
+                    list(new_dids)
+                )
+                # Bootstrap historical data for new DIDs in background
+                # Cap at 200 to avoid overwhelming bsky-cache on first load
+                import threading
+                to_bootstrap = list(new_dids)[:200]
+                threading.Thread(
+                    target=self._bootstrap_new_tracked,
+                    args=(to_bootstrap,),
+                    daemon=True
+                ).start()
+        except Exception as e:
+            print(f"[quiet-mindscape] ⚠️  tracked_follows upsert error: {e}")
+
+    def _bootstrap_new_tracked(self, dids: list):
+        """
+        Background: seed post_freq and feed_posts for newly tracked DIDs
+        by fetching their recent author feed from bsky-cache.
+
+        Runs with max 5 concurrent workers so we don't swamp bsky-cache.
+        """
+        from concurrent.futures import ThreadPoolExecutor
+        from datetime import datetime, timezone, timedelta
+
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
+
+        def bootstrap_one(did: str):
+            try:
+                resp = requests.get(
+                    f'{BSKY_CACHE}/xrpc/app.bsky.feed.getAuthorFeed',
+                    params={'actor': did, 'limit': 50, 'filter': 'posts_no_replies'},
+                    timeout=10
+                )
+                if resp.status_code != 200:
+                    return
+                data = resp.json()
+
+                from core.database import DatabaseManager
+                db = DatabaseManager()
+                today = datetime.now(timezone.utc).date().isoformat()
+                yesterday = (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
+
+                for day in (today, yesterday):
+                    db.execute('''
+                        INSERT INTO post_freq (author_did, day, post_count)
+                        VALUES (%s, %s, 0)
+                        ON CONFLICT DO NOTHING
+                    ''', (did, day))
+
+                indexed_at = datetime.now(timezone.utc)
+                for item in data.get('feed', []):
+                    post = item.get('post', {})
+                    record = post.get('record', {})
+
+                    # Skip replies
+                    if record.get('reply'):
+                        continue
+
+                    # Detect quote posts — index them but don't count toward frequency
+                    embed_type = (record.get('embed') or {}).get('$type', '')
+                    is_repost = 1 if embed_type in ('app.bsky.embed.record', 'app.bsky.embed.recordWithMedia') else 0
+
+                    created_str = record.get('createdAt', '')
+                    try:
+                        created_dt = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                    except Exception:
+                        continue
+
+                    # Only count original posts (not reposts) within 48h
+                    if is_repost == 0 and created_dt >= cutoff:
+                        post_date = created_dt.date().isoformat()
+                        db.execute('''
+                            INSERT INTO post_freq (author_did, day, post_count)
+                            VALUES (%s, %s, 1)
+                            ON CONFLICT (author_did, day) DO UPDATE SET
+                                post_count = post_freq.post_count + 1
+                        ''', (did, post_date))
+
+                    # Store post regardless of age (for feed queries, up to last 7 days)
+                    try:
+                        if created_dt >= datetime.now(timezone.utc) - timedelta(days=7):
+                            uri = post.get('uri', '')
+                            cid = post.get('cid', '')
+                            text = record.get('text', '')
+                            if uri and cid:
+                                db.execute('''
+                                    INSERT INTO feed_posts (uri, cid, author_did, text, created_at, indexed_at, is_reply, is_repost)
+                                    VALUES (%s, %s, %s, %s, %s, %s, 0, %s)
+                                    ON CONFLICT (uri) DO NOTHING
+                                ''', (uri, cid, did, text, created_str, indexed_at, is_repost))
+                    except Exception:
+                        pass
+
+            except Exception as e:
+                print(f"[quiet-mindscape] ⚠️  bootstrap failed for {did[:20]}: {e}")
+
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            list(pool.map(bootstrap_one, dids))
+
+    def get_quiet_mindscape_feed(self, viewer_did: str, limit: int = 30,
+                                  cursor: Optional[str] = None) -> tuple:
+        """
+        Return (posts, next_cursor) for the quiet-mindscape feed.
+
+        Logic:
+          1. Fetch viewer's follows (up to 2 000) via bsky-cache.
+          2. Ensure all follows are in tracked_follows (lazy Jetstream bootstrap).
+          3. Filter to accounts that posted ≤ 2 times in the last 48 h.
+          4. Return recent non-reply feed_posts for those quiet accounts.
+        """
+        follows = self._get_viewer_follows(viewer_did)
+        if not follows:
+            return [], None
+
+        self._ensure_tracked(follows)
+
+        quiet_dids = self.feed_db.get_quiet_dids(follows)
+        if not quiet_dids:
+            return [], None
+
+        posts, next_cursor = self.feed_db.get_quiet_feed_posts(quiet_dids, limit, cursor)
+        return posts, next_cursor
+
     def sync_lore_labels(self, force: bool = False):
         """Sync indexed records from lore.farm indexer API"""
         now = datetime.now(timezone.utc)
@@ -631,7 +908,7 @@ class FeedGenerator:
         except Exception as e:
             print(f"✗ Event reconciliation error: {e}")
 
-    def get_feed_skeleton(self, feed: str, limit: int = 50, cursor: Optional[str] = None) -> Dict[str, Any]:
+    def get_feed_skeleton(self, feed: str, limit: int = 50, cursor: Optional[str] = None, **kwargs) -> Dict[str, Any]:
         """
         Main endpoint for feed generation.
         Called by Bluesky AppView with feed URI.
@@ -651,6 +928,11 @@ class FeedGenerator:
         elif feed_name == 'dreaming':
             community_dids = self.get_community_dids()
             posts, next_cursor = self.feed_db.get_community_feed(community_dids, limit, cursor)
+        elif feed_name == 'quiet-mindscape':
+            viewer_did = kwargs.get('viewer_did')
+            if not viewer_did:
+                return {'error': 'AuthRequired', 'message': 'This feed requires authentication.'}
+            posts, next_cursor = self.get_quiet_mindscape_feed(viewer_did, limit, cursor)
         else:
             posts, next_cursor = [], None
         
@@ -673,6 +955,11 @@ class FeedGenerator:
             {
                 'uri': f'at://did:web:reverie.house/app.bsky.feed.generator/dreaming',
                 **self.feeds['dreaming']
+            },
+            {
+                # Published from the reverie.house service account (did:plc)
+                'uri': 'at://did:plc:yauphjufk7phkwurn266ybx2/app.bsky.feed.generator/quiet-mindscape',
+                **self.feeds['quiet-mindscape']
             }
         ]
         

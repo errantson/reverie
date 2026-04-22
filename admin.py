@@ -767,8 +767,10 @@ def serve_dreamer_profile(name):
             print(f"[SUBDOMAIN] Using cached image for {safe_handle}")
         
         # Build profile page HTML with OG tags
-        title = f"{display_name or name}'s Profile - Reverie House"
-        description = f"View {display_name or name}'s dreamer profile and spectrum origin in the Reverie House community."
+        import html as html_lib
+        safe_display_name = html_lib.escape(display_name or name)
+        title = f"{safe_display_name}'s Profile - Reverie House"
+        description = f"View {safe_display_name}'s dreamer profile and spectrum origin in the Reverie House community."
         profile_url = f"https://reverie.house/dreamer?handle={handle}"
         
         html = f'''<!DOCTYPE html>
@@ -781,7 +783,7 @@ def serve_dreamer_profile(name):
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="profile">
     <meta property="og:url" content="https://{name}.reverie.house/">
-    <meta property="og:title" content="{display_name or name}'s Profile">
+    <meta property="og:title" content="{safe_display_name}'s Profile">
     <meta property="og:description" content="{description}">
     <meta property="og:image" content="{image_url}">
     <meta property="og:image:width" content="1280">
@@ -790,7 +792,7 @@ def serve_dreamer_profile(name):
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{display_name or name}'s Profile">
+    <meta name="twitter:title" content="{safe_display_name}'s Profile">
     <meta name="twitter:description" content="{description}">
     <meta name="twitter:image" content="{image_url}">
     
@@ -801,7 +803,7 @@ def serve_dreamer_profile(name):
     </script>
 </head>
 <body>
-    <p>Redirecting to <a href="{profile_url}">{display_name or name}'s profile</a>...</p>
+    <p>Redirecting to <a href="{profile_url}">{safe_display_name}'s profile</a>...</p>
 </body>
 </html>'''
         
@@ -1223,6 +1225,8 @@ def origin_html_with_meta():
         except Exception as e:
             print(f"Could not fetch profile for {handle}: {e}")
         
+        import html as html_lib
+        safe_display_name = html_lib.escape(display_name)
         # Read the origin.html template
         with open('site/origin.html', 'r') as f:
             html_content = f.read()
@@ -1231,7 +1235,7 @@ def origin_html_with_meta():
         # Update title
         html_content = html_content.replace(
             '<title>Spectrum Origin - Reverie House</title>',
-            f'<title>{display_name}\'s Spectrum Origin - Reverie House</title>'
+            f'<title>{safe_display_name}\'s Spectrum Origin - Reverie House</title>'
         )
         
         # Update OG tags
@@ -1241,7 +1245,7 @@ def origin_html_with_meta():
         )
         html_content = html_content.replace(
             '<meta property="og:title" content="Spectrum Origin - Reverie House">',
-            f'<meta property="og:title" content="{display_name}\'s Spectrum Origin">'
+            f'<meta property="og:title" content="{safe_display_name}\'s Spectrum Origin">'
         )
         html_content = html_content.replace(
             '<meta property="og:description" content="Discover your dreamweaver origin in the spectrum.">',
@@ -1256,7 +1260,7 @@ def origin_html_with_meta():
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{display_name}'s Spectrum Origin">
+    <meta name="twitter:title" content="{safe_display_name}'s Spectrum Origin">
     <meta name="twitter:description" content="What kind of dreamweaver are you? Visit Reverie House to discover your origins within our wild mindscape, and a community of fellow dreamers.">
     <meta name="twitter:image" content="{image_url}">'''
         
@@ -1420,22 +1424,24 @@ def origin_redirect(handle):
         except:
             pass
         
+        import html as html_lib
+        safe_display_name = html_lib.escape(display_name)
         html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{display_name}'s Spectrum Origin - Reverie House</title>
+    <title>{safe_display_name}'s Spectrum Origin - Reverie House</title>
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://reverie.house/origin/{safe_actual}">
-    <meta property="og:title" content="{display_name}'s Spectrum Origin">
+    <meta property="og:title" content="{safe_display_name}'s Spectrum Origin">
     <meta property="og:description" content="What kind of dreamweaver are you? Visit Reverie House to discover your origins within our wild mindscape, and a community of fellow dreamers.">
     <meta property="og:image" content="https://reverie.house/spectrum/{safe_actual}.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
     <meta property="og:site_name" content="Reverie House">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{display_name}'s Spectrum Origin">
+    <meta name="twitter:title" content="{safe_display_name}'s Spectrum Origin">
     <meta name="twitter:description" content="What kind of dreamweaver are you? Visit Reverie House to discover your origins within our wild mindscape, and a community of fellow dreamers.">
     <meta name="twitter:image" content="https://reverie.house/spectrum/{safe_actual}.png">
     <meta http-equiv="refresh" content="0;url=https://reverie.house/origin.html?handle={safe_actual}">
