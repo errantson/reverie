@@ -16197,6 +16197,144 @@ def serve_admin(filename):
     return send_from_directory('site/admin', filename)
 
 
+# ============================================================================
+# HANDLE SHORT-URL ROUTE  /user.handle → dreamer profile with OG preview
+# ============================================================================
+
+# File extensions that should never be treated as AT Protocol handles
+_SKIP_EXTENSIONS = {
+    'html', 'htm', 'js', 'jsx', 'ts', 'tsx', 'css', 'png', 'jpg', 'jpeg',
+    'gif', 'ico', 'svg', 'json', 'txt', 'xml', 'pdf', 'woff', 'woff2',
+    'ttf', 'eot', 'map', 'sh', 'py', 'yml', 'yaml', 'conf', 'md', 'lock',
+    'sql', 'db', 'log', 'service', 'env',
+}
+
+@app.route('/<handle>')
+def dreamer_handle_shortcut(handle):
+    """
+    Short URL for dreamer profiles: reverie.house/user.handle
+    Fetches (or generates) the origincard image, serves OG preview tags,
+    and immediately redirects the browser to /dreamer?handle=user.handle.
+    """
+    import html as html_lib
+    import os
+    from urllib.parse import quote as url_quote
+
+    handle = handle.strip().lstrip('@')
+
+    # Must contain a dot and must not be a plain file path
+    if '.' not in handle:
+        return send_from_directory('site', 'index.html')
+    ext = handle.rsplit('.', 1)[-1].lower()
+    if ext in _SKIP_EXTENSIONS:
+        return send_from_directory('site', 'index.html')
+
+    safe_handle = handle.replace('/', '').replace('\\', '').replace('..', '')
+    if not safe_handle:
+        return send_from_directory('site', 'index.html')
+
+    try:
+        from core.database import DatabaseManager
+        db = DatabaseManager()
+        cursor = db.execute("""
+            SELECT d.did, d.handle, d.display_name, d.avatar,
+                   s.oblivion, s.authority, s.skeptic, s.receptive, s.liberty, s.entropy, s.octant,
+                   s.origin_oblivion, s.origin_authority, s.origin_skeptic,
+                   s.origin_receptive, s.origin_liberty, s.origin_entropy, s.origin_octant
+            FROM dreamers d
+            LEFT JOIN spectrum s ON d.did = s.did
+            WHERE lower(d.handle) = lower(%s)
+        """, (safe_handle,))
+        dreamer = cursor.fetchone()
+
+        if not dreamer:
+            return redirect('https://reverie.house/')
+
+        display_name = dreamer['display_name'] or dreamer['handle']
+        safe_db_handle = dreamer['handle'].replace('/', '').replace('\\', '').replace('..', '')
+
+        # Check for existing origincard image; generate synchronously if absent
+        spectrum_dir = '/srv/site/spectrum'
+        image_path = os.path.join(spectrum_dir, f"{safe_db_handle}.png")
+
+        if os.path.exists(image_path):
+            image_url = f"https://reverie.house/spectrum/{url_quote(safe_db_handle, safe='@.')}.png"
+        else:
+            image_url = "https://reverie.house/assets/og-image.png"
+            try:
+                spectrum_payload = {
+                    k: (dreamer[k] or 0) for k in (
+                        'oblivion', 'authority', 'skeptic', 'receptive', 'liberty', 'entropy',
+                        'origin_oblivion', 'origin_authority', 'origin_skeptic',
+                        'origin_receptive', 'origin_liberty', 'origin_entropy',
+                    )
+                }
+                spectrum_payload['octant'] = dreamer['octant'] or 'equilibrium'
+                spectrum_payload['origin_octant'] = dreamer['origin_octant'] or 'equilibrium'
+                gen_resp = requests.post(
+                    'http://localhost:3050/generate',
+                    json={
+                        'handle': safe_db_handle,
+                        'displayName': display_name,
+                        'avatar': dreamer['avatar'],
+                        'spectrum': spectrum_payload,
+                    },
+                    timeout=15
+                )
+                if gen_resp.status_code == 200 and os.path.exists(image_path):
+                    image_url = f"https://reverie.house/spectrum/{url_quote(safe_db_handle, safe='@.')}.png"
+                else:
+                    print(f"[HANDLE SHORTCUT] Card generation failed ({gen_resp.status_code}) for {safe_db_handle}")
+            except Exception as _e:
+                print(f"[HANDLE SHORTCUT] Card generation error for {safe_db_handle}: {_e}")
+
+        profile_url = f"https://reverie.house/dreamer?handle={url_quote(safe_db_handle, safe='@.')}"
+        safe_display_name = html_lib.escape(display_name)
+        safe_description = html_lib.escape(
+            f"View {display_name}'s dreamer profile and spectrum origin in the Reverie House community."
+        )
+        safe_image_url = html_lib.escape(image_url)
+        safe_profile_url = html_lib.escape(profile_url)
+        import json as _json
+        js_redirect = _json.dumps(profile_url)
+
+        html_out = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{safe_display_name} - Reverie House</title>
+    <!-- Open Graph -->
+    <meta property="og:type" content="profile">
+    <meta property="og:url" content="https://reverie.house/{url_quote(safe_db_handle, safe='@.')}">
+    <meta property="og:title" content="{safe_display_name} - Reverie House">
+    <meta property="og:description" content="{safe_description}">
+    <meta property="og:image" content="{safe_image_url}">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="720">
+    <meta property="og:site_name" content="Reverie House">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{safe_display_name} - Reverie House">
+    <meta name="twitter:description" content="{safe_description}">
+    <meta name="twitter:image" content="{safe_image_url}">
+    <!-- Redirect -->
+    <meta http-equiv="refresh" content="0;url={safe_profile_url}">
+    <script>window.location.href = {js_redirect};</script>
+</head>
+<body>
+    <p>Redirecting to <a href="{safe_profile_url}">{safe_display_name}'s profile</a>…</p>
+</body>
+</html>'''
+        return Response(html_out, mimetype='text/html')
+
+    except Exception as e:
+        print(f"[HANDLE SHORTCUT] Error for {handle}: {e}")
+        import traceback
+        traceback.print_exc()
+        return redirect('https://reverie.house/')
+
+
 if __name__ == '__main__':
     import sys
     import threading

@@ -160,6 +160,14 @@ class SpectrumManager:
                 octant,  # origin_octant same as octant initially
                 int(__import__('time').time())
             ))
+            # Trigger async origincard generation after initial origin write
+            self.trigger_origincard_async(did, spectrum={
+                k: spectrum.get(k, 0) for k in (
+                    'oblivion', 'authority', 'skeptic', 'receptive', 'liberty', 'entropy',
+                    'origin_oblivion', 'origin_authority', 'origin_skeptic',
+                    'origin_receptive', 'origin_liberty', 'origin_entropy',
+                )
+            } | {'octant': octant, 'origin_octant': octant})
         else:
             # Movement update - only update current position
             self.db.execute("""
@@ -179,6 +187,85 @@ class SpectrumManager:
                 did
             ))
     
+    def trigger_origincard_async(self, did: str, handle: str = None, display_name: str = None,
+                                  avatar: str = None, spectrum: dict = None):
+        """
+        Fire-and-forget origincard image generation in a background thread.
+        Safe to call from any spectrum write path — looks up missing fields from DB.
+        spectrum dict should include both current and origin_* keys plus octant/origin_octant.
+        """
+        import threading
+
+        # Capture references for the thread closure
+        _did = did
+        _handle = handle
+        _display_name = display_name
+        _avatar = avatar
+        _spectrum = spectrum
+        _db = self.db
+
+        def _generate():
+            try:
+                import requests as _requests
+
+                h = _handle
+                dn = _display_name
+                av = _avatar
+                sp = _spectrum
+
+                # Look up any missing fields from the DB
+                if not h or not dn or av is None or not sp:
+                    try:
+                        cur = _db.execute("""
+                            SELECT d.handle, d.display_name, d.avatar,
+                                   s.oblivion, s.authority, s.skeptic, s.receptive, s.liberty, s.entropy, s.octant,
+                                   s.origin_oblivion, s.origin_authority, s.origin_skeptic,
+                                   s.origin_receptive, s.origin_liberty, s.origin_entropy, s.origin_octant
+                            FROM dreamers d
+                            LEFT JOIN spectrum s ON d.did = s.did
+                            WHERE d.did = %s
+                        """, (_did,))
+                        row = cur.fetchone()
+                        if row:
+                            h = h or row['handle']
+                            dn = dn or row['display_name'] or row['handle']
+                            if av is None:
+                                av = row['avatar']
+                            if not sp:
+                                sp = {k: (row[k] or 0) for k in (
+                                    'oblivion', 'authority', 'skeptic', 'receptive', 'liberty', 'entropy',
+                                    'origin_oblivion', 'origin_authority', 'origin_skeptic',
+                                    'origin_receptive', 'origin_liberty', 'origin_entropy',
+                                )}
+                                sp['octant'] = row['octant'] or 'equilibrium'
+                                sp['origin_octant'] = row['origin_octant'] or 'equilibrium'
+                    except Exception as e:
+                        print(f"[ORIGINCARD] DB lookup failed for {_did}: {e}")
+                        return
+
+                if not h or not sp:
+                    print(f"[ORIGINCARD] Missing handle or spectrum for {_did}, skipping")
+                    return
+
+                gen_resp = _requests.post(
+                    'http://localhost:3050/generate',
+                    json={
+                        'handle': h,
+                        'displayName': dn or h,
+                        'avatar': av,
+                        'spectrum': sp,
+                    },
+                    timeout=20
+                )
+                if gen_resp.status_code == 200:
+                    print(f"[ORIGINCARD] Generated card for {h}")
+                else:
+                    print(f"[ORIGINCARD] Card generation failed ({gen_resp.status_code}) for {h}")
+            except Exception as e:
+                print(f"[ORIGINCARD] Generation error for {_did}: {e}")
+
+        threading.Thread(target=_generate, daemon=True).start()
+
     def hash_did_to_seed(self, did: str) -> int:
         """
         Convert DID to deterministic seed value, relative to the keeper's DID.
@@ -553,6 +640,21 @@ class SpectrumManager:
             spectrum['authority'], spectrum['receptive'], spectrum['skeptic'],
             octant, timestamp
         ))
+        # Trigger async origincard generation after initial/reset origin write
+        self.trigger_origincard_async(did, spectrum={
+            k: spectrum.get(k, 0) for k in (
+                'oblivion', 'authority', 'skeptic', 'receptive', 'liberty', 'entropy',
+            )
+        } | {
+            'origin_oblivion': spectrum.get('oblivion', 0),
+            'origin_authority': spectrum.get('authority', 0),
+            'origin_skeptic': spectrum.get('skeptic', 0),
+            'origin_receptive': spectrum.get('receptive', 0),
+            'origin_liberty': spectrum.get('liberty', 0),
+            'origin_entropy': spectrum.get('entropy', 0),
+            'octant': octant,
+            'origin_octant': octant,
+        })
     
     def _get_origin_spectrum(self, did: str) -> Optional[Dict[str, int]]:
         """Get a dreamer's stored origin spectrum values."""

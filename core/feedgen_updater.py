@@ -162,9 +162,15 @@ class FeedUpdater:
                     author_did = post.author.did
                     text = post.record.text if hasattr(post.record, 'text') else ''
                     created_at = post.record.created_at if hasattr(post.record, 'created_at') else ''
-                    
+                    is_reply = 1 if hasattr(post.record, 'reply') and post.record.reply else 0
+                    embed = getattr(post.record, 'embed', None)
+                    embed_type = getattr(embed, 'py_type', '') if embed else ''
+                    is_repost = 1 if embed_type in (
+                        'app.bsky.embed.record', 'app.bsky.embed.recordWithMedia',
+                    ) else 0
+
                     # Add to database
-                    if self.feed_db.add_post(uri, cid, author_did, text, created_at):
+                    if self.feed_db.add_post(uri, cid, author_did, text, created_at, is_reply, is_repost):
                         fetched += 1
                     
                     # Small delay to avoid rate limiting
@@ -217,17 +223,26 @@ class FeedUpdater:
                 for feed_item in response.feed:
                     if not hasattr(feed_item, 'post'):
                         continue
-                    
+
                     post = feed_item.post
-                    
+
                     # Extract post data
                     uri = post.uri
                     cid = post.cid
                     text = post.record.text if hasattr(post.record, 'text') else ''
                     created_at = post.record.created_at if hasattr(post.record, 'created_at') else ''
-                    
+
+                    # Detect reply and repost flags
+                    is_reply = 1 if hasattr(post.record, 'reply') and post.record.reply else 0
+                    embed = getattr(post.record, 'embed', None)
+                    embed_type = getattr(embed, 'py_type', '') if embed else ''
+                    is_repost = 1 if embed_type in (
+                        'app.bsky.embed.record',
+                        'app.bsky.embed.recordWithMedia',
+                    ) else 0
+
                     # Add to database (returns True if new post)
-                    if self.feed_db.add_post(uri, cid, did, text, created_at):
+                    if self.feed_db.add_post(uri, cid, did, text, created_at, is_reply, is_repost):
                         posts_this_cycle += 1
                 
                 # Small delay to avoid rate limiting

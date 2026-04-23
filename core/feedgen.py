@@ -94,26 +94,33 @@ class FeedDatabase:
         
         self.db.execute('CREATE INDEX IF NOT EXISTS idx_feed_labels_uri ON feed_labels(uri)')
     
-    def add_post(self, uri: str, cid: str, author_did: str, text: str, created_at: str):
+    def add_post(self, uri: str, cid: str, author_did: str, text: str, created_at: str,
+                  is_reply: int = 0, is_repost: int = 0):
         """Add or update a post in the database. Returns True if new post was added."""
         indexed_at = datetime.now(timezone.utc)
-        
+
         # Check if post already exists
         existing = self.db.fetch_one('SELECT uri FROM feed_posts WHERE uri = %s', (uri,))
-        
+
         if existing:
-            return False  # Post already indexed, skip
-        
+            # Still update the reply/repost flags in case they were wrong before
+            self.db.execute('''
+                UPDATE feed_posts SET is_reply = %s, is_repost = %s WHERE uri = %s
+            ''', (is_reply, is_repost, uri))
+            return False  # Not a new post
+
         # Insert new post
         self.db.execute('''
-            INSERT INTO feed_posts (uri, cid, author_did, text, created_at, indexed_at)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO feed_posts (uri, cid, author_did, text, created_at, indexed_at, is_reply, is_repost)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (uri) DO UPDATE SET
                 cid = EXCLUDED.cid,
                 text = EXCLUDED.text,
-                indexed_at = EXCLUDED.indexed_at
-        ''', (uri, cid, author_did, text, created_at, indexed_at))
-        
+                indexed_at = EXCLUDED.indexed_at,
+                is_reply = EXCLUDED.is_reply,
+                is_repost = EXCLUDED.is_repost
+        ''', (uri, cid, author_did, text, created_at, indexed_at, is_reply, is_repost))
+
         return True  # New post added
     
     def update_labels(self, labels: List[Dict]):
@@ -248,6 +255,7 @@ class FeedDatabase:
             SELECT uri, created_at
             FROM feed_posts
             WHERE author_did IN ({did_placeholders})
+              AND is_reply = 0
         '''
         
         params = list(community_dids)

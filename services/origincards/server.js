@@ -208,41 +208,59 @@ app.post('/generate', async (req, res) => {
         
         // Text next to avatar
         const profileTextX = avatarX + avatarSize + 28;
+        // Right edge for text that needs to stay inside the box
+        const profileTextMaxX = boxX + boxWidth - 32;
+        const profileTextMaxWidth = profileTextMaxX - profileTextX;
         let textY = avatarY;
-        
+
+        // Helper: truncate text with ellipsis so it fits within maxWidth
+        function fitText(text, font, maxWidth) {
+            ctx.font = font;
+            if (ctx.measureText(text).width <= maxWidth) return text;
+            let truncated = text;
+            while (truncated.length > 1 && ctx.measureText(truncated + '…').width > maxWidth) {
+                truncated = truncated.slice(0, -1);
+            }
+            return truncated + '…';
+        }
+
         // Display name
         ctx.fillStyle = 'rgba(232, 213, 196, 0.95)';
-        ctx.font = 'bold 62px Arial, Helvetica, sans-serif';
+        const displayNameFont = 'bold 50px Arial, Helvetica, sans-serif';
+        ctx.font = displayNameFont;
         ctx.textAlign = 'left';
-        ctx.fillText(displayName || handle, profileTextX, textY + 43);
+        ctx.fillText(fitText(displayName || handle, displayNameFont, profileTextMaxWidth), profileTextX, textY + 43);
         
         // Handle
-        textY += 77;
+        textY += 63;
         ctx.fillStyle = 'rgba(201, 184, 168, 0.75)';
-        ctx.font = '40px Arial, Helvetica, sans-serif';
-        ctx.fillText(`@${handle}`, profileTextX, textY + 26);
+        const handleFont = '32px Arial, Helvetica, sans-serif';
+        ctx.font = handleFont;
+        ctx.fillText(fitText(`@${handle}`, handleFont, profileTextMaxWidth), profileTextX, textY + 26);
         
-        // Coordinates
-        textY += 54;
-        ctx.fillStyle = 'rgba(232, 213, 196, 0.95)';
-        ctx.font = 'bold 28px "Courier New", monospace';
-        // Nudge score block down-right to better align with the octant title row.
-        ctx.fillText(coordinateText, profileTextX + 24, textY + 38);
-        
-        // Octant name below avatar
+        // Octant name + coordinates on the same baseline (midline of the octant title)
         profileY = avatarY + avatarSize + 44;
         ctx.fillStyle = octantColor.base;
-        ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
+        ctx.font = 'normal bold 44px Arial, Helvetica, sans-serif';
         ctx.textAlign = 'left';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
         ctx.shadowBlur = 8;
         ctx.fillText(octantName.toUpperCase(), boxX + 48, profileY);
         ctx.shadowBlur = 0;
-        
-        // Octant description
+
+        // Coordinates — right-aligned, vertically centred on the octant title baseline
+        ctx.fillStyle = 'rgba(232, 213, 196, 0.85)';
+        ctx.font = 'bold 26px "Courier New", monospace';
+        ctx.textAlign = 'right';
+        // Shift up slightly so the smaller coordinate text sits mid-height on the 44px title
+        ctx.fillText(coordinateText, boxX + boxWidth - 32, profileY - 6);
+        ctx.textAlign = 'left';
+
+        // Octant description on the line below
         profileY += 41;
         ctx.fillStyle = octantColor.base;
         ctx.font = 'italic 26px Georgia, serif';
+        ctx.textAlign = 'left';
         ctx.fillText(octantInfo.desc, boxX + 48, profileY);
         
         // Divider
@@ -303,8 +321,8 @@ app.post('/generate', async (req, res) => {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.fillRect(midlineX - 3.5, y - 9, 7, 60);
             
-            // Axis titles
-            ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+            // Axis titles — explicitly set normal to prevent italic bleed from description
+            ctx.font = 'normal bold 27px Arial, Helvetica, sans-serif';
             ctx.textAlign = 'left';
             ctx.fillStyle = pair.left.color.replace(')', ', 0.9)').replace('rgb', 'rgba');
             ctx.fillText(pair.left.name.toUpperCase(), barStartX, y - 14);
@@ -334,25 +352,34 @@ app.post('/generate', async (req, res) => {
             ctx.shadowOffsetY = 0;
         });
         
-        // Add logo to bottom-right
+        // Add logo to bottom-right with deep shadow
         if (logo) {
             const logoWidth = 330;
             const logoHeight = (logo.height / logo.width) * logoWidth;
             const logoX = boxX + boxWidth - logoWidth - 30 + (logoWidth * 1.25) - 15 - 5 - 4;
             const logoY = boxY + boxHeight - logoHeight - 20 + 5;
-            
-            ctx.shadowColor = 'rgba(0, 0, 0, 1)';
-            ctx.shadowBlur = 60;
+
+            // Layer 1: wide dark halo
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+            ctx.shadowBlur = 80;
             ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 25;
+            ctx.shadowOffsetY = 10;
             ctx.drawImage(logo, logoX, logoY, logoWidth, logoHeight);
-            
-            // Reset shadow
+
+            // Layer 2: tighter solid shadow for depth
+            ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+            ctx.shadowBlur = 30;
+            ctx.shadowOffsetX = 4;
+            ctx.shadowOffsetY = 20;
+            ctx.drawImage(logo, logoX, logoY, logoWidth, logoHeight);
+
+            // Layer 3: final crisp draw with no shadow
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            
+            ctx.drawImage(logo, logoX, logoY, logoWidth, logoHeight);
+
             console.log('✅ Logo drawn');
         }
         
