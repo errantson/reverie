@@ -427,7 +427,7 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                     'highlight'
                 ))
                 
-                db.commit()
+                pass  # db.execute() auto-commits
                 
                 if verbose:
                     print(f"   ✅ Confirmed name: {current_name}")
@@ -471,7 +471,7 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                     'highlight'
                 ))
                 
-                db.commit()
+                pass  # db.execute() auto-commits
                 
                 result['success'] = True
                 continue
@@ -521,7 +521,7 @@ def name_dreamer(replies: List[Dict], quest_config: Dict, forced_name: str = Non
                 'highlight'  # color_intensity
             ))
             
-            db.commit()
+            pass  # db.execute() auto-commits
             
             # Rebuild Caddy for subdomain changes
             if proposed_name != current_name:
@@ -671,7 +671,7 @@ def add_kindred(replies: List[Dict], quest_config: Dict, verbose: bool = False) 
                 if verbose:
                     print(f"   🤝 Added kindred: {author_did[:12]}... <-> {target_did[:12]}...")
             
-            db.commit()
+            pass  # db.execute() auto-commits
             result['success'] = True
             
         except Exception as e:
@@ -765,7 +765,7 @@ def mod_spectrum(replies: List[Dict], quest_config: Dict,
                 1            # color_intensity
             ))
             
-            db.commit()
+            pass  # db.execute() auto-commits
             
             if verbose:
                 mod_str = ', '.join(f"{k}: {v:+d}" for k, v in modifications.items())
@@ -903,7 +903,7 @@ def add_canon(replies: List[Dict], quest_config: Dict, canon_key: str,
                 'highlight'
             ))
             
-            db.commit()
+            pass  # db.execute() auto-commits
             
             if verbose:
                 print(f"   📖 Canon: {dreamer['name']} {canon_event}")
@@ -1033,7 +1033,7 @@ def add_name(replies: List[Dict], quest_config: Dict, new_name: str,
                     WHERE did = %s
                 """, (new_name, new_alts, int(time.time()), author_did))
                 
-                db.commit()
+                pass  # db.execute() auto-commits
                 
                 if verbose:
                     print(f"   🔄 Promoted alt to primary: {current_name} → {new_name}")
@@ -1063,7 +1063,7 @@ def add_name(replies: List[Dict], quest_config: Dict, new_name: str,
                 WHERE did = %s
             """, (new_name, new_alts, int(time.time()), author_did))
             
-            db.commit()
+            pass  # db.execute() auto-commits
             
             if verbose:
                 print(f"   ✨ Renamed: {current_name} → {new_name}")
@@ -1156,7 +1156,7 @@ def award_souvenir(replies: List[Dict], quest_config: Dict, souvenir_key: str,
                 ON CONFLICT (did, souvenir_key) DO NOTHING
             """, (author_did, souvenir_key, int(time.time())))
             
-            db.commit()
+            pass  # db.execute() auto-commits
             
             if verbose:
                 print(f"   🎁 Awarded souvenir '{souvenir_key}' to {dreamer['name']}")

@@ -1,5 +1,6 @@
 import os
 import re
+import unicodedata
 from typing import List, Dict, Optional, Tuple
 
 class NameManager:
@@ -13,7 +14,12 @@ class NameManager:
         """Sanitize and validate a name for use in the system."""
         if not name or not isinstance(name, str):
             return None
-        
+
+        # Transliterate accented/unicode characters to ASCII equivalents
+        # e.g. é→e, ü→u, ñ→n, so "Sébastien" becomes "Sebastien" not "sbastien"
+        nfkd = unicodedata.normalize('NFKD', name)
+        name = ''.join(c for c in nfkd if not unicodedata.combining(c))
+
         cleaned = re.sub(r'[^A-Za-z0-9_\-\s]', '', name.strip())
         sanitized = re.sub(r'\s+', '', cleaned)[:20]
         
@@ -213,7 +219,11 @@ class NameManager:
         text_lower = re.sub(r'^(ich\s+hei[sß]e|ich\s+bin|mein\s+name\s+ist)\s+', '', text_lower)
         text_lower = re.sub(r'^(nenn\s+mich|name:)\s+', '', text_lower)
         
-        words = re.findall(r'\b[a-zA-Z][a-zA-Z0-9_-]*\b', text_lower)
+        # Normalize accented characters to ASCII before word extraction
+        # so names like "sébastien" match the ASCII-only word pattern
+        nfkd_lower = unicodedata.normalize('NFKD', text_lower)
+        text_ascii = ''.join(c for c in nfkd_lower if not unicodedata.combining(c))
+        words = re.findall(r'\b[a-zA-Z][a-zA-Z0-9_-]*\b', text_ascii)
         
         excluded_words = {
             'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',

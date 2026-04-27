@@ -224,6 +224,14 @@ class FeedUpdater:
                     if not hasattr(feed_item, 'post'):
                         continue
 
+                    # Skip native reposts — these carry the original post's URI
+                    # but we would store them under the wrong author_did, which
+                    # causes foreign authors (including bots) to appear in the feed.
+                    reason = getattr(feed_item, 'reason', None)
+                    reason_type = getattr(reason, 'py_type', '') if reason else ''
+                    if reason_type == 'app.bsky.feed.defs#reasonRepost':
+                        continue
+
                     post = feed_item.post
 
                     # Extract post data
@@ -232,8 +240,9 @@ class FeedUpdater:
                     text = post.record.text if hasattr(post.record, 'text') else ''
                     created_at = post.record.created_at if hasattr(post.record, 'created_at') else ''
 
-                    # Detect reply and repost flags
+                    # Detect reply flags
                     is_reply = 1 if hasattr(post.record, 'reply') and post.record.reply else 0
+                    # Detect quote posts (which use the author's own embedding, not a reason field)
                     embed = getattr(post.record, 'embed', None)
                     embed_type = getattr(embed, 'py_type', '') if embed else ''
                     is_repost = 1 if embed_type in (
@@ -317,6 +326,12 @@ class FeedUpdater:
 
                     if record.get('reply'):
                         continue  # replies filtered by posts_no_replies but double-check
+
+                    # Skip native reposts — reason.$type identifies them and the post
+                    # URI belongs to the original author, not the tracked follow.
+                    reason_type = (item.get('reason') or {}).get('$type', '')
+                    if reason_type == 'app.bsky.feed.defs#reasonRepost':
+                        continue
 
                     embed_type = (record.get('embed') or {}).get('$type', '')
                     is_repost  = 1 if embed_type in EMBED_REPOST else 0

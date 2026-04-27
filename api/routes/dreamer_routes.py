@@ -1007,15 +1007,15 @@ def calculate_spectrum():
             
             if response.status_code == 200:
                 profile = response.json()
-                profile_handle = profile.get('handle', 'unknown')
+                profile_handle = profile.get('handle', '') or ''
                 display_name = profile.get('displayName', profile_handle)
                 avatar = profile.get('avatar')
             else:
-                profile_handle = handle or 'unknown'
+                profile_handle = handle or ''
                 display_name = profile_handle
         except Exception as e:
             print(f"Warning: Failed to fetch profile from ATP: {e}")
-            profile_handle = handle or 'unknown'
+            profile_handle = handle or ''
             display_name = profile_handle
         
         # Use the handle from profile, fallback to input handle
@@ -1137,10 +1137,13 @@ def calculate_spectrum():
                 ))
                 print(f"✅ Created arrival event for {handle}")
                 
-                # Store spectrum data in spectrum table
+                # Store spectrum data in spectrum table — set origin_* on first write
                 db.execute("""
-                    INSERT INTO spectrum (did, oblivion, authority, skeptic, receptive, liberty, entropy, octant, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO spectrum (did, oblivion, authority, skeptic, receptive, liberty, entropy, octant,
+                                         origin_oblivion, origin_authority, origin_skeptic,
+                                         origin_receptive, origin_liberty, origin_entropy, origin_octant,
+                                         updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (did) DO UPDATE SET
                         oblivion = EXCLUDED.oblivion,
                         authority = EXCLUDED.authority,
@@ -1159,6 +1162,14 @@ def calculate_spectrum():
                     spectrum_values['liberty'],
                     spectrum_values['entropy'],
                     octant,
+                    # origin_* = same as current on first write
+                    spectrum_values['oblivion'],
+                    spectrum_values['authority'],
+                    spectrum_values['skeptic'],
+                    spectrum_values['receptive'],
+                    spectrum_values['liberty'],
+                    spectrum_values['entropy'],
+                    octant,
                     int(time.time())
                 ))
                 print(f"✅ Stored spectrum data for {handle}")
@@ -1168,13 +1179,26 @@ def calculate_spectrum():
                 print(f"⏭️  Skipping dreamer creation for {handle} (AUTO_CREATE_DREAMERS=false)")
             else:
                 # Update existing dreamer with latest profile data
-                db.execute("""
-                    UPDATE dreamers 
-                    SET handle = %s, display_name = %s, avatar = %s
-                    WHERE did = %s
-                """, (
-                    handle, display_name or handle, avatar, did
-                ))
+                # Only update handle if we got a valid one (not empty, not fallback)
+                _bad_handles = {'', 'unknown', 'handle.invalid'}
+                if handle and handle not in _bad_handles:
+                    db.execute("""
+                        UPDATE dreamers 
+                        SET handle = %s, display_name = %s, avatar = %s
+                        WHERE did = %s
+                    """, (
+                        handle, display_name or handle, avatar, did
+                    ))
+                else:
+                    # Profile fetch failed — skip handle update, only refresh avatar/display_name if available
+                    if avatar or (display_name and display_name not in _bad_handles):
+                        db.execute("""
+                            UPDATE dreamers 
+                            SET display_name = %s, avatar = %s
+                            WHERE did = %s
+                        """, (
+                            display_name or handle, avatar, did
+                        ))
                 
                 # Update spectrum in spectrum table
                 db.execute("""

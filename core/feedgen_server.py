@@ -95,6 +95,8 @@ def _upsert_feed_subscriber(did: str):
     """
     Register a quiet-mindscape viewer as a full dreamer using the shared
     register_dreamer utility (idempotent — returns immediately if already registered).
+    Records feed_origin='quiet-mindscape' so these accounts are identifiable
+    as feed-only subscribers rather than intentional community sign-ups.
     Runs in a background thread so it never delays the feed response.
     """
     import threading
@@ -103,7 +105,7 @@ def _upsert_feed_subscriber(did: str):
             import sys as _sys
             _sys.path.insert(0, str(Path(__file__).parent.parent))
             from utils.registration import register_dreamer
-            register_dreamer(did=did, handle=None, verbose=False)
+            register_dreamer(did=did, handle=None, verbose=False, feed_origin='quiet-mindscape')
         except Exception as e:
             print(f"[feed-subscriber] ⚠️  register_dreamer failed for {did}: {e}")
     threading.Thread(target=_register, daemon=True).start()

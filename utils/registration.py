@@ -27,7 +27,8 @@ def register_dreamer(
     profile: Optional[Dict] = None,
     proposed_name: Optional[str] = None,
     canon_entries: Optional[list] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    feed_origin: Optional[str] = None,
 ) -> Dict:
     """
     Universal dreamer registration function.
@@ -379,8 +380,8 @@ def register_dreamer(
         db.execute("""
             INSERT INTO dreamers 
             (did, handle, name, display_name, description, avatar, banner, color_hex,
-             followers_count, follows_count, posts_count, server, arrival, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             followers_count, follows_count, posts_count, server, arrival, created_at, updated_at, feed_origin)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (did) DO UPDATE SET
                 handle = EXCLUDED.handle,
                 name = EXCLUDED.name,
@@ -397,7 +398,8 @@ def register_dreamer(
                 created_at = EXCLUDED.created_at,
                 updated_at = EXCLUDED.updated_at
         """, (did, handle, dreamer_name, display_name, description, avatar, banner, default_color,
-              followers_count, follows_count, posts_count, server, arrival_timestamp, created_at_str, now))
+              followers_count, follows_count, posts_count, server, arrival_timestamp, created_at_str, now,
+              feed_origin))
         
         # Cache avatar locally for posterity
         if avatar and avatar.startswith('https://cdn.bsky.app/'):

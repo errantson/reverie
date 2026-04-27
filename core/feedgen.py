@@ -93,6 +93,15 @@ class FeedDatabase:
         ''')
         
         self.db.execute('CREATE INDEX IF NOT EXISTS idx_feed_labels_uri ON feed_labels(uri)')
+
+        # Muted accounts — excluded from community feeds
+        self.db.execute('''
+            CREATE TABLE IF NOT EXISTS feed_muted (
+                did TEXT PRIMARY KEY,
+                reason TEXT,
+                muted_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+        ''')
     
     def add_post(self, uri: str, cid: str, author_did: str, text: str, created_at: str,
                   is_reply: int = 0, is_repost: int = 0):
@@ -244,42 +253,84 @@ class FeedDatabase:
         
         return posts, next_cursor
     
+    # Maximum posts any single author contributes per feed response page.
+    DREAMING_PER_USER_CAP = 3
+
+    @staticmethod
+    def _text_key(text: Optional[str]) -> Optional[str]:
+        """Normalised key used to detect repeated posts from the same author."""
+        if not text or len(text) < 30:
+            return None
+        return ''.join(text.lower().split())[:80]
+
     def get_community_feed(self, community_dids: set, limit: int = 50, cursor: Optional[str] = None) -> tuple[List[Dict], Optional[str]]:
-        """Get all posts from community members"""
+        """Get all posts from community members, capped per-author to avoid flood.
+
+        Applies three spam-reduction layers:
+          1. Muted DIDs are excluded at the SQL level.
+          2. Per-author cap (DREAMING_PER_USER_CAP posts per page).
+          3. Repeat-text dedup: further posts from the same author with the
+             same normalised text prefix are skipped.
+        """
         if not community_dids:
             return [], None
-        
-        # Build query with DID list
+
+        # Build query with DID list. We fetch a larger window so the per-author
+        # cap doesn't leave the page sparse: window = limit × cap to ensure we
+        # can produce `limit` diverse posts even in the worst case.
         did_placeholders = ','.join(['%s'] * len(community_dids))
-        query = f'''
-            SELECT uri, created_at
+        window = limit * self.DREAMING_PER_USER_CAP
+
+        base_query = f'''
+            SELECT uri, created_at, author_did, text
             FROM feed_posts
             WHERE author_did IN ({did_placeholders})
               AND is_reply = 0
+              AND author_did NOT IN (SELECT did FROM feed_muted)
         '''
-        
+
         params = list(community_dids)
-        
+
         if cursor:
             try:
                 cursor_time, cursor_uri = cursor.split('::', 1)
-                query += ' AND (created_at < %s OR (created_at = %s AND uri < %s))'
+                base_query += ' AND (created_at < %s OR (created_at = %s AND uri < %s))'
                 params.extend([cursor_time, cursor_time, cursor_uri])
             except ValueError:
                 pass
-        
-        query += ' ORDER BY created_at DESC, uri DESC LIMIT %s'
-        params.append(limit + 1)
-        
-        rows = self.db.fetch_all(query, params)
-        
-        posts = [{'post': row['uri']} for row in rows[:limit]]
-        
+
+        base_query += ' ORDER BY created_at DESC, uri DESC LIMIT %s'
+        params.append(window)
+
+        rows = self.db.fetch_all(base_query, params)
+
+        # Apply per-author cap + repeat-text dedup in Python after fetching.
+        author_counts: dict = {}
+        author_texts: dict = {}   # did -> set of seen text keys
+        capped: list = []
+        for row in rows:
+            did = row['author_did']
+            count = author_counts.get(did, 0)
+            if count >= self.DREAMING_PER_USER_CAP:
+                continue
+            key = self._text_key(row.get('text'))
+            if key is not None:
+                seen = author_texts.setdefault(did, set())
+                if key in seen:
+                    continue  # duplicate text from this author
+                seen.add(key)
+            capped.append(row)
+            author_counts[did] = count + 1
+            if len(capped) >= limit + 1:
+                break
+
+        posts = [{'post': row['uri']} for row in capped[:limit]]
+
         next_cursor = None
-        if len(rows) > limit:
-            last_row = rows[limit - 1]
+        if len(capped) > limit:
+            last_row = capped[limit - 1]
             next_cursor = f"{last_row['created_at'].isoformat()}::{last_row['uri']}"
-        
+
         return posts, next_cursor
 
     def get_quiet_dids(self, candidate_dids: set) -> set:

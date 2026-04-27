@@ -881,14 +881,14 @@
             const isOwnPost = isLoggedIn && session.did === authorDid;
 
             let actionsHtml = '';
-            if (isLoggedIn && (isBskyPost || isBranchline)) {
+            if (isBskyPost || isBranchline) {
                 const escapedDisplayName = escapeForAttribute(authorDisplayName);
                 const truncatedText = rawText.substring(0, 30) + (rawText.length > 30 ? '...' : '');
                 const escapedPostText = escapeForAttribute(truncatedText);
 
                 actionsHtml = `
                     <div class="story-actions">
-                        ${isBskyPost ? `
+                        ${isLoggedIn && isBskyPost ? `
                         <button class="story-action-btn like-btn"
                                 data-uri="${story.uri}"
                                 data-cid="${story.cid || ''}"
@@ -931,7 +931,7 @@
                                 title="Share this post link on Bluesky">
                             <span>Share</span>
                         </button>
-                        ${!isOwnPost ? `
+                        ${isLoggedIn && !isOwnPost ? `
                         <button class="story-action-btn hide-btn"
                                 data-uri="${story.uri}"
                                 data-handle="${authorHandle}"

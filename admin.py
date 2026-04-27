@@ -3290,6 +3290,26 @@ def admin_delete_user(did):
         except Exception as e:
             print(f"⚠️ user_credentials deletion note: {e}")
 
+        # ---- 3a. Remove DID from events.others[] (no FK, not cascade-cleaned) ----
+        # Events reference other participants via a text[] array with no FK constraint.
+        # When a dreamer is deleted, any events that list their DID in others[] must be
+        # cleaned up manually to prevent 'unknown' from appearing in the /database view.
+        try:
+            db.execute("""
+                DELETE FROM events
+                WHERE type = 'kindred'
+                  AND others @> ARRAY[%s::text]
+                  AND NOT EXISTS (SELECT 1 FROM dreamers WHERE did = ANY(others) AND did != %s)
+            """, (did, did))
+            db.execute("""
+                UPDATE events
+                SET others = array_remove(others, %s::text)
+                WHERE others @> ARRAY[%s::text]
+                  AND array_length(others, 1) > 1
+            """, (did, did))
+        except Exception as e:
+            print(f"⚠️ events.others cleanup note: {e}")
+
         # ---- 3. Delete from dreamers (CASCADE handles most related tables) ----
         # The schema has ON DELETE CASCADE for:
         #   spectrum, credentials, events, awards, messages, actions,
@@ -16247,14 +16267,71 @@ def dreamer_handle_shortcut(handle):
         """, (safe_handle,))
         dreamer = cursor.fetchone()
 
+        spectrum_dir = '/srv/site/spectrum'
+        import json as _json
+
         if not dreamer:
-            return redirect('https://reverie.house/')
+            # Handle not in DB — try to resolve via AT Protocol and generate card
+            try:
+                calc_response = requests.get(
+                    f"http://localhost:4444/api/spectrum/calculate?handle={safe_handle}",
+                    timeout=10
+                )
+                if calc_response.status_code != 200:
+                    return redirect('https://reverie.house/')
+                calc_data = calc_response.json()
+                actual_handle = calc_data.get('handle', safe_handle)
+                safe_actual = actual_handle.replace('/', '').replace('\\', '').replace('..', '')
+                image_path_unregd = os.path.join(spectrum_dir, f"{safe_actual}.png")
+                if not os.path.exists(image_path_unregd):
+                    gen_resp = requests.post(
+                        'http://localhost:3050/generate',
+                        json={
+                            'handle': actual_handle,
+                            'displayName': calc_data.get('display_name', actual_handle),
+                            'avatar': calc_data.get('avatar'),
+                            'spectrum': calc_data.get('spectrum', {}),
+                        },
+                        timeout=15
+                    )
+                    if gen_resp.status_code != 200:
+                        return redirect(f'https://reverie.house/dreamer?handle={url_quote(safe_actual, safe="@.")}')
+                _dn = html_lib.escape(calc_data.get('display_name', actual_handle) or actual_handle)
+                _img = html_lib.escape(f"https://reverie.house/spectrum/{url_quote(safe_actual, safe='@.')}.png")
+                _dest = url_quote(safe_actual, safe='@.')
+                _dest_url = html_lib.escape(f"https://reverie.house/dreamer?handle={_dest}")
+                _js_dest = _json.dumps(f"https://reverie.house/dreamer?handle={_dest}")
+                return Response(f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{_dn} - Reverie House</title>
+    <meta property="og:type" content="profile">
+    <meta property="og:url" content="https://reverie.house/{_dest}">
+    <meta property="og:title" content="{_dn} - Reverie House">
+    <meta property="og:description" content="View {_dn}&#39;s dreamer profile and spectrum origin in the Reverie House community.">
+    <meta property="og:image" content="{_img}">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="720">
+    <meta property="og:site_name" content="Reverie House">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{_dn} - Reverie House">
+    <meta name="twitter:description" content="View {_dn}&#39;s dreamer profile and spectrum origin in the Reverie House community.">
+    <meta name="twitter:image" content="{_img}">
+    <meta http-equiv="refresh" content="0;url={_dest_url}">
+    <script>window.location.href = {_js_dest};</script>
+</head>
+<body><p>Redirecting to <a href="{_dest_url}">{_dn}&#39;s profile</a>&#8230;</p></body>
+</html>''', mimetype='text/html')
+            except Exception as _unregd_e:
+                print(f"[HANDLE SHORTCUT] Unregistered resolve failed for {handle}: {_unregd_e}")
+                return redirect('https://reverie.house/')
 
         display_name = dreamer['display_name'] or dreamer['handle']
         safe_db_handle = dreamer['handle'].replace('/', '').replace('\\', '').replace('..', '')
 
         # Check for existing origincard image; generate synchronously if absent
-        spectrum_dir = '/srv/site/spectrum'
         image_path = os.path.join(spectrum_dir, f"{safe_db_handle}.png")
 
         if os.path.exists(image_path):
@@ -16295,7 +16372,6 @@ def dreamer_handle_shortcut(handle):
         )
         safe_image_url = html_lib.escape(image_url)
         safe_profile_url = html_lib.escape(profile_url)
-        import json as _json
         js_redirect = _json.dumps(profile_url)
 
         html_out = f'''<!DOCTYPE html>
