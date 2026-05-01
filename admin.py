@@ -61,6 +61,7 @@ def _is_safe_pds_endpoint(endpoint):
 _COL_ENCODE = {
     'app.bsky.feed.post': 'b',
     'ink.branchline.bud': 'l',
+    'site.standard.document': 'd',
 }
 _COL_DECODE = {v: k for k, v in _COL_ENCODE.items()}
 
@@ -285,8 +286,8 @@ def _get_story_preview_payload(target_uri):
                 record = rec_data.get('value', {}) if isinstance(rec_data.get('value'), dict) else {}
                 payload['record_type'] = record.get('$type', collection)
                 payload['title'] = record.get('title', '') or ''
-                payload['text'] = payload['text'] or record.get('text', '') or ''
-                payload['created_at'] = record.get('createdAt') or payload['created_at']
+                payload['text'] = payload['text'] or record.get('text', '') or record.get('textContent', '') or ''
+                payload['created_at'] = record.get('createdAt') or record.get('publishedAt') or payload['created_at']
                 raw_formatting = record.get('formatting')
                 if isinstance(raw_formatting, list):
                     cleaned = []
@@ -332,6 +333,8 @@ def _get_story_preview_payload(target_uri):
 
     if payload['record_type'] == 'ink.branchline.bud':
         payload['external_url'] = f'https://branchline.ink/bud/{did}/{rkey}'
+    elif payload['record_type'] == 'site.standard.document':
+        payload['external_url'] = f'https://pds.ls/{target_uri}'
     else:
         payload['external_url'] = f'https://pds.ls/{target_uri}'
 
@@ -2436,12 +2439,12 @@ def story_feed():
                 except Exception:
                     continue
 
-                text = record.get('text', '') if isinstance(record, dict) else ''
+                text = ((record.get('text', '') or record.get('textContent', '')) if isinstance(record, dict) else '')
                 title = record.get('title', '') if isinstance(record, dict) else ''
                 formatting = record.get('formatting', []) if isinstance(record, dict) else []
                 title_formatting = record.get('titleFormatting', []) if isinstance(record, dict) else []
                 record_type = record.get('$type', collection) if isinstance(record, dict) else collection
-                created_at = (record.get('createdAt', '') if isinstance(record, dict) else '') or meta.get('createdAt', '')
+                created_at = (record.get('createdAt', '') or record.get('publishedAt', '') if isinstance(record, dict) else '') or meta.get('createdAt', '')
 
                 handle = ''
                 display_name = ''
@@ -4031,6 +4034,8 @@ def preview_post():
             external_url = f'https://bsky.app/profile/{actor}/post/{rkey}'
         elif collection == 'ink.branchline.bud':
             external_url = f'https://branchline.ink/bud/{did}/{rkey}'
+        elif collection == 'site.standard.document':
+            external_url = f'https://pds.ls/{uri}'
 
         return jsonify({
             'ok': True,

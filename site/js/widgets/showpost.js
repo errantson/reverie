@@ -56,7 +56,7 @@ class ShowPost {
                 throw new Error('Unsupported AT URI format');
             }
 
-            const postData = parsed.collection === 'ink.branchline.bud'
+            const postData = (parsed.collection === 'ink.branchline.bud' || parsed.collection === 'site.standard.document')
                 ? await this.fetchBranchlinePost(uri)
                 : await this.fetchPost(uri);
             const dreamerColor = await this.fetchDreamerColor(postData.author.did, postData.author.handle);
@@ -80,7 +80,7 @@ class ShowPost {
             this.shadowbox.contentContainer.appendChild(this.container);
             
             // Render content
-            if (postData.recordType === 'ink.branchline.bud') {
+            if (postData.recordType === 'ink.branchline.bud' || postData.recordType === 'site.standard.document') {
                 await this.renderBranchlinePost(postData, dreamerColor);
             } else {
                 await this.renderPost(postData, dreamerColor);
@@ -179,6 +179,9 @@ class ShowPost {
             const { did, rkey } = parts;
             return `https://branchline.ink/bud/${encodeURIComponent(did)}/${encodeURIComponent(rkey)}`;
         }
+        if (parts?.collection === 'site.standard.document') {
+            return `https://pds.ls/${uri}`;
+        }
         return uri;
     }
 
@@ -249,8 +252,8 @@ class ShowPost {
             uri,
             recordType: record.$type || 'ink.branchline.bud',
             title: record.title || '',
-            text: record.text || '',
-            createdAt: record.createdAt || data.createdAt || null,
+            text: record.text || record.textContent || '',
+            createdAt: record.createdAt || record.publishedAt || data.createdAt || null,
             formatting: Array.isArray(record.formatting) ? record.formatting : [],
             author: {
                 did: data.did || '',
@@ -433,7 +436,7 @@ class ShowPost {
             </div>
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-top: 1px solid ${borderColor}; background: ${dreamerColor}; color: ${textColor}; flex-shrink: 0;">
                 <span class="activity-time" style="cursor: default; color: ${textColor}; opacity: ${handleOpacity};">${when}</span>
-                <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time" style="color: ${textColor}; font-weight: 600; text-decoration-color: ${textColor};">Branch Story</a>
+                <a href="${postUrl}" target="_blank" rel="noopener" class="activity-time" style="color: ${textColor}; font-weight: 600; text-decoration-color: ${textColor};">${postData.recordType === 'site.standard.document' ? 'Read Story' : 'Branch Story'}</a>
             </div>
         `;
     }

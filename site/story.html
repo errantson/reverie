@@ -194,7 +194,7 @@
                 const parts = rest.split('/');
                 if (parts.length < 3) return '';
                 const [did, collection, rkey] = parts;
-                const colMap = { 'app.bsky.feed.post': 'b', 'ink.branchline.bud': 'l' };
+                const colMap = { 'app.bsky.feed.post': 'b', 'ink.branchline.bud': 'l', 'site.standard.document': 'd' };
                 const didPart = did.startsWith('did:plc:') ? did.slice(8) : ('w.' + did.replace('did:web:', ''));
                 const colPart = colMap[collection] || collection;
                 return `${didPart}.${colPart}.${rkey}`;
@@ -206,7 +206,7 @@
         function decodeStoryId(id) {
             if (!id) return '';
             try {
-                const colDecodeMap = { 'b': 'app.bsky.feed.post', 'l': 'ink.branchline.bud' };
+                const colDecodeMap = { 'b': 'app.bsky.feed.post', 'l': 'ink.branchline.bud', 'd': 'site.standard.document' };
                 const parts = id.split('.');
                 if (parts.length >= 3) {
                     const rkey = parts[parts.length - 1];
@@ -818,14 +818,15 @@
             const recordType = story.recordType || (story.uri.includes('/app.bsky.feed.post/') ? 'app.bsky.feed.post' : '');
             const isBskyPost = recordType === 'app.bsky.feed.post';
             const isBranchline = recordType === 'ink.branchline.bud';
-            const storyFormatting = isBranchline ? convertBranchlineFormatting(rawText, story.formatting) : [];
-            const titleFormatting = isBranchline ? convertBranchlineFormatting(story.title || '', story.titleFormatting) : [];
-            const isLongForm = isBranchline;
+            const isStandard = recordType === 'site.standard.document';
+            const isLongForm = isBranchline || isStandard;
+            const storyFormatting = isLongForm ? convertBranchlineFormatting(rawText, story.formatting) : [];
+            const titleFormatting = isLongForm ? convertBranchlineFormatting(story.title || '', story.titleFormatting) : [];
             const fullEncoded = encodeURIComponent(rawText);
             const formattingEncoded = encodeURIComponent(JSON.stringify(storyFormatting));
             const preview = getStoryPreview(rawText);
-            const needsExpand = isBranchline && preview.truncated;
-            const previewHtml = isBranchline
+            const needsExpand = isLongForm && preview.truncated;
+            const previewHtml = isLongForm
                 ? renderStoryTextHtml(preview.text, sliceStoryFormatting(storyFormatting, 0, preview.text.length), preview.truncated ? '…' : '')
                 : linkifyHandles(rawText);
 
@@ -881,7 +882,7 @@
             const isOwnPost = isLoggedIn && session.did === authorDid;
 
             let actionsHtml = '';
-            if (isBskyPost || isBranchline) {
+            if (isBskyPost || isBranchline || isStandard) {
                 const escapedDisplayName = escapeForAttribute(authorDisplayName);
                 const truncatedText = rawText.substring(0, 30) + (rawText.length > 30 ? '...' : '');
                 const escapedPostText = escapeForAttribute(truncatedText);
@@ -940,7 +941,7 @@
                             <span>Hide</span>
                         </button>
                         ` : ''}
-                        ${(isBskyPost || isBranchline) && isOwnPost ? `
+                        ${(isBskyPost || isBranchline || isStandard) && isOwnPost ? `
                         <button class="story-action-btn delete-btn"
                                 data-uri="${story.uri}"
                                 data-cid="${story.cid || ''}"
@@ -954,14 +955,14 @@
             }
 
             const canonBadge = story.isCanon ? '<span class="badge canon">canon</span>' : '<span class="badge lore">lore</span>';
-            const titleHtml = isBranchline && story.title
+            const titleHtml = isLongForm && story.title
                 ? `<div class="story-title">${renderFormattedInline(story.title, titleFormatting)}</div>`
                 : '';
             const expandHtml = needsExpand
                 ? `<button class="story-expand-btn" type="button" data-expanded="false" onclick="toggleStoryExpand(this)">Expand Story</button>`
                 : '';
 
-            const contentHtml = isBranchline
+            const contentHtml = isLongForm
                 ? `<div class="story-copy-box story-copy-box-longform">
                             ${titleHtml}
                             <div class="story-text story-text-longform"
@@ -1001,7 +1002,9 @@
                                     data-title="${escapedShareTitle}"
                                     data-handle="${escapeForAttribute(authorHandle || '')}"
                                     onclick="openBranchStory(this.dataset.uri, this.dataset.cid, this.dataset.title, this.dataset.handle); return false;">Branch Story →</a>`
-                                : `<a href="${postUrl}" target="_blank" class="post-link">${isBskyPost ? 'View →' : 'Open Record →'}</a>`}
+                                : isStandard
+                                    ? `<a href="${storyPermalink}" class="post-link">Read Story →</a>`
+                                    : `<a href="${postUrl}" target="_blank" class="post-link">${isBskyPost ? 'View →' : 'Open Record →'}</a>`}
                         </div>
                     </div>
                 </div>

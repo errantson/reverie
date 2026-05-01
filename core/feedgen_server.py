@@ -26,7 +26,13 @@ from core.rate_limiter import PersistentRateLimiter
 # ── AT Protocol JWT verification ─────────────────────────────────────────────
 try:
     from atproto import verify_jwt, IdResolver, DidInMemoryCache
-    _did_cache = DidInMemoryCache()
+
+    class _SafeDidCache(DidInMemoryCache):
+        """Patch for atproto ≥0.0.65: delete() raises KeyError on cache miss."""
+        def delete(self, did: str) -> None:
+            self._cache.pop(did, None)
+
+    _did_cache = _SafeDidCache()
     _id_resolver = IdResolver(cache=_did_cache)
 
     def _get_signing_key(did: str, force_refresh: bool) -> str:

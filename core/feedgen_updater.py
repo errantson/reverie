@@ -18,6 +18,7 @@ This replaces the unreliable firehose_indexer with scheduled polling.
 import sys
 import time
 import json
+import threading
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Set, List, Dict, Optional
@@ -55,6 +56,13 @@ class FeedUpdater:
 
         # Round-robin offset for post_freq polling
         self._postfreq_offset = 0
+
+        # Consecutive API failure tracker for auto-deactivation
+        self._dreamer_error_counts: dict = {}
+        self._DEACTIVATE_THRESHOLD = 5
+
+        # Shutdown event used to cleanly stop background threads
+        self._shutdown = threading.Event()
         
         self.log(f"🔄 Feed Updater initialized", force=True)
         self.log(f"   Community: {len(self.community_dids)} dreamers", force=True)
@@ -65,10 +73,28 @@ class FeedUpdater:
             timestamp = datetime.now().strftime("%H:%M:%S")
             print(f"[{timestamp}] {message}")
     
+    def _postfreq_loop(self):
+        """Background thread: refresh post_freq every 5 minutes, independent of main cycle."""
+        # Give the main loop a head start on first boot
+        self._shutdown.wait(timeout=60)
+        while not self._shutdown.is_set():
+            try:
+                self.update_post_freq(batch_size=200)
+            except Exception as e:
+                self.log(f"   ✗ post_freq loop error: {e}", force=True)
+            # Sleep 5 minutes, but wake immediately on shutdown
+            self._shutdown.wait(timeout=5 * 60)
+
     def run(self):
-        """Main run loop - update feeds every minute"""
-        self.log("✅ Feed updater running. Refreshing every minute...", force=True)
+        """Main run loop - community feed refresh. post_freq runs in a background thread."""
+        self.log("✅ Feed updater running.", force=True)
         self.log("   Press Ctrl+C to stop", force=True)
+
+        # post_freq is heavy (~40s per 200 DIDs). Run it on its own 5-minute
+        # cycle so it doesn't block or bloat the community-poll loop.
+        pf_thread = threading.Thread(target=self._postfreq_loop, daemon=True, name='postfreq')
+        pf_thread.start()
+        self.log("   post_freq thread started (5-min interval)", force=True)
         
         try:
             while True:
@@ -77,7 +103,7 @@ class FeedUpdater:
                 
                 self.log(f"\n🔄 Update cycle #{self.stats['cycles']} starting", force=True)
                 
-                # 1. Sync labels from lore.farm (every 5 cycles = ~5 min)
+                # 1. Sync labels from lore.farm (every 5 cycles)
                 # Lore feed now proxies to lore.farm directly; this sync is
                 # only needed for the events/history system on reverie.house.
                 if self.stats['cycles'] % 5 == 1:
@@ -86,25 +112,18 @@ class FeedUpdater:
                 # 2. Fetch recent posts from community members
                 self.update_community_posts()
 
-                # 3. Refresh post_freq for tracked quiet-mindscape follows (every cycle)
-                self.update_post_freq(batch_size=200)
-
-                # 4. Clean up old posts (every 10 cycles = ~20 minutes)
+                # 3. Clean up old posts (every 10 cycles)
                 if self.stats['cycles'] % 10 == 0:
                     self.cleanup_old_posts()
                 
                 cycle_time = time.time() - cycle_start
                 self.log(f"✅ Cycle complete in {cycle_time:.1f}s", force=True)
                 self.print_stats()
-                
-                # Wait until next cycle (1 minute total)
-                sleep_time = max(0, 60 - cycle_time)
-                if sleep_time > 0:
-                    self.log(f"⏸️  Sleeping {sleep_time:.0f}s until next cycle...")
-                    time.sleep(sleep_time)
+                # No forced 60s sleep — let the cycle breathe naturally
                     
         except KeyboardInterrupt:
             self.log("\n🛑 Feed updater shutting down...", force=True)
+            self._shutdown.set()
             self.print_final_stats()
     
     def sync_labels(self):
@@ -254,14 +273,40 @@ class FeedUpdater:
                     if self.feed_db.add_post(uri, cid, did, text, created_at, is_reply, is_repost):
                         posts_this_cycle += 1
                 
+                # Successful fetch — clear any consecutive error count
+                self._dreamer_error_counts.pop(did, None)
+
                 # Small delay to avoid rate limiting
                 time.sleep(0.1)
                 
             except Exception as e:
+                error_str = str(e)
                 if self.verbose:
                     self.log(f"   ✗ Error fetching posts for @{handle}: {e}")
                 errors_this_cycle += 1
                 self.stats['errors'] += 1
+
+                # Auto-deactivate after repeated permanent errors (deleted/suspended accounts)
+                _PERMANENT = ('Profile not found', 'AccountTakedown', 'AccountDeactivated', 'AccountSuspended')
+                if any(sig in error_str for sig in _PERMANENT):
+                    count = self._dreamer_error_counts.get(did, 0) + 1
+                    self._dreamer_error_counts[did] = count
+                    if count >= self._DEACTIVATE_THRESHOLD:
+                        try:
+                            self.main_db.execute(
+                                "UPDATE dreamers SET deactivated = TRUE WHERE did = %s", (did,)
+                            )
+                            self.log(
+                                f"   ⚠️  Auto-deactivated @{handle} ({did[:24]}…) "
+                                f"after {count} consecutive permanent errors",
+                                force=True
+                            )
+                            self._dreamer_error_counts.pop(did, None)
+                        except Exception as db_err:
+                            self.log(f"   ✗ Could not auto-deactivate @{handle}: {db_err}", force=True)
+                else:
+                    # Transient error — don't count toward deactivation threshold
+                    self._dreamer_error_counts.pop(did, None)
         
         self.stats['posts_added'] += posts_this_cycle
         self.log(f"   ✓ Processed {posts_this_cycle} posts ({errors_this_cycle} errors)")
@@ -329,9 +374,13 @@ class FeedUpdater:
 
                     # Skip native reposts — reason.$type identifies them and the post
                     # URI belongs to the original author, not the tracked follow.
+                    # Also guard on URI prefix: if post.uri doesn't belong to `did`,
+                    # this is not their post regardless of whether reason is populated.
                     reason_type = (item.get('reason') or {}).get('$type', '')
                     if reason_type == 'app.bsky.feed.defs#reasonRepost':
                         continue
+                    if not post.get('uri', '').startswith(f'at://{did}/'):
+                        continue  # URI belongs to a different author — skip
 
                     embed_type = (record.get('embed') or {}).get('$type', '')
                     is_repost  = 1 if embed_type in EMBED_REPOST else 0
@@ -388,7 +437,7 @@ class FeedUpdater:
         self.log(f"   ✓ post_freq: {processed} updated, {errors} errors")
 
     def cleanup_old_posts(self, days: int = 30):
-        """Remove posts that haven't been re-indexed in N days"""
+        """Remove posts that haven't been re-indexed in N days, and old post_freq rows"""
         self.log(f"🧹 Cleaning up posts not seen in {days} days...")
         try:
             deleted = self.feed_db.cleanup_old_posts(days)
@@ -396,6 +445,17 @@ class FeedUpdater:
         except Exception as e:
             self.log(f"   ✗ Cleanup failed: {e}", force=True)
             self.stats['errors'] += 1
+
+        # post_freq rows older than 7 days are never used — rolling activity metric only
+        try:
+            result = self.feed_db.db.execute(
+                "DELETE FROM post_freq WHERE day < now() - interval '7 days'"
+            )
+            pf_deleted = result.rowcount if hasattr(result, 'rowcount') else 0
+            if pf_deleted > 0:
+                self.log(f"   ✓ Removed {pf_deleted} stale post_freq rows")
+        except Exception as e:
+            self.log(f"   ✗ post_freq cleanup failed: {e}", force=True)
     
     def print_stats(self):
         """Print current stats"""

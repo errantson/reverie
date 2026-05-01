@@ -600,6 +600,16 @@ class FeedGenerator:
                     if record.get('reply'):
                         continue
 
+                    # Skip native reposts — post.uri is the ORIGINAL author's URI, not did's.
+                    # Check both the reason flag AND the URI prefix so we're covered even
+                    # if bsky-cache omits the reason field.
+                    reason_type = (item.get('reason') or {}).get('$type', '')
+                    if reason_type == 'app.bsky.feed.defs#reasonRepost':
+                        continue
+                    post_uri = post.get('uri', '')
+                    if not post_uri.startswith(f'at://{did}/'):
+                        continue  # URI belongs to a different author — skip
+
                     # Detect quote posts — index them but don't count toward frequency
                     embed_type = (record.get('embed') or {}).get('$type', '')
                     is_repost = 1 if embed_type in ('app.bsky.embed.record', 'app.bsky.embed.recordWithMedia') else 0

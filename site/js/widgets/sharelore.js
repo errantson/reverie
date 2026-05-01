@@ -109,7 +109,7 @@ class ShareLore {
                             type="text" 
                             id="postUriInput" 
                             class="share-modal-input" 
-                            placeholder="https://bsky.app/profile/yourhandle/post/... or https://branchline.ink/bud/..."
+                            placeholder="https://bsky.app/profile/yourhandle/post/... or https://branchline.ink/bud/... or at://did:plc:.../site.standard.document/..."
                             autocomplete="off"
                             spellcheck="false"
                         />
@@ -773,7 +773,7 @@ class ShareLore {
                 const session = window.oauthManager ? window.oauthManager.getSession() : null;
                 const userDid = session ? (session.did || session.sub) : null;
 
-                if (parsed.type === 'branchline') {
+                if (parsed.type === 'branchline' || parsed.type === 'standard') {
                     const response = await fetch('/api/preview-post', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -789,7 +789,7 @@ class ShareLore {
                     this.currentPostAuthorDid = data.did || author.did || '';
                     this.currentPostCid = data.cid || '';
                     this.currentSubjectUri = data.uri || parsed.atUri;
-                    this.currentRecordType = record.$type || 'ink.branchline.bud';
+                    this.currentRecordType = record.$type || (parsed.type === 'standard' ? 'site.standard.document' : 'ink.branchline.bud');
 
                     document.getElementById('previewAvatar').src = author.avatar || '/assets/icon_face.png';
                     document.getElementById('previewName').textContent = author.displayName || author.handle || 'Unknown';
@@ -797,7 +797,7 @@ class ShareLore {
                     const previewTitle = document.getElementById('previewTitle');
                     const previewText = document.getElementById('previewText');
                     const rawTitle = record.title || '';
-                    const rawText = record.text || '';
+                    const rawText = record.text || record.textContent || '';
 
                     if (previewTitle) {
                         if (rawTitle) {
@@ -942,6 +942,9 @@ class ShareLore {
         }
         if (collection === 'ink.branchline.bud') {
             return { type: 'branchline', atUri: uri };
+        }
+        if (collection === 'site.standard.document') {
+            return { type: 'standard', atUri: uri };
         }
         return null;
     }
